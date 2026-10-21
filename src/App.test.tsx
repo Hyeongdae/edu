@@ -61,13 +61,13 @@ describe("App authentication gate", () => {
     expect(screen.queryByRole("button", { name: "회사 계정으로 로그인" })).not.toBeInTheDocument();
   });
 
-  it("renders the protected shell for a signed-in account", () => {
+  it("renders the protected game for a signed-in account", () => {
     authState.isAuthenticated = true;
     authState.accounts = [{ name: "홍길동" }];
     render(<App configurationError={null} />);
 
-    expect(screen.getByText("홍길동님, 환영합니다.")).toBeVisible();
-    expect(screen.getByText("게임 앱 준비 중")).toBeVisible();
+    expect(screen.getByText("홍길동")).toBeVisible();
+    expect(screen.getByRole("button", { name: /시작하기/ })).toBeVisible();
     expect(authState.setActiveAccount).toHaveBeenCalledWith(authState.accounts[0]);
   });
 

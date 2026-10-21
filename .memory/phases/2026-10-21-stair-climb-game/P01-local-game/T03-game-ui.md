@@ -1,6 +1,6 @@
 # Task: T03 게임 화면 및 조작
 
-## Status: pending
+## Status: done
 
 ## Goal
 인증된 사용자에게 밝은 2D 만화풍 계단 게임을 제공하고, 데스크톱 D/J 키와 모바일 앞으로/회전 버튼으로 게임 엔진을 조작하게 한다.
@@ -55,11 +55,11 @@
 - **State Transition & Return**: 모든 입력은 `applyInput` 하나를 통해 상태를 갱신한다.
 
 ## Acceptance Criteria
-- [ ] D/J와 모바일 버튼이 동일한 게임 규칙을 호출한다.
-- [ ] 오입력 시 500ms 동안 넘어짐 연출과 입력 잠금이 보인다.
-- [ ] 좁은 모바일 화면에서도 HUD, 계단, 버튼이 겹치지 않고 조작 가능하다.
-- [ ] 점수·기회·이벤트 게이지·추격자 상태가 게임 엔진 값과 일치한다.
-- [ ] 키 입력의 중복 전달과 텍스트 필드 입력 간섭이 없다.
+- [x] D/J와 모바일 버튼이 동일한 게임 규칙을 호출한다.
+- [x] 오입력 시 500ms 동안 넘어짐 연출과 입력 잠금이 보인다.
+- [x] 좁은 모바일 화면에서도 HUD, 계단, 버튼이 겹치지 않고 조작 가능하다.
+- [x] 점수·기회·이벤트 게이지·추격자 상태가 게임 엔진 값과 일치한다.
+- [x] 키 입력의 중복 전달과 텍스트 필드 입력 간섭이 없다.
 
 ## Validation
 - `npm run test -- --run src/game/GameScreen.test.tsx` — 키 매핑, 버튼 라벨, 종료 상태 비활성화 검증.
@@ -80,6 +80,6 @@ Task: T03-game-ui
 ```
 
 ## Progress
-- [ ] 구현 완료
-- [ ] 검증 통과
-- commit: pending
+- [x] 구현 완료
+- [x] 검증 통과 (`npm run test -- --run`, `npm run lint`, `npm run build`; 1280px·390px 시각 확인)
+- commit: `feat(ui): build responsive stair climbing game screen`
