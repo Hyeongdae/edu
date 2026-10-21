@@ -94,4 +94,4 @@ Task: T01-vite-entra-auth
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과 (npm run test -- --run, npm run lint, npm run build)
-- commit: Git 설치 후 누락된 커밋을 복구 중
+- commit: `42726cd01770444d3814e80e09c26251bc751d96` (`feat(app): scaffold React app with Entra sign-in`)
