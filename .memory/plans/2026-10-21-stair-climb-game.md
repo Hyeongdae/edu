@@ -6,7 +6,7 @@ Vite와 React로 Entra ID 로그인이 필요한 사내용 계단 오르기 게�
 ## Phases
 | Phase | Status | Summary | Blueprint |
 | :--- | :--- | :--- | :--- |
-| P01 | `in_progress` | React 기반 인증·게임 규칙·반응형 화면·로컬 랭킹·오디오 구현 | [P01](../phases/2026-10-21-stair-climb-game/P01-local-game/phase.md) |
+| P01 | `done ✅` | React 기반 인증·게임 규칙·반응형 화면·로컬 랭킹·오디오 구현 | [P01](../phases/2026-10-21-stair-climb-game/P01-local-game/phase.md) |
 
 ## Scope and Assumptions
 - 새 프로젝트는 TypeScript 기반 Vite + React로 구성한다.
@@ -36,4 +36,4 @@ Vite와 React로 Entra ID 로그인이 필요한 사내용 계단 오르기 게�
 ## Deferred
 - Azure 호스팅과 서버 기반 공유 랭킹은 로컬 게임 완성 후 별도 계획으로 다룬다. 이 저장소에는 기존 Azure 서비스 설정이 없다.
 - Entra 앱 등록 및 조직 테넌트 값은 구현 환경에서 사용자가 제공해야 한다. 비밀 값은 프런트엔드에 저장하지 않는다.
-- BGM과 효과음의 실제 음원 선택은 T05에서 허용된 사용 범위와 출처를 확인한 뒤 진행한다. 출처, 라이선스, 요구되는 표기를 `public/audio/LICENSES.md`에 기록한다.
+- BGM과 효과음의 실제 음원, 허용된 사용 범위, 출처 및 요구 표기는 T05의 `public/audio/LICENSES.md`에 기록했다.
