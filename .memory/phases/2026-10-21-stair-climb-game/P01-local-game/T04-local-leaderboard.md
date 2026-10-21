@@ -1,6 +1,6 @@
 # Task: T04 로컬 랭킹 및 게임 종료 연결
 
-## Status: pending
+## Status: done
 
 ## Goal
 게임 종료 시 Entra 계정별 최고 점수를 브라우저에 저장하고, 현재 브라우저에 저장된 기록 중 상위 10명을 표시하며 새 게임을 시작할 수 있게 한다.
@@ -73,10 +73,10 @@
 - **Error & Exception Handling**: `getItem`, `setItem`, `removeItem` 각각의 예외를 테스트한다.
 
 ## Acceptance Criteria
-- [ ] 로그인 사용자의 기록은 브라우저 로컬 저장소에서 계정별 최고 점수 하나로 유지된다.
-- [ ] 상위 10개가 점수 내림차순으로 표시되고 동점은 먼저 달성한 점수가 앞선다.
-- [ ] 세 번째 포획 뒤 게임 결과, 랭킹, 다시 시작 동작이 연결된다.
-- [ ] 손상되거나 쓸 수 없는 저장소가 게임 플레이를 중단시키지 않는다.
+- [x] 로그인 사용자의 기록은 브라우저 로컬 저장소에서 계정별 최고 점수 하나로 유지된다.
+- [x] 상위 10개가 점수 내림차순으로 표시되고 동점은 먼저 달성한 점수가 앞선다.
+- [x] 세 번째 포획 뒤 게임 결과, 랭킹, 다시 시작 동작이 연결된다.
+- [x] 손상되거나 쓸 수 없는 저장소가 게임 플레이를 중단시키지 않는다.
 
 ## Validation
 - `npm run test -- --run src/leaderboard/leaderboard.test.ts src/leaderboard/LeaderboardPanel.test.tsx src/game/GameScreen.test.tsx` — 저장 및 게임 종료 통합 테스트 통과.
@@ -97,6 +97,6 @@ Task: T04-local-leaderboard
 ```
 
 ## Progress
-- [ ] 구현 완료
-- [ ] 검증 통과
-- commit: pending
+- [x] 구현 완료
+- [x] 검증 통과 (`npm run test -- --run src/leaderboard/leaderboard.test.ts src/leaderboard/LeaderboardPanel.test.tsx src/game/GameScreen.test.tsx`, `npm run lint`, `npm run build`)
+- commit: `feat(leaderboard): save local best scores per Entra account`

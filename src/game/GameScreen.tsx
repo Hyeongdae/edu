@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { AccountInfo } from "@azure/msal-browser";
-import { applyInput, createGameState, startGame, tickGame } from "./gameEngine";
+import { applyInput, createGameState, resetGame, startGame, tickGame } from "./gameEngine";
 import { ControlButtons } from "./ControlButtons";
 import { GameHud } from "./GameHud";
 import { StairScene } from "./StairScene";
 import type { GameInput } from "./types";
+import { LeaderboardPanel } from "../leaderboard/LeaderboardPanel";
+import { readLeaderboard, saveBestScore, type LeaderboardEntry } from "../leaderboard/leaderboard";
 import "./game.css";
 
 interface GameScreenProps {
@@ -25,6 +27,9 @@ function isTextEntryTarget(target: EventTarget | null): boolean {
 export function GameScreen({ account }: GameScreenProps) {
   const [gameState, setGameState] = useState(() => createGameState());
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>(() => readLeaderboard());
+  const [saveError, setSaveError] = useState(false);
+  const scoreSavedRef = useRef(false);
 
   const handleInput = useCallback((input: GameInput) => {
     const inputTime = Date.now();
@@ -33,9 +38,28 @@ export function GameScreen({ account }: GameScreenProps) {
   }, []);
 
   const handleStart = () => {
+    scoreSavedRef.current = false;
+    setSaveError(false);
     setNowMs(Date.now());
-    setGameState((state) => startGame(state));
+    setGameState((state) => startGame(state.status === "game-over" ? resetGame() : state));
   };
+
+  useEffect(() => {
+    if (gameState.status !== "game-over" || scoreSavedRef.current) return;
+    scoreSavedRef.current = true;
+
+    const result = account.homeAccountId
+      ? saveBestScore({
+          accountId: account.homeAccountId,
+          displayName: account.name || "이름 없음",
+          bestScore: gameState.score,
+        })
+      : { entries: leaderboard, saved: false };
+    window.setTimeout(() => {
+      setLeaderboard(result.entries);
+      setSaveError(!result.saved);
+    }, 0);
+  }, [account.homeAccountId, account.name, gameState.score, gameState.status, leaderboard]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -139,12 +163,26 @@ export function GameScreen({ account }: GameScreenProps) {
           <button className="start-button" type="button" onClick={handleStart}>
             <span aria-hidden="true">▶</span> 시작하기
           </button>
-        ) : (
+        ) : gameState.status === "playing" ? (
           <ControlButtons
             onForward={() => handleInput("forward")}
             onTurn={() => handleInput("turn")}
             disabled={controlsDisabled}
           />
+        ) : (
+          <section className="game-over-panel" aria-labelledby="game-over-title">
+            <div className="game-over-result">
+              <span className="game-over-icon" aria-hidden="true">🏁</span>
+              <p className="game-over-kicker">이번 도전 결과</p>
+              <h2 id="game-over-title">{gameState.score}점</h2>
+              <p>계단 {gameState.stepsClimbed}개를 올랐어요.</p>
+              {saveError && <p className="leaderboard-error" role="status">기록을 저장하지 못했습니다. 이 브라우저의 저장 공간을 확인해 주세요.</p>}
+              <button className="start-button restart-button" type="button" onClick={handleStart}>
+                <span aria-hidden="true">↻</span> 다시 시작
+              </button>
+            </div>
+            <LeaderboardPanel entries={leaderboard} currentAccountId={account.homeAccountId} />
+          </section>
         )}
         <p className="game-footer">방향을 잘 맞춰 계속 올라가세요!</p>
       </div>

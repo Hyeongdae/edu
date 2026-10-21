@@ -1,5 +1,6 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { StrictMode } from "react";
 import type { AccountInfo } from "@azure/msal-browser";
 import { GameScreen } from "./GameScreen";
 
@@ -15,6 +16,7 @@ const account = {
 describe("GameScreen controls", () => {
   afterEach(() => {
     cleanup();
+    window.localStorage.clear();
     vi.useRealTimers();
     vi.restoreAllMocks();
   });
@@ -61,11 +63,12 @@ describe("GameScreen controls", () => {
     expect(screen.getByTestId("score-value")).toHaveTextContent("0");
   });
 
-  it("disables controls after game over", async () => {
+  it("saves the final score once, shows the ranking, and restarts a fresh game", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(1_000);
     vi.spyOn(Math, "random").mockReturnValue(0.5);
-    render(<GameScreen account={account} />);
+    const saveSpy = vi.spyOn(Storage.prototype, "setItem");
+    render(<StrictMode><GameScreen account={account} /></StrictMode>);
 
     fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
     for (let mistake = 0; mistake < 12; mistake += 1) {
@@ -76,7 +79,35 @@ describe("GameScreen controls", () => {
     }
 
     expect(screen.getByText(/게임 종료/)).toBeVisible();
-    expect(screen.getByRole("button", { name: "앞으로 한 칸 오르기" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "방향을 바꾸며 오르기" })).toBeDisabled();
+    expect(screen.getByRole("heading", { name: "0점" })).toBeVisible();
+    expect(screen.getByText("홍길동", { selector: ".leaderboard-name" }).closest("li")).toHaveClass("is-current-player");
+    expect(saveSpy).toHaveBeenCalledTimes(1);
+    expect(window.localStorage.getItem("stair-climb:leaderboard:v1")).toContain("local-account");
+
+    fireEvent.click(screen.getByRole("button", { name: /다시 시작/ }));
+    expect(screen.getByRole("button", { name: "앞으로 한 칸 오르기" })).toBeEnabled();
+    expect(screen.getByTestId("score-value")).toHaveTextContent("0");
+    expect(screen.queryByText(/게임 종료/)).not.toBeInTheDocument();
+  });
+
+  it("keeps the result and restart available when local storage fails", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1_000);
+    vi.spyOn(Math, "random").mockReturnValue(0.5);
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new DOMException("full", "QuotaExceededError");
+    });
+    render(<GameScreen account={account} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    for (let mistake = 0; mistake < 12; mistake += 1) {
+      fireEvent.keyDown(window, { key: "j" });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(500);
+      });
+    }
+
+    expect(screen.getByText("기록을 저장하지 못했습니다. 이 브라우저의 저장 공간을 확인해 주세요.")).toBeVisible();
+    expect(screen.getByRole("button", { name: /다시 시작/ })).toBeEnabled();
   });
 });
