@@ -1,14 +1,16 @@
-# Current Context
+﻿# Current Context
 
 ## Active Plan
-[계단 오르기 게임](./plans/2026-10-21-stair-climb-game.md)
+[로컬 웹 테스트 모드](./plans/2026-10-21-local-web-demo.md)
 
 ## Active Phase
-[P01 로컬 게임 구현](./phases/2026-10-21-stair-climb-game/P01-local-game/phase.md)
+[P01 로컬 데모 모드](./phases/2026-10-21-local-web-demo/P01-local-demo/phase.md)
 
 ## Active Task
-없음 — 현재 Phase의 T01–T05 작업이 모두 완료되었습니다.
+없음 — 로컬 웹 데모 모드의 T01 작업을 완료했습니다.
+
 ## Status
-- T05 오디오·설정 구현 및 자동 검증 완료, 커밋 `3fb2a02`. 브라우저 실청 테스트는 Entra 환경 설정 후 진행해야 합니다.
+- 개발 전용 로컬 데모 경로 구현 및 검증 완료. 브라우저 개발 서버가 http://127.0.0.1:5173/ 에서 실행 중입니다.
+
 ## Next Step (IMPORTANT)
-`.env.example`을 참고해 `.env.local`에 Entra Client ID와 Tenant ID를 설정한 뒤 `npm run dev`로 로그인·오디오를 수동 확인하세요.
+브라우저에서 `http://127.0.0.1:5173/`을 열어 시작하기, D/J 조작, 오디오를 확인하세요. 실제 회사 로그인 테스트는 `.env.local`에서 `VITE_LOCAL_DEMO_MODE=false`로 바꾸고 Entra 값을 채운 뒤 진행합니다.

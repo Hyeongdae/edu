@@ -9,6 +9,7 @@ import "./app.css";
 
 interface AppProps {
   configurationError: string | null;
+  localDemoMode?: boolean;
 }
 
 function AuthConfigurationMessage({ message }: { message: string }) {
@@ -27,9 +28,7 @@ function AuthConfigurationMessage({ message }: { message: string }) {
   );
 }
 
-function ProtectedAppShell() {
-  const { accounts, instance } = useMsal();
-  const account = instance.getActiveAccount() ?? accounts[0];
+function GameAppShell({ account }: { account: AccountInfo }) {
   const [audioController] = useState(() => createAudioController());
   const [audioPreferences, setAudioPreferences] = useState(() => loadAudioPreferences());
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
@@ -39,7 +38,7 @@ function ProtectedAppShell() {
   }, [audioController, audioPreferences]);
 
   useEffect(() => {
-    if (!account?.homeAccountId) return undefined;
+    if (!account.homeAccountId) return undefined;
     let mounted = true;
     void audioController.startBgm().then((playing) => {
       if (mounted) setAutoplayBlocked(!playing);
@@ -48,7 +47,7 @@ function ProtectedAppShell() {
       mounted = false;
       audioController.dispose();
     };
-  }, [account?.homeAccountId, audioController]);
+  }, [account.homeAccountId, audioController]);
 
   const handleAudioPreferencesChange = (next: AudioPreferences) => {
     setAudioPreferences(next);
@@ -59,6 +58,22 @@ function ProtectedAppShell() {
   const enableAudio = () => {
     void audioController.startBgm().then((playing) => setAutoplayBlocked(!playing));
   };
+
+  return (
+    <GameScreen
+      account={account}
+      audioController={audioController}
+      audioPreferences={audioPreferences}
+      autoplayBlocked={autoplayBlocked}
+      onAudioPreferencesChange={handleAudioPreferencesChange}
+      onEnableAudio={enableAudio}
+    />
+  );
+}
+
+function ProtectedAppShell() {
+  const { accounts, instance } = useMsal();
+  const account = instance.getActiveAccount() ?? accounts[0];
 
   if (!account) {
     return (
@@ -72,19 +87,23 @@ function ProtectedAppShell() {
     );
   }
 
-  return (
-    <GameScreen
-      account={account as AccountInfo}
-      audioController={audioController}
-      audioPreferences={audioPreferences}
-      autoplayBlocked={autoplayBlocked}
-      onAudioPreferencesChange={handleAudioPreferencesChange}
-      onEnableAudio={enableAudio}
-    />
-  );
+  return <GameAppShell account={account as AccountInfo} />;
 }
 
-export default function App({ configurationError }: AppProps) {
+const localDemoAccount: AccountInfo = {
+  homeAccountId: "local-demo-account",
+  environment: "local",
+  tenantId: "local",
+  username: "local-demo@localhost",
+  localAccountId: "local-demo-account",
+  name: "로컬 테스트 사용자",
+};
+
+export default function App({ configurationError, localDemoMode = false }: AppProps) {
+  if (localDemoMode) {
+    return <GameAppShell account={localDemoAccount} />;
+  }
+
   if (configurationError) {
     return <AuthConfigurationMessage message={configurationError} />;
   }

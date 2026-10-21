@@ -80,4 +80,16 @@ describe("authenticated audio setup", () => {
     fireEvent.click(screen.getByRole("button", { name: "배경 음악 켜기" }));
     expect(JSON.parse(window.localStorage.getItem("stair-climb:audio:v1") ?? "{}")).toMatchObject({ bgmMuted: false });
   });
+
+  it("opens the game with the local demo account without showing Entra setup", () => {
+    AppAudio.instances = [];
+    AppAudio.outcomes = [true];
+    vi.stubGlobal("Audio", AppAudio);
+
+    render(<App configurationError="Entra 설정이 필요합니다." localDemoMode />);
+
+    expect(screen.getByText("로컬 테스트 사용자")).toBeVisible();
+    expect(screen.getByRole("button", { name: /시작하기/ })).toBeVisible();
+    expect(screen.queryByText("Entra 설정이 필요합니다.")).not.toBeInTheDocument();
+  });
 });

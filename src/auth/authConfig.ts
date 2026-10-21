@@ -27,6 +27,9 @@ export function getAuthConfigurationError(
 const environment = import.meta.env;
 const tenantId = environment.VITE_ENTRA_TENANT_ID?.trim() ?? "";
 
+export const isLocalDemoMode =
+  environment.DEV && environment.VITE_LOCAL_DEMO_MODE?.trim() === "true";
+
 export const authConfigurationError = getAuthConfigurationError(environment);
 
 export const msalConfig: Configuration = {
