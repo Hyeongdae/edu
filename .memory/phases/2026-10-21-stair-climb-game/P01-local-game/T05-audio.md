@@ -8,19 +8,20 @@
 ## Decision Summary
 - 사용 권한이 확인된 짧은 경쾌한 아케이드 루프 BGM, 돌계단 발소리, 묵직한 넘어짐 효과음을 포함한다.
 - 더블 점수 이벤트 동안 BGM 재생 속도를 1.25배로 올린다. BGM과 효과음은 각각 볼륨·음소거를 독립 조절한다.
+- 선택 음원은 OpenGameArt의 `Happy Loop`(wipics, CC0), Wikimedia Commons `Concrete Steps 2`(Pwaivers, CC BY-SA 3.0), OpenGameArt `Jump Landing Sound`(MentalSanityOff, CC0)이며 출처·사용 조건은 `public/audio/LICENSES.md`에 기록한다.
 
 ## Implementation
 
 ### I01. 권리 확인 오디오 자산
 - Related Files:
   - `public/audio/stair-climb-bgm.mp3` :: BGM 루프 — 신규 바이너리
-  - `public/audio/stone-step.mp3` :: 성공 이동 효과음 — 신규 바이너리
+  - `public/audio/stone-step.ogg` :: 성공 이동 효과음 — 신규 바이너리 (원본 라이선스 배포 형식)
   - `public/audio/fall-thud.mp3` :: 실수 효과음 — 신규 바이너리
   - `public/audio/LICENSES.md` :: 출처와 사용 조건 — 신규
   - `README.md` :: 오디오 자산 출처 안내 — 수정
 
 #### Details
-- **Data & Schema Fields**: 각 자산에 대해 `파일명`, `원본 URL`, `저작자`, `라이선스 이름 및 버전`, `상업적 이용 허용 여부`, `사내 이용 허용 여부`, `요구되는 표기`를 기록한다.
+- **Data & Schema Fields**: 각 자산에 대해 `파일명`, `원본 URL`, `저작자`, `라이선스 이름 및 버전`, `상업적 이용 허용 여부`, `사내 이용 허용 여부`, `요구되는 표기`를 기록한다. 재인코딩으로 원본 오디오를 변형하지 않고 발소리는 Commons의 Ogg 파일 그대로 포함한다.
 - **Execution Flow / Logic**:
   1. 가사 없는 경쾌한 아케이드 BGM을 20~60초 길이의 짧은 루프 형식으로 선택한다.
   2. 상업적·사내 이용을 허용하는 라이선스 또는 명시된 사용 허가를 확인한다. 출처가 불분명하거나 사용 조건이 확인되지 않은 파일은 사용하지 않는다.
@@ -72,7 +73,7 @@
   }
   export function createAudioController(): AudioController;
   ```
-- **Data & Schema Fields**: BGM source `/audio/stair-climb-bgm.mp3`, 발소리 `/audio/stone-step.mp3`, 넘어짐 `/audio/fall-thud.mp3`. BGM base `playbackRate = 1`, 이벤트 중 `1.25`; 종료 시 `1`로 복귀한다.
+- **Data & Schema Fields**: BGM source `/audio/stair-climb-bgm.mp3`, 발소리 `/audio/stone-step.ogg`, 넘어짐 `/audio/fall-thud.mp3`. BGM base `playbackRate = 1`, 이벤트 중 `1.25`; 종료 시 `1`로 복귀한다.
 - **Execution Flow / Logic**:
   1. `startBgm`은 BGM 요소에 `loop = true`를 설정해 재생을 시도한다. 재생 성공이면 `true`, 브라우저 autoplay 거부를 포함해 재생 실패면 `false`를 반환한다.
   2. `stopBgm`은 BGM을 pause하고 `currentTime = 0`으로 초기화한다. `dispose`는 재생을 중지하고 요소를 해제한다.
@@ -90,6 +91,7 @@
   - `src/game/GameScreen.tsx` :: 게임 전이 오디오 호출 — 수정
   - `src/game/GameScreen.test.tsx` :: 오디오 전이 연결 테스트 — 수정
   - `src/App.tsx` :: 로그인된 메뉴에서 오디오 시작 — 수정
+  - `src/App.test.tsx` :: 로그인 후 재생 시작·차단 대체 버튼·설정 복원 — 신규
 - **Signatures & Types**:
   ```ts
   export function AudioControls(props: {
@@ -113,24 +115,26 @@
 - Related Files:
   - `src/audio/AudioControls.test.tsx` :: UI 조작 테스트 — 신규
   - `src/game/GameScreen.test.tsx` :: 이동·실수·이벤트·종료 오디오 테스트 — 수정
+  - `src/App.test.tsx` :: 인증된 셸 BGM 시작 및 설정 복원 테스트 — 신규
 - **Data & Schema Fields**: 실제 미디어 재생은 mock audio element로 대체한다. 오디오 파일 존재·길이·라이선스는 수동 확인한다.
 - **Execution Flow / Logic**: 로그인 완료 후 BGM 시도, autoplay 거부 fallback, 이벤트의 1.25/1 재생 속도, BGM 종료/재시작, 성공 D/J당 한 번의 발소리, 오입력당 한 번의 넘어짐 소리, 설정별 독립 음소거·볼륨, 새 mount 후 저장값 복원을 확인한다.
 - **Error & Exception Handling**: `play()` rejection 및 `localStorage` 접근 거부를 테스트하며 게임 UI가 정상 작동해야 한다.
 
 ## Acceptance Criteria
-- [ ] 라이선스가 확인된 BGM 및 두 효과음 파일이 출처 문서와 함께 제공된다.
-- [ ] 로그인 후 메뉴와 게임 중 BGM이 반복되고, autoplay가 막히면 켜기 버튼이 나타난다.
-- [ ] 더블 점수 이벤트 중 BGM은 1.25배, 이벤트 종료 시 1배속이다.
-- [ ] 성공적인 D/J 이동마다 발소리, 오입력마다 넘어짐 효과음이 한 번씩 재생된다.
-- [ ] BGM과 효과음의 음소거·볼륨은 분리되고 다음 방문에도 설정이 남는다.
-- [ ] 넘어짐 연출 500ms 동안 입력 잠금이 유지되며 오디오 실패가 게임을 중단시키지 않는다.
+- [x] 라이선스가 확인된 BGM 및 두 효과음 파일이 출처 문서와 함께 제공된다.
+- [x] 로그인 후 메뉴와 게임 중 BGM이 반복되고, autoplay가 막히면 켜기 버튼이 나타난다.
+- [x] 더블 점수 이벤트 중 BGM은 1.25배, 이벤트 종료 시 1배속이다.
+- [x] 성공적인 D/J 이동마다 발소리, 오입력마다 넘어짐 효과음이 한 번씩 재생된다.
+- [x] BGM과 효과음의 음소거·볼륨은 분리되고 다음 방문에도 설정이 남는다.
+- [x] 넘어짐 연출 500ms 동안 입력 잠금이 유지되며 오디오 실패가 게임을 중단시키지 않는다.
 
 ## Validation
-- `npm run test -- --run src/audio src/game/GameScreen.test.tsx` — 오디오 설정·controller 및 게임 연동 테스트 통과.
+- `npm run test -- --run src/audio src/game/GameScreen.test.tsx src/App.test.tsx` — 오디오 설정·controller·로그인 셸 및 게임 연동 테스트 통과.
+- `npm run test -- --run` — 전체 57개 테스트 통과.
 - `npm run lint` — ESLint 오류 없음.
-- `npm run build` — TypeScript 및 프로덕션 빌드 성공.
-- 수동 확인: 브라우저 autoplay 허용/차단, 음량 조절, 음소거 독립성, 이벤트 1.25배 전환, 게임 오버 중지, 빠른 D/J 조작 효과음, 모바일 터치 효과음.
-- 수동 권리 확인: 세 오디오 파일의 라이선스 및 attribution을 `public/audio/LICENSES.md`와 대조.
+- `npm run build` — TypeScript 및 프로덕션 빌드 성공 (기존 번들 크기 경고는 표시됨).
+- 수동 파일 확인: BGM 20.87초, 발소리 Ogg 0.79초, 세 파일의 로컬 존재 및 라이선스 문서 대조 완료.
+- 브라우저에서 소리를 직접 듣는 수동 검증은 Entra 설정이 없어 아직 실행하지 않음. `.env.local`을 설정하면 autoplay·음량·이벤트 속도·게임 오버·모바일 효과음을 확인할 수 있음.
 
 ## Commit Message
 ```text
@@ -145,6 +149,6 @@ Task: T05-audio
 ```
 
 ## Progress
-- [ ] 구현 완료
-- [ ] 검증 통과
-- commit: pending
+- [x] 구현 완료
+- [x] 검증 통과 (`npm run test -- --run`, `npm run lint`, `npm run build`)
+- commit: `feat(audio): add licensed game music and sound effects`

@@ -1,7 +1,10 @@
+import { useEffect, useState } from "react";
 import { useMsal } from "@azure/msal-react";
 import type { AccountInfo } from "@azure/msal-browser";
 import { AuthGate } from "./auth/AuthGate";
 import { GameScreen } from "./game/GameScreen";
+import { createAudioController } from "./audio/audioController";
+import { loadAudioPreferences, saveAudioPreferences, type AudioPreferences } from "./audio/audioPreferences";
 import "./app.css";
 
 interface AppProps {
@@ -27,6 +30,35 @@ function AuthConfigurationMessage({ message }: { message: string }) {
 function ProtectedAppShell() {
   const { accounts, instance } = useMsal();
   const account = instance.getActiveAccount() ?? accounts[0];
+  const [audioController] = useState(() => createAudioController());
+  const [audioPreferences, setAudioPreferences] = useState(() => loadAudioPreferences());
+  const [autoplayBlocked, setAutoplayBlocked] = useState(false);
+
+  useEffect(() => {
+    audioController.setPreferences(audioPreferences);
+  }, [audioController, audioPreferences]);
+
+  useEffect(() => {
+    if (!account?.homeAccountId) return undefined;
+    let mounted = true;
+    void audioController.startBgm().then((playing) => {
+      if (mounted) setAutoplayBlocked(!playing);
+    });
+    return () => {
+      mounted = false;
+      audioController.dispose();
+    };
+  }, [account?.homeAccountId, audioController]);
+
+  const handleAudioPreferencesChange = (next: AudioPreferences) => {
+    setAudioPreferences(next);
+    audioController.setPreferences(next);
+    saveAudioPreferences(next);
+  };
+
+  const enableAudio = () => {
+    void audioController.startBgm().then((playing) => setAutoplayBlocked(!playing));
+  };
 
   if (!account) {
     return (
@@ -41,7 +73,14 @@ function ProtectedAppShell() {
   }
 
   return (
-    <GameScreen account={account as AccountInfo} />
+    <GameScreen
+      account={account as AccountInfo}
+      audioController={audioController}
+      audioPreferences={audioPreferences}
+      autoplayBlocked={autoplayBlocked}
+      onAudioPreferencesChange={handleAudioPreferencesChange}
+      onEnableAudio={enableAudio}
+    />
   );
 }
 

@@ -7,10 +7,18 @@ import { StairScene } from "./StairScene";
 import type { GameInput } from "./types";
 import { LeaderboardPanel } from "../leaderboard/LeaderboardPanel";
 import { readLeaderboard, saveBestScore, type LeaderboardEntry } from "../leaderboard/leaderboard";
+import { AudioControls } from "../audio/AudioControls";
+import type { AudioController } from "../audio/audioController";
+import type { AudioPreferences } from "../audio/audioPreferences";
 import "./game.css";
 
 interface GameScreenProps {
   account: AccountInfo;
+  audioController?: AudioController;
+  audioPreferences?: AudioPreferences;
+  autoplayBlocked?: boolean;
+  onAudioPreferencesChange?: (next: AudioPreferences) => void;
+  onEnableAudio?: () => void;
 }
 
 function isTextEntryTarget(target: EventTarget | null): boolean {
@@ -24,12 +32,22 @@ function isTextEntryTarget(target: EventTarget | null): boolean {
   );
 }
 
-export function GameScreen({ account }: GameScreenProps) {
+export function GameScreen({
+  account,
+  audioController,
+  audioPreferences,
+  autoplayBlocked = false,
+  onAudioPreferencesChange,
+  onEnableAudio,
+}: GameScreenProps) {
   const [gameState, setGameState] = useState(() => createGameState());
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>(() => readLeaderboard());
   const [saveError, setSaveError] = useState(false);
   const scoreSavedRef = useRef(false);
+  const previousStepsRef = useRef(gameState.stepsClimbed);
+  const previousMistakeRef = useRef(gameState.lastMistake);
+  const previousEventActiveRef = useRef(gameState.eventEndsAt !== null);
 
   const handleInput = useCallback((input: GameInput) => {
     const inputTime = Date.now();
@@ -42,7 +60,28 @@ export function GameScreen({ account }: GameScreenProps) {
     setSaveError(false);
     setNowMs(Date.now());
     setGameState((state) => startGame(state.status === "game-over" ? resetGame() : state));
+    void audioController?.startBgm();
   };
+
+  useEffect(() => {
+    if (gameState.stepsClimbed > previousStepsRef.current) audioController?.playFootstep();
+    previousStepsRef.current = gameState.stepsClimbed;
+  }, [audioController, gameState.stepsClimbed]);
+
+  useEffect(() => {
+    if (gameState.lastMistake && !previousMistakeRef.current) audioController?.playFall();
+    previousMistakeRef.current = gameState.lastMistake;
+  }, [audioController, gameState.lastMistake]);
+
+  useEffect(() => {
+    const eventActive = gameState.eventEndsAt !== null;
+    if (eventActive !== previousEventActiveRef.current) audioController?.setEventActive(eventActive);
+    previousEventActiveRef.current = eventActive;
+  }, [audioController, gameState.eventEndsAt]);
+
+  useEffect(() => {
+    if (gameState.status === "game-over") audioController?.stopBgm();
+  }, [audioController, gameState.status]);
 
   useEffect(() => {
     if (gameState.status !== "game-over" || scoreSavedRef.current) return;
@@ -136,6 +175,15 @@ export function GameScreen({ account }: GameScreenProps) {
             <span>{account.name ?? account.username}</span>
           </div>
         </header>
+
+        {audioPreferences && onAudioPreferencesChange && onEnableAudio && (
+          <AudioControls
+            preferences={audioPreferences}
+            onChange={onAudioPreferencesChange}
+            autoplayBlocked={autoplayBlocked}
+            onEnableAudio={onEnableAudio}
+          />
+        )}
 
         <GameHud state={gameState} eventSecondsLeft={eventSecondsLeft} />
 

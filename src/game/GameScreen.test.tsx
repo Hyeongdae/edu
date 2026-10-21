@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { StrictMode } from "react";
 import type { AccountInfo } from "@azure/msal-browser";
 import { GameScreen } from "./GameScreen";
+import type { AudioController } from "../audio/audioController";
 
 const account = {
   homeAccountId: "local-account",
@@ -63,12 +64,49 @@ describe("GameScreen controls", () => {
     expect(screen.getByTestId("score-value")).toHaveTextContent("0");
   });
 
+  it("plays one footstep for each successful move, a fall for a mistake, and speeds up the event BGM", () => {
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    const audio = {
+      startBgm: vi.fn().mockResolvedValue(true),
+      stopBgm: vi.fn(),
+      setEventActive: vi.fn(),
+      setPreferences: vi.fn(),
+      playFootstep: vi.fn(),
+      playFall: vi.fn(),
+      dispose: vi.fn(),
+    } satisfies AudioController;
+    render(<GameScreen account={account} audioController={audio} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    for (let segment = 0; segment < 6; segment += 1) {
+      for (let step = 0; step < 4; step += 1) fireEvent.keyDown(window, { key: "d" });
+      fireEvent.keyDown(window, { key: "j" });
+    }
+
+    expect(audio.startBgm).toHaveBeenCalledOnce();
+    expect(audio.playFootstep).toHaveBeenCalledTimes(30);
+    expect(audio.setEventActive).toHaveBeenCalledWith(true);
+
+    fireEvent.keyDown(window, { key: "j" });
+    expect(audio.playFall).toHaveBeenCalledOnce();
+    expect(audio.stopBgm).not.toHaveBeenCalled();
+  });
+
   it("saves the final score once, shows the ranking, and restarts a fresh game", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(1_000);
     vi.spyOn(Math, "random").mockReturnValue(0.5);
     const saveSpy = vi.spyOn(Storage.prototype, "setItem");
-    render(<StrictMode><GameScreen account={account} /></StrictMode>);
+    const audio = {
+      startBgm: vi.fn().mockResolvedValue(true),
+      stopBgm: vi.fn(),
+      setEventActive: vi.fn(),
+      setPreferences: vi.fn(),
+      playFootstep: vi.fn(),
+      playFall: vi.fn(),
+      dispose: vi.fn(),
+    } satisfies AudioController;
+    render(<StrictMode><GameScreen account={account} audioController={audio} /></StrictMode>);
 
     fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
     for (let mistake = 0; mistake < 12; mistake += 1) {
@@ -82,9 +120,11 @@ describe("GameScreen controls", () => {
     expect(screen.getByRole("heading", { name: "0점" })).toBeVisible();
     expect(screen.getByText("홍길동", { selector: ".leaderboard-name" }).closest("li")).toHaveClass("is-current-player");
     expect(saveSpy).toHaveBeenCalledTimes(1);
+    expect(audio.stopBgm).toHaveBeenCalledOnce();
     expect(window.localStorage.getItem("stair-climb:leaderboard:v1")).toContain("local-account");
 
     fireEvent.click(screen.getByRole("button", { name: /다시 시작/ }));
+    expect(audio.startBgm).toHaveBeenCalledTimes(2);
     expect(screen.getByRole("button", { name: "앞으로 한 칸 오르기" })).toBeEnabled();
     expect(screen.getByTestId("score-value")).toHaveTextContent("0");
     expect(screen.queryByText(/게임 종료/)).not.toBeInTheDocument();
