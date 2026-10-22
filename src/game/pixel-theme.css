@@ -88,7 +88,7 @@
   left: 12px;
   right: 72px;
   width: min(calc(100% - 84px), 960px);
-  grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr) minmax(0, 1.7fr);
+  grid-template-columns: minmax(0, 1.7fr) minmax(0, 0.85fr) minmax(0, 1.7fr);
   gap: 8px;
   padding: 0;
   transform: none;
@@ -113,11 +113,19 @@
 
 .stair-game.pixel-theme .hud-label { color: var(--pixel-muted); font-size: 0.7rem; letter-spacing: 0; }
 .stair-game.pixel-theme .hud-caption { color: var(--pixel-muted); font-size: 0.65rem; overflow-wrap: anywhere; }
-.stair-game.pixel-theme .score-card .hud-caption { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stair-game.pixel-theme .score-card .hud-caption { white-space: normal; }
+.stair-game.pixel-theme .score-card { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+.stair-game.pixel-theme .score-summary,
+.stair-game.pixel-theme .stage-clock { display: grid; min-width: 0; align-content: start; }
+.stair-game.pixel-theme .stage-clock { padding-left: 10px; border-left: 1px solid var(--pixel-edge); }
+.stair-game.pixel-theme .stage-clock-heading { display: flex; align-items: center; flex-wrap: wrap; gap: 3px 8px; }
+.stair-game.pixel-theme .stage-value { color: var(--pixel-cyan); font-size: 0.7rem; white-space: nowrap; }
+.stair-game.pixel-theme .stage-time { display: flex; min-height: 2rem; align-items: center; color: var(--pixel-text); font-size: clamp(1rem, 2vw, 1.5rem); white-space: nowrap; }
 .stair-game.pixel-theme .score-value-row { min-height: 2rem; gap: 8px; }
 
 .stair-game.pixel-theme .score-value,
 .stair-game.pixel-theme .score-gain,
+.stair-game.pixel-theme .stage-time,
 .stair-game.pixel-theme .event-status,
 .stair-game.pixel-theme .leaderboard-score,
 .stair-game.pixel-theme .leaderboard-rank,
@@ -130,11 +138,10 @@
 
 .stair-game.pixel-theme .score-value {
   min-width: 0;
-  overflow: hidden;
+  overflow-wrap: anywhere;
   color: var(--pixel-gold);
   font-size: 2rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .stair-game.pixel-theme .score-value.is-scoring { animation: pixel-score-pop 260ms steps(1, end); }
@@ -325,6 +332,8 @@
 .stair-game.pixel-theme .leaderboard-kicker { color: var(--pixel-muted); font-size: 0.7rem; }
 .stair-game.pixel-theme .game-over-result h2 { max-width: 100%; margin: 8px 0; overflow-wrap: anywhere; color: var(--pixel-gold); font-size: clamp(2rem, 4vw, 3rem); }
 .stair-game.pixel-theme .game-over-result > p:not(.game-over-kicker):not(.leaderboard-error) { margin: 0; color: var(--pixel-muted); font-size: 0.85rem; }
+.stair-game.pixel-theme .game-over-result > .game-over-stage { color: var(--pixel-cyan) !important; font-weight: 700; }
+.stair-game.pixel-theme .game-over-result > .game-over-reason { margin: 6px 0 !important; color: var(--pixel-gold) !important; }
 .stair-game.pixel-theme .restart-button { flex: 0 0 auto; width: 100%; max-width: 320px; margin-top: 20px; }
 .stair-game.pixel-theme .leaderboard-card { display: flex; flex-direction: column; overflow: hidden; border-left: 1px solid var(--pixel-edge); }
 .stair-game.pixel-theme .leaderboard-heading { flex: 0 0 auto; gap: 10px; margin: 0 0 16px; }
@@ -343,6 +352,7 @@
 .stair-game.pixel-theme .game-frame[data-pursuer-catching="true"] > .game-over-panel { visibility: hidden; pointer-events: none; }
 
 .stair-game.pixel-theme .settings-content,
+.stair-game.pixel-theme .game-stage,
 .stair-game.pixel-theme .game-over-panel,
 .stair-game.pixel-theme .game-over-result,
 .stair-game.pixel-theme .leaderboard-list {
@@ -355,11 +365,22 @@
 @keyframes pixel-event { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
 
 @media (max-width: 720px) {
-  .stair-game.pixel-theme { --scene-top: 8.5rem; --scene-bottom: 9rem; padding: 0; }
+  .stair-game.pixel-theme { --scene-top: 3rem; --scene-bottom: calc(72px + 6rem); padding: 0; }
+  .stair-game.pixel-theme[data-game-status="ready"] { --scene-bottom: calc(96px + 6rem); }
   .stair-game.pixel-theme .game-frame { border-width: 0; box-shadow: none; }
+  /* Let enlarged HUD text push the scene down; keep controls outside this scroller. */
+  .stair-game.pixel-theme .game-stage { display: grid; grid-template-rows: max-content minmax(0, 1fr); gap: 8px; padding-top: 8px; overflow: auto; overscroll-behavior: contain; }
+  .stair-game.pixel-theme .game-layout { position: relative; inset: auto; min-height: calc(var(--scene-top) + 200px + var(--scene-bottom)); }
+  .stair-game.pixel-theme .pixel-scene-stage { overflow: visible; }
+  .stair-game.pixel-theme .office-backdrop { top: auto; bottom: 0; height: 100dvh; }
   .stair-game.pixel-theme .game-settings-button { top: 8px; right: 8px; }
-  .stair-game.pixel-theme .game-hud { top: 8px; left: 8px; right: 60px; width: auto; grid-template-columns: minmax(0, 0.9fr) minmax(0, 0.85fr) minmax(0, 1.6fr); gap: 4px; }
-  .stair-game.pixel-theme .hud-card { min-height: 5.25rem; padding: 7px 6px; }
+  .stair-game.pixel-theme .game-hud { position: relative; top: auto; left: auto; right: auto; width: calc(100% - 68px); margin-left: 8px; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); gap: 4px; }
+  .stair-game.pixel-theme .hud-card { min-height: 64px; padding: 7px 6px; }
+  .stair-game.pixel-theme .score-card { grid-column: 1 / -1; min-height: 80px; gap: 8px; }
+  .stair-game.pixel-theme .stage-clock { padding-left: 8px; }
+  .stair-game.pixel-theme .stage-value { font-size: 0.65rem; }
+  .stair-game.pixel-theme .stage-time { min-width: 0; min-height: 30px; font-size: 1rem; }
+  .stair-game.pixel-theme .game-frame[data-stage="2"] .stage-time { white-space: normal; }
   .stair-game.pixel-theme .hud-label { font-size: 0.65rem; }
   .stair-game.pixel-theme .hud-caption { font-size: 0.6rem; }
   .stair-game.pixel-theme .score-value-row { min-height: 1.9rem; gap: 3px; }
@@ -372,13 +393,15 @@
   .stair-game.pixel-theme .event-heading { flex-direction: column; align-items: flex-start; gap: 4px; }
   .stair-game.pixel-theme .event-status { font-size: 0.65rem; text-align: left; }
   .stair-game.pixel-theme .event-progress { height: 9px; margin-top: 7px; }
-  .stair-game.pixel-theme .scene-heading { top: 6.25rem; left: 8px; right: 8px; gap: 6px; }
+  .stair-game.pixel-theme .scene-heading { top: 0; left: 8px; right: 8px; gap: 6px; }
   .stair-game.pixel-theme .scene-heading > div { gap: 6px; padding: 6px; }
   .stair-game.pixel-theme .scene-heading .hud-label { display: none; }
   .stair-game.pixel-theme .route-direction { font-size: 0.75rem; }
   .stair-game.pixel-theme .direction-pill { gap: 4px; padding: 6px; font-size: 0.65rem; }
-  .stair-game.pixel-theme .scene-hint { bottom: calc(5.5rem + var(--pixel-safe-bottom)); font-size: 0.75rem; }
-  .stair-game.pixel-theme .game-controls { display: grid; }
+  .stair-game.pixel-theme .scene-hint { bottom: calc(40px + 4.5rem + var(--pixel-safe-bottom)); font-size: 0.75rem; }
+  .stair-game.pixel-theme[data-game-status="ready"] .scene-hint { bottom: calc(60px + 4.5rem + var(--pixel-safe-bottom)); }
+  .stair-game.pixel-theme .game-frame > .start-button { bottom: calc(12px + 1.8rem + var(--pixel-safe-bottom)); }
+  .stair-game.pixel-theme .game-controls { display: grid; bottom: calc(12px + 1.8rem + var(--pixel-safe-bottom)); }
   .stair-game.pixel-theme .control-button { padding: 8px; gap: 7px; font-size: 0.85rem; }
   .stair-game.pixel-theme .game-footer { bottom: calc(2px + var(--pixel-safe-bottom)); font-size: 0.6rem; }
   .stair-game.pixel-theme .desktop-control-hint { display: none; }
@@ -387,7 +410,7 @@
   .stair-game.pixel-theme .settings-dialog-header { padding: 10px; }
   .stair-game.pixel-theme .settings-content { padding: 12px; }
   .stair-game.pixel-theme .settings-help-grid { grid-template-columns: minmax(0, 1fr); }
-  .stair-game.pixel-theme .game-over-panel { inset: 8.75rem 12px 24px; grid-template-columns: minmax(0, 1fr); grid-template-rows: max-content minmax(280px, 1fr); align-content: start; }
+  .stair-game.pixel-theme .game-over-panel { inset: 13rem 12px 24px; grid-template-columns: minmax(0, 1fr); grid-template-rows: max-content minmax(280px, 1fr); align-content: start; }
   .stair-game.pixel-theme .game-over-result { overflow: visible; padding: 16px; }
   .stair-game.pixel-theme .game-over-icon { width: 24px; height: 24px; margin: 0 0 6px; }
   .stair-game.pixel-theme .game-over-result h2 { margin: 4px 0; }

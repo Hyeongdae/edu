@@ -1,6 +1,6 @@
 # Task: T03 Stage HUD and Results
 
-## Status: pending
+## Status: done
 
 ## Goal
 픽셀 게임 내부의 점수 옆에 남은 시간과 현재 단계를 표시하고, 종료 원인과 도달 단계를 결과에 연결한다. 모바일 HUD·설정·경로·결과 패널의 공간을 맞추고 시간/승급/랭킹의 전체 흐름을 검증한다.
@@ -96,12 +96,12 @@
 - v1+v2/audio/auth sentinel fixture keys belong only to isolated test storage. Verify only v1 removal and v2 persistence after reload/restart; never use localStorage.clear or fixtures in a general user profile.
 
 ## Acceptance Criteria
-- [ ] 게임 안의 현재 단계와 점수 옆 시계가 대기90초/만료0초/2단계 무제한을 정확히 표시한다.
-- [ ] 90초 안의 실제300점 승급과 시간 초과가 표시·저장 결과까지 일치한다.
-- [ ] 설정창의 두 시계 일시정지, 보너스·오디오·D/J/터치·추격·재시작을 유지한다.
-- [ ] 단계 우선 TOP10/개인 최고와 구형 랭킹 키만 초기화하는 동작을 통합 검증한다.
-- [ ] 네 화면 크기에서 HUD/경로/설정/결과가 겹치지 않고 저장 실패 후에도 재시작 가능하다.
-- [ ] 지정 회귀·lint·build가 통과하며3단계/최종 클리어/새 서버·아트·인증을 추가하지 않는다.
+- [x] 게임 안의 현재 단계와 점수 옆 시계가 대기90초/만료0초/2단계 무제한을 정확히 표시한다.
+- [x] 90초 안의 실제300점 승급과 시간 초과가 표시·저장 결과까지 일치한다.
+- [x] 설정창의 두 시계 일시정지, 보너스·오디오·D/J/터치·추격·재시작을 유지한다.
+- [x] 단계 우선 TOP10/개인 최고와 구형 랭킹 키만 초기화하는 동작을 통합 검증한다.
+- [x] 네 화면 크기에서 HUD/경로/설정/결과가 겹치지 않고 저장 실패 후에도 재시작 가능하다.
+- [x] 지정 회귀·lint·build가 통과하며3단계/최종 클리어/새 서버·아트·인증을 추가하지 않는다.
 
 ## Validation
 - `npm test -- --run src/game/gameEngine.test.ts src/game/stairRoute.test.ts src/game/stairSceneModel.test.ts src/game/GameHud.test.tsx src/game/GameScreen.test.tsx src/leaderboard/leaderboard.test.ts src/leaderboard/LeaderboardPanel.test.tsx src/audio/AudioControls.test.tsx src/audio/audioController.test.ts src/audio/audioPreferences.test.ts` — all listed existing/new cases pass.
@@ -123,6 +123,32 @@ Task: T03-stage-hud-and-results
 ```
 
 ## Progress
-- [ ] 구현 완료
-- [ ] 검증 통과
-- commit: pending
+- [x] 구현 완료
+- [x] 검증 통과
+- commit: 위 Commit Message로 생성; 해시는 `.memory/current.md`의 Last Completed Task 참조.
+
+## Validation Results — 2026-10-22
+- 지정 Vitest 명령: 10 files / 160 tests passed (35.81s). `App.test.tsx`를 포함한 전체 저장소 테스트 통과를 주장하지 않는다.
+- `npm run lint`: exit0. `npm run build`: exit0; JS530.52kB / gzip148.37kB. 기존500kB chunk 경고는 남아 있다.
+- `git diff --check`: 공백 오류 없음. Git의 LF→CRLF 안내만 출력됨.
+- `GameHud.test.tsx`를 추가하고 기존 GameScreen 테스트에 대기/재시작01:30, 소수 초 기준01:29 갱신, 만료00:00/이유/도달1, 승급2/무제한 유지, 설정 중 두 표시 동결, 도달2/잡힘 결과를 추가했다.
+
+### Browser Method and Evidence
+- 로컬 데모 `http://127.0.0.1:5174/`에 Chrome156/CDP로 접속했다. 별도 Chrome 프로세스 실행은 자동 승인 검토에서 정책 차단되어, 기존9222 디버깅 브라우저의 `Target.createBrowserContext(disposeOnDetach:true)`로 격리 컨텍스트를 만들고 검증 후 해당 컨텍스트만 폐기했다. 일반 프로필/다른 탭/로그인 저장소를 조작하지 않았다.
+- 테스트 드라이버: `%TEMP%/timed-stage-browser.mjs`, `%TEMP%/timed-stage-large-text.mjs`. 보고서: `%TEMP%/timed-stage-browser-report.json`, `%TEMP%/timed-stage-large-text-report.json`; 스크린샷: `%TEMP%/timed-stage-*.png`. 드라이버/임시 산출물을 앱에 추가하지 않았다.
+- 드라이버는 테스트 문서 안에서만 Date.now와 난수를 고정했다. 실제 D/J 입력165번으로30칸 이벤트를 거쳐300점에 도달했다. 설정을95초 열어 두어 두 시계가 멈추는지 확인하고,2단계에서200초 진행, 마지막12회 실수/500ms 회복, 재시작/90초 만료를 실제 UI에서 처리했다. 엔진 상태 주입이나 배포용 디버그 기능은 추가하지 않았다.
+
+| Viewport | Checked Flows | Result |
+| :--- | :--- | :--- |
+| 320×667 | 대기/진행/설정/승급/잡힘/저장 실패/재시작/시간 초과/reduced-motion | pass |
+| 390×667 | 같은 상태들, 정상 단계2 저장/낮은 단계 재도전 후 개인 최고 보존/재로드 | pass |
+| 768×1024 | 같은 정상 흐름, 데스크톱 조작 버튼 숨김과 설정 접근 | pass |
+| 1440×900 | 같은 정상 흐름, 넓은 HUD/전체 장면과 결과 배치 | pass |
+
+- 네 크기에서 score/clock 인접, gear와 HUD 분리,11개 경로의 상하 안전 경계,56px 이상 터치 조작, 가로 페이지 넘침 없음, 모바일 재시작/랭킹 비겹침, 정상500ms/reduced-motion 즉시 결과를 확인했다. 포커스 순환·Escape 복귀·기본 range의 ArrowRight 조절(50→51)도 확인했다. 브라우저 예외는0건이다.
+- 격리 저장소에서 v1 삭제/v2 지속/audio·인증 sentinel·기타 키 보존을 확인했다.320px의 setItem 실패 주입은 해당 테스트 문서 안에서만 수행하고 즉시 복구했다.
+- 기본 크기의 모바일/태블릿/데스크톱 및 결과 스크린샷을 직접 확인했다.320px에서 글자150%(24px)/200%(32px), 단계2 `제한 없음`,16자리 점수도 추가 검증했다. 확대 시 게임 내부 스크롤로 전체 경로/설명에 접근할 수 있으며, 시작/조작 버튼과 footer가 겹치지 않는다. 설정창의 내부 스크롤과 range 접근도 유지했다.
+
+### Layout Adjustment and Scope
+- 확대200%에서 기존 절대 top/bottom의 합이 화면 높이를 넘으며 SVG 높이가0이 되는 것을 실제로 발견했다. 모바일 game-stage를 HUD의 자연 높이를 쓰는 grid로 바꾸고, game-layout에 `scene-top + 200px + scene-bottom` 최소 공간을 두었다. 필요할 때 장면 영역만 스크롤하고 시작/조작/설정은 밖에서 접근한다. 배경은 기존 전체 높이를 유지하고 글자를 임의로 작게 고정하지 않았다.
+- 이는 청사진의 확대 글자/반응형 검증을 충족하는 CSS 조정이다. 엔진/경로/추격 모델/아트/인증/오디오 구현은 변경하지 않았다. 기존 도움말/App 기대값·옛 SVG CSS·번들 분할은 범위 밖으로 남았다.

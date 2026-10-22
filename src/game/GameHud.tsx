@@ -7,37 +7,54 @@ interface GameHudProps {
   eventSecondsLeft: number;
   scoreGain: number | null;
   scoreAnimationKey: number;
+  stageSecondsLeft: number | null;
 }
 
-export function GameHud({ state, eventSecondsLeft, scoreGain, scoreAnimationKey }: GameHudProps): ReactElement {
+function formatStageTime(secondsLeft: number | null): string {
+  if (secondsLeft === null) return "제한 없음";
+  const totalSeconds = Math.max(0, Math.ceil(secondsLeft));
+  return `${String(Math.floor(totalSeconds / 60)).padStart(2, "0")}:${String(totalSeconds % 60).padStart(2, "0")}`;
+}
+
+export function GameHud({ state, eventSecondsLeft, scoreGain, scoreAnimationKey, stageSecondsLeft }: GameHudProps): ReactElement {
   const eventIsActive = state.eventEndsAt !== null;
   const eventProgress = eventIsActive ? 100 : Math.min(100, (state.eventSteps / 30) * 100);
 
   return (
     <section className="game-hud" aria-label="게임 현황">
       <div className="hud-card score-card">
-        <span className="hud-label">현재 점수</span>
-        <div className="score-value-row">
-          <strong
-            key={`score-${scoreAnimationKey}`}
-            className={`score-value${scoreGain !== null ? " is-scoring" : ""}`}
-            data-testid="score-value"
-          >
-            {state.score}
-          </strong>
-          {scoreGain !== null && (
-            <span
-              key={`gain-${scoreAnimationKey}`}
-              className={`score-gain${scoreGain === 2 ? " is-bonus" : ""}`}
-              data-testid="score-gain"
-              aria-label={`${scoreGain}점 획득`}
-              aria-live="polite"
+        <div className="score-summary">
+          <span className="hud-label">현재 점수</span>
+          <div className="score-value-row">
+            <strong
+              key={`score-${scoreAnimationKey}`}
+              className={`score-value${scoreGain !== null ? " is-scoring" : ""}`}
+              data-testid="score-value"
             >
-              +{scoreGain}
-            </span>
-          )}
+              {state.score}
+            </strong>
+            {scoreGain !== null && (
+              <span
+                key={`gain-${scoreAnimationKey}`}
+                className={`score-gain${scoreGain === 2 ? " is-bonus" : ""}`}
+                data-testid="score-gain"
+                aria-label={`${scoreGain}점 획득`}
+                aria-live="polite"
+              >
+                +{scoreGain}
+              </span>
+            )}
+          </div>
+          <span className="hud-caption">계단 {state.stepsClimbed}칸</span>
         </div>
-        <span className="hud-caption">계단 {state.stepsClimbed}칸</span>
+        <div className="stage-clock" role="timer" aria-label="단계 제한시간" aria-live="off">
+          <div className="stage-clock-heading">
+            <span className="stage-value" data-testid="stage-value">{state.stage}단계</span>
+            <span className="hud-label">남은 시간</span>
+          </div>
+          <strong className="stage-time" data-testid="stage-time">{formatStageTime(stageSecondsLeft)}</strong>
+          <span className="hud-caption">{state.stage === 1 ? "300점 달성 시 2단계" : "계속 도전 중"}</span>
+        </div>
       </div>
 
       <div className="hud-card lives-card">

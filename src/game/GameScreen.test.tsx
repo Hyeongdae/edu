@@ -140,13 +140,16 @@ describe("GameScreen controls", () => {
     const eventStatus = screen.getByTestId("event-status");
     expect(eventStatus).toHaveTextContent("2배 점수");
     const remainingBefore = eventStatus.textContent;
+    const stageTimeBefore = screen.getByTestId("stage-time").textContent;
 
     fireEvent.click(screen.getByRole("button", { name: "게임 설정" }));
     vi.setSystemTime(96_000);
     await act(async () => { await vi.advanceTimersByTimeAsync(100); });
     expect(eventStatus).toHaveTextContent(remainingBefore!);
+    expect(screen.getByTestId("stage-time")).toHaveTextContent(stageTimeBefore!);
     fireEvent.click(screen.getByRole("button", { name: "설정 닫기" }));
     expect(eventStatus).toHaveTextContent(remainingBefore!);
+    expect(screen.getByTestId("stage-time")).toHaveTextContent(stageTimeBefore!);
 
     vi.setSystemTime(126_100);
     await act(async () => { await vi.advanceTimersByTimeAsync(100); });
@@ -547,6 +550,7 @@ describe("GameScreen controls", () => {
     vi.setSystemTime(100_000);
     await act(async () => { await vi.advanceTimersByTimeAsync(100); });
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "ready");
+    expect(screen.getByTestId("stage-time")).toHaveTextContent("01:30");
     fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
     vi.setSystemTime(190_099);
     fireEvent.keyDown(window, { key: "d" });
@@ -554,7 +558,9 @@ describe("GameScreen controls", () => {
     vi.setSystemTime(190_100);
     fireEvent.keyDown(window, { key: "d" });
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "game-over");
+    expect(screen.getByTestId("stage-time")).toHaveTextContent("00:00");
     fireEvent.click(screen.getByRole("button", { name: /다시 시작/ }));
+    expect(screen.getByTestId("stage-time")).toHaveTextContent("01:30");
     vi.setSystemTime(280_099);
     fireEvent.keyDown(window, { key: "d" });
     expect(screen.getByTestId("score-value")).toHaveTextContent("1");
@@ -590,6 +596,9 @@ describe("GameScreen controls", () => {
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "game-over");
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-pursuer-catching", "false");
     expect(screen.getByRole("heading", { name: "0점" })).toBeInTheDocument();
+    expect(screen.getByTestId("stage-time")).toHaveTextContent("00:00");
+    expect(screen.getByText("시간 초과")).toBeInTheDocument();
+    expect(screen.getByText("도달 단계 1단계")).toBeInTheDocument();
     expect(screen.getByLabelText("남은 기회 3회")).toBeInTheDocument();
     expect(screen.getByTestId("runner")).toHaveAttribute("data-route-index", "0");
     expect(audio.playFall).not.toHaveBeenCalled();
@@ -627,6 +636,9 @@ describe("GameScreen controls", () => {
     });
     expect(screen.getByLabelText("남은 기회 3회")).toBeVisible();
     expect(screen.getByTestId("runner")).toHaveAttribute("data-route-index", "1");
+    expect(document.querySelector(".game-frame")).toHaveAttribute("data-stage", "2");
+    expect(screen.getByTestId("stage-time")).toHaveTextContent("제한 없음");
+    expect(screen.getByTestId("stage-value")).toHaveTextContent("2단계");
     expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "-3");
     expect(screen.getByTestId("score-gain")).toHaveTextContent(bonus ? "+2" : "+1");
     expect(audio.playFootstep).toHaveBeenCalledOnce();
@@ -639,6 +651,7 @@ describe("GameScreen controls", () => {
     fireEvent.keyDown(window, { key: "d" });
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "playing");
     expect(screen.getByTestId("runner")).toHaveAttribute("data-route-index", "2");
+    expect(screen.getByTestId("stage-time")).toHaveTextContent("제한 없음");
     expect(audio.playFootstep).toHaveBeenCalledTimes(2);
   });
 
@@ -694,10 +707,12 @@ describe("GameScreen controls", () => {
     render(<GameScreen account={account} />);
     fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
     expect(screen.getByTestId("event-status")).toHaveTextContent("2배 점수 · 30초");
+    expect(screen.getByTestId("stage-time")).toHaveTextContent("01:30");
     act(() => { vi.advanceTimersByTime(500); });
     expect(screen.getByTestId("event-status")).toHaveTextContent("2배 점수 · 30초");
     act(() => { vi.advanceTimersByTime(500); });
     expect(screen.getByTestId("event-status")).toHaveTextContent("2배 점수 · 29초");
+    expect(screen.getByTestId("stage-time")).toHaveTextContent("01:29");
   });
 
   it("cleans only legacy rankings in StrictMode and preserves new records on remount", () => {
@@ -745,6 +760,8 @@ describe("GameScreen controls", () => {
     const row = screen.getByText(account.name!, { selector: ".leaderboard-name" }).closest("li")!;
     expect(within(row).getByText("2단계")).toBeVisible();
     expect(within(row).getByText("300점")).toBeVisible();
+    expect(screen.getByText("도달 단계 2단계")).toBeInTheDocument();
+    expect(screen.getByText("추격자에게 잡혔어요")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /다시 시작/ }));
     expect(JSON.parse(window.localStorage.getItem("stair-climb:leaderboard:v2")!)).toEqual(records);
     expect(save).toHaveBeenCalledOnce();

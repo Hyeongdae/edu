@@ -318,6 +318,7 @@ export function GameScreen({
         <div
           className="game-frame"
           data-game-status={gameState.status}
+          data-stage={gameState.stage}
           data-pursuer-catching={pursuerCatchVisible}
         >
           <button
@@ -338,6 +339,7 @@ export function GameScreen({
               eventSecondsLeft={eventSecondsLeft}
               scoreGain={scoreGain}
               scoreAnimationKey={scoreAnimationKey}
+              stageSecondsLeft={getStageSecondsLeft(gameState, nowMs)}
             />
 
             <div className="game-layout" data-game-status={gameState.status}>
@@ -370,6 +372,8 @@ export function GameScreen({
                 <PixelIcon name="flag" className="game-over-icon" size={36} />
                 <p className="game-over-kicker">이번 도전 결과</p>
                 <h2 id="game-over-title">{gameState.score}점</h2>
+                <p className="game-over-stage">도달 단계 {gameState.stage}단계</p>
+                <p className="game-over-reason">{gameState.endReason === "time-limit" ? "시간 초과" : "추격자에게 잡혔어요"}</p>
                 <p>계단 {gameState.stepsClimbed}개를 올랐어요.</p>
                 {saveError && <p className="leaderboard-error" role="status">기록을 저장하지 못했습니다. 이 브라우저의 저장 공간을 확인해 주세요.</p>}
                 <button className="start-button restart-button" type="button" onClick={handleStart}>
