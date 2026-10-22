@@ -4,6 +4,7 @@ import { StrictMode } from "react";
 import type { AccountInfo } from "@azure/msal-browser";
 import { GameScreen } from "./GameScreen";
 import type { AudioController } from "../audio/audioController";
+import { DEFAULT_AUDIO_PREFERENCES } from "../audio/audioPreferences";
 
 const account = {
   homeAccountId: "local-account",
@@ -42,9 +43,22 @@ describe("GameScreen controls", () => {
   });
 
   it("provides labeled touch controls that call the game rules", () => {
-    render(<GameScreen account={account} />);
+    render(
+      <GameScreen
+        account={account}
+        audioPreferences={DEFAULT_AUDIO_PREFERENCES}
+        onAudioPreferencesChange={vi.fn()}
+        onEnableAudio={vi.fn()}
+      />,
+    );
+
+    expect(document.querySelector(".stair-game")).toHaveAttribute("data-game-status", "ready");
+    expect(screen.getByRole("region", { name: "오디오 설정" })).toBeInTheDocument();
+    expect(screen.getByText("키보드 조작")).toBeInTheDocument();
+    expect(screen.getByText("뒤에서 누가 쫓아와요!")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    expect(document.querySelector(".stair-game")).toHaveAttribute("data-game-status", "playing");
     const forwardButton = screen.getByRole("button", { name: "앞으로 한 칸 오르기" });
     const turnButton = screen.getByRole("button", { name: "방향을 바꾸며 오르기" });
 
@@ -192,6 +206,7 @@ describe("GameScreen controls", () => {
     }
 
     expect(screen.getByText(/게임 종료/)).toBeVisible();
+    expect(document.querySelector(".stair-game")).toHaveAttribute("data-game-status", "game-over");
     expect(screen.getByRole("heading", { name: "0점" })).toBeVisible();
     expect(screen.getByText("홍길동", { selector: ".leaderboard-name" }).closest("li")).toHaveClass("is-current-player");
     expect(saveSpy).toHaveBeenCalledTimes(1);

@@ -228,7 +228,7 @@ export function GameScreen({
     gameState.status !== "playing" || gameState.recoveryEndsAt !== null;
 
   return (
-    <main className="stair-game">
+    <main className="stair-game" data-game-status={gameState.status}>
       <div className="game-shell">
         <header className="game-header">
           <div className="game-brand">
@@ -262,7 +262,7 @@ export function GameScreen({
           scoreAnimationKey={scoreAnimationKey}
         />
 
-        <div className="game-layout">
+        <div className="game-layout" data-game-status={gameState.status}>
           <StairScene
             state={gameState}
             climbAnimationKey={climbAnimationKey}
