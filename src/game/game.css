@@ -9,7 +9,7 @@
 }
 
 .game-shell {
-  width: min(100%, 1080px);
+  width: min(100%, 1440px);
   margin: 0 auto;
 }
 
@@ -244,7 +244,7 @@
 .stair-scene {
   display: block;
   width: 100%;
-  height: clamp(250px, 34vw, 340px);
+  height: clamp(320px, 40vw, 500px);
   border-radius: 19px;
 }
 
@@ -258,12 +258,57 @@
 }
 
 .runner {
-  transform-origin: 30px 70px;
-  transition: transform 160ms ease;
+  transform-box: fill-box;
 }
 
-.runner.is-falling {
+.runner-pose {
+  transform-box: fill-box;
+  transform-origin: 50% 90%;
+}
+
+.runner.is-falling .runner-pose {
   animation: stumble 500ms ease-in-out both;
+}
+
+.runner.is-climbing .runner-pose {
+  animation: climb-step 300ms ease-out both;
+}
+
+.runner-arm,
+.runner-leg {
+  transform-box: fill-box;
+}
+
+.runner-arm-left {
+  transform-origin: 100% 0%;
+}
+
+.runner-arm-right {
+  transform-origin: 0% 0%;
+}
+
+.runner-leg-left {
+  transform-origin: 100% 0%;
+}
+
+.runner-leg-right {
+  transform-origin: 0% 0%;
+}
+
+.runner.is-climbing .runner-arm-left {
+  animation: climb-arm-forward 300ms ease-in-out;
+}
+
+.runner.is-climbing .runner-arm-right {
+  animation: climb-arm-back 300ms ease-in-out;
+}
+
+.runner.is-climbing .runner-leg-left {
+  animation: climb-leg-back 300ms ease-in-out;
+}
+
+.runner.is-climbing .runner-leg-right {
+  animation: climb-leg-forward 300ms ease-in-out;
 }
 
 .pursuer {
@@ -629,6 +674,36 @@
   100% { transform: rotate(0) translateY(0); }
 }
 
+@keyframes climb-step {
+  0%, 100% { transform: translateY(0); }
+  42% { transform: translateY(-11px); }
+  72% { transform: translateY(-5px); }
+}
+
+@keyframes climb-arm-forward {
+  0%, 100% { transform: rotate(0); }
+  42% { transform: rotate(-24deg); }
+  72% { transform: rotate(12deg); }
+}
+
+@keyframes climb-arm-back {
+  0%, 100% { transform: rotate(0); }
+  42% { transform: rotate(18deg); }
+  72% { transform: rotate(-12deg); }
+}
+
+@keyframes climb-leg-forward {
+  0%, 100% { transform: rotate(0); }
+  42% { transform: rotate(-17deg); }
+  72% { transform: rotate(9deg); }
+}
+
+@keyframes climb-leg-back {
+  0%, 100% { transform: rotate(0); }
+  42% { transform: rotate(17deg); }
+  72% { transform: rotate(-9deg); }
+}
+
 @keyframes pursuer-bob {
   from { translate: 0 0; }
   to { translate: 0 -4px; }
@@ -640,6 +715,10 @@
 }
 
 @media (max-width: 720px) {
+  .stair-scene {
+    height: clamp(250px, 56vw, 380px);
+  }
+
   .game-layout {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -803,13 +882,16 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .runner.is-falling,
+  .runner.is-falling .runner-pose,
+  .runner.is-climbing .runner-pose,
+  .runner.is-climbing .runner-arm,
+  .runner.is-climbing .runner-leg,
   .pursuer,
   .event-card.is-active .event-progress-fill {
     animation: none;
   }
 
-  .runner,
+  .runner-pose,
   .event-progress-fill,
   .event-card,
   .start-button,

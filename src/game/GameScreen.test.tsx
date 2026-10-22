@@ -50,6 +50,39 @@ describe("GameScreen controls", () => {
     expect(turnButton).toBeDisabled();
   });
 
+  it("animates successful D/J climbs without replaying the climb after a fall", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    render(<GameScreen account={account} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    const runner = screen.getByTestId("runner");
+    expect(runner).toHaveAttribute("data-step-count", "0");
+
+    for (let step = 0; step < 4; step += 1) {
+      fireEvent.keyDown(window, { key: "d" });
+    }
+    expect(runner).toHaveClass("is-climbing");
+    expect(runner).toHaveAttribute("data-step-count", "4");
+    expect(runner).toHaveAttribute("data-motion-key", "4");
+    expect(screen.getByTestId("runner-pose").querySelectorAll(".runner-arm, .runner-leg")).toHaveLength(4);
+
+    fireEvent.keyDown(window, { key: "j" });
+    expect(runner).toHaveAttribute("data-step-count", "5");
+    expect(runner).toHaveAttribute("data-motion-key", "5");
+    expect(runner).toHaveClass("is-climbing");
+
+    fireEvent.keyDown(window, { key: "j" });
+    expect(runner).toHaveClass("is-falling");
+    expect(runner).not.toHaveClass("is-climbing");
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+    expect(runner).not.toHaveClass("is-falling");
+    expect(runner).not.toHaveClass("is-climbing");
+  });
+
   it("does not capture D/J keystrokes from text entry fields", () => {
     render(
       <>

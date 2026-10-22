@@ -3,12 +3,18 @@ import type { Direction, GameState } from "./types";
 
 interface StairSceneProps {
   state: GameState;
+  climbAnimationKey: number;
+  isClimbing: boolean;
 }
 
 interface StepPosition {
   x: number;
   y: number;
 }
+
+const STEP_SCALE = 1.25;
+const STEP_X_SPACING = 27 * STEP_SCALE;
+const STEP_Y_SPACING = 23 * STEP_SCALE;
 
 function reverse(direction: Direction): Direction {
   return direction === "left" ? "right" : "left";
@@ -22,8 +28,8 @@ function getVisibleSteps(state: GameState): StepPosition[] {
   let y = 292;
 
   for (let index = 0; index < 9; index += 1) {
-    x += direction === "right" ? 27 : -27;
-    y -= 23;
+    x += direction === "right" ? STEP_X_SPACING : -STEP_X_SPACING;
+    y -= STEP_Y_SPACING;
     steps.push({ x, y });
     stepsUntilTurn -= 1;
 
@@ -36,7 +42,7 @@ function getVisibleSteps(state: GameState): StepPosition[] {
   return steps;
 }
 
-export function StairScene({ state }: StairSceneProps): ReactElement {
+export function StairScene({ state, climbAnimationKey, isClimbing }: StairSceneProps): ReactElement {
   const steps = getVisibleSteps(state);
   const atCorner = state.straightStepsRemaining === 0;
   const nextDirection = atCorner ? reverse(state.direction) : state.direction;
@@ -85,33 +91,47 @@ export function StairScene({ state }: StairSceneProps): ReactElement {
           {steps.map((step, index) => (
             <g key={`${step.x}-${index}`}>
               <path
-                d={`M${step.x - 20} ${step.y}l20-12 34 12-20 12Z`}
+                d={`M${step.x - 25} ${step.y}l25-15 42.5 15-25 15Z`}
                 fill={index % 2 === 0 ? "#ffe0a1" : "#ffe9bb"}
                 stroke="#d8894f"
-                strokeWidth="2"
+                strokeWidth="2.5"
               />
               <path
-                d={`M${step.x - 20} ${step.y}v13l34 12v-13l-34-12Z`}
+                d={`M${step.x - 25} ${step.y}v16l42.5 15v-16l-42.5-15Z`}
                 fill="url(#stair-front)"
                 stroke="#d8894f"
-                strokeWidth="2"
+                strokeWidth="2.5"
                 strokeLinejoin="round"
               />
-              <path d={`M${step.x + 14} ${step.y + 12}l20-12v13l-20 12Z`} fill="#df8143" />
+              <path d={`M${step.x + 17.5} ${step.y + 15}l25-15v16l-25 15Z`} fill="#df8143" />
             </g>
           ))}
         </g>
 
-        <g className={`runner${state.lastMistake ? " is-falling" : ""}`} transform="translate(229 208)">
+        <g
+          className={`runner${state.lastMistake ? " is-falling" : isClimbing ? " is-climbing" : ""}`}
+          data-testid="runner"
+          data-step-count={state.stepsClimbed}
+          data-motion-key={climbAnimationKey}
+          transform="translate(229 208)"
+        >
           <ellipse cx="30" cy="81" rx="23" ry="6" fill="#6ba77a" opacity="0.26" />
-          <path d="M16 60 5 77h19l10-13 8 13h18L45 54Z" fill="#4659ae" stroke="#263c83" strokeWidth="3" strokeLinejoin="round" />
-          <path d="m20 34-5 26c9 8 21 8 33 0l-5-27Z" fill="#f28d68" stroke="#ba604d" strokeWidth="3" strokeLinejoin="round" />
-          <path d="M19 41 2 54m39-11 15 13" fill="none" stroke="#f28d68" strokeWidth="8" strokeLinecap="round" />
-          <circle cx="31" cy="19" r="17" fill="#f7c99d" stroke="#ba805c" strokeWidth="3" />
-          <path d="M14 18c1-15 11-22 24-18 8 2 12 8 12 17-5-5-10-8-17-8-6 7-12 9-19 9Z" fill="#344574" />
-          <circle cx="36" cy="20" r="1.8" fill="#293252" />
-          <path d="M33 27q4 3 8 0" fill="none" stroke="#b56458" strokeWidth="2" strokeLinecap="round" />
-          <path d="M27 59 18 78m22-19 8 19" stroke="#ffe09b" strokeWidth="7" strokeLinecap="round" />
+          <g
+            key={climbAnimationKey}
+            className={`runner-pose${state.lastMistake ? " is-falling" : isClimbing ? " is-climbing" : ""}`}
+            data-testid="runner-pose"
+          >
+            <path d="M16 60 5 77h19l10-13 8 13h18L45 54Z" fill="#4659ae" stroke="#263c83" strokeWidth="3" strokeLinejoin="round" />
+            <path d="m20 34-5 26c9 8 21 8 33 0l-5-27Z" fill="#f28d68" stroke="#ba604d" strokeWidth="3" strokeLinejoin="round" />
+            <path d="M19 41 2 54" className="runner-arm runner-arm-left" fill="none" stroke="#f28d68" strokeWidth="8" strokeLinecap="round" />
+            <path d="m41 43 15 13" className="runner-arm runner-arm-right" fill="none" stroke="#f28d68" strokeWidth="8" strokeLinecap="round" />
+            <circle cx="31" cy="19" r="17" fill="#f7c99d" stroke="#ba805c" strokeWidth="3" />
+            <path d="M14 18c1-15 11-22 24-18 8 2 12 8 12 17-5-5-10-8-17-8-6 7-12 9-19 9Z" fill="#344574" />
+            <circle cx="36" cy="20" r="1.8" fill="#293252" />
+            <path d="M33 27q4 3 8 0" fill="none" stroke="#b56458" strokeWidth="2" strokeLinecap="round" />
+            <path d="M27 59 18 78" className="runner-leg runner-leg-left" stroke="#ffe09b" strokeWidth="7" strokeLinecap="round" />
+            <path d="M40 59 48 78" className="runner-leg runner-leg-right" stroke="#ffe09b" strokeWidth="7" strokeLinecap="round" />
+          </g>
         </g>
 
         <g className="pursuer" transform="translate(57 253)">

@@ -44,8 +44,11 @@ export function GameScreen({
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>(() => readLeaderboard());
   const [saveError, setSaveError] = useState(false);
+  const [climbAnimationKey, setClimbAnimationKey] = useState(0);
+  const [isClimbing, setIsClimbing] = useState(false);
   const scoreSavedRef = useRef(false);
   const previousStepsRef = useRef(gameState.stepsClimbed);
+  const climbTimeoutRef = useRef<number | undefined>(undefined);
   const previousMistakeRef = useRef(gameState.lastMistake);
   const previousEventActiveRef = useRef(gameState.eventEndsAt !== null);
 
@@ -64,9 +67,42 @@ export function GameScreen({
   };
 
   useEffect(() => {
-    if (gameState.stepsClimbed > previousStepsRef.current) audioController?.playFootstep();
+    const climbedSuccessfully = gameState.stepsClimbed > previousStepsRef.current;
+
+    if (climbedSuccessfully) {
+      audioController?.playFootstep();
+      setClimbAnimationKey((key) => key + 1);
+      setIsClimbing(true);
+
+      if (climbTimeoutRef.current !== undefined) {
+        window.clearTimeout(climbTimeoutRef.current);
+      }
+      climbTimeoutRef.current = window.setTimeout(() => {
+        setIsClimbing(false);
+        climbTimeoutRef.current = undefined;
+      }, 300);
+    } else if (gameState.stepsClimbed < previousStepsRef.current) {
+      if (climbTimeoutRef.current !== undefined) {
+        window.clearTimeout(climbTimeoutRef.current);
+        climbTimeoutRef.current = undefined;
+      }
+      setIsClimbing(false);
+    }
+
+    if (gameState.lastMistake && climbTimeoutRef.current !== undefined) {
+      window.clearTimeout(climbTimeoutRef.current);
+      climbTimeoutRef.current = undefined;
+      setIsClimbing(false);
+    }
+
     previousStepsRef.current = gameState.stepsClimbed;
-  }, [audioController, gameState.stepsClimbed]);
+
+    return () => {
+      if (climbTimeoutRef.current !== undefined) {
+        window.clearTimeout(climbTimeoutRef.current);
+      }
+    };
+  }, [audioController, gameState.lastMistake, gameState.stepsClimbed]);
 
   useEffect(() => {
     if (gameState.lastMistake && !previousMistakeRef.current) audioController?.playFall();
@@ -188,7 +224,11 @@ export function GameScreen({
         <GameHud state={gameState} eventSecondsLeft={eventSecondsLeft} />
 
         <div className="game-layout">
-          <StairScene state={gameState} />
+          <StairScene
+            state={gameState}
+            climbAnimationKey={climbAnimationKey}
+            isClimbing={isClimbing && !gameState.lastMistake}
+          />
           <aside className="game-side-panel" aria-label="조작 방법">
             <div className="instruction-card">
               <span className="instruction-icon" aria-hidden="true">⌨</span>
