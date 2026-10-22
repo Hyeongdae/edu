@@ -15,6 +15,14 @@ const account = {
   name: "홍길동",
 } satisfies AccountInfo;
 
+function nextClimbKey(): "d" | "j" {
+  return screen.getByTestId("route-direction").textContent === "지금 방향을 바꾸세요" ? "j" : "d";
+}
+
+function climbOneStep(): void {
+  fireEvent.keyDown(window, { key: nextClimbKey() });
+}
+
 describe("GameScreen controls", () => {
   afterEach(() => {
     cleanup();
@@ -125,10 +133,7 @@ describe("GameScreen controls", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
-    for (let segment = 0; segment < 6; segment += 1) {
-      for (let step = 0; step < 4; step += 1) fireEvent.keyDown(window, { key: "d" });
-      fireEvent.keyDown(window, { key: "j" });
-    }
+    for (let step = 0; step < 30; step += 1) climbOneStep();
     const eventStatus = screen.getByTestId("event-status");
     expect(eventStatus).toHaveTextContent("2배 점수");
     const remainingBefore = eventStatus.textContent;
@@ -162,17 +167,11 @@ describe("GameScreen controls", () => {
     expect(screen.getByTestId("score-value")).not.toBe(firstScoreNode);
     expect(screen.getByTestId("score-gain")).toHaveTextContent("+1");
 
-    fireEvent.keyDown(window, { key: "d" });
-    fireEvent.keyDown(window, { key: "d" });
-    fireEvent.keyDown(window, { key: "j" });
-    for (let segment = 0; segment < 5; segment += 1) {
-      for (let step = 0; step < 4; step += 1) fireEvent.keyDown(window, { key: "d" });
-      fireEvent.keyDown(window, { key: "j" });
-    }
+    for (let step = 2; step < 30; step += 1) climbOneStep();
 
     expect(screen.getByTestId("score-value")).toHaveTextContent("30");
     expect(screen.getByTestId("event-status")).toHaveTextContent("2배 점수");
-    fireEvent.keyDown(window, { key: "d" });
+    climbOneStep();
     expect(screen.getByTestId("score-value")).toHaveTextContent("32");
     expect(screen.getByTestId("score-gain")).toHaveTextContent("+2");
     expect(screen.getByTestId("score-gain")).toHaveAttribute("aria-label", "2점 획득");
@@ -269,16 +268,13 @@ describe("GameScreen controls", () => {
     render(<GameScreen account={account} audioController={audio} />);
 
     fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
-    for (let segment = 0; segment < 6; segment += 1) {
-      for (let step = 0; step < 4; step += 1) fireEvent.keyDown(window, { key: "d" });
-      fireEvent.keyDown(window, { key: "j" });
-    }
+    for (let step = 0; step < 30; step += 1) climbOneStep();
 
     expect(audio.startBgm).toHaveBeenCalledOnce();
     expect(audio.playFootstep).toHaveBeenCalledTimes(30);
     expect(audio.setEventActive).toHaveBeenCalledWith(true);
 
-    fireEvent.keyDown(window, { key: "j" });
+    fireEvent.keyDown(window, { key: nextClimbKey() === "d" ? "j" : "d" });
     expect(audio.playFall).toHaveBeenCalledOnce();
     expect(audio.stopBgm).not.toHaveBeenCalled();
   });
@@ -286,7 +282,7 @@ describe("GameScreen controls", () => {
   it("saves the final score once, shows the ranking, and restarts a fresh game", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(1_000);
-    vi.spyOn(Math, "random").mockReturnValue(0.5);
+    const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0.5);
     const saveSpy = vi.spyOn(Storage.prototype, "setItem");
     const audio = {
       startBgm: vi.fn().mockResolvedValue(true),
@@ -320,7 +316,9 @@ describe("GameScreen controls", () => {
     expect(audio.stopBgm).toHaveBeenCalledOnce();
     expect(window.localStorage.getItem("stair-climb:leaderboard:v1")).toContain("local-account");
 
+    const randomCallsBeforeRestart = randomSpy.mock.calls.length;
     fireEvent.click(screen.getByRole("button", { name: /다시 시작/ }));
+    expect(randomSpy).toHaveBeenCalledTimes(randomCallsBeforeRestart + 1);
     expect(audio.startBgm).toHaveBeenCalledTimes(2);
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "playing");
     expect(screen.getByRole("region", { name: "게임 현황" })).toBeVisible();

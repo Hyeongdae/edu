@@ -7,6 +7,7 @@ import {
   tickGame,
 } from "./gameEngine";
 import type { GameState } from "./types";
+import { countStraightSteps, getRouteStep } from "./stairRoute";
 
 const randomFiveSteps = () => 0.5;
 
@@ -16,7 +17,8 @@ function playingState(overrides: Partial<GameState> = {}): GameState {
 
 describe("createGameState", () => {
   it("starts with three lives, a pursuer four steps away, and a right-facing route", () => {
-    expect(createGameState(randomFiveSteps)).toEqual({
+    const state = createGameState(randomFiveSteps);
+    expect(state).toMatchObject({
       status: "ready",
       score: 0,
       stepsClimbed: 0,
@@ -29,6 +31,8 @@ describe("createGameState", () => {
       recoveryEndsAt: null,
       lastMistake: false,
     });
+    expect(state.route.steps).toHaveLength(23);
+    expect(countStraightSteps(state.route, 0, "right")).toBe(state.straightStepsRemaining);
   });
 
   it.each([
@@ -62,7 +66,7 @@ describe("createGameState", () => {
 describe("applyInput", () => {
   it("moves forward on a straight section and adds one point", () => {
     const before = playingState();
-    const after = applyInput(before, "forward", 100, randomFiveSteps);
+    const after = applyInput(before, "forward", 100);
 
     expect(after).toMatchObject({
       score: 1,
@@ -75,21 +79,27 @@ describe("applyInput", () => {
   });
 
   it("turns and climbs one step at a corner", () => {
-    const before = playingState({ straightStepsRemaining: 0 });
-    const after = applyInput(before, "turn", 100, () => 0.999);
+    let before = playingState();
+    for (let step = 0; step < 5; step += 1) before = applyInput(before, "forward", 100);
+    expect(before.straightStepsRemaining).toBe(0);
+    const nextRunLength = countStraightSteps(before.route, before.stepsClimbed, "left");
+    const nextStep = getRouteStep(before.route, before.stepsClimbed + 1);
+    const after = applyInput(before, "turn", 100);
 
     expect(after).toMatchObject({
       direction: "left",
-      straightStepsRemaining: 6,
-      score: 1,
-      stepsClimbed: 1,
-      eventSteps: 1,
+      straightStepsRemaining: nextRunLength - 1,
+      score: 6,
+      stepsClimbed: 6,
+      eventSteps: 6,
     });
+    expect(nextRunLength).not.toBe(5);
+    expect(getRouteStep(after.route, after.stepsClimbed)).toBe(nextStep);
   });
 
   it("makes a wrong input cost one pursuer step and starts a 500 ms recovery", () => {
     const before = playingState({ eventSteps: 12 });
-    const after = applyInput(before, "turn", 1_000, randomFiveSteps);
+    const after = applyInput(before, "turn", 1_000);
 
     expect(after).toMatchObject({
       score: 0,
@@ -100,6 +110,7 @@ describe("applyInput", () => {
       recoveryEndsAt: 1_500,
       lastMistake: true,
     });
+    expect(after.route).toBe(before.route);
   });
 
   it("ignores inputs during recovery, then accepts input at the recovery boundary", () => {
@@ -108,6 +119,7 @@ describe("applyInput", () => {
     const recovered = applyInput(blocked, "forward", 1_500);
 
     expect(blocked).toBe(fallen);
+    expect(blocked.route).toBe(fallen.route);
     expect(recovered).toMatchObject({
       score: 1,
       recoveryEndsAt: null,
@@ -179,6 +191,27 @@ describe("applyInput", () => {
     const ready = createGameState(randomFiveSteps);
 
     expect(applyInput(ready, "forward", 100)).toBe(ready);
+  });
+
+  it("uses the preview as the input contract and stays deterministic on replayed updaters", () => {
+    let state = playingState();
+
+    for (let step = 0; step < 60; step += 1) {
+      const preview = getRouteStep(state.route, state.stepsClimbed + 1);
+      const atCorner = preview.direction !== state.direction;
+      expect(state.straightStepsRemaining === 0).toBe(atCorner);
+      const input = atCorner ? "turn" : "forward";
+      const before = structuredClone(state);
+      const after = applyInput(state, input, 100 + step);
+
+      expect(applyInput(state, input, 100 + step)).toEqual(after);
+      expect(state).toEqual(before);
+      expect(getRouteStep(after.route, after.stepsClimbed)).toBe(preview);
+      expect(after.direction).toBe(preview.direction);
+      expect(after.stepsClimbed).toBe(step + 1);
+      expect(after.lives).toBe(3);
+      state = after;
+    }
   });
 });
 

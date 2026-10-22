@@ -96,7 +96,8 @@ export function GameScreen({
     scoreSavedRef.current = false;
     setSaveError(false);
     setNowMs(Date.now());
-    setGameState((state) => startGame(state.status === "game-over" ? resetGame() : state));
+    const nextState = startGame(gameState.status === "game-over" ? resetGame() : gameState);
+    setGameState(nextState);
     void audioController?.startBgm();
   };
 

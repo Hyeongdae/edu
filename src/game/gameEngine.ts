@@ -1,9 +1,8 @@
-import type { Direction, GameInput, GameState } from "./types";
+import type { GameInput, GameState } from "./types";
+import { advanceStairRoute, countStraightSteps, createStairRoute, getRouteStep } from "./stairRoute";
 
 const INITIAL_LIVES = 3;
 const INITIAL_PURSUER_DISTANCE = 4;
-const MIN_STRAIGHT_STEPS = 4;
-const STRAIGHT_STEP_VARIANTS = 3;
 const EVENT_STEP_TARGET = 30;
 const EVENT_DURATION_MS = 30_000;
 const RECOVERY_DURATION_MS = 500;
@@ -14,32 +13,21 @@ function validateTime(nowMs: number): void {
   }
 }
 
-function nextStraightSteps(random: () => number): number {
-  const value = random();
-  if (!Number.isFinite(value) || value < 0 || value >= 1) {
-    throw new RangeError("random must return a number greater than or equal to 0 and less than 1.");
-  }
-
-  return Math.floor(value * STRAIGHT_STEP_VARIANTS) + MIN_STRAIGHT_STEPS;
-}
-
-function reverseDirection(direction: Direction): Direction {
-  return direction === "left" ? "right" : "left";
-}
-
 export function createGameState(random: () => number = Math.random): GameState {
+  const route = createStairRoute(random);
   return {
     status: "ready",
     score: 0,
     stepsClimbed: 0,
     lives: INITIAL_LIVES,
     direction: "right",
-    straightStepsRemaining: nextStraightSteps(random),
+    straightStepsRemaining: countStraightSteps(route, 0, "right"),
     pursuerDistance: INITIAL_PURSUER_DISTANCE,
     eventSteps: 0,
     eventEndsAt: null,
     recoveryEndsAt: null,
     lastMistake: false,
+    route,
   };
 }
 
@@ -71,7 +59,6 @@ export function applyInput(
   state: GameState,
   input: GameInput,
   nowMs: number,
-  random: () => number = Math.random,
 ): GameState {
   validateTime(nowMs);
   const currentState = tickGame(state, nowMs);
@@ -80,7 +67,8 @@ export function applyInput(
     return currentState;
   }
 
-  const isAtCorner = currentState.straightStepsRemaining === 0;
+  const nextStep = getRouteStep(currentState.route, currentState.stepsClimbed + 1);
+  const isAtCorner = nextStep.direction !== currentState.direction;
   const inputIsCorrect = isAtCorner ? input === "turn" : input === "forward";
 
   if (!inputIsCorrect) {
@@ -98,7 +86,8 @@ export function applyInput(
     };
   }
 
-  const isTurning = isAtCorner;
+  const nextStepsClimbed = currentState.stepsClimbed + 1;
+  const route = advanceStairRoute(currentState.route, nextStepsClimbed);
   const eventIsActive = currentState.eventEndsAt !== null;
   let nextEventSteps = currentState.eventSteps;
   let nextEventEndsAt = currentState.eventEndsAt;
@@ -114,15 +103,14 @@ export function applyInput(
   return {
     ...currentState,
     score: currentState.score + (eventIsActive ? 2 : 1),
-    stepsClimbed: currentState.stepsClimbed + 1,
-    direction: isTurning ? reverseDirection(currentState.direction) : currentState.direction,
-    straightStepsRemaining: isTurning
-      ? nextStraightSteps(random)
-      : currentState.straightStepsRemaining - 1,
+    stepsClimbed: nextStepsClimbed,
+    direction: nextStep.direction,
+    straightStepsRemaining: countStraightSteps(route, nextStepsClimbed, nextStep.direction),
     eventSteps: nextEventSteps,
     eventEndsAt: nextEventEndsAt,
     recoveryEndsAt: null,
     lastMistake: false,
+    route,
   };
 }
 
