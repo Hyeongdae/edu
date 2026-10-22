@@ -1,6 +1,6 @@
 # Task: T03 Pixel Office Scene
 
-## Status: in_progress
+## Status: done
 
 ## Goal
 기존 야외 하늘·풀밭·주황 계단·보라색 몬스터 장면을, 젊은 회사원과 조금 나이 든 회사원이 회사 건물 안에서 쫓고 쫓기는 픽셀아트 장면으로 바꾼다. 창문 너머 네온 도시 야경과 사무실 소품, 로비의 개방감을 함께 보여주며 T02의 경로와 가림 동작을 보존한다.
@@ -99,11 +99,11 @@
 - 네온 야경은 창밖에, 책상과 복사기는 실내에, 난간/층수 표지는 계단실에 보이는지 확인한다. 계단 길이 4·5·6과 코너마다 바뀌는 구간 모두 읽기 쉬워야 한다.
 
 ## Acceptance Criteria
-- [ ] 두 인물이 코믹한 young/older 회사원 픽셀 캐릭터로 보이며 몬스터 도형이 사라진다.
-- [ ] 계단실·사무실 소품·로비 창문을 섞은 회사 내부이며, 네온 도시는 창밖에 보인다.
-- [ ] 계단/배경/인물의 픽셀 모서리가 선명하고 캐릭터와 계단 크기가 유지된다.
-- [ ] T02의 동일 경로 이동, 아래쪽 가림, 모퉁이, 잡힘/복귀가 유지된다.
-- [ ] reduced-motion에서도 인물이 사라지지 않고 정적인 현재 상태를 읽을 수 있다.
+- [x] 두 인물이 코믹한 young/older 회사원 픽셀 캐릭터로 보이며 몬스터 도형이 사라진다.
+- [x] 계단실·사무실 소품·로비 창문을 섞은 회사 내부이며, 네온 도시는 창밖에 보인다.
+- [x] 계단/배경/인물의 픽셀 모서리가 선명하고 캐릭터와 계단 크기가 유지된다.
+- [x] T02의 동일 경로 이동, 아래쪽 가림, 모퉁이, 잡힘/복귀가 유지된다.
+- [x] reduced-motion에서도 인물이 사라지지 않고 정적인 현재 상태를 읽을 수 있다.
 
 ## Validation
 - `npm test -- --run src/game/stairSceneModel.test.ts src/game/gameEngine.test.ts src/game/GameScreen.test.tsx` — 대상 회귀 검증 통과.
@@ -124,6 +124,22 @@ Task: T03-pixel-office-scene
 ```
 
 ## Progress
-- [ ] 구현 완료
-- [ ] 검증 통과
-- commit: pending
+- [x] 구현 완료
+- [x] 검증 통과
+- commit: complete (see task commit in git history)
+
+## Validation Results
+- `npm test -- --run src/game/stairSceneModel.test.ts src/game/gameEngine.test.ts src/game/GameScreen.test.tsx`: 3 files, 58 tests passed.
+- `npm run lint`: passed.
+- `npm run build`: passed. 기존 500 kB 초과 번들 경고는 남아 있다(526.97 kB, gzip 147.22 kB).
+- young/older 변형, idle → climb → fall → idle 의미 상태, 방향 전환과 기존 route index/motion key, 정적 배경과 게임플레이 레이어 분리, 렌더링 시 Math.random 미사용을 검증했다.
+- 로컬 데모 Chromium 390×667 및 1440×900에서 초기 상태, 좌우 모퉁이, 정답 이동, 추격 거리 4/3/2/1, 잡힘 접촉과 복귀를 캡처하여 확인했다. 네온 도시는 창틀 뒤에 있고 난간/02F/책상/모니터/복사기는 실내 배경에 배치된다. 인물 얼굴과 대부분의 몸은 보이며 발 아래쪽만 가려진다.
+- 브라우저의 실제 SVG 행렬로 잡힘 0/100/200/275/350/425/500ms의 좌표와 좌우 방향을 검증했다. 기존 경로를 따르며 최종 위치로 복귀하고, 같은 인물이 중복 렌더링되지 않는다.
+- run-a/run-b 프레임 교대와 정수 hop을 브라우저에서 확인했다. reduced-motion에서는 climb은 idle, fall은 stumble 한 프레임만 표시되고 이동 애니메이션은 없다. 왼쪽을 향한 리셋 위치에서도 방향이 유지된다.
+- 4/5/6칸 구간의 읽기 쉬운 경로, 두 해상도에서 overflow 없음, runtime exception 없음을 확인했다.
+- 확인용 캡처는 로컬 TEMP의 `stair-t03-390-*.png`, `stair-t03-1440-*.png`에 두었으며 저장소에는 추가하지 않았다.
+
+## Scope Notes
+- T02의 경로 모델, 점수/입력/오디오/회복 엔진은 변경하지 않았다. HUD·버튼·설정 패널 등의 UI 테마 통일은 T04다.
+- 기존 도움말의 '세 번 실수' 설명과 실제 잡힘 규칙 불일치, `src/App.test.tsx`의 오래된 표시 기대값은 범위 밖이다.
+- 기존 `game.css`의 SVG 팔다리 선택자와 부드러운 자세 애니메이션은 새 픽셀 인물에 사용하지 않는다. 픽셀 CSS에서 기존 자세 효과를 해제했으며, 사용하지 않는 기존 규칙의 정리는 후속 작업에서 검토할 수 있다.

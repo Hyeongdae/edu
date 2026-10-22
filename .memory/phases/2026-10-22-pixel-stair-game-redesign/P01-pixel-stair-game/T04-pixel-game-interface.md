@@ -1,6 +1,6 @@
 # Task: T04 Pixel Game Interface
 
-## Status: pending
+## Status: in_progress
 
 ## Goal
 T03의 네온 회사 실내 장면과 HUD·입력 버튼·설정창·오디오 설정·결과·랭킹이 하나의 픽셀 게임으로 보이게 만든다. 전체 화면 안에서 게임 장면을 크게 유지하고 모바일/키보드/설정 접근성과 기존 데이터 동작을 보존한다.

@@ -192,6 +192,10 @@ describe("GameScreen controls", () => {
     fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
     const runner = () => screen.getByTestId("runner");
     expect(runner()).toHaveAttribute("data-step-count", "0");
+    const young = () => runner().querySelector("[data-officer-variant='young']");
+    const older = () => screen.getByTestId("pursuer").querySelector("[data-officer-variant='older']");
+    expect(young()).toHaveAttribute("data-officer-pose", "idle");
+    expect(older()).toHaveAttribute("data-officer-pose", "idle");
 
     for (let step = 0; step < 4; step += 1) {
       fireEvent.keyDown(window, { key: "d" });
@@ -199,22 +203,51 @@ describe("GameScreen controls", () => {
     expect(runner()).toHaveClass("is-climbing");
     expect(runner()).toHaveAttribute("data-step-count", "4");
     expect(runner()).toHaveAttribute("data-motion-key", "4");
-    expect(screen.getByTestId("runner-pose").querySelectorAll(".runner-arm, .runner-leg")).toHaveLength(4);
+    expect(young()).toHaveAttribute("data-officer-pose", "climb");
+    expect(older()).toHaveAttribute("data-officer-pose", "climb");
 
     fireEvent.keyDown(window, { key: "j" });
     expect(runner()).toHaveAttribute("data-step-count", "5");
     expect(runner()).toHaveAttribute("data-motion-key", "5");
     expect(runner()).toHaveClass("is-climbing");
+    expect(young()).toHaveAttribute("transform", "scale(-1 1)");
 
     fireEvent.keyDown(window, { key: "j" });
     expect(runner()).toHaveClass("is-falling");
     expect(runner()).not.toHaveClass("is-climbing");
+    expect(young()).toHaveAttribute("data-officer-pose", "fall");
+    expect(older()).toHaveAttribute("data-officer-pose", "climb");
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(500);
     });
     expect(runner()).not.toHaveClass("is-falling");
     expect(runner()).not.toHaveClass("is-climbing");
+    expect(young()).toHaveAttribute("data-officer-pose", "idle");
+    expect(older()).toHaveAttribute("data-officer-pose", "idle");
+  });
+
+  it("layers a static pixel office behind the full route without consuming randomness", () => {
+    const state = createGameState(() => 0);
+    const random = vi.spyOn(Math, "random");
+    const props = { state, climbAnimationKey: 0, isClimbing: false, pursuerAnimationKey: 0, isPursuerCaught: false };
+    const { rerender } = render(<StairScene {...props} />);
+    const backdrop = document.querySelector(".office-backdrop");
+    const gameplay = screen.getByRole("img");
+    expect(backdrop?.parentElement).toBe(gameplay.parentElement);
+    expect(backdrop).toHaveAttribute("aria-hidden", "true");
+    expect(backdrop).toHaveAttribute("preserveAspectRatio", "xMidYMid slice");
+    expect(gameplay).toHaveAttribute("preserveAspectRatio", "xMidYMid meet");
+    expect(backdrop?.querySelector(".office-city")).toBeInTheDocument();
+    expect(backdrop?.querySelector(".office-desk")).toBeInTheDocument();
+    expect(backdrop?.querySelector(".office-copier")).toBeInTheDocument();
+    expect(backdrop?.querySelector(".office-floor-sign")).toHaveTextContent("02F");
+    expect(document.querySelectorAll(".pixel-officer")).toHaveLength(2);
+    expect(document.querySelector(".pixel-officer circle, .pixel-officer ellipse")).not.toBeInTheDocument();
+    expect(screen.getAllByTestId("stair-step")).toHaveLength(11);
+    rerender(<StairScene {...props} isClimbing climbAnimationKey={1} pursuerAnimationKey={1} />);
+    expect(random).not.toHaveBeenCalled();
+    expect(document.querySelectorAll(".pixel-officer")).toHaveLength(2);
   });
 
   it("moves the pursuer along the real history by one stair for each mistake", async () => {
