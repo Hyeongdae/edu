@@ -531,16 +531,23 @@
 
 .pursuer {
   animation: pursuer-bob 1.4s ease-in-out infinite alternate;
-  transform-origin: 29px 44px;
+  transform-origin: 0 0;
   transform-box: view-box;
 }
 
+.pursuer.is-following,
 .pursuer.is-approaching {
   animation: pursuer-step-hop 240ms ease-out both;
 }
 
 .pursuer.is-caught {
   animation: pursuer-caught 500ms steps(1, end) both;
+}
+
+.pursuer.is-caught .pursuer-facing {
+  transform-box: view-box;
+  transform-origin: 0 0;
+  animation: pursuer-caught-facing 500ms steps(1, end) both;
 }
 
 .game-side-panel {
@@ -968,15 +975,23 @@
 }
 
 @keyframes pursuer-caught {
-  0%, 10% { translate: 0 0; animation-timing-function: steps(1, end); }
-  20% { translate: 6.538% -3.889%; animation-timing-function: steps(1, end); }
-  30% { translate: 13.077% -7.778%; animation-timing-function: steps(1, end); }
-  40% { translate: 19.615% -11.667%; animation-timing-function: steps(1, end); }
-  50%, 60% { translate: 26.154% -15.556%; animation-timing-function: steps(1, end); }
-  70% { translate: 19.615% -11.667%; animation-timing-function: steps(1, end); }
-  80% { translate: 13.077% -7.778%; animation-timing-function: steps(1, end); }
-  90% { translate: 6.538% -3.889%; animation-timing-function: steps(1, end); }
-  100% { translate: 0 0; }
+  0% { translate: var(--catch-x-0) var(--catch-y-0); }
+  20% { translate: var(--catch-x-1) var(--catch-y-1); }
+  40% { translate: var(--catch-x-2) var(--catch-y-2); }
+  55% { translate: var(--catch-x-3) var(--catch-y-3); }
+  70% { translate: var(--catch-x-4) var(--catch-y-4); }
+  85% { translate: var(--catch-x-5) var(--catch-y-5); }
+  100% { translate: var(--catch-x-6) var(--catch-y-6); }
+}
+
+@keyframes pursuer-caught-facing {
+  0% { transform: scaleX(var(--catch-facing-0)); }
+  20% { transform: scaleX(var(--catch-facing-1)); }
+  40% { transform: scaleX(var(--catch-facing-2)); }
+  55% { transform: scaleX(var(--catch-facing-3)); }
+  70% { transform: scaleX(var(--catch-facing-4)); }
+  85% { transform: scaleX(var(--catch-facing-5)); }
+  100% { transform: scaleX(var(--catch-facing-6)); }
 }
 
 @keyframes event-glow {
@@ -1566,8 +1581,10 @@
   .score-value.is-scoring,
   .score-gain,
   .pursuer,
+  .pursuer.is-following,
   .pursuer.is-approaching,
   .pursuer.is-caught,
+  .pursuer.is-caught .pursuer-facing,
   .event-card.is-active .event-progress-fill {
     animation: none;
   }

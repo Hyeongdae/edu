@@ -1,6 +1,6 @@
 # Task: T02 Route Scene and Pursuit
 
-## Status: in_progress
+## Status: done
 
 ## Goal
 같은 경로 데이터로 중앙 플레이어, 지나온 4칸과 앞으로 갈 6칸, 계단을 따라오는 추격자를 표시한다. 정답 이동·실수 접근·모퉁이·접촉과 복귀를 실제 계단 좌표에 연결하고 추격자 몸 아래쪽만 가린다. 그림은 이 작업에서는 기존 SVG 캐릭터를 재사용하여 동작과 디자인 교체를 나눈다.
@@ -138,11 +138,11 @@
 - 기존 마지막 잡힘 즉시 저장, 회복 후 결과, 새 게임 restart 테스트를 유지한다. CSS 시각 동작은 브라우저에서 검증하며 픽셀별 스냅샷 테스트는 추가하지 않는다.
 
 ## Acceptance Criteria
-- [ ] 보이는 계단과 D/J 판정이 같은 route를 사용하며 중앙 기준 뒤 4/앞 6칸이 표시된다.
-- [ ] 추격자가 실제 지나온 경로에서 움직이고 자신의 모퉁이에서 방향을 바꾼다.
-- [ ] 아래쪽만 가려지고 얼굴/몸 대부분이 보인다. 현재/잡힘 위치가 중복 렌더링되지 않는다.
-- [ ] 잡힘과 복귀가 500ms 안에 실제 계단 경로를 따르고, 회복 경계에서도 실수 연출/소리가 누락되지 않는다.
-- [ ] 마지막 결과 공개, 저장, 오디오, reduced-motion이 기존 계약을 충족한다.
+- [x] 보이는 계단과 D/J 판정이 같은 route를 사용하며 중앙 기준 뒤 4/앞 6칸이 표시된다.
+- [x] 추격자가 실제 지나온 경로에서 움직이고 자신의 모퉁이에서 방향을 바꾼다.
+- [x] 아래쪽만 가려지고 얼굴/몸 대부분이 보인다. 현재/잡힘 위치가 중복 렌더링되지 않는다.
+- [x] 잡힘과 복귀가 500ms 안에 실제 계단 경로를 따르고, 회복 경계에서도 실수 연출/소리가 누락되지 않는다.
+- [x] 마지막 결과 공개, 저장, 오디오, reduced-motion이 기존 계약을 충족한다.
 
 ## Validation
 - `npm test -- --run src/game/stairSceneModel.test.ts src/game/stairRoute.test.ts src/game/gameEngine.test.ts src/game/GameScreen.test.tsx` — 통과.
@@ -163,6 +163,21 @@ Task: T02-route-scene-and-pursuit
 ```
 
 ## Progress
-- [ ] 구현 완료
-- [ ] 검증 통과
-- commit: pending
+- [x] 구현 완료
+- [x] 검증 통과
+- commit: complete (see task commit in git history)
+
+## Validation Results
+- `npm test -- --run src/game/stairSceneModel.test.ts src/game/stairRoute.test.ts src/game/gameEngine.test.ts src/game/GameScreen.test.tsx`: 4 files, 78 tests passed.
+- `npm run lint`: passed.
+- `npm run build`: passed. 기존 500 kB 초과 번들 경고는 남아 있다(512.32 kB, gzip 144.30 kB).
+- 장면 모델에서 3개 시드 × 300칸 동안 정수 좌표, 11개 가시 노드, 좌우 방향, 4/5/6칸 구간과 화면 경계를 확인했다.
+- `vi.setSystemTime`만 이동한 연속 오답으로 새로운 발 넘어짐 pose, 추격 motion key, fall 음원이 실수마다 한 번씩 재생되는 것을 검증했다.
+- 마지막 잡힘의 즉시 저장·회복 후 결과와 회복 전 재시작 시 잡힘 초기화를 검증했다.
+- 로컬 데모 Chromium 390×667 및 1440×900: 초기 -4칸, 코너 이후 서로 다른 인물 방향, 정답 동반 hop, 실수 접근, 코너 잡힘/복귀, 마지막 결과 공개를 확인했다. 장면마다 추격자는 한 개이며 화면 overflow와 runtime exception은 없었다.
+- 브라우저에서 실제 SVG 변환 행렬을 0/100/200/275/350/425/500ms에 조회했다. 6칸 위치에서의 잡힘이 (294,244) → (260,216) → (260,216) → (294,244) → (328,272) → (294,300) → (260,328)의 실제 경로와 일치했다.
+- reduced-motion에서는 추격/잡힘 animation과 translate가 없고, 마지막 결과가 즉시 표시되며 회복 전 재시작 후에도 새 경로로 정상 복귀했다.
+
+## Scope Notes
+- 기존 SVG 캐릭터와 배경을 재사용했다. 회사원/회사 실내·네온 야경의 픽셀 장면은 T03, UI 픽셀 디자인은 T04다.
+- 범위 밖 기존 항목: 설정 도움말의 '세 번 실수' 설명과 실제 잡힘 규칙 불일치, `src/App.test.tsx`의 설정 패널 외부 오디오/계정 표시 기대값. 해당 파일/설명은 수정하지 않았다.

@@ -60,8 +60,8 @@ export function GameScreen({
   const climbTimeoutRef = useRef<number | undefined>(undefined);
   const previousScoreRef = useRef(gameState.score);
   const scoreGainTimeoutRef = useRef<number | undefined>(undefined);
-  const previousMistakeRef = useRef(gameState.lastMistake);
-  const previousPursuerDistanceRef = useRef(gameState.pursuerDistance);
+  const previousRecoveryEndsAtRef = useRef(gameState.recoveryEndsAt);
+  const previousLivesRef = useRef(gameState.lives);
   const previousEventActiveRef = useRef(gameState.eventEndsAt !== null);
 
   const openSettings = useCallback(() => {
@@ -107,6 +107,7 @@ export function GameScreen({
     if (climbedSuccessfully) {
       audioController?.playFootstep();
       setClimbAnimationKey((key) => key + 1);
+      setPursuerAnimationKey((key) => key + 1);
       setIsClimbing(true);
 
       if (climbTimeoutRef.current !== undefined) {
@@ -170,19 +171,20 @@ export function GameScreen({
   }, [gameState.score]);
 
   useEffect(() => {
-    const mistakeStarted = gameState.lastMistake && !previousMistakeRef.current;
+    const mistakeStarted = gameState.lastMistake && gameState.recoveryEndsAt !== null &&
+      gameState.recoveryEndsAt !== previousRecoveryEndsAtRef.current;
 
     if (mistakeStarted) {
       audioController?.playFall();
       setPursuerAnimationKey((key) => key + 1);
-      setIsPursuerCaught(gameState.pursuerDistance > previousPursuerDistanceRef.current);
-    } else if (!gameState.lastMistake) {
+      setIsPursuerCaught(gameState.lives < previousLivesRef.current);
+    } else if (!gameState.lastMistake || gameState.lives > previousLivesRef.current) {
       setIsPursuerCaught(false);
     }
 
-    previousPursuerDistanceRef.current = gameState.pursuerDistance;
-    previousMistakeRef.current = gameState.lastMistake;
-  }, [audioController, gameState.lastMistake, gameState.pursuerDistance]);
+    previousRecoveryEndsAtRef.current = gameState.recoveryEndsAt;
+    previousLivesRef.current = gameState.lives;
+  }, [audioController, gameState.lastMistake, gameState.recoveryEndsAt, gameState.lives]);
 
   useEffect(() => {
     const eventActive = gameState.eventEndsAt !== null;
