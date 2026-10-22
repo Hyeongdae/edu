@@ -5,6 +5,7 @@ import type { GameState } from "./types";
 import { PixelOfficer } from "./pixel/PixelOfficer";
 import { PixelOfficeBackdrop } from "./pixel/PixelOfficeBackdrop";
 import { PixelStair } from "./pixel/PixelStair";
+import { PixelIcon } from "./pixel/PixelIcon";
 import "./pixel/pixel-scene.css";
 
 interface StairSceneProps {
@@ -86,7 +87,7 @@ export function StairScene({ state, climbAnimationKey, isClimbing, pursuerAnimat
           </strong>
         </div>
         <span className={`direction-pill is-${nextDirection}`}>
-          <span aria-hidden="true">{nextDirection === "right" ? "↗" : "↖"}</span>
+          <PixelIcon name="stair" size={16} />
           {nextDirection === "right" ? "오른쪽 길" : "왼쪽 길"}
         </span>
       </div>

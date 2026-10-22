@@ -1,6 +1,6 @@
 # Task: T04 Pixel Game Interface
 
-## Status: in_progress
+## Status: done
 
 ## Goal
 T03의 네온 회사 실내 장면과 HUD·입력 버튼·설정창·오디오 설정·결과·랭킹이 하나의 픽셀 게임으로 보이게 만든다. 전체 화면 안에서 게임 장면을 크게 유지하고 모바일/키보드/설정 접근성과 기존 데이터 동작을 보존한다.
@@ -93,11 +93,11 @@ T03의 네온 회사 실내 장면과 HUD·입력 버튼·설정창·오디오 �
 - 기존 도움말의 "세 번 실수" 문구는 결정문에서 별도 검토 항목이다. 시각 변경을 하면서 임의로 게임 규칙이나 해당 문구 수정까지 포함하지 않는다.
 
 ## Acceptance Criteria
-- [ ] HUD/조작/설정/오디오/결과/랭킹이 네온 회사 장면과 같은 픽셀 UI로 보인다.
-- [ ] 게임이 브라우저 영역을 크게 채우고 모든 HUD·버튼·패널이 게임 내부에 있다.
-- [ ] 모바일 두 버튼, 우측 상단 설정, 키보드 focus, audio range, 오류/빈 랭킹 표시가 정상이다.
-- [ ] 뒤 4/앞 6칸과 인물 얼굴이 HUD/소품/패널에 불필요하게 가려지지 않는다.
-- [ ] 잡힘 500ms 공개 순서, reduced-motion 즉시 결과, 점수/오디오/인증/저장 계약이 유지된다.
+- [x] HUD/조작/설정/오디오/결과/랭킹이 네온 회사 장면과 같은 픽셀 UI로 보인다.
+- [x] 게임이 브라우저 영역을 크게 채우고 모든 HUD·버튼·패널이 게임 내부에 있다.
+- [x] 모바일 두 버튼, 우측 상단 설정, 키보드 focus, audio range, 오류/빈 랭킹 표시가 정상이다.
+- [x] 뒤 4/앞 6칸과 인물 얼굴이 HUD/소품/패널에 불필요하게 가려지지 않는다.
+- [x] 잡힘 500ms 공개 순서, reduced-motion 즉시 결과, 점수/오디오/인증/저장 계약이 유지된다.
 
 ## Validation
 - `npm test -- --run src/game/stairRoute.test.ts src/game/stairSceneModel.test.ts src/game/gameEngine.test.ts src/game/GameScreen.test.tsx src/audio/AudioControls.test.tsx src/leaderboard/LeaderboardPanel.test.tsx` — 대상 기능/접근성 회귀 통과.
@@ -120,6 +120,26 @@ Task: T04-pixel-game-interface
 ```
 
 ## Progress
-- [ ] 구현 완료
-- [ ] 검증 통과
-- commit: pending
+- [x] 구현 완료
+- [x] 검증 통과
+- commit: complete (see task commit in git history)
+
+## Validation Results
+- `npm test -- --run src/game/stairRoute.test.ts src/game/stairSceneModel.test.ts src/game/gameEngine.test.ts src/game/GameScreen.test.tsx src/audio/AudioControls.test.tsx src/leaderboard/LeaderboardPanel.test.tsx`: 6 files, 83 tests passed. 장식 교체 후 기존 행동 단언이 그대로 통과하여 테스트 파일은 수정하지 않았다.
+- 최종 병렬 검증 중 기존 fake-timer 테스트 하나가 5초 제한을 넘겨 후속 테스트도 실패했다. 임시 검증 브라우저를 정리한 뒤 같은 명령을 단독 실행하여 83개 통과를 확인했다. 테스트 제한이나 단언을 완화하지 않았다.
+- `npm run lint`: passed.
+- `npm run build`: passed. 기존 bundle 크기 경고는 남아 있다(JS 527.93 kB, gzip 147.64 kB; CSS 50.19 kB).
+- 기존 로컬 데모 Chromium 320×667, 390×667, 768×1024, 1440×900에서 ready/playing/settings/game-over를 확인했다. 흰 여백 없이 배경이 프레임을 채우고 가로 page overflow가 없다.
+- HUD는 우측 설정 버튼과 겹치지 않는다. 모바일 버튼 높이는 60px이고, 721px 이상에서는 버튼 대신 D/J 안내를 제공한다. 보이는 11개 계단의 실제 화면 범위가 HUD/방향 안내와 아래 hint 사이에 있음을 확인했다.
+- Tab/Shift+Tab 순환, 최초 닫기 버튼 focus, Escape 닫기와 진입 버튼 focus 복귀를 확인했다. native range의 ArrowRight 입력이 배경 음악 50→51로 반영되고 효과음 음소거의 aria-pressed가 true로 바뀐다.
+- 31계단에서 32점/2배 이벤트를 확인했다. 설정창을 35초 열어도 30초가 유지되고 D 입력은 차단되며, 닫은 뒤 1초 진행하면 29초로 재개된다.
+- normal 모드의 마지막 잡힘은 기록을 즉시 저장하고 결과를 숨긴 뒤 회복 후 공개한다. reduced-motion에서는 잡힘 중 즉시 결과가 보이며 인물/점수/게이지의 animation이 모두 none이다.
+- 10개 랭킹, 긴 이름과 13자리 점수의 말줄임, 현재 사용자 표시와 내부 scroll을 확인했다. 320px 저장 실패/빈 랭킹에서도 메시지·다시 시작·랭킹이 겹치지 않고 결과 패널 안에서 스크롤된다.
+- 320px에서 기준 글자 크기 24/32px, 30자리 점수와 긴 계정 이름을 넣어 가로 overflow 없음, 설정 닫기 접근과 내부 scroll을 확인했다. 게임 상태를 바꾸지 않는 DOM/CSS 스트레스 입력만 사용했다.
+- 창 크기를 바꿔도 현재 계단 index/점수가 유지된다. 브라우저 검증의 runtime exception은 없었다.
+- 확인용 캡처와 `stair-t04-validation.json`은 로컬 TEMP에 두었다. 기존 개발 서버 5174를 재사용했고 임시 검증 Chrome(9233)은 정리했다.
+
+## Scope Notes
+- 게임 UI 테마는 `.stair-game.pixel-theme` 안으로 한정했다. 인증 구성, 저장 스키마, 점수/입력 엔진, 음원과 오디오 공개 props는 변경하지 않았다.
+- 계획 범위 밖인 기존 도움말의 '세 번 실수' 설명과 `src/App.test.tsx`의 오래된 설정창 기대값은 수정하지 않았다. 해당 App 통합 테스트는 이번 지정 검증에 포함하지 않았다.
+- 기존 SVG 팔다리용 CSS의 사용하지 않는 규칙 정리는 후속 검토 대상이다. 이번에는 새 테마와 직접 충돌하는 모바일 게임 오버 장면 축소 규칙만 제거했다.

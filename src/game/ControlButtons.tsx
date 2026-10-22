@@ -1,4 +1,5 @@
 import type { ReactElement } from "react";
+import { PixelIcon } from "./pixel/PixelIcon";
 
 interface ControlButtonsProps {
   onForward: () => void;
@@ -16,9 +17,7 @@ export function ControlButtons({ onForward, onTurn, disabled }: ControlButtonsPr
         onClick={onForward}
         disabled={disabled}
       >
-        <svg viewBox="0 0 32 32" aria-hidden="true">
-          <path d="M16 27V6m0 0L7.5 14.5M16 6l8.5 8.5" />
-        </svg>
+        <PixelIcon name="forward" size={24} />
         <span>앞으로</span>
       </button>
       <button
@@ -28,9 +27,7 @@ export function ControlButtons({ onForward, onTurn, disabled }: ControlButtonsPr
         onClick={onTurn}
         disabled={disabled}
       >
-        <svg viewBox="0 0 32 32" aria-hidden="true">
-          <path d="M8 23a11 11 0 0 0 18-8.2V9m0 0-6 6m6-6 5 6M24 9H12a7 7 0 0 0-6 3" />
-        </svg>
+        <PixelIcon name="turn" size={24} />
         <span>방향 바꾸기</span>
       </button>
     </section>

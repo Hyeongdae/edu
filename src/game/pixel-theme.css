@@ -1,0 +1,424 @@
+/* Game-only skin. Authentication screens keep their existing styles. */
+.stair-game.pixel-theme {
+  --pixel-bg: #0b1026;
+  --pixel-wall: #171e3b;
+  --pixel-panel: #242b4a;
+  --pixel-text: #eef7ff;
+  --pixel-muted: #a8b5cd;
+  --pixel-cyan: #61e8e1;
+  --pixel-pink: #f07cbd;
+  --pixel-gold: #ffd27a;
+  --pixel-edge: #536781;
+  --pixel-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --scene-top: 9.5rem;
+  --scene-bottom: 5.5rem;
+  padding: 8px;
+  background: var(--pixel-bg);
+  color: var(--pixel-text);
+  font-family: "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
+}
+
+.stair-game.pixel-theme[data-game-status="ready"] { --scene-bottom: 10rem; }
+
+.stair-game.pixel-theme .game-shell { gap: 0; }
+
+.stair-game.pixel-theme .game-frame {
+  display: block;
+  padding: 0;
+  border: 2px solid var(--pixel-edge);
+  border-radius: 0;
+  background: var(--pixel-bg);
+  box-shadow: 4px 4px 0 #030815;
+}
+
+.stair-game.pixel-theme .game-stage,
+.stair-game.pixel-theme .game-layout,
+.stair-game.pixel-theme .scene-card {
+  position: absolute;
+  inset: 0;
+  display: block;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.stair-game.pixel-theme .pixel-scene-stage { position: absolute; inset: 0; }
+
+.stair-game.pixel-theme .pixel-scene-stage > .stair-scene {
+  position: absolute;
+  inset: var(--scene-top) 0 auto;
+  width: 100%;
+  height: calc(100% - var(--scene-top) - var(--scene-bottom) - var(--pixel-safe-bottom));
+}
+
+.stair-game.pixel-theme .pixel-icon { display: inline-block; flex: 0 0 auto; vertical-align: middle; }
+
+.stair-game.pixel-theme button:focus-visible,
+.stair-game.pixel-theme input:focus-visible {
+  outline: 3px solid var(--pixel-gold);
+  outline-offset: 3px;
+}
+
+.stair-game.pixel-theme .game-settings-button,
+.stair-game.pixel-theme .settings-close-button {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  place-items: center;
+  padding: 0;
+  border: 2px solid var(--pixel-cyan);
+  border-radius: 0;
+  background: #111c33;
+  box-shadow: 3px 3px 0 #050b19;
+  color: var(--pixel-cyan);
+}
+
+.stair-game.pixel-theme .game-settings-button { z-index: 4; top: 12px; right: 12px; }
+.stair-game.pixel-theme .game-settings-button:hover { background: #263d50; }
+
+.stair-game.pixel-theme .game-hud {
+  z-index: 3;
+  top: 12px;
+  left: 12px;
+  right: 72px;
+  width: min(calc(100% - 84px), 960px);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr) minmax(0, 1.7fr);
+  gap: 8px;
+  padding: 0;
+  transform: none;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.stair-game.pixel-theme .hud-card {
+  min-height: 5.5rem;
+  padding: 9px 12px;
+  border: 2px solid var(--pixel-edge);
+  border-radius: 0;
+  background: rgb(11 20 39 / 94%);
+  box-shadow: 3px 3px 0 #050b19;
+  clip-path: polygon(4px 0, calc(100% - 4px) 0, calc(100% - 4px) 4px, 100% 4px,
+    100% calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) 100%,
+    4px 100%, 4px calc(100% - 4px), 0 calc(100% - 4px), 0 4px, 4px 4px);
+}
+
+.stair-game.pixel-theme .hud-label { color: var(--pixel-muted); font-size: 0.7rem; letter-spacing: 0; }
+.stair-game.pixel-theme .hud-caption { color: var(--pixel-muted); font-size: 0.65rem; overflow-wrap: anywhere; }
+.stair-game.pixel-theme .score-card .hud-caption { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stair-game.pixel-theme .score-value-row { min-height: 2rem; gap: 8px; }
+
+.stair-game.pixel-theme .score-value,
+.stair-game.pixel-theme .score-gain,
+.stair-game.pixel-theme .event-status,
+.stair-game.pixel-theme .leaderboard-score,
+.stair-game.pixel-theme .leaderboard-rank,
+.stair-game.pixel-theme .leaderboard-count,
+.stair-game.pixel-theme .game-over-result h2 {
+  font-family: ui-monospace, Consolas, "Courier New", monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.stair-game.pixel-theme .score-value {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--pixel-gold);
+  font-size: 2rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stair-game.pixel-theme .score-value.is-scoring { animation: pixel-score-pop 260ms steps(1, end); }
+.stair-game.pixel-theme .score-gain { flex: 0 0 auto; color: var(--pixel-cyan); font-size: 1rem; animation: pixel-score-gain 700ms steps(1, end) both; }
+.stair-game.pixel-theme .score-gain.is-bonus { color: var(--pixel-gold); }
+.stair-game.pixel-theme .life-hearts { gap: 5px; margin: 8px 0 6px; color: #53647b; }
+.stair-game.pixel-theme .life-heart { display: flex; text-shadow: none; }
+.stair-game.pixel-theme .life-heart.is-full { color: var(--pixel-pink); text-shadow: none; }
+.stair-game.pixel-theme .event-heading { gap: 8px; }
+.stair-game.pixel-theme .event-status { color: var(--pixel-cyan); font-size: 0.85rem; overflow-wrap: anywhere; }
+.stair-game.pixel-theme .event-card { transition: none; }
+.stair-game.pixel-theme .event-card.is-active { border-color: var(--pixel-gold); background: #302c38; box-shadow: none; }
+.stair-game.pixel-theme .event-card.is-active .event-status { color: var(--pixel-gold); }
+
+.stair-game.pixel-theme .event-progress {
+  position: relative;
+  height: 12px;
+  margin-top: 8px;
+  border: 1px solid var(--pixel-edge);
+  border-radius: 0;
+  background: #0a1226;
+}
+
+.stair-game.pixel-theme .event-progress::after {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(90deg, transparent 0, transparent calc(10% - 2px), #0a1226 calc(10% - 2px), #0a1226 10%);
+  content: "";
+}
+
+.stair-game.pixel-theme .event-progress-fill { border-radius: 0; background: var(--pixel-cyan); transition: width 100ms steps(1, end); }
+.stair-game.pixel-theme .event-card.is-active .event-progress-fill { background: var(--pixel-gold); animation: pixel-event 1s steps(1, end) infinite; }
+
+.stair-game.pixel-theme .scene-heading {
+  position: absolute;
+  z-index: 3;
+  top: 7rem;
+  left: 12px;
+  right: 12px;
+  gap: 8px;
+  margin: 0;
+  pointer-events: none;
+}
+
+.stair-game.pixel-theme .scene-heading > div {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-left: 3px solid var(--pixel-cyan);
+  background: rgb(11 20 39 / 94%);
+}
+
+.stair-game.pixel-theme .route-direction { margin: 0; color: var(--pixel-text); font-size: 0.85rem; }
+.stair-game.pixel-theme .direction-pill { gap: 6px; padding: 7px 9px; border: 1px solid var(--pixel-edge); border-radius: 0; background: #111c33; color: var(--pixel-cyan); font-size: 0.75rem; }
+.stair-game.pixel-theme .direction-pill.is-left { color: var(--pixel-pink); }
+.stair-game.pixel-theme .direction-pill.is-left .pixel-icon { transform: scaleX(-1); }
+
+.stair-game.pixel-theme .scene-hint {
+  position: absolute;
+  z-index: 3;
+  bottom: calc(3.25rem + var(--pixel-safe-bottom));
+  left: 50%;
+  width: max-content;
+  max-width: calc(100% - 24px);
+  margin: 0;
+  padding: 5px 10px;
+  transform: translateX(-50%);
+  border: 1px solid #43536c;
+  background: rgb(11 20 39 / 94%);
+  color: var(--pixel-text);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.stair-game.pixel-theme[data-game-status="ready"] .scene-hint { bottom: calc(7.5rem + var(--pixel-safe-bottom)); }
+
+.stair-game.pixel-theme .start-button,
+.stair-game.pixel-theme .control-button {
+  min-width: 0;
+  min-height: 56px;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 2px solid #fff0bc;
+  border-radius: 0;
+  background: var(--pixel-gold);
+  box-shadow: 4px 4px 0 #050b19;
+  color: #151d32;
+  font-size: 0.95rem;
+  transition: none;
+}
+
+.stair-game.pixel-theme .game-frame > .start-button {
+  position: absolute;
+  z-index: 3;
+  right: 0;
+  bottom: calc(3rem + var(--pixel-safe-bottom));
+  left: 0;
+  width: min(320px, calc(100% - 32px));
+  margin: 0 auto;
+}
+
+.stair-game.pixel-theme .start-button:hover { transform: translateY(-2px); box-shadow: 4px 6px 0 #050b19; }
+.stair-game.pixel-theme .start-button:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #050b19; }
+
+.stair-game.pixel-theme .game-controls {
+  position: absolute;
+  z-index: 3;
+  right: 12px;
+  bottom: calc(20px + var(--pixel-safe-bottom));
+  left: 12px;
+  width: min(540px, calc(100% - 24px));
+  gap: 12px;
+  margin: 0 auto;
+  padding: 0;
+}
+
+.stair-game.pixel-theme .control-button { min-height: 60px; border-color: var(--pixel-cyan); background: #173a45; color: var(--pixel-text); }
+.stair-game.pixel-theme .turn-control { border-color: var(--pixel-pink); background: #3d2a49; }
+.stair-game.pixel-theme .control-button:hover:not(:disabled) { transform: translateY(-2px); background: #28505a; }
+.stair-game.pixel-theme .turn-control:hover:not(:disabled) { background: #563653; }
+.stair-game.pixel-theme .control-button:active:not(:disabled) { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #050b19; }
+.stair-game.pixel-theme .control-button:disabled { border-style: dashed; border-color: #73819a; background: #202b40; box-shadow: none; color: #a2aec3; filter: none; opacity: 1; }
+.stair-game.pixel-theme .control-button svg { width: 24px; height: 24px; fill: currentColor; stroke: none; }
+
+.stair-game.pixel-theme .game-footer {
+  position: absolute;
+  z-index: 3;
+  right: 12px;
+  bottom: calc(12px + var(--pixel-safe-bottom));
+  left: 12px;
+  color: var(--pixel-muted);
+  font-size: 0.75rem;
+}
+
+.stair-game.pixel-theme kbd { display: inline-block; min-width: 22px; padding: 1px 4px; border: 1px solid #617791; border-bottom-width: 3px; border-radius: 0; background: #16243a; color: var(--pixel-text); font: 700 0.8rem ui-monospace, Consolas, monospace; text-align: center; }
+.stair-game.pixel-theme .mobile-control-hint { display: none; }
+.stair-game.pixel-theme[data-game-status="game-over"] .game-footer { display: none; }
+
+.stair-game.pixel-theme .settings-backdrop { z-index: 8; padding: 20px; overflow: hidden; background: rgb(3 8 20 / 82%); backdrop-filter: none; }
+.stair-game.pixel-theme .settings-dialog { display: flex; width: min(100%, 680px); max-height: 100%; flex-direction: column; min-width: 0; min-height: 0; padding: 0; overflow: hidden; border: 2px solid var(--pixel-edge); border-radius: 0; background: var(--pixel-panel); box-shadow: 6px 6px 0 #030815; }
+.stair-game.pixel-theme .settings-dialog-header { flex: 0 0 auto; min-width: 0; gap: 10px; margin: 0; padding: 14px; border-bottom: 2px solid var(--pixel-edge); background: #151f37; }
+.stair-game.pixel-theme .game-brand { min-width: 0; gap: 10px; }
+.stair-game.pixel-theme .brand-mark { width: 40px; height: 40px; flex: 0 0 40px; border: 2px solid var(--pixel-cyan); border-radius: 0; background: #173a45; box-shadow: none; color: var(--pixel-cyan); }
+.stair-game.pixel-theme .brand-kicker { color: var(--pixel-muted); font-size: 0.65rem; letter-spacing: 0; }
+.stair-game.pixel-theme .settings-dialog-header h2 { color: var(--pixel-text); font-size: 1.1rem; }
+.stair-game.pixel-theme .settings-content { min-height: 0; padding: 16px; overflow: auto; overscroll-behavior: contain; align-content: start; grid-auto-rows: max-content; gap: 14px; }
+.stair-game.pixel-theme .settings-account { width: 100%; max-width: 100%; min-height: 48px; gap: 9px; padding: 8px; border: 1px solid var(--pixel-edge); border-radius: 0; background: #152037; color: var(--pixel-text); font-size: 0.85rem; }
+.stair-game.pixel-theme .account-avatar { width: 30px; height: 30px; flex: 0 0 30px; border: 1px solid var(--pixel-cyan); border-radius: 0; background: #224451; color: var(--pixel-cyan); }
+.stair-game.pixel-theme .settings-account > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stair-game.pixel-theme .settings-help-grid { min-width: 0; gap: 12px; }
+.stair-game.pixel-theme .settings-dialog .instruction-card,
+.stair-game.pixel-theme .settings-dialog .chase-card { min-width: 0; min-height: 0; gap: 10px; padding: 12px; border: 1px solid var(--pixel-edge); border-radius: 0; background: #152037; box-shadow: none; }
+.stair-game.pixel-theme .settings-dialog .instruction-card > div,
+.stair-game.pixel-theme .settings-dialog .chase-card > div { min-width: 0; }
+.stair-game.pixel-theme .settings-dialog .instruction-card strong,
+.stair-game.pixel-theme .settings-dialog .chase-card strong { margin: 0 0 8px; color: var(--pixel-text); font-size: 0.9rem; }
+.stair-game.pixel-theme .settings-dialog .instruction-card p,
+.stair-game.pixel-theme .settings-dialog .chase-card p { color: var(--pixel-muted); font-size: 0.8rem; line-height: 1.65; overflow-wrap: anywhere; }
+.stair-game.pixel-theme .instruction-icon,
+.stair-game.pixel-theme .chase-icon { width: 28px; height: 28px; flex: 0 0 28px; border-radius: 0; background: #233e4a; color: var(--pixel-cyan); }
+.stair-game.pixel-theme .chase-icon { background: #422e4a; color: var(--pixel-pink); }
+
+/* Keep native audio inputs and their keyboard behavior; only the skin changes. */
+.stair-game.pixel-theme .settings-dialog .audio-controls { gap: 14px; padding: 14px; border: 1px solid var(--pixel-edge); border-radius: 0; background: #111c33; box-shadow: none; }
+.stair-game.pixel-theme .settings-dialog .audio-controls-heading { gap: 10px; }
+.stair-game.pixel-theme .settings-dialog .audio-controls-heading strong { color: var(--pixel-text); font-size: 0.9rem; }
+.stair-game.pixel-theme .settings-dialog .audio-eyebrow { color: var(--pixel-cyan); font: 700 0.65rem ui-monospace, Consolas, monospace; }
+.stair-game.pixel-theme .settings-dialog .audio-channel { grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; color: var(--pixel-muted); font-size: 0.8rem; }
+.stair-game.pixel-theme .settings-dialog .audio-channel input[type="range"] { grid-column: 1 / -1; grid-row: 2; min-width: 0; height: 30px; margin: 4px 0 0; appearance: none; border: 0; border-radius: 0; background: transparent; cursor: pointer; }
+.stair-game.pixel-theme .settings-dialog input[type="range"]::-webkit-slider-runnable-track { height: 8px; border: 1px solid #617791; border-radius: 0; background: #2c3f5c; }
+.stair-game.pixel-theme .settings-dialog input[type="range"]::-webkit-slider-thumb { width: 16px; height: 22px; margin-top: -8px; appearance: none; border: 2px solid #d4ffff; border-radius: 0; background: var(--pixel-cyan); box-shadow: 2px 2px 0 #050b19; }
+.stair-game.pixel-theme .settings-dialog input[type="range"]::-moz-range-track { height: 6px; border: 1px solid #617791; border-radius: 0; background: #2c3f5c; }
+.stair-game.pixel-theme .settings-dialog input[type="range"]::-moz-range-thumb { width: 12px; height: 18px; border: 2px solid #d4ffff; border-radius: 0; background: var(--pixel-cyan); box-shadow: 2px 2px 0 #050b19; }
+.stair-game.pixel-theme .settings-dialog .audio-mute-button,
+.stair-game.pixel-theme .settings-dialog .audio-enable-button { min-height: 36px; padding: 5px 10px; border: 1px solid var(--pixel-cyan); border-radius: 0; background: #213c4c; color: var(--pixel-text); font-size: 0.75rem; }
+.stair-game.pixel-theme .settings-dialog .audio-mute-button[aria-pressed="true"] { border-color: var(--pixel-pink); background: #432e49; color: var(--pixel-pink); }
+.stair-game.pixel-theme .settings-dialog .audio-enable-button { border-color: var(--pixel-gold); background: #4b3e2c; color: var(--pixel-gold); }
+.stair-game.pixel-theme .settings-dialog .audio-autoplay-note { margin: 0; padding: 8px; border-left: 3px solid var(--pixel-gold); color: var(--pixel-gold); font-size: 0.8rem; line-height: 1.5; }
+
+.stair-game.pixel-theme .game-over-panel { position: absolute; z-index: 5; inset: 10rem 24px 3rem; display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); grid-template-rows: minmax(0, 1fr); gap: 0; width: auto; max-width: 960px; margin: 0 auto; overflow: auto; border: 2px solid var(--pixel-cyan); background: rgb(11 20 39 / 97%); box-shadow: 6px 6px 0 #030815; overscroll-behavior: contain; }
+.stair-game.pixel-theme .game-over-result,
+.stair-game.pixel-theme .leaderboard-card { min-width: 0; min-height: 0; padding: 24px; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.stair-game.pixel-theme .game-over-result { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; overflow: auto; }
+.stair-game.pixel-theme .game-over-icon { flex: 0 0 auto; margin: 12px 0; color: var(--pixel-gold); }
+.stair-game.pixel-theme .game-over-kicker,
+.stair-game.pixel-theme .leaderboard-kicker { color: var(--pixel-muted); font-size: 0.7rem; }
+.stair-game.pixel-theme .game-over-result h2 { max-width: 100%; margin: 8px 0; overflow-wrap: anywhere; color: var(--pixel-gold); font-size: clamp(2rem, 4vw, 3rem); }
+.stair-game.pixel-theme .game-over-result > p:not(.game-over-kicker):not(.leaderboard-error) { margin: 0; color: var(--pixel-muted); font-size: 0.85rem; }
+.stair-game.pixel-theme .restart-button { flex: 0 0 auto; width: 100%; max-width: 320px; margin-top: 20px; }
+.stair-game.pixel-theme .leaderboard-card { display: flex; flex-direction: column; overflow: hidden; border-left: 1px solid var(--pixel-edge); }
+.stair-game.pixel-theme .leaderboard-heading { flex: 0 0 auto; gap: 10px; margin: 0 0 16px; }
+.stair-game.pixel-theme .leaderboard-heading h2 { color: var(--pixel-text); font-size: 1.05rem; }
+.stair-game.pixel-theme .leaderboard-count { padding: 6px; border: 1px solid var(--pixel-cyan); border-radius: 0; background: #173640; color: var(--pixel-cyan); font-size: 0.7rem; white-space: nowrap; }
+.stair-game.pixel-theme .leaderboard-list { min-height: 0; flex: 1 1 auto; align-content: start; grid-auto-rows: minmax(40px, auto); gap: 6px; overflow: auto; }
+.stair-game.pixel-theme .leaderboard-row { grid-template-columns: 26px minmax(0, 1fr) auto; min-height: 40px; gap: 8px; padding: 7px; border: 1px solid #35465f; border-radius: 0; background: #17233a; color: var(--pixel-text); font-size: 0.85rem; }
+.stair-game.pixel-theme .leaderboard-row.is-current-player { border-color: var(--pixel-gold); border-left-width: 4px; background: #332e3c; color: var(--pixel-gold); }
+.stair-game.pixel-theme .leaderboard-rank { color: var(--pixel-muted); font-size: 0.8rem; }
+.stair-game.pixel-theme .leaderboard-you { color: var(--pixel-gold); font-size: 0.7rem; }
+.stair-game.pixel-theme .leaderboard-score { max-width: 12ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--pixel-cyan); font-size: 0.85rem; }
+.stair-game.pixel-theme .leaderboard-empty { padding: 20px 12px; border: 1px dashed var(--pixel-edge); border-radius: 0; background: #152037; color: var(--pixel-muted); font-size: 0.85rem; line-height: 1.6; }
+.stair-game.pixel-theme .leaderboard-error { color: #ffb3c6 !important; font-size: 0.85rem !important; line-height: 1.5; }
+.stair-game.pixel-theme .game-frame[data-pursuer-catching="true"] > .game-over-panel { visibility: hidden; pointer-events: none; }
+
+.stair-game.pixel-theme .settings-content,
+.stair-game.pixel-theme .game-over-panel,
+.stair-game.pixel-theme .game-over-result,
+.stair-game.pixel-theme .leaderboard-list {
+  scrollbar-color: var(--pixel-edge) var(--pixel-bg);
+  scrollbar-width: thin;
+}
+
+@keyframes pixel-score-pop { 0%, 100% { translate: 0 0; } 40% { translate: 0 -2px; } }
+@keyframes pixel-score-gain { 0% { opacity: 1; translate: 0 0; } 30% { translate: 0 -4px; } 60% { translate: 0 -8px; } 100% { opacity: 0; translate: 0 -12px; } }
+@keyframes pixel-event { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+
+@media (max-width: 720px) {
+  .stair-game.pixel-theme { --scene-top: 8.5rem; --scene-bottom: 9rem; padding: 0; }
+  .stair-game.pixel-theme .game-frame { border-width: 0; box-shadow: none; }
+  .stair-game.pixel-theme .game-settings-button { top: 8px; right: 8px; }
+  .stair-game.pixel-theme .game-hud { top: 8px; left: 8px; right: 60px; width: auto; grid-template-columns: minmax(0, 0.9fr) minmax(0, 0.85fr) minmax(0, 1.6fr); gap: 4px; }
+  .stair-game.pixel-theme .hud-card { min-height: 5.25rem; padding: 7px 6px; }
+  .stair-game.pixel-theme .hud-label { font-size: 0.65rem; }
+  .stair-game.pixel-theme .hud-caption { font-size: 0.6rem; }
+  .stair-game.pixel-theme .score-value-row { min-height: 1.9rem; gap: 3px; }
+  .stair-game.pixel-theme .score-value { font-size: 1.5rem; }
+  .stair-game.pixel-theme .score-gain { font-size: 0.7rem; }
+  .stair-game.pixel-theme .life-hearts { gap: 2px; margin-top: 10px; }
+  .stair-game.pixel-theme .life-heart .pixel-icon { width: 14px; height: 14px; }
+  .stair-game.pixel-theme .lives-card .hud-caption,
+  .stair-game.pixel-theme .event-card .hud-caption { display: none; }
+  .stair-game.pixel-theme .event-heading { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .stair-game.pixel-theme .event-status { font-size: 0.65rem; text-align: left; }
+  .stair-game.pixel-theme .event-progress { height: 9px; margin-top: 7px; }
+  .stair-game.pixel-theme .scene-heading { top: 6.25rem; left: 8px; right: 8px; gap: 6px; }
+  .stair-game.pixel-theme .scene-heading > div { gap: 6px; padding: 6px; }
+  .stair-game.pixel-theme .scene-heading .hud-label { display: none; }
+  .stair-game.pixel-theme .route-direction { font-size: 0.75rem; }
+  .stair-game.pixel-theme .direction-pill { gap: 4px; padding: 6px; font-size: 0.65rem; }
+  .stair-game.pixel-theme .scene-hint { bottom: calc(5.5rem + var(--pixel-safe-bottom)); font-size: 0.75rem; }
+  .stair-game.pixel-theme .game-controls { display: grid; }
+  .stair-game.pixel-theme .control-button { padding: 8px; gap: 7px; font-size: 0.85rem; }
+  .stair-game.pixel-theme .game-footer { bottom: calc(2px + var(--pixel-safe-bottom)); font-size: 0.6rem; }
+  .stair-game.pixel-theme .desktop-control-hint { display: none; }
+  .stair-game.pixel-theme .mobile-control-hint { display: inline; }
+  .stair-game.pixel-theme .settings-backdrop { padding: 12px; }
+  .stair-game.pixel-theme .settings-dialog-header { padding: 10px; }
+  .stair-game.pixel-theme .settings-content { padding: 12px; }
+  .stair-game.pixel-theme .settings-help-grid { grid-template-columns: minmax(0, 1fr); }
+  .stair-game.pixel-theme .game-over-panel { inset: 8.75rem 12px 24px; grid-template-columns: minmax(0, 1fr); grid-template-rows: max-content minmax(280px, 1fr); align-content: start; }
+  .stair-game.pixel-theme .game-over-result { overflow: visible; padding: 16px; }
+  .stair-game.pixel-theme .game-over-icon { width: 24px; height: 24px; margin: 0 0 6px; }
+  .stair-game.pixel-theme .game-over-result h2 { margin: 4px 0; }
+  .stair-game.pixel-theme .restart-button { margin-top: 12px; }
+  .stair-game.pixel-theme .leaderboard-card { min-height: 280px; max-height: 420px; padding: 16px; border-top: 1px solid var(--pixel-edge); border-left: 0; }
+}
+
+@media (min-width: 721px) {
+  .stair-game.pixel-theme .game-controls { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stair-game.pixel-theme .runner-pose,
+  .stair-game.pixel-theme .runner.is-climbing .runner-pose,
+  .stair-game.pixel-theme .runner.is-falling .runner-pose,
+  .stair-game.pixel-theme .pursuer,
+  .stair-game.pixel-theme .pursuer.is-following:not(.is-caught),
+  .stair-game.pixel-theme .pursuer.is-approaching:not(.is-caught),
+  .stair-game.pixel-theme .pursuer.is-caught,
+  .stair-game.pixel-theme .pursuer.is-caught .pursuer-facing,
+  .stair-game.pixel-theme .pixel-officer[data-officer-pose] .officer-body,
+  .stair-game.pixel-theme .pixel-officer[data-officer-pose] .officer-frame,
+  .stair-game.pixel-theme .score-value.is-scoring,
+  .stair-game.pixel-theme .score-gain,
+  .stair-game.pixel-theme .event-card.is-active .event-progress-fill {
+    animation: none;
+    transition: none;
+    translate: none;
+  }
+
+  .stair-game.pixel-theme .event-progress-fill,
+  .stair-game.pixel-theme .start-button,
+  .stair-game.pixel-theme .control-button { transition: none; }
+
+  .stair-game.pixel-theme .game-frame[data-pursuer-catching="true"] > .game-over-panel { visibility: visible; pointer-events: auto; }
+}

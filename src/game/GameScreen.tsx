@@ -4,6 +4,7 @@ import { applyInput, createGameState, resetGame, startGame, tickGame } from "./g
 import { ControlButtons } from "./ControlButtons";
 import { GameHud } from "./GameHud";
 import { StairScene } from "./StairScene";
+import { PixelIcon } from "./pixel/PixelIcon";
 import type { GameInput } from "./types";
 import { LeaderboardPanel } from "../leaderboard/LeaderboardPanel";
 import { readLeaderboard, saveBestScore, type LeaderboardEntry } from "../leaderboard/leaderboard";
@@ -11,6 +12,7 @@ import { AudioControls } from "../audio/AudioControls";
 import type { AudioController } from "../audio/audioController";
 import type { AudioPreferences } from "../audio/audioPreferences";
 import "./game.css";
+import "./pixel-theme.css";
 
 interface GameScreenProps {
   account: AccountInfo;
@@ -298,7 +300,7 @@ export function GameScreen({
   };
 
   return (
-    <main className="stair-game" data-game-status={gameState.status}>
+    <main className="stair-game pixel-theme" data-game-status={gameState.status}>
       <div className="game-shell">
         <div
           className="game-frame"
@@ -314,7 +316,7 @@ export function GameScreen({
             aria-controls="game-settings-dialog"
             onClick={openSettings}
           >
-            <span aria-hidden="true">⚙</span>
+            <PixelIcon name="settings" />
           </button>
 
           <div className="game-stage">
@@ -338,7 +340,7 @@ export function GameScreen({
 
           {gameState.status === "ready" ? (
             <button className="start-button" type="button" onClick={handleStart}>
-              <span aria-hidden="true">▶</span> 시작하기
+              <PixelIcon name="forward" size={20} /> 시작하기
             </button>
           ) : gameState.status === "playing" ? (
             <ControlButtons
@@ -352,19 +354,22 @@ export function GameScreen({
               aria-labelledby="game-over-title"
             >
               <div className="game-over-result">
-                <span className="game-over-icon" aria-hidden="true">🏁</span>
+                <PixelIcon name="flag" className="game-over-icon" size={36} />
                 <p className="game-over-kicker">이번 도전 결과</p>
                 <h2 id="game-over-title">{gameState.score}점</h2>
                 <p>계단 {gameState.stepsClimbed}개를 올랐어요.</p>
                 {saveError && <p className="leaderboard-error" role="status">기록을 저장하지 못했습니다. 이 브라우저의 저장 공간을 확인해 주세요.</p>}
                 <button className="start-button restart-button" type="button" onClick={handleStart}>
-                  <span aria-hidden="true">↻</span> 다시 시작
+                  <PixelIcon name="restart" size={20} /> 다시 시작
                 </button>
               </div>
               <LeaderboardPanel entries={leaderboard} currentAccountId={account.homeAccountId} />
             </section>
           )}
-          <p className="game-footer">방향을 잘 맞춰 계속 올라가세요!</p>
+          <p className="game-footer">
+            <span className="desktop-control-hint"><kbd>D</kbd> 한 칸 오르기 <span>·</span> <kbd>J</kbd> 방향 바꾸며 오르기</span>
+            <span className="mobile-control-hint">방향을 잘 맞춰 계속 올라가세요!</span>
+          </p>
           {isSettingsOpen && (
             <div
               className="settings-backdrop"
@@ -382,7 +387,7 @@ export function GameScreen({
               >
                 <header className="settings-dialog-header">
                   <div className="game-brand">
-                    <span className="brand-mark" aria-hidden="true">↗</span>
+                    <span className="brand-mark"><PixelIcon name="stair" /></span>
                     <div>
                       <p className="brand-kicker">사내 랭킹 챌린지</p>
                       <h2 id="game-settings-title">게임 설정</h2>
@@ -395,7 +400,7 @@ export function GameScreen({
                     aria-label="설정 닫기"
                     onClick={closeSettings}
                   >
-                    ×
+                    <PixelIcon name="close" size={20} />
                   </button>
                 </header>
 
@@ -418,7 +423,7 @@ export function GameScreen({
 
                   <div className="settings-help-grid">
                     <section className="instruction-card">
-                      <span className="instruction-icon" aria-hidden="true">⌨</span>
+                      <span className="instruction-icon"><PixelIcon name="forward" size={20} /></span>
                       <div>
                         <strong>조작 방법</strong>
                         <p><kbd>D</kbd> 한 칸 오르기 <span>·</span> <kbd>J</kbd> 모퉁이에서 방향 바꾸기</p>
@@ -426,7 +431,7 @@ export function GameScreen({
                       </div>
                     </section>
                     <section className="chase-card">
-                      <span className="chase-icon" aria-hidden="true">!</span>
+                      <span className="chase-icon"><PixelIcon name="flag" size={20} /></span>
                       <div>
                         <strong>뒤쫓아오는 추격자</strong>
                         <p>방향을 잘못 입력하면 넘어지고 기회를 잃어요. 세 번 실수하면 게임이 끝납니다.</p>

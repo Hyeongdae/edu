@@ -9,7 +9,7 @@
 ## Phases
 | Phase | Status | Summary | Blueprint |
 | :--- | :--- | :--- | :--- |
-| P01 | `in_progress` | 공유 경로, 경로 기반 추격, 픽셀 장면, 게임 UI를 순차 적용한다. | [P01](../phases/2026-10-22-pixel-stair-game-redesign/P01-pixel-stair-game/phase.md) |
+| P01 | `done` | 공유 경로, 경로 기반 추격, 픽셀 장면, 게임 UI 구현과 검증 완료. | [P01](../phases/2026-10-22-pixel-stair-game-redesign/P01-pixel-stair-game/phase.md) |
 
 ## Task Roadmap
 1. T01: 결정적인 랜덤 경로와 직전 길이를 반복하지 않는 4~6칸 구간을 엔진에 연결한다. 기존 화면과 조작은 실행 가능한 상태를 유지한다.
@@ -38,3 +38,10 @@
 - 설정 도움말의 "세 번 실수하면 게임이 끝납니다"는 실제로 세 번 잡혀야 종료되는 규칙과 다르다. 문구 정정은 별도 사용자 선택 항목이다.
 - `src/App.test.tsx`는 설정창을 열지 않고 계정·오디오 컨트롤이 보인다고 기대한다. 현재 `GameScreen`은 이 내용을 설정창 안에 둔다. 테스트를 실행해 실패를 확인한 것은 아니며, 이번 계획에서는 이 기존 통합 테스트 기대값을 임의로 변경하지 않는다.
 - 위 두 항목의 처리 여부는 사용자에게 보고한다. 이것을 이유로 T01~T04에 별도 작업을 추가하지 않는다.
+
+## Completion
+- Status: completed (2026-10-22), P01 T01~T04 done 4/4.
+- 최종 지정 회귀 검증: 6 files, 83 tests passed. lint와 production build 통과.
+- 320×667, 390×667, 768×1024, 1440×900 로컬 데모에서 전체 화면 픽셀 UI, 입력/추격/잡힘/저장, 설정 접근성과 오디오, 이벤트 pause/resume, reduced-motion을 확인했다.
+- CSS 테마 범위를 게임 안으로 한정하고 기존 데이터·인증·게임 규칙을 보존했다. 기존 500 kB 초과 bundle 경고와 위 범위 밖 항목은 후속 검토 대상으로 남긴다.
+- 다음 활성 Task 없음. 세부 구현/검증 기록은 각 Task 파일에 있다.

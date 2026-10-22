@@ -1,5 +1,6 @@
 import type { ReactElement } from "react";
 import type { GameState } from "./types";
+import { PixelIcon } from "./pixel/PixelIcon";
 
 interface GameHudProps {
   state: GameState;
@@ -48,7 +49,7 @@ export function GameHud({ state, eventSecondsLeft, scoreGain, scoreAnimationKey 
               className={`life-heart${index < state.lives ? " is-full" : ""}`}
               aria-hidden="true"
             >
-              ♥
+              <PixelIcon name="heart" size={22} />
             </span>
           ))}
         </div>
