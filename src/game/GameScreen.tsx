@@ -46,9 +46,13 @@ export function GameScreen({
   const [saveError, setSaveError] = useState(false);
   const [climbAnimationKey, setClimbAnimationKey] = useState(0);
   const [isClimbing, setIsClimbing] = useState(false);
+  const [scoreGain, setScoreGain] = useState<number | null>(null);
+  const [scoreAnimationKey, setScoreAnimationKey] = useState(0);
   const scoreSavedRef = useRef(false);
   const previousStepsRef = useRef(gameState.stepsClimbed);
   const climbTimeoutRef = useRef<number | undefined>(undefined);
+  const previousScoreRef = useRef(gameState.score);
+  const scoreGainTimeoutRef = useRef<number | undefined>(undefined);
   const previousMistakeRef = useRef(gameState.lastMistake);
   const previousEventActiveRef = useRef(gameState.eventEndsAt !== null);
 
@@ -103,6 +107,36 @@ export function GameScreen({
       }
     };
   }, [audioController, gameState.lastMistake, gameState.stepsClimbed]);
+
+  useEffect(() => {
+    if (gameState.score > previousScoreRef.current) {
+      setScoreGain(gameState.score - previousScoreRef.current);
+      setScoreAnimationKey((key) => key + 1);
+
+      if (scoreGainTimeoutRef.current !== undefined) {
+        window.clearTimeout(scoreGainTimeoutRef.current);
+      }
+      scoreGainTimeoutRef.current = window.setTimeout(() => {
+        setScoreGain(null);
+        scoreGainTimeoutRef.current = undefined;
+      }, 700);
+    } else if (gameState.score < previousScoreRef.current) {
+      if (scoreGainTimeoutRef.current !== undefined) {
+        window.clearTimeout(scoreGainTimeoutRef.current);
+        scoreGainTimeoutRef.current = undefined;
+      }
+      setScoreGain(null);
+    }
+
+    previousScoreRef.current = gameState.score;
+
+    return () => {
+      if (scoreGainTimeoutRef.current !== undefined) {
+        window.clearTimeout(scoreGainTimeoutRef.current);
+        scoreGainTimeoutRef.current = undefined;
+      }
+    };
+  }, [gameState.score]);
 
   useEffect(() => {
     if (gameState.lastMistake && !previousMistakeRef.current) audioController?.playFall();
@@ -221,7 +255,12 @@ export function GameScreen({
           />
         )}
 
-        <GameHud state={gameState} eventSecondsLeft={eventSecondsLeft} />
+        <GameHud
+          state={gameState}
+          eventSecondsLeft={eventSecondsLeft}
+          scoreGain={scoreGain}
+          scoreAnimationKey={scoreAnimationKey}
+        />
 
         <div className="game-layout">
           <StairScene

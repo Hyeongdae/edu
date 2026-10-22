@@ -4,9 +4,11 @@ import type { GameState } from "./types";
 interface GameHudProps {
   state: GameState;
   eventSecondsLeft: number;
+  scoreGain: number | null;
+  scoreAnimationKey: number;
 }
 
-export function GameHud({ state, eventSecondsLeft }: GameHudProps): ReactElement {
+export function GameHud({ state, eventSecondsLeft, scoreGain, scoreAnimationKey }: GameHudProps): ReactElement {
   const eventIsActive = state.eventEndsAt !== null;
   const eventProgress = eventIsActive ? 100 : Math.min(100, (state.eventSteps / 30) * 100);
 
@@ -14,9 +16,26 @@ export function GameHud({ state, eventSecondsLeft }: GameHudProps): ReactElement
     <section className="game-hud" aria-label="게임 현황">
       <div className="hud-card score-card">
         <span className="hud-label">현재 점수</span>
-        <strong className="score-value" data-testid="score-value">
-          {state.score}
-        </strong>
+        <div className="score-value-row">
+          <strong
+            key={`score-${scoreAnimationKey}`}
+            className={`score-value${scoreGain !== null ? " is-scoring" : ""}`}
+            data-testid="score-value"
+          >
+            {state.score}
+          </strong>
+          {scoreGain !== null && (
+            <span
+              key={`gain-${scoreAnimationKey}`}
+              className={`score-gain${scoreGain === 2 ? " is-bonus" : ""}`}
+              data-testid="score-gain"
+              aria-label={`${scoreGain}점 획득`}
+              aria-live="polite"
+            >
+              +{scoreGain}
+            </span>
+          )}
+        </div>
         <span className="hud-caption">계단 {state.stepsClimbed}칸</span>
       </div>
 

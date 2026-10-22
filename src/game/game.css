@@ -126,12 +126,36 @@
 
 .score-value {
   display: block;
-  margin-top: 1px;
   color: #345dc0;
   font-size: 2rem;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.06em;
   line-height: 1.05;
+}
+
+.score-value-row {
+  display: flex;
+  min-height: 2.1rem;
+  align-items: center;
+  gap: 10px;
+  margin-top: 1px;
+}
+
+.score-value.is-scoring {
+  animation: score-pop 260ms ease-out;
+}
+
+.score-gain {
+  display: inline-block;
+  color: #d87949;
+  font-size: 1.1rem;
+  font-weight: 900;
+  line-height: 1;
+  animation: score-gain-rise 700ms ease-out both;
+}
+
+.score-gain.is-bonus {
+  color: #c18a1d;
 }
 
 .life-hearts {
@@ -714,6 +738,17 @@
   to { filter: saturate(1.25) brightness(1.04); }
 }
 
+@keyframes score-pop {
+  0%, 100% { transform: scale(1); }
+  45% { transform: scale(1.16); }
+}
+
+@keyframes score-gain-rise {
+  0% { opacity: 0; transform: translateY(8px) scale(0.8); }
+  18% { opacity: 1; transform: translateY(0) scale(1.08); }
+  100% { opacity: 0; transform: translateY(-22px) scale(0.96); }
+}
+
 @media (max-width: 720px) {
   .stair-scene {
     height: clamp(250px, 56vw, 380px);
@@ -786,6 +821,14 @@
 
   .score-value {
     font-size: 1.7rem;
+  }
+
+  .score-value-row {
+    min-height: 1.8rem;
+  }
+
+  .score-gain {
+    font-size: 1rem;
   }
 
   .event-card {
@@ -886,6 +929,8 @@
   .runner.is-climbing .runner-pose,
   .runner.is-climbing .runner-arm,
   .runner.is-climbing .runner-leg,
+  .score-value.is-scoring,
+  .score-gain,
   .pursuer,
   .event-card.is-active .event-progress-fill {
     animation: none;

@@ -23,14 +23,20 @@ describe("GameScreen controls", () => {
   });
 
   it("starts the game and maps D/J keys to the same engine inputs", () => {
+    vi.useFakeTimers();
     render(<GameScreen account={account} />);
 
     fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
     fireEvent.keyDown(window, { key: "d" });
     expect(screen.getByTestId("score-value")).toHaveTextContent("1");
+    expect(screen.getByTestId("score-gain")).toHaveTextContent("+1");
+    act(() => {
+      vi.advanceTimersByTime(700);
+    });
 
     fireEvent.keyDown(window, { key: "j" });
     expect(screen.getByLabelText("남은 기회 3회")).toBeVisible();
+    expect(screen.queryByTestId("score-gain")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "앞으로 한 칸 오르기" })).toBeDisabled();
     expect(screen.getByText(/발을 헛디뎠어요/)).toBeVisible();
   });
@@ -48,6 +54,42 @@ describe("GameScreen controls", () => {
     fireEvent.click(turnButton);
     expect(forwardButton).toBeDisabled();
     expect(turnButton).toBeDisabled();
+  });
+
+  it("shows and replays score feedback for regular and event climbs, then clears it", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    render(<GameScreen account={account} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    fireEvent.keyDown(window, { key: "d" });
+    expect(screen.getByTestId("score-value")).toHaveTextContent("1");
+    expect(screen.getByTestId("score-gain")).toHaveTextContent("+1");
+    const firstScoreNode = screen.getByTestId("score-value");
+
+    fireEvent.keyDown(window, { key: "d" });
+    expect(screen.getByTestId("score-value")).not.toBe(firstScoreNode);
+    expect(screen.getByTestId("score-gain")).toHaveTextContent("+1");
+
+    fireEvent.keyDown(window, { key: "d" });
+    fireEvent.keyDown(window, { key: "d" });
+    fireEvent.keyDown(window, { key: "j" });
+    for (let segment = 0; segment < 5; segment += 1) {
+      for (let step = 0; step < 4; step += 1) fireEvent.keyDown(window, { key: "d" });
+      fireEvent.keyDown(window, { key: "j" });
+    }
+
+    expect(screen.getByTestId("score-value")).toHaveTextContent("30");
+    expect(screen.getByTestId("event-status")).toHaveTextContent("2배 점수");
+    fireEvent.keyDown(window, { key: "d" });
+    expect(screen.getByTestId("score-value")).toHaveTextContent("32");
+    expect(screen.getByTestId("score-gain")).toHaveTextContent("+2");
+    expect(screen.getByTestId("score-gain")).toHaveAttribute("aria-label", "2점 획득");
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(700);
+    });
+    expect(screen.queryByTestId("score-gain")).not.toBeInTheDocument();
   });
 
   it("animates successful D/J climbs without replaying the climb after a fall", async () => {
