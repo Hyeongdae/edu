@@ -285,6 +285,11 @@ describe("GameScreen controls", () => {
     expect(screen.getByText(/게임 종료/)).toBeVisible();
     expect(document.querySelector(".stair-game")).toHaveAttribute("data-game-status", "game-over");
     expect(screen.getByRole("heading", { name: "0점" })).toBeVisible();
+    const gameFrame = document.querySelector(".game-frame");
+    expect(screen.getByRole("region", { name: "게임 현황" }).closest(".game-stage")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "계단 장면" }).closest(".game-stage")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "0점" }).closest(".game-over-panel")?.parentElement).toBe(gameFrame);
+    expect(screen.getByRole("region", { name: "최고 기록 랭킹" }).parentElement).toHaveClass("game-over-panel");
     expect(screen.getByText("홍길동", { selector: ".leaderboard-name" }).closest("li")).toHaveClass("is-current-player");
     expect(saveSpy).toHaveBeenCalledTimes(1);
     expect(audio.stopBgm).toHaveBeenCalledOnce();
@@ -292,6 +297,8 @@ describe("GameScreen controls", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /다시 시작/ }));
     expect(audio.startBgm).toHaveBeenCalledTimes(2);
+    expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "playing");
+    expect(screen.getByRole("region", { name: "게임 현황" })).toBeVisible();
     expect(screen.getByRole("button", { name: "앞으로 한 칸 오르기" })).toBeEnabled();
     expect(screen.getByTestId("score-value")).toHaveTextContent("0");
     expect(screen.queryByText(/게임 종료/)).not.toBeInTheDocument();
@@ -316,5 +323,7 @@ describe("GameScreen controls", () => {
 
     expect(screen.getByText("기록을 저장하지 못했습니다. 이 브라우저의 저장 공간을 확인해 주세요.")).toBeVisible();
     expect(screen.getByRole("button", { name: /다시 시작/ })).toBeEnabled();
+    expect(screen.getByRole("region", { name: "게임 현황" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "계단 장면" })).toBeInTheDocument();
   });
 });

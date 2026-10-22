@@ -1457,6 +1457,75 @@
   }
 }
 
+.game-frame[data-game-status="game-over"] > .game-stage {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  flex: none;
+}
+
+.game-frame[data-game-status="game-over"] .game-layout {
+  min-height: 0;
+  flex: 1 1 0;
+}
+
+.game-frame[data-game-status="game-over"] > .game-over-panel {
+  position: absolute;
+  z-index: 2;
+  inset: clamp(148px, 21vh, 198px) clamp(20px, 5vw, 68px) 30px;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.2fr);
+  overflow: hidden;
+  margin: 0;
+}
+
+.game-frame[data-game-status="game-over"] > .game-footer {
+  display: none;
+}
+
+.game-frame[data-game-status="game-over"] .game-over-result {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: visible;
+}
+
+.game-frame[data-game-status="game-over"] .leaderboard-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.game-frame[data-game-status="game-over"] .leaderboard-list {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 720px) {
+  .game-frame[data-game-status="game-over"] .game-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .game-frame[data-game-status="game-over"] > .game-over-panel {
+    inset: 126px 10px 24px;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    gap: 6px;
+  }
+}
+
+@media (max-height: 700px) {
+  .game-frame[data-game-status="game-over"] > .game-over-panel {
+    top: 132px;
+    bottom: 20px;
+  }
+
+  .game-frame[data-game-status="game-over"] .game-over-result,
+  .game-frame[data-game-status="game-over"] .leaderboard-card {
+    padding: 8px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .runner.is-falling .runner-pose,
   .runner.is-climbing .runner-pose,
