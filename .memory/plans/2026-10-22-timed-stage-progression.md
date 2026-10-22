@@ -10,7 +10,7 @@
 ## Phases
 | Phase | Status | Summary | Blueprint |
 | :--- | :--- | :--- | :--- |
-| P01 | `in_progress` | 단계/시간 엔진과 시계 수명, 단계 랭킹, HUD/결과 및 통합 검증 | [P01](../phases/2026-10-22-timed-stage-progression/P01-timed-stages/phase.md) |
+| P01 | `completed` | 단계/시간 엔진과 시계 수명, 단계 랭킹, HUD/결과 및 통합 검증 | [P01](../phases/2026-10-22-timed-stage-progression/P01-timed-stages/phase.md) |
 
 ## Task Roadmap
 1. **T01 Stage Engine and Clock**: 순수 엔진의 단계/마감 시각/종료 사유, 승급 보상, GameScreen의 주기 갱신·설정 일시정지를 함께 구현한다. 실제 만료가 엔진에만 있고 화면에서 호출되지 않는 중간 상태를 피한다. HUD 문구와 랭킹 버전은 아직 바꾸지 않는다.
@@ -49,3 +49,10 @@
 - 기존 도움말의 '세 번 실수' 문구와 실제 세 번 잡힘 규칙 불일치, 설정을 열지 않고 계정/오디오가 보인다고 기대하는 `src/App.test.tsx`는 기존 별도 검토 항목이다. 수정 Task를 추가하지 않는다.
 - 기존 bundle 크기 경고와 사용하지 않는 옛 SVG 팔다리 CSS 정리는 이번 단계/시간/랭킹 기능에 포함하지 않는다.
 - 위 항목의 포함 여부는 사용자 선택 사항이며, 승인이 없으면 지정된 기능 검증에 집중한다.
+
+## Completion — 2026-10-22
+- Status: completed; P01 done3/3, 다음 Phase/Active Task 없음.
+- 구현 커밋: T01 `1027b1f`, T02 `7349c38`, T03 `f5ade70`.
+- 최종 지정 테스트10files/160tests, lint, build 통과. 네 화면 크기(320×667/390×667/768×1024/1440×900)의 승급·무제한2단계·시간 초과·설정 일시정지·기록 저장/재시작과 일반/reduced-motion 공개를 검증했다.
+- 320px 글자150%/200%에서 발견한 접힌 장면은 모바일 grid의 자연 높이+장면 최소 공간+내부 스크롤로 수정하고 재검증했다. 정상 크기에서 HUD/경로/설정/컨트롤/결과가 겹치지 않고, 확대 상태에서도 스크롤로 접근 가능하다.
+- 검증 방법·임시 스크린샷·보고서 위치는 T03 Validation Results에 기록했다. 기존 bundle 경고/도움말/App 기대값/옛 SVG CSS 정리는 범위 밖으로 남았다.
