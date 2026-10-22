@@ -56,7 +56,10 @@ describe("GameScreen controls", () => {
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "ready");
     expect(screen.getByRole("region", { name: "게임 현황" }).closest(".game-stage")).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "계단 장면" }).closest(".game-stage")).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "오디오 설정" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "게임 설정" }));
     expect(screen.getByRole("region", { name: "오디오 설정" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "설정 닫기" }));
 
     fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
     expect(document.querySelector(".stair-game")).toHaveAttribute("data-game-status", "playing");
@@ -70,6 +73,78 @@ describe("GameScreen controls", () => {
     fireEvent.click(turnButton);
     expect(forwardButton).toBeDisabled();
     expect(turnButton).toBeDisabled();
+  });
+
+  it("opens accessible settings, blocks play input, and resumes after closing without audio props", () => {
+    render(<GameScreen account={account} />);
+    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    const trigger = screen.getByRole("button", { name: "게임 설정" });
+    fireEvent.click(trigger);
+
+    const dialog = screen.getByRole("dialog", { name: "게임 설정" });
+    expect(dialog).toBeVisible();
+    expect(screen.getByText("조작 방법")).toBeVisible();
+    expect(screen.getByText("뒤쫓아오는 추격자")).toBeVisible();
+    expect(screen.getByText(account.name!)).toBeVisible();
+    expect(screen.queryByRole("region", { name: "오디오 설정" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "설정 닫기" })).toHaveFocus();
+
+    fireEvent.keyDown(window, { key: "d" });
+    fireEvent.keyDown(window, { key: "j" });
+    expect(screen.getByTestId("score-value")).toHaveTextContent("0");
+    expect(screen.getByRole("button", { name: "앞으로 한 칸 오르기" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "방향을 바꾸며 오르기" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "설정 닫기" }));
+    expect(trigger).toHaveFocus();
+    fireEvent.keyDown(window, { key: "d" });
+    expect(screen.getByTestId("score-value")).toHaveTextContent("1");
+
+    fireEvent.click(trigger);
+    expect(screen.getByRole("dialog")).toBeVisible();
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    fireEvent.click(trigger);
+    fireEvent.click(screen.getByText("조작 방법"));
+    expect(screen.getByRole("dialog")).toBeVisible();
+    fireEvent.mouseDown(document.querySelector(".settings-backdrop")!);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("freezes the bonus countdown while settings are open", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1_000);
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    render(
+      <GameScreen
+        account={account}
+        audioPreferences={DEFAULT_AUDIO_PREFERENCES}
+        onAudioPreferencesChange={vi.fn()}
+        onEnableAudio={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    for (let segment = 0; segment < 6; segment += 1) {
+      for (let step = 0; step < 4; step += 1) fireEvent.keyDown(window, { key: "d" });
+      fireEvent.keyDown(window, { key: "j" });
+    }
+    const eventStatus = screen.getByTestId("event-status");
+    expect(eventStatus).toHaveTextContent("2배 점수");
+    const remainingBefore = eventStatus.textContent;
+
+    fireEvent.click(screen.getByRole("button", { name: "게임 설정" }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(35_000);
+    });
+    expect(eventStatus).toHaveTextContent(remainingBefore!);
+    fireEvent.click(screen.getByRole("button", { name: "설정 닫기" }));
+    expect(eventStatus).toHaveTextContent(remainingBefore!);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30_000);
+    });
+    expect(eventStatus).not.toHaveTextContent("2배 점수");
   });
 
   it("shows and replays score feedback for regular and event climbs, then clears it", async () => {

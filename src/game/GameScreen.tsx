@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 import type { AccountInfo } from "@azure/msal-browser";
 import { applyInput, createGameState, resetGame, startGame, tickGame } from "./gameEngine";
 import { ControlButtons } from "./ControlButtons";
@@ -48,13 +48,40 @@ export function GameScreen({
   const [isClimbing, setIsClimbing] = useState(false);
   const [scoreGain, setScoreGain] = useState<number | null>(null);
   const [scoreAnimationKey, setScoreAnimationKey] = useState(0);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const scoreSavedRef = useRef(false);
+  const settingsOpenedAtRef = useRef<number | null>(null);
+  const isSettingsOpenRef = useRef(false);
+  const settingsTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const settingsCloseRef = useRef<HTMLButtonElement | null>(null);
   const previousStepsRef = useRef(gameState.stepsClimbed);
   const climbTimeoutRef = useRef<number | undefined>(undefined);
   const previousScoreRef = useRef(gameState.score);
   const scoreGainTimeoutRef = useRef<number | undefined>(undefined);
   const previousMistakeRef = useRef(gameState.lastMistake);
   const previousEventActiveRef = useRef(gameState.eventEndsAt !== null);
+
+  const openSettings = useCallback(() => {
+    if (settingsOpenedAtRef.current !== null) return;
+    settingsOpenedAtRef.current = Date.now();
+    isSettingsOpenRef.current = true;
+    setIsSettingsOpen(true);
+  }, []);
+
+  const closeSettings = useCallback(() => {
+    const openedAt = settingsOpenedAtRef.current;
+    if (openedAt === null) return;
+    const closedAt = Date.now();
+    const pausedMs = Math.max(0, closedAt - openedAt);
+    settingsOpenedAtRef.current = null;
+    isSettingsOpenRef.current = false;
+    setIsSettingsOpen(false);
+    setNowMs(closedAt);
+    setGameState((state) =>
+      state.eventEndsAt === null ? state : { ...state, eventEndsAt: state.eventEndsAt + pausedMs },
+    );
+    settingsTriggerRef.current?.focus();
+  }, []);
 
   const handleInput = useCallback((input: GameInput) => {
     const inputTime = Date.now();
@@ -172,7 +199,7 @@ export function GameScreen({
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (isTextEntryTarget(event.target)) {
+      if (isSettingsOpenRef.current || isTextEntryTarget(event.target)) {
         return;
       }
 
@@ -191,6 +218,7 @@ export function GameScreen({
   }, [handleInput]);
 
   useEffect(() => {
+    if (isSettingsOpen) return undefined;
     const timersActive = gameState.eventEndsAt !== null || gameState.recoveryEndsAt !== null;
     if (!timersActive) {
       return undefined;
@@ -203,11 +231,11 @@ export function GameScreen({
     }, 100);
 
     return () => window.clearInterval(intervalId);
-  }, [gameState.eventEndsAt, gameState.recoveryEndsAt]);
+  }, [gameState.eventEndsAt, gameState.recoveryEndsAt, isSettingsOpen]);
 
   useEffect(() => {
     const onVisibilityChange = () => {
-      if (document.visibilityState !== "visible") {
+      if (document.visibilityState !== "visible" || isSettingsOpenRef.current) {
         return;
       }
 
@@ -225,36 +253,49 @@ export function GameScreen({
       ? 0
       : Math.max(0, Math.ceil((gameState.eventEndsAt - nowMs) / 1000));
   const controlsDisabled =
-    gameState.status !== "playing" || gameState.recoveryEndsAt !== null;
+    gameState.status !== "playing" || gameState.recoveryEndsAt !== null || isSettingsOpen;
+
+  useEffect(() => {
+    if (isSettingsOpen) settingsCloseRef.current?.focus();
+  }, [isSettingsOpen]);
+
+  const onSettingsDialogKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeSettings();
+      return;
+    }
+    if (event.key !== "Tab") return;
+    const focusable = event.currentTarget.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+    );
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
 
   return (
     <main className="stair-game" data-game-status={gameState.status}>
       <div className="game-shell">
         <div className="game-frame" data-game-status={gameState.status}>
-          <header className="game-header">
-            <div className="game-brand">
-              <span className="brand-mark" aria-hidden="true">↗</span>
-              <div>
-                <p className="brand-kicker">사내 랭킹 챌린지</p>
-                <h1>계단 오르기</h1>
-              </div>
-            </div>
-            <div className="account-chip">
-              <span className="account-avatar" aria-hidden="true">
-                {(account.name ?? account.username).slice(0, 1)}
-              </span>
-              <span>{account.name ?? account.username}</span>
-            </div>
-          </header>
-
-          {audioPreferences && onAudioPreferencesChange && onEnableAudio && (
-            <AudioControls
-              preferences={audioPreferences}
-              onChange={onAudioPreferencesChange}
-              autoplayBlocked={autoplayBlocked}
-              onEnableAudio={onEnableAudio}
-            />
-          )}
+          <button
+            ref={settingsTriggerRef}
+            className="game-settings-button"
+            type="button"
+            aria-label="게임 설정"
+            aria-expanded={isSettingsOpen}
+            aria-controls="game-settings-dialog"
+            onClick={openSettings}
+          >
+            <span aria-hidden="true">⚙</span>
+          </button>
 
           <div className="game-stage">
             <GameHud
@@ -299,6 +340,78 @@ export function GameScreen({
             </section>
           )}
           <p className="game-footer">방향을 잘 맞춰 계속 올라가세요!</p>
+          {isSettingsOpen && (
+            <div
+              className="settings-backdrop"
+              onMouseDown={(event) => {
+                if (event.target === event.currentTarget) closeSettings();
+              }}
+            >
+              <section
+                id="game-settings-dialog"
+                className="settings-dialog"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="game-settings-title"
+                onKeyDown={onSettingsDialogKeyDown}
+              >
+                <header className="settings-dialog-header">
+                  <div className="game-brand">
+                    <span className="brand-mark" aria-hidden="true">↗</span>
+                    <div>
+                      <p className="brand-kicker">사내 랭킹 챌린지</p>
+                      <h2 id="game-settings-title">게임 설정</h2>
+                    </div>
+                  </div>
+                  <button
+                    ref={settingsCloseRef}
+                    className="settings-close-button"
+                    type="button"
+                    aria-label="설정 닫기"
+                    onClick={closeSettings}
+                  >
+                    ×
+                  </button>
+                </header>
+
+                <div className="settings-content">
+                  <div className="settings-account account-chip">
+                    <span className="account-avatar" aria-hidden="true">
+                      {(account.name ?? account.username).slice(0, 1)}
+                    </span>
+                    <span>{account.name ?? account.username}</span>
+                  </div>
+
+                  {audioPreferences && onAudioPreferencesChange && onEnableAudio && (
+                    <AudioControls
+                      preferences={audioPreferences}
+                      onChange={onAudioPreferencesChange}
+                      autoplayBlocked={autoplayBlocked}
+                      onEnableAudio={onEnableAudio}
+                    />
+                  )}
+
+                  <div className="settings-help-grid">
+                    <section className="instruction-card">
+                      <span className="instruction-icon" aria-hidden="true">⌨</span>
+                      <div>
+                        <strong>조작 방법</strong>
+                        <p><kbd>D</kbd> 한 칸 오르기 <span>·</span> <kbd>J</kbd> 모퉁이에서 방향 바꾸기</p>
+                        <p>모바일에서는 화면의 화살표 버튼을 사용하세요.</p>
+                      </div>
+                    </section>
+                    <section className="chase-card">
+                      <span className="chase-icon" aria-hidden="true">!</span>
+                      <div>
+                        <strong>뒤쫓아오는 추격자</strong>
+                        <p>방향을 잘못 입력하면 넘어지고 기회를 잃어요. 세 번 실수하면 게임이 끝납니다.</p>
+                      </div>
+                    </section>
+                  </div>
+                </div>
+              </section>
+            </div>
+          )}
         </div>
       </div>
     </main>
