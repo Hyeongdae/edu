@@ -5,6 +5,7 @@ import type { AccountInfo } from "@azure/msal-browser";
 import { GameScreen } from "./GameScreen";
 import { StairScene } from "./StairScene";
 import { createGameState } from "./gameEngine";
+import * as gameEngine from "./gameEngine";
 import type { AudioController } from "../audio/audioController";
 import { DEFAULT_AUDIO_PREFERENCES } from "../audio/audioPreferences";
 
@@ -141,17 +142,19 @@ describe("GameScreen controls", () => {
     const remainingBefore = eventStatus.textContent;
 
     fireEvent.click(screen.getByRole("button", { name: "게임 설정" }));
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(35_000);
-    });
+    vi.setSystemTime(96_000);
+    await act(async () => { await vi.advanceTimersByTimeAsync(100); });
     expect(eventStatus).toHaveTextContent(remainingBefore!);
     fireEvent.click(screen.getByRole("button", { name: "설정 닫기" }));
     expect(eventStatus).toHaveTextContent(remainingBefore!);
 
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(30_000);
-    });
+    vi.setSystemTime(126_100);
+    await act(async () => { await vi.advanceTimersByTimeAsync(100); });
     expect(eventStatus).not.toHaveTextContent("2배 점수");
+    expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "playing");
+    vi.setSystemTime(186_100);
+    await act(async () => { await vi.advanceTimersByTimeAsync(100); });
+    expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "game-over");
   });
 
   it("shows and replays score feedback for regular and event climbs, then clears it", async () => {
@@ -533,5 +536,162 @@ describe("GameScreen controls", () => {
     fireEvent.keyDown(window, { key: "j" });
     expect(screen.getByTestId("pursuer")).toHaveClass("is-approaching");
     expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "-3");
+  });
+
+  it("does not start the stage clock until play starts and rearms it on restart", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1_000);
+    render(<GameScreen account={account} />);
+    vi.setSystemTime(100_000);
+    await act(async () => { await vi.advanceTimersByTimeAsync(100); });
+    expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "ready");
+    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    vi.setSystemTime(190_099);
+    fireEvent.keyDown(window, { key: "d" });
+    expect(screen.getByTestId("score-value")).toHaveTextContent("1");
+    vi.setSystemTime(190_100);
+    fireEvent.keyDown(window, { key: "d" });
+    expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "game-over");
+    fireEvent.click(screen.getByRole("button", { name: /다시 시작/ }));
+    vi.setSystemTime(280_099);
+    fireEvent.keyDown(window, { key: "d" });
+    expect(screen.getByTestId("score-value")).toHaveTextContent("1");
+    expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "playing");
+    vi.setSystemTime(280_100);
+    fireEvent.keyDown(window, { key: "d" });
+    expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "game-over");
+  });
+
+  it.each(["interval", "input", "visibility", "settings"])("expires idle play through %s without a false capture", async (trigger) => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1_000);
+    const audio = {
+      startBgm: vi.fn().mockResolvedValue(true), stopBgm: vi.fn(), setEventActive: vi.fn(),
+      setPreferences: vi.fn(), playFootstep: vi.fn(), playFall: vi.fn(), dispose: vi.fn(),
+    } satisfies AudioController;
+    const save = vi.spyOn(Storage.prototype, "setItem");
+    render(<StrictMode><GameScreen account={account} audioController={audio} /></StrictMode>);
+    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    vi.setSystemTime(91_000);
+    if (trigger === "interval") {
+      await act(async () => { await vi.advanceTimersByTimeAsync(100); });
+    } else if (trigger === "input") {
+      fireEvent.keyDown(window, { key: "d" });
+    } else if (trigger === "visibility") {
+      vi.spyOn(document, "visibilityState", "get").mockReturnValue("visible");
+      fireEvent(document, new Event("visibilitychange"));
+    } else {
+      fireEvent.click(screen.getByRole("button", { name: "게임 설정" }));
+      vi.setSystemTime(200_000);
+      fireEvent.click(screen.getByRole("button", { name: "설정 닫기" }));
+    }
+    expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "game-over");
+    expect(document.querySelector(".game-frame")).toHaveAttribute("data-pursuer-catching", "false");
+    expect(screen.getByRole("heading", { name: "0점" })).toBeInTheDocument();
+    expect(screen.getByLabelText("남은 기회 3회")).toBeInTheDocument();
+    expect(screen.getByTestId("runner")).toHaveAttribute("data-route-index", "0");
+    expect(audio.playFall).not.toHaveBeenCalled();
+    expect(audio.playFootstep).not.toHaveBeenCalled();
+    expect(audio.stopBgm).toHaveBeenCalledOnce();
+    expect(save).toHaveBeenCalledOnce();
+    fireEvent.keyDown(window, { key: "d" });
+    expect(screen.getByTestId("score-value")).toHaveTextContent("0");
+    expect(save).toHaveBeenCalledOnce();
+  });
+
+  it.each([false, true])("promotes with one real move and preserves its bonus/audio (bonus=%s)", async (bonus) => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1_000);
+    const ready = createGameState(() => 0);
+    vi.spyOn(gameEngine, "createGameState").mockReturnValue({
+      ...ready, score: 299, lives: 1, pursuerDistance: 1,
+      eventSteps: 12, eventEndsAt: bonus ? 31_000 : null,
+    });
+    const input = vi.spyOn(gameEngine, "applyInput");
+    const audio = {
+      startBgm: vi.fn().mockResolvedValue(true), stopBgm: vi.fn(), setEventActive: vi.fn(),
+      setPreferences: vi.fn(), playFootstep: vi.fn(), playFall: vi.fn(), dispose: vi.fn(),
+    } satisfies AudioController;
+    const save = vi.spyOn(Storage.prototype, "setItem");
+    render(<GameScreen account={account} audioController={audio} />);
+    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    fireEvent.keyDown(window, { key: "d" });
+    expect(input.mock.results.at(-1)?.value).toMatchObject({
+      stage: 2, stageEndsAt: null, lives: 3, pursuerDistance: 4,
+      score: bonus ? 301 : 300, eventSteps: bonus ? 12 : 13, eventEndsAt: bonus ? 31_000 : null,
+    });
+    expect(screen.getByLabelText("남은 기회 3회")).toBeVisible();
+    expect(screen.getByTestId("runner")).toHaveAttribute("data-route-index", "1");
+    expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "-3");
+    expect(screen.getByTestId("score-gain")).toHaveTextContent(bonus ? "+2" : "+1");
+    expect(audio.playFootstep).toHaveBeenCalledOnce();
+    expect(audio.playFall).not.toHaveBeenCalled();
+    expect(audio.startBgm).toHaveBeenCalledOnce();
+    expect(audio.setEventActive).not.toHaveBeenCalled();
+    expect(save).not.toHaveBeenCalled();
+    vi.setSystemTime(1_000_000);
+    await act(async () => { await vi.advanceTimersByTimeAsync(100); });
+    fireEvent.keyDown(window, { key: "d" });
+    expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "playing");
+    expect(screen.getByTestId("runner")).toHaveAttribute("data-route-index", "2");
+    expect(audio.playFootstep).toHaveBeenCalledTimes(2);
+  });
+
+  it("cancels a pending nonfatal capture on time expiry", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1_000);
+    const ready = createGameState(() => 0);
+    vi.spyOn(gameEngine, "createGameState").mockReturnValue({ ...ready, pursuerDistance: 1 });
+    render(<GameScreen account={account} />);
+    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    vi.setSystemTime(90_900);
+    fireEvent.keyDown(window, { key: "j" });
+    expect(document.querySelector(".game-frame")).toHaveAttribute("data-pursuer-catching", "true");
+    expect(screen.getByLabelText("남은 기회 2회")).toBeInTheDocument();
+    vi.setSystemTime(91_000);
+    fireEvent.keyDown(window, { key: "d" });
+    expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "game-over");
+    expect(document.querySelector(".game-frame")).toHaveAttribute("data-pursuer-catching", "false");
+    expect(screen.getByTestId("pursuer")).not.toHaveClass("is-caught");
+    expect(screen.getByRole("button", { name: /다시 시작/ })).toBeInTheDocument();
+    expect(screen.getByLabelText("남은 기회 2회")).toBeInTheDocument();
+  });
+
+  it("resumes the stage remainder once after settings, without accepting hidden-tab input", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1_000);
+    render(<GameScreen account={account} />);
+    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    vi.setSystemTime(11_000);
+    const trigger = screen.getByRole("button", { name: "게임 설정" });
+    fireEvent.click(trigger);
+    vi.setSystemTime(111_000);
+    vi.spyOn(document, "visibilityState", "get").mockReturnValue("visible");
+    fireEvent(document, new Event("visibilitychange"));
+    fireEvent.keyDown(window, { key: "d" });
+    fireEvent.click(screen.getByRole("button", { name: "앞으로 한 칸 오르기" }));
+    expect(screen.getByTestId("score-value")).toHaveTextContent("0");
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+    expect(trigger).toHaveFocus();
+    vi.setSystemTime(190_999);
+    fireEvent.keyDown(window, { key: "d" });
+    expect(screen.getByTestId("score-value")).toHaveTextContent("1");
+    vi.setSystemTime(191_000);
+    await act(async () => { await vi.advanceTimersByTimeAsync(100); });
+    expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "game-over");
+  });
+
+  it("updates displayed clock seconds relative to a fractional start rather than wall-clock seconds", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(550);
+    const ready = createGameState(() => 0);
+    vi.spyOn(gameEngine, "createGameState").mockReturnValue({ ...ready, eventEndsAt: 30_550 });
+    render(<GameScreen account={account} />);
+    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    expect(screen.getByTestId("event-status")).toHaveTextContent("2배 점수 · 30초");
+    act(() => { vi.advanceTimersByTime(500); });
+    expect(screen.getByTestId("event-status")).toHaveTextContent("2배 점수 · 30초");
+    act(() => { vi.advanceTimersByTime(500); });
+    expect(screen.getByTestId("event-status")).toHaveTextContent("2배 점수 · 29초");
   });
 });

@@ -4,6 +4,10 @@ export type GameInput = "forward" | "turn";
 
 export type GameStatus = "ready" | "playing" | "game-over";
 
+export type GameStage = 1 | 2;
+
+export type GameEndReason = "caught" | "time-limit";
+
 export type StairRunLength = 4 | 5 | 6;
 
 export interface StairRouteStep {
@@ -22,6 +26,9 @@ export interface StairRoute {
 
 export interface GameState {
   status: GameStatus;
+  stage: GameStage;
+  stageEndsAt: number | null;
+  endReason: GameEndReason | null;
   score: number;
   stepsClimbed: number;
   lives: number;

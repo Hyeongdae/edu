@@ -1,22 +1,23 @@
 ﻿# Current Context
 
 ## Active Plan
-[Pixel Stair Game Redesign](./plans/2026-10-22-pixel-stair-game-redesign.md) — completed
+[Timed Stage Progression](./plans/2026-10-22-timed-stage-progression.md)
 
 ## Active Phase
-[P01 Pixel Stair Game](./phases/2026-10-22-pixel-stair-game-redesign/P01-pixel-stair-game/phase.md) — completed
+[P01 Timed Stages](./phases/2026-10-22-timed-stage-progression/P01-timed-stages/phase.md)
 
 ## Active Task
-없음. 계획의 모든 작업을 완료했다.
+[T01 Stage Engine and Clock](./phases/2026-10-22-timed-stage-progression/P01-timed-stages/T01-stage-engine-and-clock.md)
 
 ## Last Completed Task
-[T04 Pixel Game Interface](./phases/2026-10-22-pixel-stair-game-redesign/P01-pixel-stair-game/T04-pixel-game-interface.md)
+[T04 Pixel Game Interface](./phases/2026-10-22-pixel-stair-game-redesign/P01-pixel-stair-game/T04-pixel-game-interface.md) — previous plan completed, commit `542bb50`.
 
 ## Status
-- T04 완료. HUD·버튼·설정/오디오·결과/랭킹을 게임 내부의 픽셀 UI로 통일했다.
-- 지정 테스트 83개, lint, build 통과. 320×667·390×667·768×1024·1440×900의 전체 화면 구성과 설정/오디오 접근성, 이벤트 재개, 저장/잡힘 순서, reduced-motion 검증 완료.
-- 계획과 P01 진행률 4/4 완료. 다음 Phase/Active Task는 없다.
-- 기존 도움말 문구와 App 통합 테스트 기대값, 사용하지 않는 옛 SVG CSS, bundle 크기 경고는 별도 후속 검토 대상이다.
+- `timed-stage-progression` 계획과 독립 실행 가능한 Task 청사진 3개 작성 완료. P01 done: 0/3, active: T01 구현 시작 준비.
+- 1단계는 시작 후 90초 안에 실제 300점 이상이면 2단계 승급. 기회3/추격거리4로 회복하고 점수·경로·보너스는 유지한다. 시간 초과는 종료, 2단계는 무제한 계속 플레이.
+- T02에서 단계→점수 랭킹과 새v2 형식을 적용하며 사용자 승인된 기존v1 랭킹 키만 정리한다. 계획 단계에서는 실제 기록을 삭제하지 않았다.
+- 이번 변경은 `.memory/` 문서뿐이며 앱 구현/테스트/빌드를 실행하지 않았다.
+- 이전 계획은 T04까지 4/4 완료했다. 기존 도움말/App 통합 테스트 기대값, 옛SVG CSS, bundle 크기 경고는 별도 검토 대상이다.
 
 ## Next Step (IMPORTANT)
-추가 실행할 Task가 없다. 기존 로컬 데모 `http://127.0.0.1:5174/`에서 사용자 테스트 피드백을 받은 뒤 다음 작업을 정한다. 범위 밖 항목을 임의로 실행하거나 완료한 Task를 다시 시작하지 않는다.
+`/memory-execute` 또는 `current 보고 이어서 해줘` 요청 시 T01 청사진에 지정된 엔진·GameScreen 시계 수명·테스트 호출부만 구현/검증/커밋한다. 통과 후 Task/phase 진행률을 갱신하고 Active Task를 T02로 전진한다. 한 번의 실행에서 T02/T03을 연달아 구현하지 않는다.

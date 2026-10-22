@@ -1,6 +1,6 @@
 import { type KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 import type { AccountInfo } from "@azure/msal-browser";
-import { applyInput, createGameState, resetGame, startGame, tickGame } from "./gameEngine";
+import { applyInput, createGameState, getStageSecondsLeft, resetGame, resumeGameAfterPause, startGame, tickGame } from "./gameEngine";
 import { ControlButtons } from "./ControlButtons";
 import { GameHud } from "./GameHud";
 import { StairScene } from "./StairScene";
@@ -68,7 +68,10 @@ export function GameScreen({
 
   const openSettings = useCallback(() => {
     if (settingsOpenedAtRef.current !== null) return;
-    settingsOpenedAtRef.current = Date.now();
+    const openedAt = Date.now();
+    setNowMs(openedAt);
+    setGameState((state) => tickGame(state, openedAt));
+    settingsOpenedAtRef.current = openedAt;
     isSettingsOpenRef.current = true;
     setIsSettingsOpen(true);
   }, []);
@@ -77,28 +80,27 @@ export function GameScreen({
     const openedAt = settingsOpenedAtRef.current;
     if (openedAt === null) return;
     const closedAt = Date.now();
-    const pausedMs = Math.max(0, closedAt - openedAt);
     settingsOpenedAtRef.current = null;
     isSettingsOpenRef.current = false;
     setIsSettingsOpen(false);
     setNowMs(closedAt);
-    setGameState((state) =>
-      state.eventEndsAt === null ? state : { ...state, eventEndsAt: state.eventEndsAt + pausedMs },
-    );
+    setGameState((state) => resumeGameAfterPause(state, openedAt, closedAt));
     settingsTriggerRef.current?.focus();
   }, []);
 
   const handleInput = useCallback((input: GameInput) => {
+    if (isSettingsOpenRef.current) return;
     const inputTime = Date.now();
     setNowMs(inputTime);
     setGameState((state) => applyInput(state, input, inputTime));
   }, []);
 
   const handleStart = () => {
+    const startedAt = Date.now();
     scoreSavedRef.current = false;
     setSaveError(false);
-    setNowMs(Date.now());
-    const nextState = startGame(gameState.status === "game-over" ? resetGame() : gameState);
+    setNowMs(startedAt);
+    const nextState = startGame(gameState.status === "game-over" ? resetGame() : gameState, startedAt);
     setGameState(nextState);
     void audioController?.startBgm();
   };
@@ -237,19 +239,28 @@ export function GameScreen({
 
   useEffect(() => {
     if (isSettingsOpen) return undefined;
-    const timersActive = gameState.eventEndsAt !== null || gameState.recoveryEndsAt !== null;
+    const timersActive = (gameState.status === "playing" &&
+      (gameState.stageEndsAt !== null || gameState.eventEndsAt !== null)) ||
+      gameState.recoveryEndsAt !== null;
     if (!timersActive) {
       return undefined;
     }
 
     const intervalId = window.setInterval(() => {
+      if (isSettingsOpenRef.current) return;
       const tickTime = Date.now();
-      setNowMs(tickTime);
+      setNowMs((previousTime) => {
+        const stageChanged = getStageSecondsLeft(gameState, previousTime) !== getStageSecondsLeft(gameState, tickTime);
+        const eventChanged = gameState.eventEndsAt !== null &&
+          Math.max(0, Math.ceil((gameState.eventEndsAt - previousTime) / 1000)) !==
+          Math.max(0, Math.ceil((gameState.eventEndsAt - tickTime) / 1000));
+        return stageChanged || eventChanged ? tickTime : previousTime;
+      });
       setGameState((state) => tickGame(state, tickTime));
     }, 100);
 
     return () => window.clearInterval(intervalId);
-  }, [gameState.eventEndsAt, gameState.recoveryEndsAt, isSettingsOpen]);
+  }, [gameState, isSettingsOpen]);
 
   useEffect(() => {
     const onVisibilityChange = () => {
@@ -272,6 +283,7 @@ export function GameScreen({
       : Math.max(0, Math.ceil((gameState.eventEndsAt - nowMs) / 1000));
   const controlsDisabled =
     gameState.status !== "playing" || gameState.recoveryEndsAt !== null || isSettingsOpen;
+  const pursuerCatchVisible = isPursuerCaught && gameState.endReason !== "time-limit";
 
   useEffect(() => {
     if (isSettingsOpen) settingsCloseRef.current?.focus();
@@ -305,7 +317,7 @@ export function GameScreen({
         <div
           className="game-frame"
           data-game-status={gameState.status}
-          data-pursuer-catching={isPursuerCaught}
+          data-pursuer-catching={pursuerCatchVisible}
         >
           <button
             ref={settingsTriggerRef}
@@ -333,7 +345,7 @@ export function GameScreen({
                 climbAnimationKey={climbAnimationKey}
                 isClimbing={isClimbing && !gameState.lastMistake}
                 pursuerAnimationKey={pursuerAnimationKey}
-                isPursuerCaught={isPursuerCaught}
+                isPursuerCaught={pursuerCatchVisible}
               />
             </div>
           </div>

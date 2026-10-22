@@ -6,6 +6,8 @@ const INITIAL_PURSUER_DISTANCE = 4;
 const EVENT_STEP_TARGET = 30;
 const EVENT_DURATION_MS = 30_000;
 const RECOVERY_DURATION_MS = 500;
+export const STAGE_ONE_DURATION_MS = 90_000;
+export const STAGE_ONE_TARGET_SCORE = 300;
 
 function validateTime(nowMs: number): void {
   if (!Number.isFinite(nowMs) || nowMs < 0) {
@@ -17,6 +19,9 @@ export function createGameState(random: () => number = Math.random): GameState {
   const route = createStairRoute(random);
   return {
     status: "ready",
+    stage: 1,
+    stageEndsAt: null,
+    endReason: null,
     score: 0,
     stepsClimbed: 0,
     lives: INITIAL_LIVES,
@@ -31,12 +36,19 @@ export function createGameState(random: () => number = Math.random): GameState {
   };
 }
 
-export function startGame(state: GameState): GameState {
+export function startGame(state: GameState, nowMs: number): GameState {
+  validateTime(nowMs);
   if (state.status !== "ready") {
     return state;
   }
 
-  return { ...state, status: "playing" };
+  return {
+    ...state,
+    status: "playing",
+    stage: 1,
+    stageEndsAt: nowMs + STAGE_ONE_DURATION_MS,
+    endReason: null,
+  };
 }
 
 export function tickGame(state: GameState, nowMs: number): GameState {
@@ -44,7 +56,9 @@ export function tickGame(state: GameState, nowMs: number): GameState {
 
   const eventExpired = state.eventEndsAt !== null && nowMs >= state.eventEndsAt;
   const recoveryExpired = state.recoveryEndsAt !== null && nowMs >= state.recoveryEndsAt;
-  if (!eventExpired && !recoveryExpired) {
+  const stageExpired = state.status === "playing" && state.stage === 1 &&
+    state.stageEndsAt !== null && nowMs >= state.stageEndsAt;
+  if (!eventExpired && !recoveryExpired && !stageExpired) {
     return state;
   }
 
@@ -52,7 +66,41 @@ export function tickGame(state: GameState, nowMs: number): GameState {
     ...state,
     ...(eventExpired ? { eventEndsAt: null, eventSteps: 0 } : {}),
     ...(recoveryExpired ? { recoveryEndsAt: null, lastMistake: false } : {}),
+    ...(stageExpired ? {
+      status: "game-over" as const,
+      endReason: "time-limit" as const,
+      recoveryEndsAt: null,
+      lastMistake: false,
+    } : {}),
   };
+}
+
+export function resumeGameAfterPause(
+  state: GameState,
+  openedAtMs: number,
+  closedAtMs: number,
+): GameState {
+  validateTime(openedAtMs);
+  validateTime(closedAtMs);
+  const atOpen = tickGame(state, openedAtMs);
+  if (atOpen.status !== "playing") return tickGame(atOpen, closedAtMs);
+
+  const pausedMs = Math.max(0, closedAtMs - openedAtMs);
+  const hasDeadline = atOpen.stageEndsAt !== null || atOpen.eventEndsAt !== null;
+  const resumed = pausedMs === 0 || !hasDeadline ? atOpen : {
+    ...atOpen,
+    stageEndsAt: atOpen.stageEndsAt === null ? null : atOpen.stageEndsAt + pausedMs,
+    eventEndsAt: atOpen.eventEndsAt === null ? null : atOpen.eventEndsAt + pausedMs,
+  };
+  return tickGame(resumed, closedAtMs);
+}
+
+export function getStageSecondsLeft(state: GameState, nowMs: number): number | null {
+  validateTime(nowMs);
+  if (state.stage === 2) return null;
+  if (state.endReason === "time-limit") return 0;
+  if (state.stageEndsAt === null) return STAGE_ONE_DURATION_MS / 1000;
+  return Math.max(0, Math.ceil((state.stageEndsAt - nowMs) / 1000));
 }
 
 export function applyInput(
@@ -81,6 +129,7 @@ export function applyInput(
       lives: nextLives,
       pursuerDistance: wasCaught ? INITIAL_PURSUER_DISTANCE : nextPursuerDistance,
       status: nextLives === 0 ? "game-over" : currentState.status,
+      endReason: nextLives === 0 ? "caught" : null,
       recoveryEndsAt: nowMs + RECOVERY_DURATION_MS,
       lastMistake: true,
     };
@@ -100,9 +149,11 @@ export function applyInput(
     }
   }
 
+  const nextScore = currentState.score + (eventIsActive ? 2 : 1);
+  const shouldPromote = currentState.stage === 1 && nextScore >= STAGE_ONE_TARGET_SCORE;
   return {
     ...currentState,
-    score: currentState.score + (eventIsActive ? 2 : 1),
+    score: nextScore,
     stepsClimbed: nextStepsClimbed,
     direction: nextStep.direction,
     straightStepsRemaining: countStraightSteps(route, nextStepsClimbed, nextStep.direction),
@@ -111,6 +162,13 @@ export function applyInput(
     recoveryEndsAt: null,
     lastMistake: false,
     route,
+    ...(shouldPromote ? {
+      stage: 2 as const,
+      stageEndsAt: null,
+      lives: INITIAL_LIVES,
+      pursuerDistance: INITIAL_PURSUER_DISTANCE,
+      endReason: null,
+    } : {}),
   };
 }
 

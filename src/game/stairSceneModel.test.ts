@@ -20,7 +20,7 @@ describe("stair scene projection", () => {
   });
 
   it("uses each actor's own route direction on opposite sides of a corner", () => {
-    let state = startGame(createGameState(() => 0));
+    let state = startGame(createGameState(() => 0), 0);
     for (let index = 0; index < 5; index += 1) state = climb(state);
     let scene = buildStairSceneModel(state);
     expect(scene.player.direction).toBe("left");
@@ -43,7 +43,7 @@ describe("stair scene projection", () => {
   });
 
   it("follows the real corner in catch and return frames", () => {
-    let state = startGame(createGameState(() => 0));
+    let state = startGame(createGameState(() => 0), 0);
     for (let index = 0; index < 6; index += 1) state = climb(state);
     const scene = buildStairSceneModel(state);
     expect(scene.catchFrames.map((frame) => frame.index)).toEqual([5, 6, 6, 5, 4, 3, 2]);
@@ -58,7 +58,7 @@ describe("stair scene projection", () => {
   });
 
   it.each([0, 0.5, 0.999])("keeps both directions and all run lengths inside the view for seed %s", (seed) => {
-    let state = startGame(createGameState(() => seed));
+    let state = startGame(createGameState(() => seed), 0);
     const lengths = new Set<number>();
     const directions = new Set<string>();
     for (let index = 0; index < 300; index += 1) {
