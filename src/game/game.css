@@ -29,6 +29,29 @@
   max-width: 100%;
 }
 
+.game-frame {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: clamp(5px, 1vh, 10px);
+  overflow: hidden;
+  padding: clamp(8px, 1.4vh, 16px);
+  border: 2px solid rgb(255 255 255 / 88%);
+  border-radius: 28px;
+  background: rgb(239 248 255 / 45%);
+  box-shadow: 0 18px 48px rgb(69 104 147 / 12%), inset 0 1px 0 rgb(255 255 255 / 90%);
+}
+
+.game-frame[data-game-status="playing"] > .game-header,
+.game-frame[data-game-status="game-over"] > .game-header {
+  display: none;
+}
+
 .game-header,
 .game-brand,
 .account-chip,
@@ -108,21 +131,31 @@
 }
 
 .game-hud {
+  position: absolute;
+  z-index: 1;
+  top: 12px;
+  left: 50%;
   display: grid;
-  grid-template-columns: 1fr 1.05fr 1.8fr;
-  gap: 14px;
-  flex: 0 0 auto;
+  width: min(calc(100% - 32px), 1080px);
+  grid-template-columns: minmax(110px, 0.8fr) minmax(115px, 0.8fr) minmax(220px, 1.6fr);
+  gap: 7px;
+  padding: 8px;
+  transform: translateX(-50%);
+  border: 1px solid rgb(255 255 255 / 85%);
+  border-radius: 20px;
+  background: rgb(255 255 255 / 78%);
+  box-shadow: 0 8px 24px rgb(69 104 147 / 12%);
+  backdrop-filter: blur(12px);
   min-width: 0;
-  margin-bottom: 0;
 }
 
 .hud-card {
   min-width: 0;
-  padding: 16px 19px;
-  border: 1px solid rgb(255 255 255 / 95%);
-  border-radius: 20px;
-  background: rgb(255 255 255 / 87%);
-  box-shadow: 0 9px 25px rgb(69 104 147 / 8%);
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 13px;
+  background: rgb(255 255 255 / 38%);
+  box-shadow: none;
 }
 
 .hud-label,
@@ -234,12 +267,21 @@
 
 .game-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.65fr) minmax(210px, 0.75fr);
+  grid-template-columns: minmax(0, 1fr);
   align-items: stretch;
   gap: 15px;
   min-width: 0;
   min-height: 0;
   flex: 1 1 0;
+}
+
+.game-stage {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1 1 0;
+  flex-direction: column;
 }
 
 .scene-card {
@@ -248,11 +290,15 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding: 19px 20px 15px;
+  padding: clamp(124px, 16vh, 154px) 20px 15px;
   border: 1px solid rgb(255 255 255 / 95%);
   border-radius: 25px;
   background: rgb(255 255 255 / 91%);
   box-shadow: 0 13px 34px rgb(69 104 147 / 10%);
+}
+
+.game-stage > .game-layout > .scene-card {
+  padding-top: clamp(124px, 16vh, 154px);
 }
 
 .scene-heading {
@@ -642,7 +688,7 @@
   font-size: 1.05rem;
 }
 
-.game-shell > .start-button {
+.game-frame > .start-button {
   flex: 0 0 auto;
   margin: 0 auto 8px;
 }
@@ -669,7 +715,7 @@
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-.game-shell > .game-controls {
+.game-frame > .game-controls {
   flex: 0 0 auto;
   margin: 0 auto 8px;
 }
@@ -739,6 +785,12 @@
   text-align: center;
 }
 
+@media (min-width: 721px) {
+  .game-frame .game-controls {
+    display: none;
+  }
+}
+
 @keyframes stumble {
   0% { transform: rotate(0) translateY(0); }
   28% { transform: rotate(-19deg) translateY(12px); }
@@ -798,14 +850,9 @@
 }
 
 @media (max-width: 720px) {
-  .game-layout {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) auto;
-  }
-
-  .game-side-panel {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .game-frame {
+    padding: 7px;
+    border-radius: 22px;
   }
 
   .game-over-panel {
@@ -985,14 +1032,48 @@
     height: 30px;
   }
 
-  .game-hud {
-    grid-template-columns: 1fr 1fr;
-    gap: 9px;
+  .game-frame .game-hud {
+    top: 7px;
+    width: calc(100% - 14px);
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 0.85fr) minmax(0, 1.5fr);
+    gap: 4px;
+    padding: 5px;
+    border-radius: 15px;
   }
 
-  .hud-card {
-    padding: 12px 14px;
-    border-radius: 17px;
+  .game-frame .game-hud .hud-card {
+    padding: 5px 6px;
+    border-radius: 10px;
+  }
+
+  .game-frame .game-hud .hud-label {
+    font-size: 0.62rem;
+  }
+
+  .game-frame .game-hud .hud-caption {
+    font-size: 0.55rem;
+  }
+
+  .game-frame .game-hud .score-value {
+    font-size: 1.35rem;
+  }
+
+  .game-frame .game-hud .score-value-row {
+    min-height: 1.45rem;
+  }
+
+  .game-frame .game-hud .life-hearts {
+    gap: 3px;
+    font-size: 1.05rem;
+  }
+
+  .game-frame .game-hud .event-progress {
+    height: 7px;
+    margin-top: 5px;
+  }
+
+  .game-frame .game-hud .event-status {
+    font-size: 0.62rem;
   }
 
   .score-value {
@@ -1007,12 +1088,18 @@
     font-size: 1rem;
   }
 
-  .event-card {
-    grid-column: 1 / -1;
+  .game-frame .event-card {
+    grid-column: auto;
+  }
+
+  .game-stage .scene-card {
+    padding-top: clamp(99px, 16vh, 126px);
   }
 
   .scene-card {
-    padding: 10px 12px 8px;
+    padding-right: 9px;
+    padding-bottom: 7px;
+    padding-left: 9px;
     border-radius: 20px;
   }
 
@@ -1027,37 +1114,6 @@
 
   .scene-hint {
     font-size: 0.8rem;
-  }
-
-  .game-side-panel {
-    gap: 8px;
-  }
-
-  .instruction-card,
-  .chase-card {
-    min-height: 0;
-    gap: 8px;
-    padding: 13px 10px;
-    border-radius: 16px;
-  }
-
-  .instruction-card strong,
-  .chase-card strong {
-    font-size: 0.76rem;
-  }
-
-  .instruction-card p,
-  .chase-card p {
-    font-size: 0.69rem;
-  }
-
-  .instruction-icon,
-  .chase-icon {
-    flex-basis: 30px;
-    width: 30px;
-    height: 30px;
-    border-radius: 10px;
-    font-size: 1rem;
   }
 
   .game-controls {
@@ -1102,6 +1158,10 @@
   }
 
   .game-shell {
+    gap: 4px;
+  }
+
+  .game-frame {
     gap: 4px;
   }
 
@@ -1162,6 +1222,10 @@
 
 @media (max-height: 680px) {
   .game-shell {
+    gap: 3px;
+  }
+
+  .game-frame {
     gap: 3px;
   }
 

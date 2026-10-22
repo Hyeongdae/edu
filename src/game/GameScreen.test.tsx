@@ -53,12 +53,14 @@ describe("GameScreen controls", () => {
     );
 
     expect(document.querySelector(".stair-game")).toHaveAttribute("data-game-status", "ready");
+    expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "ready");
+    expect(screen.getByRole("region", { name: "게임 현황" }).closest(".game-stage")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "계단 장면" }).closest(".game-stage")).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "오디오 설정" })).toBeInTheDocument();
-    expect(screen.getByText("키보드 조작")).toBeInTheDocument();
-    expect(screen.getByText("뒤에서 누가 쫓아와요!")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
     expect(document.querySelector(".stair-game")).toHaveAttribute("data-game-status", "playing");
+    expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "playing");
     const forwardButton = screen.getByRole("button", { name: "앞으로 한 칸 오르기" });
     const turnButton = screen.getByRole("button", { name: "방향을 바꾸며 오르기" });
 

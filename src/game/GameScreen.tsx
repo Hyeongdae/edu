@@ -230,88 +230,76 @@ export function GameScreen({
   return (
     <main className="stair-game" data-game-status={gameState.status}>
       <div className="game-shell">
-        <header className="game-header">
-          <div className="game-brand">
-            <span className="brand-mark" aria-hidden="true">↗</span>
-            <div>
-              <p className="brand-kicker">사내 랭킹 챌린지</p>
-              <h1>계단 오르기</h1>
-            </div>
-          </div>
-          <div className="account-chip">
-            <span className="account-avatar" aria-hidden="true">
-              {(account.name ?? account.username).slice(0, 1)}
-            </span>
-            <span>{account.name ?? account.username}</span>
-          </div>
-        </header>
-
-        {audioPreferences && onAudioPreferencesChange && onEnableAudio && (
-          <AudioControls
-            preferences={audioPreferences}
-            onChange={onAudioPreferencesChange}
-            autoplayBlocked={autoplayBlocked}
-            onEnableAudio={onEnableAudio}
-          />
-        )}
-
-        <GameHud
-          state={gameState}
-          eventSecondsLeft={eventSecondsLeft}
-          scoreGain={scoreGain}
-          scoreAnimationKey={scoreAnimationKey}
-        />
-
-        <div className="game-layout" data-game-status={gameState.status}>
-          <StairScene
-            state={gameState}
-            climbAnimationKey={climbAnimationKey}
-            isClimbing={isClimbing && !gameState.lastMistake}
-          />
-          <aside className="game-side-panel" aria-label="조작 방법">
-            <div className="instruction-card">
-              <span className="instruction-icon" aria-hidden="true">⌨</span>
+        <div className="game-frame" data-game-status={gameState.status}>
+          <header className="game-header">
+            <div className="game-brand">
+              <span className="brand-mark" aria-hidden="true">↗</span>
               <div>
-                <strong>키보드 조작</strong>
-                <p><kbd>D</kbd> 앞으로 한 칸 <span>·</span> <kbd>J</kbd> 방향 바꾸기</p>
+                <p className="brand-kicker">사내 랭킹 챌린지</p>
+                <h1>계단 오르기</h1>
               </div>
             </div>
-            <div className="chase-card">
-              <span className="chase-icon" aria-hidden="true">!</span>
-              <div>
-                <strong>뒤에서 누가 쫓아와요!</strong>
-                <p>잘못 누르면 추격자가 가까워집니다.</p>
-              </div>
+            <div className="account-chip">
+              <span className="account-avatar" aria-hidden="true">
+                {(account.name ?? account.username).slice(0, 1)}
+              </span>
+              <span>{account.name ?? account.username}</span>
             </div>
-          </aside>
+          </header>
+
+          {audioPreferences && onAudioPreferencesChange && onEnableAudio && (
+            <AudioControls
+              preferences={audioPreferences}
+              onChange={onAudioPreferencesChange}
+              autoplayBlocked={autoplayBlocked}
+              onEnableAudio={onEnableAudio}
+            />
+          )}
+
+          <div className="game-stage">
+            <GameHud
+              state={gameState}
+              eventSecondsLeft={eventSecondsLeft}
+              scoreGain={scoreGain}
+              scoreAnimationKey={scoreAnimationKey}
+            />
+
+            <div className="game-layout" data-game-status={gameState.status}>
+              <StairScene
+                state={gameState}
+                climbAnimationKey={climbAnimationKey}
+                isClimbing={isClimbing && !gameState.lastMistake}
+              />
+            </div>
+          </div>
+
+          {gameState.status === "ready" ? (
+            <button className="start-button" type="button" onClick={handleStart}>
+              <span aria-hidden="true">▶</span> 시작하기
+            </button>
+          ) : gameState.status === "playing" ? (
+            <ControlButtons
+              onForward={() => handleInput("forward")}
+              onTurn={() => handleInput("turn")}
+              disabled={controlsDisabled}
+            />
+          ) : (
+            <section className="game-over-panel" aria-labelledby="game-over-title">
+              <div className="game-over-result">
+                <span className="game-over-icon" aria-hidden="true">🏁</span>
+                <p className="game-over-kicker">이번 도전 결과</p>
+                <h2 id="game-over-title">{gameState.score}점</h2>
+                <p>계단 {gameState.stepsClimbed}개를 올랐어요.</p>
+                {saveError && <p className="leaderboard-error" role="status">기록을 저장하지 못했습니다. 이 브라우저의 저장 공간을 확인해 주세요.</p>}
+                <button className="start-button restart-button" type="button" onClick={handleStart}>
+                  <span aria-hidden="true">↻</span> 다시 시작
+                </button>
+              </div>
+              <LeaderboardPanel entries={leaderboard} currentAccountId={account.homeAccountId} />
+            </section>
+          )}
+          <p className="game-footer">방향을 잘 맞춰 계속 올라가세요!</p>
         </div>
-
-        {gameState.status === "ready" ? (
-          <button className="start-button" type="button" onClick={handleStart}>
-            <span aria-hidden="true">▶</span> 시작하기
-          </button>
-        ) : gameState.status === "playing" ? (
-          <ControlButtons
-            onForward={() => handleInput("forward")}
-            onTurn={() => handleInput("turn")}
-            disabled={controlsDisabled}
-          />
-        ) : (
-          <section className="game-over-panel" aria-labelledby="game-over-title">
-            <div className="game-over-result">
-              <span className="game-over-icon" aria-hidden="true">🏁</span>
-              <p className="game-over-kicker">이번 도전 결과</p>
-              <h2 id="game-over-title">{gameState.score}점</h2>
-              <p>계단 {gameState.stepsClimbed}개를 올랐어요.</p>
-              {saveError && <p className="leaderboard-error" role="status">기록을 저장하지 못했습니다. 이 브라우저의 저장 공간을 확인해 주세요.</p>}
-              <button className="start-button restart-button" type="button" onClick={handleStart}>
-                <span aria-hidden="true">↻</span> 다시 시작
-              </button>
-            </div>
-            <LeaderboardPanel entries={leaderboard} currentAccountId={account.homeAccountId} />
-          </section>
-        )}
-        <p className="game-footer">방향을 잘 맞춰 계속 올라가세요!</p>
       </div>
     </main>
   );
