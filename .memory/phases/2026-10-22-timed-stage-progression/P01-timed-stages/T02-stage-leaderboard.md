@@ -1,6 +1,6 @@
 # Task: T02 Stage Leaderboard
 
-## Status: pending
+## Status: done
 
 ## Goal
 도달 단계→점수로 개인 최고와 TOP10을 비교하고 실제 단계 기록을 랭킹에 표시한다. 승인된 기존 점수 키만 초기화하고 새 v2 기록과 다른 브라우저 설정은 보존한다.
@@ -92,11 +92,11 @@
 - UI integration uses the existing test-only engine-factory spy method for a fast promotion fixture if needed: save stage1 on timeout, stage2 after promotion+eventual fatal catches; StrictMode saves once, restart retains stored records, storage failure still permits restart.
 
 ## Acceptance Criteria
-- [ ] 개인 최고 갱신과 TOP10이 같은 단계→점수 비교를 사용한다.
-- [ ] 랭킹에 실제 도달 단계와 같은 판의 점수가 함께 표시된다.
-- [ ] v1만 초기화하고 v2/오디오/인증/다른 키를 보존한다.
-- [ ] 구형 삭제·읽기·저장 실패가 게임을 막지 않으며 최종 결과에서 저장 실패를 알린다.
-- [ ] 기존 저장/재시작·동점·빈 랭킹·현재 사용자 표시가 유지된다.
+- [x] 개인 최고 갱신과 TOP10이 같은 단계→점수 비교를 사용한다.
+- [x] 랭킹에 실제 도달 단계와 같은 판의 점수가 함께 표시된다.
+- [x] v1만 초기화하고 v2/오디오/인증/다른 키를 보존한다.
+- [x] 구형 삭제·읽기·저장 실패가 게임을 막지 않으며 최종 결과에서 저장 실패를 알린다.
+- [x] 기존 저장/재시작·동점·빈 랭킹·현재 사용자 표시가 유지된다.
 
 ## Validation
 - `npm test -- --run src/leaderboard/leaderboard.test.ts src/leaderboard/LeaderboardPanel.test.tsx src/game/GameScreen.test.tsx src/game/gameEngine.test.ts src/audio/audioPreferences.test.ts` — all schema/migration/UI regressions pass.
@@ -117,6 +117,16 @@ Task: T02-stage-leaderboard
 ```
 
 ## Progress
-- [ ] 구현 완료
-- [ ] 검증 통과
-- commit: pending
+- [x] 구현 완료
+- [x] 검증 통과
+- commit: 위 Commit Message로 생성; 해시는 `.memory/current.md`의 Last Completed Task 참조.
+
+## Validation Results — 2026-10-22
+- 지정 Vitest 명령: 5 files / 113 tests passed (최종 실행 23.89s).
+- `npm run lint`: exit 0.
+- `npm run build`: exit 0; JS 529.47 kB / gzip 148.07 kB. 기존500kB chunk 경고는 남아 있으며 이번 Task에서 분할/한도 변경을 추가하지 않았다.
+- `git diff --check`: 공백 오류 없음; LF→CRLF 안내만 출력됨.
+- 검증 항목: 단계 우선 정렬·동점 달성시각·한 판의 개인 최고 쌍·입력/저장 스키마 검증·구형v1만 삭제·v2와 audio/auth/기타 키 보존·삭제/읽기/쓰기 실패·StrictMode 단일 저장·승급 순간 저장하지 않음·1단계 시간 초과/2단계 잡힘 저장·재시작/재마운트 보존.
+- 새 랭킹 표시 테스트에서 기존 DOM이 남아 순서 검증이 실패하는 것을 확인했다. 지정 테스트 파일에 `afterEach(cleanup)`을 추가한 뒤 동일 명령이 모두 통과했다. 테스트 timeout/기대값을 약화하지 않았다.
+- 앱의 초기 읽기/저장 시 새 정리 코드가 적용된다. 검증은 주입 Storage와 jsdom에서 수행했고, 일반 사용자 브라우저의 저장소를 직접 조작하지 않았다.
+- 실제 브라우저 레이아웃 검증과 HUD 초시계/단계/종료 사유 표시는 T03 범위로 남긴다. 새 범위 밖 제품 결함은 발견하지 않았으며 기존 도움말/App 기대값·옛SVG CSS는 변경하지 않았다.

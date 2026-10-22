@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { StrictMode } from "react";
 import type { AccountInfo } from "@azure/msal-browser";
@@ -444,7 +444,9 @@ describe("GameScreen controls", () => {
     expect(screen.getByText("홍길동", { selector: ".leaderboard-name" }).closest("li")).toHaveClass("is-current-player");
     expect(saveSpy).toHaveBeenCalledTimes(1);
     expect(audio.stopBgm).toHaveBeenCalledOnce();
-    expect(window.localStorage.getItem("stair-climb:leaderboard:v1")).toContain("local-account");
+    expect(JSON.parse(window.localStorage.getItem("stair-climb:leaderboard:v2")!)).toEqual([
+      expect.objectContaining({ accountId: "local-account", bestStage: 1, bestScore: 0 }),
+    ]);
 
     const randomCallsBeforeRestart = randomSpy.mock.calls.length;
     fireEvent.click(screen.getByRole("button", { name: /다시 시작/ }));
@@ -594,6 +596,9 @@ describe("GameScreen controls", () => {
     expect(audio.playFootstep).not.toHaveBeenCalled();
     expect(audio.stopBgm).toHaveBeenCalledOnce();
     expect(save).toHaveBeenCalledOnce();
+    expect(JSON.parse(window.localStorage.getItem("stair-climb:leaderboard:v2")!)).toEqual([
+      expect.objectContaining({ accountId: account.homeAccountId, bestStage: 1, bestScore: 0 }),
+    ]);
     fireEvent.keyDown(window, { key: "d" });
     expect(screen.getByTestId("score-value")).toHaveTextContent("0");
     expect(save).toHaveBeenCalledOnce();
@@ -693,5 +698,78 @@ describe("GameScreen controls", () => {
     expect(screen.getByTestId("event-status")).toHaveTextContent("2배 점수 · 30초");
     act(() => { vi.advanceTimersByTime(500); });
     expect(screen.getByTestId("event-status")).toHaveTextContent("2배 점수 · 29초");
+  });
+
+  it("cleans only legacy rankings in StrictMode and preserves new records on remount", () => {
+    const records = [{ accountId: "existing", displayName: "기존 사용자", bestStage: 2, bestScore: 350, achievedAt: "2026-01-01" }];
+    window.localStorage.setItem("stair-climb:leaderboard:v1", "old scores");
+    window.localStorage.setItem("stair-climb:leaderboard:v2", JSON.stringify(records));
+    window.localStorage.setItem("stair-climb:audio:v1", "audio-sentinel");
+    window.localStorage.setItem("msal.account.keys", "auth-sentinel");
+    const clear = vi.spyOn(Storage.prototype, "clear");
+    const remove = vi.spyOn(Storage.prototype, "removeItem");
+    const save = vi.spyOn(Storage.prototype, "setItem");
+    const first = render(<StrictMode><GameScreen account={account} /></StrictMode>);
+    expect(window.localStorage.getItem("stair-climb:leaderboard:v1")).toBeNull();
+    expect(remove).toHaveBeenCalledExactlyOnceWith("stair-climb:leaderboard:v1");
+    first.unmount();
+    render(<StrictMode><GameScreen account={account} /></StrictMode>);
+    expect(JSON.parse(window.localStorage.getItem("stair-climb:leaderboard:v2")!)).toEqual(records);
+    expect(window.localStorage.getItem("stair-climb:audio:v1")).toBe("audio-sentinel");
+    expect(window.localStorage.getItem("msal.account.keys")).toBe("auth-sentinel");
+    expect(save).not.toHaveBeenCalled();
+    expect(clear).not.toHaveBeenCalled();
+  });
+
+  it("saves reached stage two only at game-over and retains that record through restart", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1_000);
+    const originalFactory = gameEngine.createGameState;
+    vi.spyOn(gameEngine, "createGameState").mockImplementation(() => ({ ...originalFactory(() => 0), score: 299 }));
+    const save = vi.spyOn(Storage.prototype, "setItem");
+    render(<StrictMode><GameScreen account={account} /></StrictMode>);
+    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    climbOneStep();
+    expect(screen.getByTestId("score-value")).toHaveTextContent("300");
+    expect(save).not.toHaveBeenCalled();
+    for (let mistake = 0; mistake < 12; mistake += 1) {
+      vi.setSystemTime(2_000 + mistake * 500);
+      fireEvent.keyDown(window, { key: nextClimbKey() === "d" ? "j" : "d" });
+    }
+    expect(save).toHaveBeenCalledOnce();
+    const records = JSON.parse(window.localStorage.getItem("stair-climb:leaderboard:v2")!);
+    expect(records).toEqual([
+      expect.objectContaining({ accountId: account.homeAccountId, bestStage: 2, bestScore: 300 }),
+    ]);
+    await act(async () => { await vi.advanceTimersByTimeAsync(500); });
+    const row = screen.getByText(account.name!, { selector: ".leaderboard-name" }).closest("li")!;
+    expect(within(row).getByText("2단계")).toBeVisible();
+    expect(within(row).getByText("300점")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: /다시 시작/ }));
+    expect(JSON.parse(window.localStorage.getItem("stair-climb:leaderboard:v2")!)).toEqual(records);
+    expect(save).toHaveBeenCalledOnce();
+    expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "playing");
+  });
+
+  it("keeps play and restart available when legacy record cleanup fails", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1_000);
+    window.localStorage.setItem("stair-climb:leaderboard:v1", "old scores");
+    vi.spyOn(Storage.prototype, "removeItem").mockImplementation(() => { throw new DOMException("blocked", "SecurityError"); });
+    const save = vi.spyOn(Storage.prototype, "setItem");
+    render(<GameScreen account={account} />);
+    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    fireEvent.keyDown(window, { key: "d" });
+    expect(screen.getByTestId("score-value")).toHaveTextContent("1");
+    vi.setSystemTime(91_000);
+    fireEvent.keyDown(window, { key: "d" });
+    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+    expect(screen.getByText("기록을 저장하지 못했습니다. 이 브라우저의 저장 공간을 확인해 주세요.")).toBeVisible();
+    expect(save).not.toHaveBeenCalled();
+    expect(window.localStorage.getItem("stair-climb:leaderboard:v1")).toBe("old scores");
+    expect(window.localStorage.getItem("stair-climb:leaderboard:v2")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /다시 시작/ }));
+    expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "playing");
+    expect(screen.getByTestId("score-value")).toHaveTextContent("0");
   });
 });

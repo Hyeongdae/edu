@@ -208,6 +208,7 @@ export function GameScreen({
       ? saveBestScore({
           accountId: account.homeAccountId,
           displayName: account.name || "이름 없음",
+          bestStage: gameState.stage,
           bestScore: gameState.score,
         })
       : { entries: leaderboard, saved: false };
@@ -215,7 +216,7 @@ export function GameScreen({
       setLeaderboard(result.entries);
       setSaveError(!result.saved);
     }, 0);
-  }, [account.homeAccountId, account.name, gameState.score, gameState.status, leaderboard]);
+  }, [account.homeAccountId, account.name, gameState.stage, gameState.score, gameState.status, leaderboard]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {

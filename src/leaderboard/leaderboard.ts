@@ -1,6 +1,9 @@
+import type { GameStage } from "../game/types";
+
 export interface LeaderboardEntry {
   accountId: string;
   displayName: string;
+  bestStage: GameStage;
   bestScore: number;
   achievedAt: string;
 }
@@ -11,7 +14,19 @@ export interface SaveBestScoreResult {
   error?: "storage-unavailable";
 }
 
-const STORAGE_KEY = "stair-climb:leaderboard:v1";
+const STORAGE_KEY = "stair-climb:leaderboard:v2";
+const LEGACY_STORAGE_KEY = "stair-climb:leaderboard:v1";
+
+function comparePerformance(
+  a: Pick<LeaderboardEntry, "bestStage" | "bestScore">,
+  b: Pick<LeaderboardEntry, "bestStage" | "bestScore">,
+): number {
+  return b.bestStage - a.bestStage || b.bestScore - a.bestScore;
+}
+
+function clearLegacyScores(storage: Storage): void {
+  if (storage.getItem(LEGACY_STORAGE_KEY) !== null) storage.removeItem(LEGACY_STORAGE_KEY);
+}
 
 function isLeaderboardEntry(value: unknown): value is LeaderboardEntry {
   if (typeof value !== "object" || value === null) return false;
@@ -19,6 +34,7 @@ function isLeaderboardEntry(value: unknown): value is LeaderboardEntry {
   return (
     typeof entry.accountId === "string" && entry.accountId.length > 0 &&
     typeof entry.displayName === "string" &&
+    (entry.bestStage === 1 || entry.bestStage === 2) &&
     Number.isInteger(entry.bestScore) && (entry.bestScore as number) >= 0 &&
     typeof entry.achievedAt === "string" && !Number.isNaN(Date.parse(entry.achievedAt))
   );
@@ -33,6 +49,7 @@ function browserStorage(): Storage | undefined {
 }
 
 function readFromStorage(storage: Storage): LeaderboardEntry[] {
+  clearLegacyScores(storage);
   const serialized = storage.getItem(STORAGE_KEY);
   if (serialized === null) return [];
 
@@ -66,7 +83,7 @@ export function readLeaderboard(storage?: Storage): LeaderboardEntry[] {
 
 export function getTopScores(entries: LeaderboardEntry[], limit = 10): LeaderboardEntry[] {
   return [...entries]
-    .sort((a, b) => b.bestScore - a.bestScore || Date.parse(a.achievedAt) - Date.parse(b.achievedAt))
+    .sort((a, b) => comparePerformance(a, b) || Date.parse(a.achievedAt) - Date.parse(b.achievedAt))
     .slice(0, Math.max(0, Math.floor(limit)));
 }
 
@@ -75,10 +92,15 @@ export function saveBestScore(
   storage?: Storage,
   now = new Date(),
 ): SaveBestScoreResult {
+  if (entry.bestStage !== 1 && entry.bestStage !== 2) {
+    throw new RangeError("bestStage must be 1 or 2.");
+  }
   if (!Number.isInteger(entry.bestScore) || entry.bestScore < 0) {
     throw new RangeError("bestScore must be a non-negative integer.");
   }
-  if (!entry.accountId) throw new RangeError("accountId must not be empty.");
+  if (typeof entry.accountId !== "string" || !entry.accountId) {
+    throw new RangeError("accountId must be a non-empty string.");
+  }
 
   const target = storage ?? browserStorage();
   if (!target) return { entries: [], saved: false, error: "storage-unavailable" };
@@ -91,7 +113,7 @@ export function saveBestScore(
   }
 
   const previous = entries.find((item) => item.accountId === entry.accountId);
-  if (previous && entry.bestScore <= previous.bestScore) {
+  if (previous && comparePerformance(entry, previous) >= 0) {
     return { entries, saved: true };
   }
 
