@@ -216,6 +216,31 @@ describe("GameScreen controls", () => {
     expect(runner).not.toHaveClass("is-climbing");
   });
 
+  it("moves the pursuer one fixed stair anchor closer for each mistake", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    render(<GameScreen account={account} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    let pursuer = screen.getByTestId("pursuer");
+    expect(pursuer).toHaveAttribute("transform", "translate(57 253)");
+
+    fireEvent.keyDown(window, { key: "j" });
+    pursuer = screen.getByTestId("pursuer");
+    expect(pursuer).toHaveAttribute("transform", "translate(91 239)");
+    expect(pursuer).toHaveClass("is-approaching");
+    expect(pursuer).toHaveAttribute("data-motion-key", "1");
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+    fireEvent.keyDown(window, { key: "j" });
+    pursuer = screen.getByTestId("pursuer");
+
+    expect(pursuer).toHaveAttribute("transform", "translate(125 225)");
+    expect(pursuer).toHaveAttribute("data-motion-key", "2");
+  });
+
   it("does not capture D/J keystrokes from text entry fields", () => {
     render(
       <>
@@ -302,6 +327,40 @@ describe("GameScreen controls", () => {
     expect(screen.getByRole("button", { name: "앞으로 한 칸 오르기" })).toBeEnabled();
     expect(screen.getByTestId("score-value")).toHaveTextContent("0");
     expect(screen.queryByText(/게임 종료/)).not.toBeInTheDocument();
+  });
+
+  it("saves a final catch immediately and keeps its result panel hidden through recovery", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1_000);
+    vi.spyOn(Math, "random").mockReturnValue(0.5);
+    const saveSpy = vi.spyOn(Storage.prototype, "setItem");
+    render(<GameScreen account={account} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    for (let mistake = 0; mistake < 11; mistake += 1) {
+      fireEvent.keyDown(window, { key: "j" });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(500);
+      });
+    }
+
+    fireEvent.keyDown(window, { key: "j" });
+    const gameFrame = document.querySelector(".game-frame");
+    const resultPanel = document.querySelector(".game-over-panel");
+    expect(gameFrame).toHaveAttribute("data-game-status", "game-over");
+    expect(gameFrame).toHaveAttribute("data-pursuer-catching", "true");
+    expect(resultPanel).toBeInTheDocument();
+    expect(screen.getByTestId("pursuer")).toHaveClass("is-caught");
+    expect(saveSpy).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+
+    expect(gameFrame).toHaveAttribute("data-pursuer-catching", "false");
+    expect(resultPanel).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /다시 시작/ })).toBeInTheDocument();
+    expect(saveSpy).toHaveBeenCalledTimes(1);
   });
 
   it("keeps the result and restart available when local storage fails", async () => {

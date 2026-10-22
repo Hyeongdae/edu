@@ -5,6 +5,8 @@ interface StairSceneProps {
   state: GameState;
   climbAnimationKey: number;
   isClimbing: boolean;
+  pursuerAnimationKey: number;
+  isPursuerCaught: boolean;
 }
 
 interface StepPosition {
@@ -18,6 +20,23 @@ const STEP_Y_SPACING = 23 * STEP_SCALE;
 
 function reverse(direction: Direction): Direction {
   return direction === "left" ? "right" : "left";
+}
+
+function getPursuerTransform(distance: number): string {
+  const safeDistance = Number.isFinite(distance)
+    ? Math.min(4, Math.max(1, Math.trunc(distance)))
+    : 4;
+
+  switch (safeDistance) {
+    case 1:
+      return "translate(159 211)";
+    case 2:
+      return "translate(125 225)";
+    case 3:
+      return "translate(91 239)";
+    default:
+      return "translate(57 253)";
+  }
 }
 
 function getVisibleSteps(state: GameState): StepPosition[] {
@@ -42,7 +61,13 @@ function getVisibleSteps(state: GameState): StepPosition[] {
   return steps;
 }
 
-export function StairScene({ state, climbAnimationKey, isClimbing }: StairSceneProps): ReactElement {
+export function StairScene({
+  state,
+  climbAnimationKey,
+  isClimbing,
+  pursuerAnimationKey,
+  isPursuerCaught,
+}: StairSceneProps): ReactElement {
   const steps = getVisibleSteps(state);
   const atCorner = state.straightStepsRemaining === 0;
   const nextDirection = atCorner ? reverse(state.direction) : state.direction;
@@ -134,7 +159,13 @@ export function StairScene({ state, climbAnimationKey, isClimbing }: StairSceneP
           </g>
         </g>
 
-        <g className="pursuer" transform="translate(57 253)">
+        <g
+          key={pursuerAnimationKey}
+          className={`pursuer${isPursuerCaught ? " is-caught" : state.lastMistake ? " is-approaching" : ""}`}
+          data-testid="pursuer"
+          data-motion-key={pursuerAnimationKey}
+          transform={getPursuerTransform(isPursuerCaught ? 4 : state.pursuerDistance)}
+        >
           <ellipse cx="29" cy="47" rx="27" ry="7" fill="#628998" opacity="0.2" />
           <path d="M9 30q1-23 20-23t21 23v12H9Z" fill="#7461b4" stroke="#4b4181" strokeWidth="3" />
           <path d="m13 13-7-9 15 4m22 5 7-9-15 4" fill="#f5ad58" stroke="#4b4181" strokeWidth="3" strokeLinejoin="round" />

@@ -532,6 +532,15 @@
 .pursuer {
   animation: pursuer-bob 1.4s ease-in-out infinite alternate;
   transform-origin: 29px 44px;
+  transform-box: view-box;
+}
+
+.pursuer.is-approaching {
+  animation: pursuer-step-hop 240ms ease-out both;
+}
+
+.pursuer.is-caught {
+  animation: pursuer-caught 500ms steps(1, end) both;
 }
 
 .game-side-panel {
@@ -950,6 +959,24 @@
 @keyframes pursuer-bob {
   from { translate: 0 0; }
   to { translate: 0 -4px; }
+}
+
+@keyframes pursuer-step-hop {
+  0%, 100% { translate: 0 0; }
+  42% { translate: 0 -9px; }
+  72% { translate: 0 -4px; }
+}
+
+@keyframes pursuer-caught {
+  0%, 10% { translate: 0 0; animation-timing-function: steps(1, end); }
+  20% { translate: 6.538% -3.889%; animation-timing-function: steps(1, end); }
+  30% { translate: 13.077% -7.778%; animation-timing-function: steps(1, end); }
+  40% { translate: 19.615% -11.667%; animation-timing-function: steps(1, end); }
+  50%, 60% { translate: 26.154% -15.556%; animation-timing-function: steps(1, end); }
+  70% { translate: 19.615% -11.667%; animation-timing-function: steps(1, end); }
+  80% { translate: 13.077% -7.778%; animation-timing-function: steps(1, end); }
+  90% { translate: 6.538% -3.889%; animation-timing-function: steps(1, end); }
+  100% { translate: 0 0; }
 }
 
 @keyframes event-glow {
@@ -1478,6 +1505,11 @@
   margin: 0;
 }
 
+.game-frame[data-pursuer-catching="true"] > .game-over-panel {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .game-frame[data-game-status="game-over"] > .game-footer {
   display: none;
 }
@@ -1534,6 +1566,8 @@
   .score-value.is-scoring,
   .score-gain,
   .pursuer,
+  .pursuer.is-approaching,
+  .pursuer.is-caught,
   .event-card.is-active .event-progress-fill {
     animation: none;
   }
@@ -1544,5 +1578,10 @@
   .start-button,
   .control-button {
     transition: none;
+  }
+
+  .game-frame[data-pursuer-catching="true"] > .game-over-panel {
+    visibility: visible;
+    pointer-events: auto;
   }
 }

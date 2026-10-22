@@ -48,6 +48,8 @@ export function GameScreen({
   const [isClimbing, setIsClimbing] = useState(false);
   const [scoreGain, setScoreGain] = useState<number | null>(null);
   const [scoreAnimationKey, setScoreAnimationKey] = useState(0);
+  const [pursuerAnimationKey, setPursuerAnimationKey] = useState(0);
+  const [isPursuerCaught, setIsPursuerCaught] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const scoreSavedRef = useRef(false);
   const settingsOpenedAtRef = useRef<number | null>(null);
@@ -59,6 +61,7 @@ export function GameScreen({
   const previousScoreRef = useRef(gameState.score);
   const scoreGainTimeoutRef = useRef<number | undefined>(undefined);
   const previousMistakeRef = useRef(gameState.lastMistake);
+  const previousPursuerDistanceRef = useRef(gameState.pursuerDistance);
   const previousEventActiveRef = useRef(gameState.eventEndsAt !== null);
 
   const openSettings = useCallback(() => {
@@ -166,9 +169,19 @@ export function GameScreen({
   }, [gameState.score]);
 
   useEffect(() => {
-    if (gameState.lastMistake && !previousMistakeRef.current) audioController?.playFall();
+    const mistakeStarted = gameState.lastMistake && !previousMistakeRef.current;
+
+    if (mistakeStarted) {
+      audioController?.playFall();
+      setPursuerAnimationKey((key) => key + 1);
+      setIsPursuerCaught(gameState.pursuerDistance > previousPursuerDistanceRef.current);
+    } else if (!gameState.lastMistake) {
+      setIsPursuerCaught(false);
+    }
+
+    previousPursuerDistanceRef.current = gameState.pursuerDistance;
     previousMistakeRef.current = gameState.lastMistake;
-  }, [audioController, gameState.lastMistake]);
+  }, [audioController, gameState.lastMistake, gameState.pursuerDistance]);
 
   useEffect(() => {
     const eventActive = gameState.eventEndsAt !== null;
@@ -284,7 +297,11 @@ export function GameScreen({
   return (
     <main className="stair-game" data-game-status={gameState.status}>
       <div className="game-shell">
-        <div className="game-frame" data-game-status={gameState.status}>
+        <div
+          className="game-frame"
+          data-game-status={gameState.status}
+          data-pursuer-catching={isPursuerCaught}
+        >
           <button
             ref={settingsTriggerRef}
             className="game-settings-button"
@@ -310,6 +327,8 @@ export function GameScreen({
                 state={gameState}
                 climbAnimationKey={climbAnimationKey}
                 isClimbing={isClimbing && !gameState.lastMistake}
+                pursuerAnimationKey={pursuerAnimationKey}
+                isPursuerCaught={isPursuerCaught}
               />
             </div>
           </div>
@@ -325,7 +344,10 @@ export function GameScreen({
               disabled={controlsDisabled}
             />
           ) : (
-            <section className="game-over-panel" aria-labelledby="game-over-title">
+            <section
+              className="game-over-panel"
+              aria-labelledby="game-over-title"
+            >
               <div className="game-over-result">
                 <span className="game-over-icon" aria-hidden="true">🏁</span>
                 <p className="game-over-kicker">이번 도전 결과</p>
