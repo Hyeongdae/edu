@@ -7,6 +7,7 @@ interface GameHudProps {
   state: GameState;
   eventSecondsLeft: number;
   scoreGain: number | null;
+  scoreGainIsBonus: boolean;
   scoreAnimationKey: number;
   stageSecondsLeft: number;
 }
@@ -16,7 +17,7 @@ function formatStageTime(secondsLeft: number): string {
   return `${String(Math.floor(totalSeconds / 60)).padStart(2, "0")}:${String(totalSeconds % 60).padStart(2, "0")}`;
 }
 
-export function GameHud({ state, eventSecondsLeft, scoreGain, scoreAnimationKey, stageSecondsLeft }: GameHudProps): ReactElement {
+export function GameHud({ state, eventSecondsLeft, scoreGain, scoreGainIsBonus, scoreAnimationKey, stageSecondsLeft }: GameHudProps): ReactElement {
   const eventIsActive = state.eventEndsAt !== null;
   const eventProgress = eventIsActive ? 100 : Math.min(100, (state.eventSteps / 30) * 100);
   const cleared = state.endReason === "cleared";
@@ -37,7 +38,7 @@ export function GameHud({ state, eventSecondsLeft, scoreGain, scoreAnimationKey,
             {scoreGain !== null && (
               <span
                 key={`gain-${scoreAnimationKey}`}
-                className={`score-gain${scoreGain === 2 ? " is-bonus" : ""}`}
+                className={`score-gain${scoreGainIsBonus ? " is-bonus" : ""}`}
                 data-testid="score-gain"
                 aria-label={`${scoreGain}점 획득`}
                 aria-live="polite"

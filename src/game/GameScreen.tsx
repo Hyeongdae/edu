@@ -49,6 +49,7 @@ export function GameScreen({
   const [climbAnimationKey, setClimbAnimationKey] = useState(0);
   const [isClimbing, setIsClimbing] = useState(false);
   const [scoreGain, setScoreGain] = useState<number | null>(null);
+  const [scoreGainIsBonus, setScoreGainIsBonus] = useState(false);
   const [scoreAnimationKey, setScoreAnimationKey] = useState(0);
   const [pursuerAnimationTime, setPursuerAnimationTime] = useState(0);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -153,9 +154,11 @@ export function GameScreen({
     window.clearTimeout(pursuerTimeoutRef.current);
   }, []);
 
+  const lastMoveIsBonus = gameState.lastMove?.isBonus === true;
   useEffect(() => {
     if (gameState.score > previousScoreRef.current) {
       setScoreGain(gameState.score - previousScoreRef.current);
+      setScoreGainIsBonus(lastMoveIsBonus);
       setScoreAnimationKey((key) => key + 1);
 
       if (scoreGainTimeoutRef.current !== undefined) {
@@ -165,7 +168,7 @@ export function GameScreen({
         setScoreGain(null);
         scoreGainTimeoutRef.current = undefined;
       }, 700);
-    } else if (gameState.score < previousScoreRef.current) {
+    } else {
       if (scoreGainTimeoutRef.current !== undefined) {
         window.clearTimeout(scoreGainTimeoutRef.current);
         scoreGainTimeoutRef.current = undefined;
@@ -181,7 +184,7 @@ export function GameScreen({
         scoreGainTimeoutRef.current = undefined;
       }
     };
-  }, [gameState.score]);
+  }, [gameState.score, lastMoveIsBonus, gameState.lastMistake, gameState.captureCount, gameState.status]);
 
   useEffect(() => {
     const mistakeStarted = gameState.lastMistake && gameState.recoveryEndsAt !== null &&
@@ -224,10 +227,17 @@ export function GameScreen({
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (isSettingsOpenRef.current || isTextEntryTarget(event.target)) {
+      if (event.defaultPrevented || isSettingsOpenRef.current || isTextEntryTarget(event.target)) {
         return;
       }
 
+      const isSpace = event.code === "Space" || event.key === " ";
+      if (isSpace) {
+        if (event.target instanceof Element && event.target.closest('button, [role="button"]')) return;
+        event.preventDefault();
+        if (!event.repeat) handleInput("jump");
+        return;
+      }
       const key = event.key.toLowerCase();
       if (key === "d") {
         event.preventDefault();
@@ -342,6 +352,7 @@ export function GameScreen({
               state={gameState}
               eventSecondsLeft={eventSecondsLeft}
               scoreGain={scoreGain}
+              scoreGainIsBonus={scoreGainIsBonus}
               scoreAnimationKey={scoreAnimationKey}
               stageSecondsLeft={getStageSecondsLeft(gameState, nowMs)}
             />
@@ -366,6 +377,7 @@ export function GameScreen({
             <ControlButtons
               onForward={() => handleInput("forward")}
               onTurn={() => handleInput("turn")}
+              onJump={() => handleInput("jump")}
               disabled={controlsDisabled}
             />
           ) : (
@@ -389,8 +401,8 @@ export function GameScreen({
             </section>
           )}
           <p className="game-footer">
-            <span className="desktop-control-hint"><kbd>D</kbd> 한 칸 오르기 <span>·</span> <kbd>J</kbd> 방향 바꾸며 오르기</span>
-            <span className="mobile-control-hint">방향을 잘 맞춰 계속 올라가세요!</span>
+            <span className="desktop-control-hint"><kbd>D</kbd> 한 칸 오르기 <span>·</span> <kbd>J</kbd> 방향 바꾸며 오르기 <span>·</span> <kbd>Space</kbd> 장애물 점프</span>
+            <span className="mobile-control-hint">앞으로 · 방향 바꾸기 · 장애물은 점프!</span>
           </p>
           {isSettingsOpen && (
             <div
@@ -448,8 +460,8 @@ export function GameScreen({
                       <span className="instruction-icon"><PixelIcon name="forward" size={20} /></span>
                       <div>
                         <strong>조작 방법</strong>
-                        <p><kbd>D</kbd> 한 칸 오르기 <span>·</span> <kbd>J</kbd> 모퉁이에서 방향 바꾸기</p>
-                        <p>모바일에서는 화면의 화살표 버튼을 사용하세요.</p>
+                        <p><kbd>D</kbd> 한 칸 오르기 <span>·</span> <kbd>J</kbd> 모퉁이에서 방향 바꾸기 <span>·</span> <kbd>Space</kbd> 장애물을 넘어 두 칸 이동</p>
+                        <p>모바일에서는 앞으로 · 방향 바꾸기 · 점프 버튼을 사용하세요. 장애물이 없을 때 점프하거나 상자에 부딪히면 0.5초 동안 멈춰요.</p>
                       </div>
                     </section>
                     <section className="chase-card">

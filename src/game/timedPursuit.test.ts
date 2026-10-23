@@ -1,4 +1,6 @@
-import { describe, expect, it } from "vitest";
+import * as stairObstacles from "./stairObstacles";
+import { makeObstacleFixture } from "../test/obstacleFixtures";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { applyInput, createGameState, resetGame, resumeGameAfterPause, startGame, tickGame } from "./gameEngine";
 import { advanceStairRoute, countStraightSteps, getRouteStep } from "./stairRoute";
 import { buildStairSceneModel } from "./stairSceneModel";
@@ -207,3 +209,9 @@ describe("autonomous pursuit", () => {
     expect(() => withPursuitAt(state, 0, 0)).toThrow(RangeError);
   });
 });
+
+beforeEach(() => {
+  vi.spyOn(stairObstacles, "createObstacleState").mockImplementation((route, stage) => makeObstacleFixture(route, 0, stage));
+  vi.spyOn(stairObstacles, "revealObstacles").mockImplementation((state, route, index, stage) => makeObstacleFixture(route, index, stage, state));
+});
+afterEach(() => vi.restoreAllMocks());

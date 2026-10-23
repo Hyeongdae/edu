@@ -1,35 +1,37 @@
-import type { ReactElement } from "react";
-import { PixelIcon } from "./pixel/PixelIcon";
+import type { PointerEvent, ReactElement } from "react";
+import { PixelIcon, type PixelIconName } from "./pixel/PixelIcon";
 
 interface ControlButtonsProps {
   onForward: () => void;
   onTurn: () => void;
+  onJump: () => void;
   disabled: boolean;
 }
 
-export function ControlButtons({ onForward, onTurn, disabled }: ControlButtonsProps): ReactElement {
+export function ControlButtons({ onForward, onTurn, onJump, disabled }: ControlButtonsProps): ReactElement {
+  const onPointerDown = (event: PointerEvent<HTMLButtonElement>, action: () => void) => {
+    if (disabled || !event.isPrimary || event.button !== 0) return;
+    event.preventDefault();
+    action();
+  };
+  const button = (name: PixelIconName, label: string, text: string, action: () => void) => (
+    <button
+      className={`control-button ${name}-control`} type="button" aria-label={label}
+      onPointerDown={(event) => onPointerDown(event, action)}
+      onClick={(event) => { if (!disabled && event.detail === 0) action(); }}
+      disabled={disabled}
+    >
+      <PixelIcon name={name} size={24} />
+      <span>{text}</span>
+    </button>
+  );
   return (
     <section className="game-controls" aria-label="게임 조작">
-      <button
-        className="control-button forward-control"
-        type="button"
-        aria-label="앞으로 한 칸 오르기"
-        onClick={onForward}
-        disabled={disabled}
-      >
-        <PixelIcon name="forward" size={24} />
-        <span>앞으로</span>
-      </button>
-      <button
-        className="control-button turn-control"
-        type="button"
-        aria-label="방향을 바꾸며 오르기"
-        onClick={onTurn}
-        disabled={disabled}
-      >
-        <PixelIcon name="turn" size={24} />
-        <span>방향 바꾸기</span>
-      </button>
+      {button("forward", "앞으로 한 칸 오르기", "앞으로", onForward)}
+      <div className="control-actions">
+        {button("turn", "방향을 바꾸며 오르기", "방향 바꾸기", onTurn)}
+        {button("jump", "장애물을 뛰어넘기", "점프", onJump)}
+      </div>
     </section>
   );
 }

@@ -1,6 +1,6 @@
-﻿# Task: T04 Obstacle Jump Gameplay
+# Task: T04 Obstacle Jump Gameplay
 
-## Status: in_progress
+## Status: done
 
 ## Goal
 
@@ -123,11 +123,11 @@ T02의 장애물 결정을 실제 게임 상태/충돌/Space/모바일 점프/�
 
 ## Acceptance Criteria
 
-- [ ] Visible boxes and actual Space/forward collision use the same stable recorded state.
-- [ ] Successful jump advances2real nodes, gives2/4points and correct event/promotion; wrong/blocked inputs follow existing recovery rules.
-- [ ] Space and3mobile buttons respond immediately without duplicate native/pointer activation.
-- [ ] General2point jump is not mislabeled bonus;4point popup and existing audio counts are correct.
-- [ ] Old movement regression tests are deterministic while actual generation is covered unmocked separately.
+- [x] Visible boxes and actual Space/forward collision use the same stable recorded state.
+- [x] Successful jump advances2real nodes, gives2/4points and correct event/promotion; wrong/blocked inputs follow existing recovery rules.
+- [x] Space and3mobile buttons respond immediately without duplicate native/pointer activation.
+- [x] General2point jump is not mislabeled bonus;4point popup and existing audio counts are correct.
+- [x] Old movement regression tests are deterministic while actual generation is covered unmocked separately.
 
 ## Validation
 
@@ -151,6 +151,15 @@ Task: T04-obstacle-jump-gameplay
 
 ## Progress
 
-- [ ] 구현 완료
-- [ ] 검증 통과
+- [x] 구현 완료
+- [x] 검증 통과
 - commit: pending
+
+## Validation Results — 2026-10-23
+
+- 지정 Vitest12파일335/335tests 통과, `npm run lint`/`npm run build` 종료코드0.
+- TypeScript 검사와 Vite208modules 빌드 성공. CSS53.11kB/gzip10.47kB, JS542.45kB/gzip151.79kB. 기존500kB초과 청크 경고는 별도다.
+- 실제 생성기를 사용하는 seeded 경로500입력/다중 승급에서도 상자와 점프 판정·기존 결정 객체 보존을 확인했다. 이동 회귀용 fixture와 실제 확률 모듈 테스트를 구분했다.
+- 예정된 잡힘/만료 우선, 점프2/4점·게이지28/29·모든 단계 목표 초과, 빠른 후속 입력·모바일 단일 활성·키보드 보호·피드백 타이머·오디오 호출 횟수·최종 기록1회 저장 회귀를 확인했다.
+- timedPursuit.test.ts도 입력 기반 회귀를 유지하도록 동일한 test-only 장애물 fixture를 적용했다. 제품 확률/검증기를 완화하지 않았다.
+- 현재 점프는 기존300ms 오르기 모션을 사용한다. 전용 공중 아크/실제 브라우저·반응형·reduced-motion 육안 확인은 T05다. 별도 넘어짐 소리 스피커 청취 문제/전체App.test.tsx/번들 분할은 확인·수정하지 않았다.

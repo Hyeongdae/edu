@@ -1,4 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import * as stairObstacles from "./stairObstacles";
+import { makeObstacleFixture } from "../test/obstacleFixtures";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { applyInput, createGameState, startGame, tickGame } from "./gameEngine";
 import { withPursuitAt } from "../test/gameFixtures";
 import { buildStairSceneModel, projectRouteStep } from "./stairSceneModel";
@@ -150,3 +152,9 @@ describe("stair scene projection", () => {
     expect(() => buildStairSceneModel({ ...state, stepsClimbed: 0.5 })).toThrow(RangeError);
   });
 });
+
+beforeEach(() => {
+  vi.spyOn(stairObstacles, "createObstacleState").mockImplementation((route, stage) => makeObstacleFixture(route, 0, stage));
+  vi.spyOn(stairObstacles, "revealObstacles").mockImplementation((state, route, index, stage) => makeObstacleFixture(route, index, stage, state));
+});
+afterEach(() => vi.restoreAllMocks());

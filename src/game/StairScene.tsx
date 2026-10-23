@@ -1,11 +1,13 @@
 import { useId, type CSSProperties, type ReactElement } from "react";
 import { buildStairSceneModel, type SceneStep } from "./stairSceneModel";
 import { getRouteStep } from "./stairRoute";
+import { hasObstacle } from "./stairObstacles";
 import type { GameState } from "./types";
 import { PixelOfficer } from "./pixel/PixelOfficer";
 import { PixelOfficeBackdrop } from "./pixel/PixelOfficeBackdrop";
 import { PixelStair } from "./pixel/PixelStair";
 import { PixelIcon } from "./pixel/PixelIcon";
+import { PixelObstacle } from "./pixel/PixelObstacle";
 import "./pixel/pixel-scene.css";
 
 interface StairSceneProps {
@@ -23,6 +25,9 @@ export function StairScene({ state, climbAnimationKey, isClimbing, pursuerAnimat
   const model = buildStairSceneModel(state);
   const atCorner = state.straightStepsRemaining === 0;
   const nextDirection = getRouteStep(state.route, state.stepsClimbed + 1).direction;
+  const nextIsBlocked = hasObstacle(state.obstacles, state.stepsClimbed + 1);
+  const jumpedBoxIndex = isClimbing && state.lastMove?.kind === "jump" && state.lastMove.toIndex === state.stepsClimbed
+    ? state.lastMove.fromIndex + 1 : null;
   // Place a catch at its final reset stair, then visit actual route nodes with CSS offsets.
   const pursuerPoint = model.pursuer;
   const moving = isPursuerMoving && model.pursuerMotion !== null && !isPursuerCaught;
@@ -89,7 +94,7 @@ export function StairScene({ state, climbAnimationKey, isClimbing, pursuerAnimat
         <div>
           <span className="hud-label">다음 모퉁이</span>
           <strong className="route-direction" data-testid="route-direction">
-            {atCorner ? "지금 방향을 바꾸세요" : `${state.straightStepsRemaining}칸 더 올라가세요`}
+            {nextIsBlocked ? "장애물! 점프하세요" : atCorner ? "지금 방향을 바꾸세요" : `${state.straightStepsRemaining}칸 더 올라가세요`}
           </strong>
         </div>
         <span className={`direction-pill is-${nextDirection}`}>
@@ -102,7 +107,7 @@ export function StairScene({ state, climbAnimationKey, isClimbing, pursuerAnimat
         <svg
           className="stair-scene" viewBox="0 0 520 400" preserveAspectRatio="xMidYMid meet" role="img" shapeRendering="crispEdges"
           data-pursuer-index={model.pursuer.index} data-pursuer-visible={model.pursuerVisible}
-          aria-label={`계단이 ${nextDirection === "right" ? "오른쪽" : "왼쪽"}으로 이어집니다. 추격자와 ${state.pursuerDistance}칸 거리입니다.`}
+          aria-label={`계단이 ${nextDirection === "right" ? "오른쪽" : "왼쪽"}으로 이어집니다. 추격자와 ${state.pursuerDistance}칸 거리입니다.${nextIsBlocked ? " 다음 계단에 장애물이 있습니다. Space 또는 점프 버튼을 누르세요." : ""}`}
         >
           <defs>
             <clipPath id={feetClipId} clipPathUnits="userSpaceOnUse">
@@ -114,6 +119,11 @@ export function StairScene({ state, climbAnimationKey, isClimbing, pursuerAnimat
               <g className="stair-top" transform={`translate(${step.x} ${step.y})`}>
                 <PixelStair face="top" direction={step.direction} />
               </g>
+              {hasObstacle(state.obstacles, step.index) && (step.index > state.stepsClimbed || step.index === jumpedBoxIndex) && (
+                <g data-testid="stair-obstacle" data-route-index={step.index} transform={`translate(${step.x} ${step.y})`}>
+                  <PixelObstacle />
+                </g>
+              )}
               {!isPursuerCaught && step.index === model.player.index && runner}
               {!isPursuerCaught && !moving && model.pursuerVisible && step.index === model.pursuer.index && pursuer}
               {stairFront(step)}
@@ -154,6 +164,8 @@ export function StairScene({ state, climbAnimationKey, isClimbing, pursuerAnimat
               ? "추격자에게 잡혔어요! 잠시 숨을 고르세요."
             : state.lastMistake
               ? "앗, 발을 헛디뎠어요! 잠시 숨을 고르세요."
+              : nextIsBlocked
+                ? "장애물이에요. Space 또는 점프 버튼으로 두 칸을 뛰어넘으세요."
               : atCorner
                 ? "모퉁이에 도착했어요. J 또는 방향 바꾸기 버튼을 누르세요."
                 : "D 또는 앞으로 버튼을 눌러 한 칸 올라가세요."}

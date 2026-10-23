@@ -1,5 +1,7 @@
+import * as stairObstacles from "./stairObstacles";
+import { makeObstacleFixture, withObstacle } from "../test/obstacleFixtures";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { StrictMode } from "react";
 import type { AccountInfo } from "@azure/msal-browser";
 import { GameScreen } from "./GameScreen";
@@ -961,5 +963,151 @@ describe("GameScreen controls", () => {
     fireEvent.click(screen.getByRole("button", { name: /다시 시작/ }));
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "playing");
     expect(screen.getByTestId("score-value")).toHaveTextContent("0");
+  });
+});
+
+beforeEach(() => {
+  vi.spyOn(stairObstacles, "createObstacleState").mockImplementation((route, stage) => makeObstacleFixture(route, 0, stage));
+  vi.spyOn(stairObstacles, "revealObstacles").mockImplementation((state, route, index, stage) => makeObstacleFixture(route, index, stage, state));
+});
+afterEach(() => vi.restoreAllMocks());
+
+describe("GameScreen obstacle gameplay", () => {
+  afterEach(() => { cleanup(); window.localStorage.clear(); vi.useRealTimers(); });
+
+  function seedBox(overrides: Partial<GameState> = {}): void {
+    const ready = withObstacle({ ...createGameState(() => 0), ...overrides }, 2);
+    vi.spyOn(gameEngine, "createGameState").mockReturnValue(ready);
+  }
+
+  function audioFixture(): AudioController {
+    return { startBgm: vi.fn().mockResolvedValue(true), stopBgm: vi.fn(), setEventActive: vi.fn(),
+      setPreferences: vi.fn(), playFootstep: vi.fn(), playFall: vi.fn(), dispose: vi.fn() };
+  }
+
+  it.each([false, true])("shows the shared box, jumps two stairs once and labels the bonus correctly (bonus=%s)", async (bonus) => {
+    vi.useFakeTimers(); vi.setSystemTime(0);
+    seedBox({ eventEndsAt: bonus ? 30_000 : null });
+    const input = vi.spyOn(gameEngine, "applyInput");
+    const audio = audioFixture();
+    render(<GameScreen account={account} audioController={audio} />);
+    expect(screen.getAllByTestId("stair-step")).toHaveLength(11);
+    expect(screen.getByTestId("stair-obstacle")).toHaveAttribute("data-route-index", "2");
+    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    fireEvent.keyDown(window, { key: "d" });
+    expect(screen.getByTestId("route-direction")).toHaveTextContent("장애물! 점프하세요");
+    expect(screen.getByRole("img", { name: /다음 계단에 장애물/ })).toBeInTheDocument();
+    expect(screen.getByText(/Space 또는 점프 버튼으로/)).toBeInTheDocument();
+    audio.playFootstep = vi.fn();
+    const npcBefore = input.mock.results.at(-1)!.value.pursuerIndex;
+    expect(fireEvent.keyDown(window, { key: " ", code: "Space" })).toBe(false);
+    const jumped: GameState = input.mock.results.at(-1)!.value;
+    expect(jumped).toMatchObject({ stepsClimbed: 3, pursuerIndex: npcBefore, pursuerDistance: 7 });
+    expect(screen.getByTestId("score-gain")).toHaveTextContent(bonus ? "+4" : "+2");
+    expect(screen.getByTestId("score-gain").classList.contains("is-bonus")).toBe(bonus);
+    expect(audio.playFootstep).toHaveBeenCalledOnce();
+    expect(audio.playFall).not.toHaveBeenCalled();
+    expect(screen.getByTestId("stair-obstacle")).toBeInTheDocument();
+    expect(screen.getByTestId("runner")).toHaveClass("is-climbing");
+    await act(async () => { await vi.advanceTimersByTimeAsync(300); });
+    expect(screen.queryByTestId("stair-obstacle")).not.toBeInTheDocument();
+    expect(screen.getByTestId("runner")).not.toHaveClass("is-climbing");
+    await act(async () => { await vi.advanceTimersByTimeAsync(400); });
+    expect(screen.queryByTestId("score-gain")).not.toBeInTheDocument();
+  });
+
+  it("accepts an immediate climb after jumping and keeps NPC updates from freezing feedback", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(0); seedBox();
+    render(<GameScreen account={account} />);
+    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    fireEvent.keyDown(window, { key: "d" });
+    await act(async () => { await vi.advanceTimersByTimeAsync(900); });
+    fireEvent.keyDown(window, { key: " ", code: "Space" });
+    const firstKey = screen.getByTestId("runner").getAttribute("data-motion-key");
+    fireEvent.keyDown(window, { key: "d" });
+    expect(screen.getByTestId("runner")).toHaveAttribute("data-route-index", "4");
+    expect(screen.getByTestId("runner").getAttribute("data-motion-key")).not.toBe(firstKey);
+    await act(async () => { await vi.advanceTimersByTimeAsync(100); });
+    expect(screen.getByTestId("runner")).toHaveClass("is-climbing");
+    expect(screen.getByTestId("score-gain")).toHaveTextContent("+1");
+    await act(async () => { await vi.advanceTimersByTimeAsync(600); });
+    expect(screen.getByTestId("runner")).not.toHaveClass("is-climbing");
+    expect(screen.queryByTestId("score-gain")).not.toBeInTheDocument();
+  });
+
+  it("invokes one fall for an empty Space, ignores repeat and does not restart recovery", () => {
+    vi.useFakeTimers(); vi.setSystemTime(0);
+    const audio = audioFixture();
+    const input = vi.spyOn(gameEngine, "applyInput");
+    render(<GameScreen account={account} audioController={audio} />);
+    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    fireEvent.keyDown(window, { code: "Space", key: " ", repeat: true });
+    expect(input).not.toHaveBeenCalled();
+    fireEvent.keyDown(window, { code: "Space", key: " " });
+    expect(audio.playFall).toHaveBeenCalledOnce();
+    expect(input.mock.results.at(-1)!.value.recoveryEndsAt).toBe(500);
+    vi.setSystemTime(100);
+    fireEvent.keyDown(window, { code: "Space", key: " " });
+    expect(input.mock.results.at(-1)!.value.recoveryEndsAt).toBe(500);
+    expect(audio.playFall).toHaveBeenCalledOnce();
+    expect(audio.playFootstep).not.toHaveBeenCalled();
+  });
+
+  it("protects text, native buttons, role buttons, default-prevented events and settings from Space", () => {
+    vi.useFakeTimers(); vi.setSystemTime(0); seedBox();
+    const input = vi.spyOn(gameEngine, "applyInput");
+    const view = render(<GameScreen account={account} />);
+    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    for (const tag of ["input", "textarea", "select", "button", "div"]) {
+      const element = document.createElement(tag);
+      if (tag === "div") element.setAttribute("role", "button");
+      view.container.append(element);
+      expect(fireEvent.keyDown(element, { key: " ", code: "Space" })).toBe(true);
+      element.remove();
+    }
+    const prevented = new KeyboardEvent("keydown", { key: " ", code: "Space", bubbles: true, cancelable: true });
+    prevented.preventDefault(); fireEvent(window, prevented);
+    fireEvent.keyDown(screen.getByRole("button", { name: "앞으로 한 칸 오르기" }), { key: " ", code: "Space" });
+    expect(input).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "앞으로 한 칸 오르기" }), { detail: 0 });
+    expect(input).toHaveBeenCalledOnce();
+    expect(input.mock.calls[0][1]).toBe("forward");
+    fireEvent.click(screen.getByRole("button", { name: "게임 설정" }));
+    fireEvent.keyDown(window, { key: " ", code: "Space" });
+    expect(input).toHaveBeenCalledOnce();
+  });
+
+  it("clears a bonus popup on a mistake without leaving its cancelled timer stuck", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(0); seedBox({ eventEndsAt: 30_000 });
+    render(<GameScreen account={account} />);
+    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    fireEvent.keyDown(window, { key: "d" });
+    expect(screen.getByTestId("score-gain")).toHaveClass("is-bonus");
+    fireEvent.keyDown(window, { key: "d" });
+    expect(screen.getByTestId("runner")).toHaveClass("is-falling");
+    expect(screen.queryByTestId("score-gain")).not.toBeInTheDocument();
+    await act(async () => { await vi.advanceTimersByTimeAsync(700); });
+    expect(screen.queryByTestId("score-gain")).not.toBeInTheDocument();
+  });
+
+  it("interrupts jump feedback on a delayed fatal capture and saves exactly once", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(0); seedBox({ lives: 1 });
+    const save = vi.spyOn(Storage.prototype, "setItem");
+    const audio = audioFixture();
+    render(<GameScreen account={account} audioController={audio} />);
+    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    fireEvent.keyDown(window, { key: "d" });
+    fireEvent.keyDown(window, { key: " ", code: "Space" });
+    expect(screen.getByTestId("runner")).toHaveClass("is-climbing");
+    vi.setSystemTime(7_000);
+    fireEvent.keyDown(window, { key: " ", code: "Space" });
+    expect(screen.getByText("추격자에게 잡혔어요")).toBeInTheDocument();
+    expect(screen.getByTestId("runner")).not.toHaveClass("is-climbing");
+    expect(screen.queryByTestId("stair-obstacle")).not.toBeInTheDocument();
+    expect(save).toHaveBeenCalledOnce();
+    expect(audio.playFootstep).toHaveBeenCalledTimes(2);
+    expect(audio.playFall).not.toHaveBeenCalled();
+    await act(async () => { await vi.advanceTimersByTimeAsync(1_000); });
+    expect(save).toHaveBeenCalledOnce();
   });
 });

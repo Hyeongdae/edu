@@ -260,10 +260,13 @@
   padding: 0;
 }
 
-.stair-game.pixel-theme .control-button { min-height: 60px; border-color: var(--pixel-cyan); background: #173a45; color: var(--pixel-text); }
+.stair-game.pixel-theme .control-button { min-height: 60px; min-width: 56px; white-space: normal; touch-action: manipulation; border-color: var(--pixel-cyan); background: #173a45; color: var(--pixel-text); }
+.stair-game.pixel-theme .control-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
+.stair-game.pixel-theme .jump-control { border-color: var(--pixel-gold); background: #4d3b24; }
 .stair-game.pixel-theme .turn-control { border-color: var(--pixel-pink); background: #3d2a49; }
 .stair-game.pixel-theme .control-button:hover:not(:disabled) { transform: translateY(-2px); background: #28505a; }
 .stair-game.pixel-theme .turn-control:hover:not(:disabled) { background: #563653; }
+.stair-game.pixel-theme .jump-control:hover:not(:disabled) { background: #675032; }
 .stair-game.pixel-theme .control-button:active:not(:disabled) { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #050b19; }
 .stair-game.pixel-theme .control-button:disabled { border-style: dashed; border-color: #73819a; background: #202b40; box-shadow: none; color: #a2aec3; filter: none; opacity: 1; }
 .stair-game.pixel-theme .control-button svg { width: 24px; height: 24px; fill: currentColor; stroke: none; }
@@ -401,7 +404,7 @@
   .stair-game.pixel-theme .scene-hint { bottom: calc(40px + 4.5rem + var(--pixel-safe-bottom)); font-size: 0.75rem; }
   .stair-game.pixel-theme[data-game-status="ready"] .scene-hint { bottom: calc(60px + 4.5rem + var(--pixel-safe-bottom)); }
   .stair-game.pixel-theme .game-frame > .start-button { bottom: calc(12px + 1.8rem + var(--pixel-safe-bottom)); }
-  .stair-game.pixel-theme .game-controls { display: grid; bottom: calc(12px + 1.8rem + var(--pixel-safe-bottom)); }
+  .stair-game.pixel-theme .game-controls { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); bottom: calc(12px + 1.8rem + var(--pixel-safe-bottom)); }
   .stair-game.pixel-theme .control-button { padding: 8px; gap: 7px; font-size: 0.85rem; }
   .stair-game.pixel-theme .game-footer { bottom: calc(2px + var(--pixel-safe-bottom)); font-size: 0.6rem; }
   .stair-game.pixel-theme .desktop-control-hint { display: none; }

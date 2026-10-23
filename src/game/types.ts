@@ -1,6 +1,6 @@
 export type Direction = "left" | "right";
 
-export type GameInput = "forward" | "turn";
+export type GameInput = "forward" | "turn" | "jump";
 
 export type GameStatus = "ready" | "playing" | "game-over";
 
@@ -56,6 +56,14 @@ export interface PursuerMove {
   atMs: number;
 }
 
+export interface GameMove {
+  kind: "climb" | "jump";
+  fromIndex: number;
+  toIndex: number;
+  scoreGain: 1 | 2 | 4;
+  isBonus: boolean;
+}
+
 export interface GameState {
   status: GameStatus;
   stage: GameStage;
@@ -77,4 +85,6 @@ export interface GameState {
   recoveryEndsAt: number | null;
   lastMistake: boolean;
   route: StairRoute;
+  obstacles: StairObstacleState;
+  lastMove: GameMove | null;
 }

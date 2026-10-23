@@ -1,4 +1,6 @@
-import { describe, expect, it } from "vitest";
+import * as stairObstacles from "./stairObstacles";
+import { makeObstacleFixture, withObstacle } from "../test/obstacleFixtures";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   applyInput,
   createGameState,
@@ -513,5 +515,155 @@ describe("five timed stages", () => {
     expect(state.score).toBeGreaterThanOrEqual(1_500);
     expect(state.score).toBeLessThanOrEqual(1_501);
     expect(resetGame(randomFiveSteps)).toMatchObject({ status: "ready", stage: 1, score: 0, stageEndsAt: null });
+  });
+});
+
+beforeEach(() => {
+  vi.spyOn(stairObstacles, "createObstacleState").mockImplementation((route, stage) => makeObstacleFixture(route, 0, stage));
+  vi.spyOn(stairObstacles, "revealObstacles").mockImplementation((state, route, index, stage) => makeObstacleFixture(route, index, stage, state));
+});
+afterEach(() => vi.restoreAllMocks());
+
+function jumpState(overrides: Partial<GameState> = {}): GameState {
+  return withObstacle({ ...applyInput(playingState(), "forward", 0), ...overrides }, 2);
+}
+
+describe("obstacle jumps", () => {
+  it("keeps ready preview on start, resets fresh metadata, and moves two real stairs without moving the NPC", () => {
+    const ready = createGameState(() => 0);
+    expect(ready.lastMove).toBeNull();
+    expect(startGame(ready, 0).obstacles).toBe(ready.obstacles);
+    const state = jumpState();
+    const random = vi.spyOn(Math, "random");
+    const moved = applyInput(state, "jump", 10);
+    expect(moved).toMatchObject({ stepsClimbed: 3, score: 3, eventSteps: 3, direction: "right",
+      pursuerIndex: state.pursuerIndex, nextPursuerStepAt: state.nextPursuerStepAt, pursuerDistance: state.pursuerDistance + 2,
+      lastMove: { kind: "jump", fromIndex: 1, toIndex: 3, scoreGain: 2, isBonus: false } });
+    expect(applyInput(state, "jump", 10)).toEqual(moved);
+    expect(random).not.toHaveBeenCalled();
+    expect(state.stepsClimbed).toBe(1);
+    expect(resetGame(() => 0).lastMove).toBeNull();
+    expect(resetGame(() => 0).obstacles).not.toBe(state.obstacles);
+  });
+
+  it.each([28, 29])("charges two physical stairs at gauge %s, without carrying or multiplying the triggering move", (eventSteps) => {
+    const moved = applyInput(jumpState({ eventSteps }), "jump", 10);
+    expect(moved).toMatchObject({ score: 3, eventSteps: 0, eventEndsAt: 30_010, lastMove: { scoreGain: 2, isBonus: false } });
+  });
+
+  it("gives four points during a bonus without charging the gauge and only two at exact expiry", () => {
+    const state = jumpState({ eventSteps: 12, eventEndsAt: 100 });
+    expect(applyInput(state, "jump", 99)).toMatchObject({ score: 5, eventSteps: 12, eventEndsAt: 100, lastMove: { scoreGain: 4, isBonus: true } });
+    expect(applyInput(state, "jump", 100)).toMatchObject({ score: 3, eventSteps: 2, eventEndsAt: null, lastMove: { scoreGain: 2, isBonus: false } });
+  });
+
+  it.each(["forward", "turn"] as const)("treats %s into a box as one mistake, preserving all post-tick pursuit and obstacle data", (input) => {
+    const state = jumpState();
+    const reveal = vi.mocked(stairObstacles.revealObstacles);
+    reveal.mockClear();
+    const wrong = applyInput(state, input, 10);
+    expect(wrong).toEqual({ ...state, lastMove: null, lastMistake: true, recoveryEndsAt: 510 });
+    expect(wrong.obstacles).toBe(state.obstacles);
+    expect(wrong.route).toBe(state.route);
+    expect(reveal).not.toHaveBeenCalled();
+    expect(applyInput(wrong, "jump", 20)).toBe(wrong);
+  });
+
+  it("rejects an empty jump, a corner jump and an occupied landing", () => {
+    expect(applyInput(playingState(), "jump", 0)).toMatchObject({ score: 0, stepsClimbed: 0, recoveryEndsAt: 500, lastMove: null });
+    let corner = playingState();
+    for (let i = 0; i < 5; i += 1) corner = applyInput(corner, "forward", 0);
+    expect(applyInput(corner, "jump", 0)).toMatchObject({ score: 5, stepsClimbed: 5, lastMistake: true });
+    const state = jumpState();
+    // Deliberately impossible decisions check the defensive landing guard only.
+    const occupied = { ...state, obstacles: { ...state.obstacles, runs: [...state.obstacles.runs, { ...state.obstacles.runs[0], obstacleIndex: 3 }] } };
+    expect(applyInput(occupied, "jump", 10)).toMatchObject({ stepsClimbed: 1, lastMistake: true, lastMove: null });
+    const hasObstacle = stairObstacles.hasObstacle;
+    vi.spyOn(stairObstacles, "hasObstacle").mockImplementation((obstacles, index) => index === 6 || hasObstacle(obstacles, index));
+    expect(applyInput(corner, "jump", 0)).toMatchObject({ stepsClimbed: 5, lastMistake: true });
+  });
+
+  it("continues scheduled pursuit during recovery without restarting the fall", () => {
+    const state = withPursuitAt(jumpState(), 0);
+    const wrong = applyInput(state, "forward", 900);
+    const blocked = applyInput(wrong, "jump", 1_000);
+    expect(blocked).toMatchObject({ recoveryEndsAt: 1_400, stepsClimbed: 1, score: 1,
+      pursuerIndex: state.pursuerIndex + 1, pursuerDistance: 3, nextPursuerStepAt: 2_000 });
+  });
+
+  it("resolves a due catch before Space and clears move metadata without revealing boxes", () => {
+    const state = withPursuitAt(jumpState({ lives: 1 }), 0, 1);
+    vi.mocked(stairObstacles.revealObstacles).mockClear();
+    const ended = applyInput(state, "jump", 1_000);
+    expect(ended).toMatchObject({ status: "game-over", endReason: "caught", score: 1, stepsClimbed: 1, lastMove: null });
+    expect(stairObstacles.revealObstacles).not.toHaveBeenCalled();
+    expect(applyInput(ended, "jump", 1_000)).toBe(ended);
+    const alive = applyInput(withPursuitAt(jumpState(), 0, 1), "jump", 1_000);
+    expect(alive).toMatchObject({ status: "playing", lives: 2, score: 1, stepsClimbed: 1,
+      lastMove: null, recoveryEndsAt: 1_500, pursuerDistance: 4 });
+  });
+
+  it.each(STAGE_RULES)("keeps jump goal overshoot and full new budgets or final clear in stage $stage", (rule) => {
+    const state = withPursuitAt(jumpState({ stage: rule.stage, score: rule.targetScore - 1, lives: 1,
+      stageEndsAt: rule.durationMs }), 0);
+    const moved = applyInput(state, "jump", 10);
+    expect(moved).toMatchObject({ score: rule.targetScore + 1, stepsClimbed: 3,
+      stage: Math.min(5, rule.stage + 1), lastMove: { kind: "jump", scoreGain: 2 } });
+    if (rule.stage === 5) {
+      expect(moved).toMatchObject({ status: "game-over", endReason: "cleared", nextPursuerStepAt: null, lives: 1 });
+      expect(applyInput(moved, "jump", 10)).toBe(moved);
+    } else {
+      const next = getStageRule((rule.stage + 1) as typeof rule.stage);
+      expect(moved).toMatchObject({ status: "playing", lives: 3, pursuerDistance: 4,
+        stageEndsAt: 10 + next.durationMs, nextPursuerStepAt: 10 + next.pursuerStepIntervalMs });
+    }
+    expect(stairObstacles.revealObstacles).toHaveBeenLastCalledWith(expect.anything(), moved.route, 3, moved.stage);
+  });
+
+  it("expires before a goal-reaching jump and preserves a completed move across ordinary NPC/bonus ticks", () => {
+    const state = jumpState({ score: 299, stageEndsAt: 100 });
+    expect(applyInput(state, "jump", 100)).toMatchObject({ score: 299, stepsClimbed: 1, endReason: "time-limit", lastMove: null });
+    const moved = applyInput(jumpState({ eventEndsAt: 100 }), "jump", 10);
+    const ticked = tickGame(moved, 1_000);
+    expect(ticked.lastMove).toBe(moved.lastMove);
+    expect(ticked.eventEndsAt).toBeNull();
+    expect(ticked.pursuerIndex).toBe(moved.pursuerIndex + 1);
+  });
+
+  it("reveals new runs with the promoted stage and keeps earlier decisions by reference", () => {
+    let before = playingState();
+    for (let index = 0; index < 8; index += 1) {
+      before = applyInput(before, getRouteStep(before.route, before.stepsClimbed + 1).direction === before.direction ? "forward" : "turn", 0);
+    }
+    const state = withObstacle({ ...before, score: 299 }, 9);
+    const old = state.obstacles.runs.find((run) => run.runStartIndex === 7)!;
+    const moved = applyInput(state, "jump", 10);
+    expect(moved.obstacles.runs.find((run) => run.runStartIndex === 7)).toBe(old);
+    expect(moved.obstacles.runs.find((run) => run.runStartIndex === 16)?.stageAtGeneration).toBe(2);
+  });
+
+  it("plays a real seeded route through multiple promotions with shared, stable obstacle decisions", () => {
+    vi.mocked(stairObstacles.createObstacleState).mockRestore();
+    vi.mocked(stairObstacles.revealObstacles).mockRestore();
+    const ready = createGameState(() => 0.5);
+    let state = startGame(ready, 0);
+    let jumps = 0;
+    for (let action = 0; action < 500 && state.status === "playing"; action += 1) {
+      const before = state;
+      const blocked = stairObstacles.hasObstacle(before.obstacles, before.stepsClimbed + 1);
+      const input = blocked ? "jump" : getRouteStep(before.route, before.stepsClimbed + 1).direction === before.direction ? "forward" : "turn";
+      state = applyInput(before, input, 0);
+      expect(state.lastMistake).toBe(false);
+      expect(state.stepsClimbed - before.stepsClimbed).toBe(blocked ? 2 : 1);
+      expect(state.lastMove?.scoreGain).toBe((blocked ? 2 : 1) * (before.eventEndsAt === null ? 1 : 2));
+      for (const record of before.obstacles.runs) {
+        const retained = state.obstacles.runs.find((entry) => entry.runStartIndex === record.runStartIndex);
+        if (retained) expect(retained).toBe(record);
+      }
+      if (blocked) jumps += 1;
+    }
+    expect(jumps).toBeGreaterThan(0);
+    expect(state.stage).toBeGreaterThanOrEqual(3);
+    expect(state.pursuerDistance).toBe(state.stepsClimbed - state.pursuerIndex);
   });
 });
