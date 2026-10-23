@@ -1,6 +1,6 @@
 ﻿# Task: T04 Obstacle Jump Gameplay
 
-## Status: pending
+## Status: in_progress
 
 ## Goal
 
