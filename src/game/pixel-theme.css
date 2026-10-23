@@ -423,6 +423,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .stair-game.pixel-theme .pursuer-motion.is-moving { animation: none; transform: none; }
   .stair-game.pixel-theme .runner-pose,
   .stair-game.pixel-theme .runner.is-climbing .runner-pose,
   .stair-game.pixel-theme .runner.is-falling .runner-pose,

@@ -50,6 +50,12 @@ export interface StairObstacleState {
   runs: readonly StairObstacleRun[];
 }
 
+export interface PursuerMove {
+  fromIndex: number;
+  toIndex: number;
+  atMs: number;
+}
+
 export interface GameState {
   status: GameStatus;
   stage: GameStage;
@@ -61,6 +67,11 @@ export interface GameState {
   direction: Direction;
   straightStepsRemaining: number;
   pursuerDistance: number;
+  pursuerIndex: number;
+  nextPursuerStepAt: number | null;
+  lastPursuerMove: PursuerMove | null;
+  captureCount: number;
+  captureEndsAt: number | null;
   eventSteps: number;
   eventEndsAt: number | null;
   recoveryEndsAt: number | null;

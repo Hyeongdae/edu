@@ -50,8 +50,7 @@ export function GameScreen({
   const [isClimbing, setIsClimbing] = useState(false);
   const [scoreGain, setScoreGain] = useState<number | null>(null);
   const [scoreAnimationKey, setScoreAnimationKey] = useState(0);
-  const [pursuerAnimationKey, setPursuerAnimationKey] = useState(0);
-  const [isPursuerCaught, setIsPursuerCaught] = useState(false);
+  const [pursuerAnimationTime, setPursuerAnimationTime] = useState(0);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const scoreSavedRef = useRef(false);
   const settingsOpenedAtRef = useRef<number | null>(null);
@@ -63,7 +62,8 @@ export function GameScreen({
   const previousScoreRef = useRef(gameState.score);
   const scoreGainTimeoutRef = useRef<number | undefined>(undefined);
   const previousRecoveryEndsAtRef = useRef(gameState.recoveryEndsAt);
-  const previousLivesRef = useRef(gameState.lives);
+  const previousPlayerCaptureRef = useRef(gameState.captureCount);
+  const pursuerTimeoutRef = useRef<number | undefined>(undefined);
   const previousEventActiveRef = useRef(gameState.eventEndsAt !== null);
 
   const openSettings = useCallback(() => {
@@ -107,42 +107,51 @@ export function GameScreen({
 
   useEffect(() => {
     const climbedSuccessfully = gameState.stepsClimbed > previousStepsRef.current;
-
+    const captured = gameState.captureCount !== previousPlayerCaptureRef.current;
+    const cancel = () => {
+      window.clearTimeout(climbTimeoutRef.current);
+      climbTimeoutRef.current = undefined;
+      setIsClimbing(false);
+    };
     if (climbedSuccessfully) {
       audioController?.playFootstep();
       setClimbAnimationKey((key) => key + 1);
-      setPursuerAnimationKey((key) => key + 1);
+    }
+    if (gameState.status !== "playing" || gameState.lastMistake || captured || gameState.stepsClimbed < previousStepsRef.current) {
+      cancel();
+    } else if (climbedSuccessfully) {
+      cancel();
       setIsClimbing(true);
-
-      if (climbTimeoutRef.current !== undefined) {
-        window.clearTimeout(climbTimeoutRef.current);
-      }
       climbTimeoutRef.current = window.setTimeout(() => {
         setIsClimbing(false);
         climbTimeoutRef.current = undefined;
       }, 300);
-    } else if (gameState.stepsClimbed < previousStepsRef.current) {
-      if (climbTimeoutRef.current !== undefined) {
-        window.clearTimeout(climbTimeoutRef.current);
-        climbTimeoutRef.current = undefined;
-      }
-      setIsClimbing(false);
     }
-
-    if (gameState.lastMistake && climbTimeoutRef.current !== undefined) {
-      window.clearTimeout(climbTimeoutRef.current);
-      climbTimeoutRef.current = undefined;
-      setIsClimbing(false);
-    }
-
     previousStepsRef.current = gameState.stepsClimbed;
+    previousPlayerCaptureRef.current = gameState.captureCount;
+  }, [audioController, gameState.lastMistake, gameState.stepsClimbed, gameState.status, gameState.captureCount]);
 
-    return () => {
-      if (climbTimeoutRef.current !== undefined) {
-        window.clearTimeout(climbTimeoutRef.current);
-      }
-    };
-  }, [audioController, gameState.lastMistake, gameState.stepsClimbed]);
+  const pursuerMoveAt = gameState.lastPursuerMove?.atMs ?? null;
+  const pursuerAnimationKey = pursuerMoveAt ?? 0;
+  const isPursuerMoving = pursuerMoveAt !== null && gameState.status === "playing" &&
+    gameState.captureEndsAt === null && !isSettingsOpen &&
+    Math.max(nowMs, pursuerAnimationTime) < pursuerMoveAt + 240;
+
+  useEffect(() => {
+    if (pursuerMoveAt === null) return;
+    const endsAt = pursuerMoveAt + 240;
+    const suppressed = gameState.status !== "playing" || gameState.captureEndsAt !== null || isSettingsOpen;
+    pursuerTimeoutRef.current = window.setTimeout(() => {
+      setPursuerAnimationTime(endsAt);
+      pursuerTimeoutRef.current = undefined;
+    }, suppressed ? 0 : Math.max(0, endsAt - Date.now()));
+    return () => window.clearTimeout(pursuerTimeoutRef.current);
+  }, [pursuerMoveAt, gameState.status, gameState.captureEndsAt, isSettingsOpen]);
+
+  useEffect(() => () => {
+    window.clearTimeout(climbTimeoutRef.current);
+    window.clearTimeout(pursuerTimeoutRef.current);
+  }, []);
 
   useEffect(() => {
     if (gameState.score > previousScoreRef.current) {
@@ -180,15 +189,10 @@ export function GameScreen({
 
     if (mistakeStarted) {
       audioController?.playFall();
-      setPursuerAnimationKey((key) => key + 1);
-      setIsPursuerCaught(gameState.lives < previousLivesRef.current);
-    } else if (!gameState.lastMistake || gameState.lives > previousLivesRef.current) {
-      setIsPursuerCaught(false);
     }
 
     previousRecoveryEndsAtRef.current = gameState.recoveryEndsAt;
-    previousLivesRef.current = gameState.lives;
-  }, [audioController, gameState.lastMistake, gameState.recoveryEndsAt, gameState.lives]);
+  }, [audioController, gameState.lastMistake, gameState.recoveryEndsAt]);
 
   useEffect(() => {
     const eventActive = gameState.eventEndsAt !== null;
@@ -240,9 +244,7 @@ export function GameScreen({
 
   useEffect(() => {
     if (isSettingsOpen) return undefined;
-    const timersActive = (gameState.status === "playing" &&
-      (gameState.stageEndsAt !== null || gameState.eventEndsAt !== null)) ||
-      gameState.recoveryEndsAt !== null;
+    const timersActive = gameState.status === "playing" || gameState.recoveryEndsAt !== null || gameState.captureEndsAt !== null;
     if (!timersActive) {
       return undefined;
     }
@@ -255,7 +257,8 @@ export function GameScreen({
         const eventChanged = gameState.eventEndsAt !== null &&
           Math.max(0, Math.ceil((gameState.eventEndsAt - previousTime) / 1000)) !==
           Math.max(0, Math.ceil((gameState.eventEndsAt - tickTime) / 1000));
-        return stageChanged || eventChanged ? tickTime : previousTime;
+        const pursuerDue = gameState.status === "playing" && gameState.nextPursuerStepAt !== null && tickTime >= gameState.nextPursuerStepAt;
+        return stageChanged || eventChanged || pursuerDue ? tickTime : previousTime;
       });
       setGameState((state) => tickGame(state, tickTime));
     }, 100);
@@ -284,7 +287,7 @@ export function GameScreen({
       : Math.max(0, Math.ceil((gameState.eventEndsAt - nowMs) / 1000));
   const controlsDisabled =
     gameState.status !== "playing" || gameState.recoveryEndsAt !== null || isSettingsOpen;
-  const pursuerCatchVisible = isPursuerCaught &&
+  const pursuerCatchVisible = gameState.captureEndsAt !== null &&
     (gameState.status === "playing" || gameState.endReason === "caught");
 
   useEffect(() => {
@@ -349,6 +352,7 @@ export function GameScreen({
                 climbAnimationKey={climbAnimationKey}
                 isClimbing={isClimbing && !gameState.lastMistake}
                 pursuerAnimationKey={pursuerAnimationKey}
+                isPursuerMoving={isPursuerMoving}
                 isPursuerCaught={pursuerCatchVisible}
               />
             </div>
@@ -452,7 +456,7 @@ export function GameScreen({
                       <span className="chase-icon"><PixelIcon name="flag" size={20} /></span>
                       <div>
                         <strong>뒤쫓아오는 추격자</strong>
-                        <p>방향을 잘못 입력하면 넘어지고 기회를 잃어요. 세 번 실수하면 게임이 끝납니다.</p>
+                        <p>추격자는 일정 시간마다 한 칸씩 올라와요. 잘못 입력하면 0.5초 동안 멈춰요. 잡히면 기회를 잃고, 세 번 잡히면 게임이 끝납니다.</p>
                       </div>
                     </section>
                   </div>

@@ -40,7 +40,11 @@
 
 .stair-game .pursuer.is-following:not(.is-caught),
 .stair-game .pursuer.is-approaching:not(.is-caught) {
-  animation: pixel-pursuer-hop 240ms steps(1, end) both;
+  animation: none;
+}
+
+.stair-game .pursuer-motion.is-moving {
+  animation: pixel-pursuer-step 240ms ease-out both;
 }
 
 .stair-game .pixel-officer .officer-frame {
@@ -87,11 +91,10 @@
   75% { translate: 0 -4px; }
 }
 
-@keyframes pixel-pursuer-hop {
-  0%, 100% { translate: 0 0; }
-  25% { translate: 0 -4px; }
-  50% { translate: 0 -8px; }
-  75% { translate: 0 -4px; }
+@keyframes pixel-pursuer-step {
+  0% { transform: translate(var(--pursuer-move-x), var(--pursuer-move-y)); }
+  50% { transform: translate(var(--pursuer-mid-x), -8px); }
+  100% { transform: translate(0, 0); }
 }
 
 @keyframes pixel-officer-stumble {
@@ -101,6 +104,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .stair-game .pursuer-motion.is-moving { animation: none; transform: none; }
   .stair-game .pursuer.is-following:not(.is-caught),
   .stair-game .pursuer.is-approaching:not(.is-caught),
   .stair-game .pixel-officer[data-officer-variant="young"][data-officer-pose="climb"] .officer-body,

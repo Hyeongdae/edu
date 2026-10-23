@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { applyInput, createGameState, startGame } from "./gameEngine";
+import { applyInput, createGameState, startGame, tickGame } from "./gameEngine";
+import { withPursuitAt } from "../test/gameFixtures";
 import { buildStairSceneModel, projectRouteStep } from "./stairSceneModel";
 import { advanceStairRoute, countStraightSteps, getRouteRun, getRouteStep } from "./stairRoute";
 import type { GameState } from "./types";
@@ -22,6 +23,7 @@ describe("stair scene projection", () => {
   it("uses each actor's own route direction on opposite sides of a corner", () => {
     let state = startGame(createGameState(() => 0), 0);
     for (let index = 0; index < 6; index += 1) state = climb(state);
+    state = withPursuitAt(state, 1_000);
     let scene = buildStairSceneModel(state);
     expect(scene.player.direction).toBe("left");
     expect(scene.pursuer).toMatchObject({ index: 2, direction: "right" });
@@ -30,21 +32,25 @@ describe("stair scene projection", () => {
     state = climb(state);
     scene = buildStairSceneModel(state);
     expect(scene.player.index).toBe(previousPlayerIndex + 1);
-    expect(scene.pursuer.index).toBe(previousPursuerIndex + 1);
-    expect(scene.player.index - scene.pursuer.index).toBe(4);
+    expect(scene.pursuer.index).toBe(previousPursuerIndex);
+    expect(scene.player.index - scene.pursuer.index).toBe(5);
 
     state = applyInput(state, "turn", 1_001);
     scene = buildStairSceneModel(state);
     expect(scene.player.index).toBe(7);
-    expect(scene.pursuer.index).toBe(4);
-    expect(scene.player.index - scene.pursuer.index).toBe(3);
+    expect(scene.pursuer.index).toBe(2);
+    expect(scene.player.index - scene.pursuer.index).toBe(5);
     expect(state.score).toBe(7);
     expect(state.lives).toBe(3);
+    scene = buildStairSceneModel(tickGame(state, 5_000));
+    expect(scene.player).toMatchObject({ index: 7, direction: "right" });
+    expect(scene.pursuer).toMatchObject({ index: 6, direction: "left" });
   });
 
   it("follows the real corner in catch and return frames", () => {
     let state = startGame(createGameState(() => 0), 0);
     for (let index = 0; index < 6; index += 1) state = climb(state);
+    state = tickGame(withPursuitAt(state, 1_000, 1), 2_000);
     const scene = buildStairSceneModel(state);
     expect(scene.catchFrames.map((frame) => frame.index)).toEqual([5, 6, 6, 5, 4, 3, 2]);
     expect(scene.catchFrames.map((frame) => frame.offset)).toEqual([0, 0.2, 0.4, 0.55, 0.7, 0.85, 1]);
@@ -83,6 +89,7 @@ describe("stair scene projection", () => {
       const direction = getRouteStep(route, nextIndex).direction;
       // Exercise geometry independently of score limits and bonus clocks.
       state = { ...state, route, stepsClimbed: nextIndex, direction,
+        pursuerIndex: nextIndex - 4, pursuerDistance: 4, lastPursuerMove: null,
         straightStepsRemaining: countStraightSteps(route, nextIndex, direction) };
     }
     expect([...lengths].sort((a, b) => a - b)).toEqual([1, 2, 3, 5, 6, 7, 8, 9]);
@@ -106,8 +113,32 @@ describe("stair scene projection", () => {
     }
   });
 
-  it.each([0, 5, -1, 1.5, Number.NaN])("rejects an invalid pursuer distance %s", (pursuerDistance) => {
+  it.each([0, -1, 1.5, Number.NaN])("rejects an invalid pursuer distance %s", (pursuerDistance) => {
     expect(() => buildStairSceneModel({ ...createGameState(() => 0), pursuerDistance })).toThrow(RangeError);
+  });
+
+  it("allows real distances beyond four and distinguishes offscreen actors", () => {
+    let state = startGame(createGameState(() => 0), 0);
+    state = applyInput(state, "forward", 100);
+    expect(buildStairSceneModel(state)).toMatchObject({ pursuerVisible: true, pursuer: { index: -4 } });
+    expect(state.pursuerDistance).toBe(5);
+    for (let index = 1; index < 10; index += 1) {
+      const next = getRouteStep(state.route, state.stepsClimbed + 1);
+      state = applyInput(state, next.direction === state.direction ? "forward" : "turn", 100);
+    }
+    const model = buildStairSceneModel(state);
+    expect(model.pursuerVisible).toBe(false);
+    expect(model.pursuer.index).toBe(-4);
+    expect(model.steps).toHaveLength(11);
+    expect(() => buildStairSceneModel({ ...state, pursuerDistance: 4 })).toThrow(RangeError);
+  });
+
+  it("projects the last real adjacent pursuer step with motion outside the clip", () => {
+    const state = tickGame(startGame(createGameState(() => 0), 0), 1_000);
+    expect(buildStairSceneModel(state).pursuerMotion).toEqual({
+      from: { x: 124, y: 328 }, to: { x: 158, y: 300 }, atMs: 1_000,
+    });
+    expect(() => buildStairSceneModel({ ...state, lastPursuerMove: { fromIndex: -4, toIndex: -2, atMs: 1_000 } })).toThrow(RangeError);
   });
 
   it("rejects missing history, missing future stairs and non-integer player indices", () => {

@@ -1,6 +1,6 @@
 ﻿# Task: T03 Timed Pursuer
 
-## Status: in_progress
+## Status: done
 
 ## Goal
 
@@ -99,11 +99,11 @@
 
 ## Acceptance Criteria
 
-- [ ] All five cadences and time-order boundaries work with no input and delayed/hidden reconciliation.
-- [ ] Successful moves widen gap; wrong input only stops player500ms; only real capture costs life.
-- [ ] Long retained history and offscreen true NPC positions work without gap clamping or fake scene actors.
-- [ ] Actual NPC steps/captures drive independent motion, result gate and one final save; settings pauses all logical clocks.
-- [ ] Legacy fixtures reflect valid new states without bypassing production pursuit. Obstacles are still standalone here.
+- [x] All five cadences and time-order boundaries work with no input and delayed/hidden reconciliation.
+- [x] Successful moves widen gap; wrong input only stops player500ms; only real capture costs life.
+- [x] Long retained history and offscreen true NPC positions work without gap clamping or fake scene actors.
+- [x] Actual NPC steps/captures drive independent motion, result gate and one final save; settings pauses all logical clocks.
+- [x] Legacy fixtures reflect valid new states without bypassing production pursuit. Obstacles are still standalone here.
 
 ## Validation
 
@@ -127,6 +127,17 @@ Task: T03-timed-pursuer
 
 ## Progress
 
-- [ ] 구현 완료
-- [ ] 검증 통과
+- [x] 구현 완료
+- [x] 검증 통과
 - commit: pending
+## Validation Results — 2026-10-23
+
+- 지정 Vitest10파일:298/298tests,10/10파일 통과. 실제 Windows npm.cmd로 실행했으며 청사진 npm CLI와 동일하다.
+- `npm run lint`: 최종 종료코드0. 초기 react-hooks/set-state-in-effect 지적은 NPC 모션 key/활성을 실제 이동 시각과 종료 시각에서 계산하고 timer callback만 상태를 갱신하도록 바꿔 해결했다. lint 규칙을 비활성화하지 않았다.
+- `npm run build`: 최종 종료코드0, TypeScript/Vite 통과(206modules, JS537.79kB/gzip150.41kB). 기존500kB초과 청크 경고는 남아 있고 번들 분할/한도 변경은 하지 않았다.
+- 모든 단계1000/800/600/500/400ms cadence, 실제 경과와 지연 tick의 동일 결과, 무입력4/8/12초 잡힘과 종료, 이전 잡힘/동시 단계 만료 우선순위, 보너스 만료와 잡힘 동시 처리/활성 보너스 보존을 검증했다.
+- 성공은 NPC를 즉시 이동시키지 않고 실제 거리만 늘며 오입력은500ms 정지만 적용한다. 성공/실수/추격/잡힘별 오디오 호출을 분리하고 시간 잡힘으로 넘어짐 소리를 호출하지 않는 것을 검증했다.
+-100칸 이상 거리와 경로 보존/정리, 화면 밖 실제 NPC/추가 실제 계단, 자체 코너 방향/240ms 이동 wrapper/clip 위치, 플레이어300ms 모션과 간섭 없음,5단계 잡힘500ms 중400ms 후 NPC 전진과 같은 catch DOM 유지, 설정 pause/숨김 복귀/최종 저장1회/재시작을 검증했다.
+- UI의 순수 시간 초과 테스트는 첫 잡힘 전에 끝나는 명시적100ms fixture를 사용하고 실제90초 경계는100칸 간격의 엔진 fixture로 검증했다. 실제 추격 tick을 전역 mock하거나 제품에 치트/초기 상태 prop을 넣지 않았다.
+- 실제 브라우저/reduced-motion 육안/전체 App.test.tsx/실제 스피커 청취는 실행하지 않았다. CSS reduced-motion과 즉시 결과 공개 처리는 구현했으며 전체 브라우저 검증은 T05다. 장애물·점프는 T04에 남아 있다.
+- 새 인접 결함 없음. 별도 넘어짐 소리 청취 문제/독립 App 기대값·옛 SVG CSS·번들 분할 정리는 임의로 합치지 않았다.
