@@ -12,6 +12,7 @@ import {
 } from "./gameEngine";
 import type { GameState } from "./types";
 import { countStraightSteps, getRouteStep } from "./stairRoute";
+import { getStageRule, STAGE_RULES } from "./stageRules";
 
 const randomFiveSteps = () => 0.5;
 
@@ -271,7 +272,7 @@ describe("timed stage progression", () => {
     const snapshot = structuredClone(before);
     const after = applyInput(before, "forward", 90_999);
     expect(after).toMatchObject({
-      status: "playing", stage: 2, stageEndsAt: null, endReason: null,
+      status: "playing", stage: 2, stageEndsAt: 165_999, endReason: null,
       score: bonus ? 301 : 300, stepsClimbed: 1, lives: 3, pursuerDistance: 4,
       eventSteps: bonus ? 12 : 13, eventEndsAt: before.eventEndsAt,
       direction: "right", straightStepsRemaining: 4,
@@ -308,9 +309,9 @@ describe("timed stage progression", () => {
   it("preserves a bonus starting on the same move as promotion", () => {
     const after = applyInput(playingState({ score: 299, eventSteps: 29 }), "forward", 1_000);
     expect(after).toMatchObject({ stage: 2, score: 300, eventSteps: 0, eventEndsAt: 31_000 });
-    const later = applyInput({ ...after, lives: 2, pursuerDistance: 2 }, "forward", 1_000_000);
-    expect(later).toMatchObject({ status: "playing", stage: 2, score: 301, lives: 2, pursuerDistance: 2 });
-    expect(tickGame(later, 2_000_000)).toBe(later);
+    const later = applyInput({ ...after, lives: 2, pursuerDistance: 2 }, "forward", 31_000);
+    expect(later).toMatchObject({ status: "playing", stage: 2, stageEndsAt: 76_000, score: 301, lives: 2, pursuerDistance: 2 });
+    expect(tickGame(later, 76_000)).toMatchObject({ status: "game-over", endReason: "time-limit", stage: 2 });
     expect(resetGame(randomFiveSteps)).toMatchObject({
       status: "ready", stage: 1, stageEndsAt: null, endReason: null, score: 0,
     });
@@ -335,7 +336,7 @@ describe("timed stage progression", () => {
     });
   });
 
-  it("returns ceiling seconds and an explicit unlimited sentinel without changing state", () => {
+  it("returns ceiling seconds for timed stages without changing state", () => {
     const state = playingState({ stageEndsAt: 91_000 });
     const snapshot = structuredClone(state);
     expect(getStageSecondsLeft(state, 1_000)).toBe(90);
@@ -345,7 +346,7 @@ describe("timed stage progression", () => {
     expect(getStageSecondsLeft(state, 91_000)).toBe(0);
     expect(getStageSecondsLeft(state, 95_000)).toBe(0);
     expect(getStageSecondsLeft(tickGame(state, 95_000), 1_000)).toBe(0);
-    expect(getStageSecondsLeft({ ...state, stage: 2, stageEndsAt: null }, 1_000_000)).toBeNull();
+    expect(getStageSecondsLeft({ ...state, stage: 2, stageEndsAt: 76_000 }, 1_000)).toBe(75);
     expect(state).toEqual(snapshot);
   });
 
@@ -397,13 +398,118 @@ describe("resumeGameAfterPause", () => {
     });
   });
 
-  it("keeps stage two unlimited, shifts only its event and ignores negative pause duration", () => {
-    const state = playingState({ stage: 2, stageEndsAt: null, eventEndsAt: 31_000 });
+  it("shifts stage two and its event and ignores negative pause duration", () => {
+    const state = playingState({ stage: 2, stageEndsAt: 76_000, eventEndsAt: 31_000 });
     expect(resumeGameAfterPause(state, 11_000, 46_000)).toMatchObject({
-      stage: 2, stageEndsAt: null, eventEndsAt: 66_000,
+      stage: 2, stageEndsAt: 111_000, eventEndsAt: 66_000,
     });
-    const unlimited = { ...state, eventEndsAt: null };
-    expect(resumeGameAfterPause(unlimited, 11_000, 200_000)).toBe(unlimited);
+    const withoutEvent = { ...state, eventEndsAt: null };
+    expect(resumeGameAfterPause(withoutEvent, 11_000, 200_000)).toMatchObject({ stage: 2, stageEndsAt: 265_000, eventEndsAt: null });
     expect(resumeGameAfterPause(state, 11_000, 10_000)).toBe(state);
+  });
+});
+
+describe("five timed stages", () => {
+  it.each(STAGE_RULES.slice(0, 4))("promotes stage $stage with one completed move and preserves bonus state", (rule) => {
+    for (const bonus of [false, true]) {
+      const before = playingState({
+        stage: rule.stage, stageEndsAt: 10_000, score: rule.targetScore - 1,
+        lives: 1, pursuerDistance: 1, eventSteps: 12, eventEndsAt: bonus ? 40_000 : null,
+      });
+      const snapshot = structuredClone(before);
+      const nextRule = STAGE_RULES[rule.stage];
+      const after = applyInput(before, "forward", 9_999);
+      expect(after).toMatchObject({
+        status: "playing", stage: nextRule.stage, stageEndsAt: 9_999 + nextRule.durationMs,
+        score: rule.targetScore + Number(bonus), lives: 3, pursuerDistance: 4,
+        stepsClimbed: 1, eventSteps: bonus ? 12 : 13, eventEndsAt: before.eventEndsAt,
+        recoveryEndsAt: null, lastMistake: false, endReason: null,
+      });
+      expect(getRouteStep(after.route, 1)).toBe(getRouteStep(before.route, 1));
+      expect(applyInput(before, "forward", 9_999)).toEqual(after);
+      expect(before).toEqual(snapshot);
+    }
+  });
+
+  it.each(STAGE_RULES)("stage $stage expires before a goal-reaching input at its exact deadline", (rule) => {
+    const before = playingState({
+      stage: rule.stage, stageEndsAt: 5_000, score: rule.targetScore - 1,
+      lives: 2, pursuerDistance: 2, eventEndsAt: 5_000, eventSteps: 29,
+    });
+    expect(tickGame(before, 4_999)).toBe(before);
+    const after = applyInput(before, "forward", 5_000);
+    expect(after).toMatchObject({
+      status: "game-over", stage: rule.stage, score: rule.targetScore - 1,
+      stepsClimbed: 0, lives: 2, pursuerDistance: 2, endReason: "time-limit",
+      eventEndsAt: null, eventSteps: 0, recoveryEndsAt: null, lastMistake: false,
+    });
+    expect(tickGame(before, 5_000)).toEqual(after);
+    expect(after.route).toBe(before.route);
+    expect(applyInput(after, "forward", 5_001)).toBe(after);
+    expect(startGame(after, 5_001)).toBe(after);
+  });
+
+  it.each([false, true])("clears stage five with the actual final score and no healing (bonus=%s)", (bonus) => {
+    const before = playingState({
+      stage: 5, stageEndsAt: 10_000, score: 1_499, lives: 1, pursuerDistance: 1,
+      eventSteps: 12, eventEndsAt: bonus ? 40_000 : null,
+    });
+    const snapshot = structuredClone(before);
+    const cleared = applyInput(before, "forward", 9_999);
+    expect(cleared).toMatchObject({
+      status: "game-over", stage: 5, stageEndsAt: 10_000, endReason: "cleared",
+      score: bonus ? 1_501 : 1_500, stepsClimbed: 1, lives: 1, pursuerDistance: 1,
+      recoveryEndsAt: null, lastMistake: false, eventSteps: bonus ? 12 : 13,
+    });
+    expect(getRouteStep(cleared.route, 1)).toBe(getRouteStep(before.route, 1));
+    expect(getStageSecondsLeft(cleared, 0)).toBe(0);
+    expect(applyInput(cleared, "forward", 10_000)).toBe(cleared);
+    expect(startGame(cleared, 10_000)).toBe(cleared);
+    expect(tickGame(cleared, 10_000)).toBe(cleared);
+    expect(resumeGameAfterPause(cleared, 10_000, 100_000)).toMatchObject({ status: "game-over", stage: 5, endReason: "cleared", score: cleared.score });
+    expect(applyInput(before, "forward", 9_999)).toEqual(cleared);
+    expect(before).toEqual(snapshot);
+  });
+
+  it.each(STAGE_RULES)("completes a new bonus before stage $stage promotion or clear", (rule) => {
+    const after = applyInput(playingState({
+      stage: rule.stage, stageEndsAt: 10_000, score: rule.targetScore - 1, eventSteps: 29,
+    }), "forward", 1_000);
+    expect(after).toMatchObject({
+      score: rule.targetScore, stepsClimbed: 1, eventEndsAt: 31_000, eventSteps: 0,
+      stage: Math.min(5, rule.stage + 1), endReason: rule.stage === 5 ? "cleared" : null,
+    });
+  });
+
+  it.each(STAGE_RULES)("pauses both deadlines once in stage $stage", (rule) => {
+    const before = playingState({ stage: rule.stage, stageEndsAt: rule.durationMs + 1_000, eventEndsAt: 31_000 });
+    const after = resumeGameAfterPause(before, 11_000, 106_000);
+    expect(after).toMatchObject({ stage: rule.stage, stageEndsAt: rule.durationMs + 96_000, eventEndsAt: 126_000 });
+    expect(getStageSecondsLeft(after, 106_000)).toBe(rule.durationMs / 1000 - 10);
+    expect(resumeGameAfterPause(after, 106_000, 106_000)).toBe(after);
+  });
+
+  it.each(STAGE_RULES)("shows rule duration when stage $stage has no armed deadline", (rule) => {
+    expect(getStageSecondsLeft({ ...createGameState(randomFiveSteps), stage: rule.stage }, 1_000_000)).toBe(rule.durationMs / 1000);
+  });
+
+  it("plays through all promotions and final clear using only real inputs", () => {
+    let state = startGame(createGameState(randomFiveSteps), 1_000);
+    const reached: number[] = [1];
+    for (let action = 0; action < 1_500 && state.status === "playing"; action += 1) {
+      const next = getRouteStep(state.route, state.stepsClimbed + 1);
+      const previousStage = state.stage;
+      const now = 1_000 + action * 10;
+      state = applyInput(state, next.direction === state.direction ? "forward" : "turn", now);
+      if (state.stage !== previousStage) {
+        reached.push(state.stage);
+        expect(state.stageEndsAt).toBe(now + getStageRule(state.stage).durationMs);
+      }
+    }
+    expect(reached).toEqual([1, 2, 3, 4, 5]);
+    expect(state).toMatchObject({ status: "game-over", stage: 5, endReason: "cleared", lives: 3 });
+    expect(state.score).toBeGreaterThanOrEqual(1_500);
+    expect(state.score).toBeLessThanOrEqual(1_501);
+    expect(resetGame(randomFiveSteps)).toMatchObject({ status: "ready", stage: 1, score: 0, stageEndsAt: null });
   });
 });

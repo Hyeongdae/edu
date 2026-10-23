@@ -1,5 +1,6 @@
 import type { ReactElement } from "react";
 import type { GameState } from "./types";
+import { getStageRule } from "./stageRules";
 import { PixelIcon } from "./pixel/PixelIcon";
 
 interface GameHudProps {
@@ -7,11 +8,10 @@ interface GameHudProps {
   eventSecondsLeft: number;
   scoreGain: number | null;
   scoreAnimationKey: number;
-  stageSecondsLeft: number | null;
+  stageSecondsLeft: number;
 }
 
-function formatStageTime(secondsLeft: number | null): string {
-  if (secondsLeft === null) return "제한 없음";
+function formatStageTime(secondsLeft: number): string {
   const totalSeconds = Math.max(0, Math.ceil(secondsLeft));
   return `${String(Math.floor(totalSeconds / 60)).padStart(2, "0")}:${String(totalSeconds % 60).padStart(2, "0")}`;
 }
@@ -19,6 +19,7 @@ function formatStageTime(secondsLeft: number | null): string {
 export function GameHud({ state, eventSecondsLeft, scoreGain, scoreAnimationKey, stageSecondsLeft }: GameHudProps): ReactElement {
   const eventIsActive = state.eventEndsAt !== null;
   const eventProgress = eventIsActive ? 100 : Math.min(100, (state.eventSteps / 30) * 100);
+  const cleared = state.endReason === "cleared";
 
   return (
     <section className="game-hud" aria-label="게임 현황">
@@ -52,8 +53,8 @@ export function GameHud({ state, eventSecondsLeft, scoreGain, scoreAnimationKey,
             <span className="stage-value" data-testid="stage-value">{state.stage}단계</span>
             <span className="hud-label">남은 시간</span>
           </div>
-          <strong className="stage-time" data-testid="stage-time">{formatStageTime(stageSecondsLeft)}</strong>
-          <span className="hud-caption">{state.stage === 1 ? "300점 달성 시 2단계" : "계속 도전 중"}</span>
+          <strong className="stage-time" data-testid="stage-time">{cleared ? "클리어" : formatStageTime(stageSecondsLeft)}</strong>
+          <span className="hud-caption">{cleared ? "모든 단계 클리어" : `목표 ${getStageRule(state.stage).targetScore}점`}</span>
         </div>
       </div>
 

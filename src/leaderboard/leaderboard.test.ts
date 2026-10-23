@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getTopScores, readLeaderboard, saveBestScore, type LeaderboardEntry } from "./leaderboard";
+import type { GameStage } from "../game/types";
 
-const key = "stair-climb:leaderboard:v2";
+const key = "stair-climb:leaderboard:v3";
 const legacyKey = "stair-climb:leaderboard:v1";
+const legacyKeys = [legacyKey, "stair-climb:leaderboard:v2"];
 const storage = () => {
   const values = new Map<string, string>();
   return {
@@ -16,7 +18,7 @@ const storage = () => {
   };
 };
 
-const entry = (accountId: string, bestScore: number, achievedAt: string, bestStage: 1 | 2 = 1): LeaderboardEntry => ({
+const entry = (accountId: string, bestScore: number, achievedAt: string, bestStage: GameStage = 1): LeaderboardEntry => ({
   accountId,
   displayName: accountId,
   bestStage,
@@ -126,9 +128,10 @@ describe("leaderboard storage", () => {
   });
 
   it("deletes only legacy scores and preserves unrelated storage and new records", () => {
-    const records = [entry("new", 350, "2026-01-01", 2)];
+    const records = [entry("new", 1_501, "2026-01-01", 5)];
     const serialized = JSON.stringify(records);
     fakeStorage.setItem(legacyKey, JSON.stringify([{ accountId: "old", bestScore: 9999 }]));
+    fakeStorage.setItem(legacyKeys[1], JSON.stringify([entry("old-v2", 99_999, "2026-01-01", 2)]));
     fakeStorage.setItem(key, serialized);
     fakeStorage.setItem("stair-climb:audio:v1", "audio-sentinel");
     fakeStorage.setItem("msal.account.keys", "auth-sentinel");
@@ -136,8 +139,9 @@ describe("leaderboard storage", () => {
     fakeStorage.setItem.mockClear();
     expect(readLeaderboard(fakeStorage)).toEqual(records);
     expect(readLeaderboard(fakeStorage)).toEqual(records);
-    expect(fakeStorage.removeItem).toHaveBeenCalledExactlyOnceWith(legacyKey);
+    expect(fakeStorage.removeItem.mock.calls).toEqual(legacyKeys.map((oldKey) => [oldKey]));
     expect(fakeStorage.getItem(legacyKey)).toBeNull();
+    expect(fakeStorage.getItem(legacyKeys[1])).toBeNull();
     expect(fakeStorage.getItem(key)).toBe(serialized);
     expect(fakeStorage.getItem("stair-climb:audio:v1")).toBe("audio-sentinel");
     expect(fakeStorage.getItem("msal.account.keys")).toBe("auth-sentinel");
@@ -146,31 +150,33 @@ describe("leaderboard storage", () => {
     expect(fakeStorage.clear).not.toHaveBeenCalled();
   });
 
-  it("starts empty when only legacy scores exist and keeps new records on subsequent reads", () => {
-    fakeStorage.setItem(legacyKey, JSON.stringify([{ accountId: "old", bestScore: 9999 }]));
+  it.each(legacyKeys)("starts empty with only %s and keeps new records on subsequent reads", (oldKey) => {
+    fakeStorage.setItem(oldKey, JSON.stringify([{ accountId: "old", bestScore: 9999 }]));
     fakeStorage.setItem.mockClear();
     expect(readLeaderboard(fakeStorage)).toEqual([]);
-    expect(fakeStorage.getItem(legacyKey)).toBeNull();
+    expect(fakeStorage.getItem(oldKey)).toBeNull();
     expect(fakeStorage.setItem).not.toHaveBeenCalled();
     const result = saveBestScore({ accountId: "new", displayName: "New", bestStage: 1, bestScore: 20 }, fakeStorage);
     expect(result.saved).toBe(true);
     expect(readLeaderboard(fakeStorage)).toEqual(result.entries);
-    expect(fakeStorage.removeItem).toHaveBeenCalledExactlyOnceWith(legacyKey);
+    expect(fakeStorage.removeItem).toHaveBeenCalledExactlyOnceWith(oldKey);
     expect(fakeStorage.setItem).toHaveBeenCalledOnce();
     expect(fakeStorage.setItem.mock.calls[0][0]).toBe(key);
   });
 
-  it("cleans legacy records even when saving directly without an initial read", () => {
-    fakeStorage.setItem(legacyKey, "old scores");
+  it.each(legacyKeys)("cleans %s even when saving directly without an initial read", (oldKey) => {
+    fakeStorage.setItem(oldKey, "old scores");
     fakeStorage.setItem.mockClear();
     expect(saveBestScore({ accountId: "a", displayName: "A", bestStage: 2, bestScore: 350 }, fakeStorage).saved).toBe(true);
-    expect(fakeStorage.getItem(legacyKey)).toBeNull();
+    expect(fakeStorage.getItem(oldKey)).toBeNull();
     expect(fakeStorage.setItem).toHaveBeenCalledOnce();
     expect(readLeaderboard(fakeStorage)[0]).toMatchObject({ bestStage: 2, bestScore: 350 });
   });
 
-  it("does not write a replacement if legacy removal fails and retries when storage recovers", () => {
-    fakeStorage.setItem(legacyKey, "old scores");
+  it.each(legacyKeys)("does not replace records if %s removal fails and retries after recovery", (oldKey) => {
+    fakeStorage.setItem(oldKey, "old scores");
+    const existing = [entry("existing", 1_000, "2026-01-01", 4)];
+    fakeStorage.setItem(key, JSON.stringify(existing));
     const removeNormally = fakeStorage.removeItem.getMockImplementation()!;
     fakeStorage.removeItem.mockImplementation(() => { throw new DOMException("blocked", "SecurityError"); });
     fakeStorage.setItem.mockClear();
@@ -178,13 +184,15 @@ describe("leaderboard storage", () => {
     const incoming = { accountId: "a", displayName: "A", bestStage: 1 as const, bestScore: 1 };
     expect(saveBestScore(incoming, fakeStorage)).toEqual({ entries: [], saved: false, error: "storage-unavailable" });
     expect(fakeStorage.setItem).not.toHaveBeenCalled();
-    expect(fakeStorage.getItem(legacyKey)).toBe("old scores");
+    expect(fakeStorage.getItem(oldKey)).toBe("old scores");
+    expect(fakeStorage.getItem(key)).toBe(JSON.stringify(existing));
     fakeStorage.removeItem.mockImplementation(removeNormally);
     expect(saveBestScore(incoming, fakeStorage).saved).toBe(true);
-    expect(fakeStorage.getItem(legacyKey)).toBeNull();
+    expect(fakeStorage.getItem(oldKey)).toBeNull();
+    expect(readLeaderboard(fakeStorage)).toContainEqual(existing[0]);
   });
 
-  it("reports v2 read failures separately from corrupt JSON", () => {
+  it("reports v3 read failures separately from corrupt JSON", () => {
     fakeStorage.getItem.mockImplementation((item) => {
       if (item === key) throw new DOMException("blocked", "SecurityError");
       return null;
@@ -204,13 +212,13 @@ describe("leaderboard storage", () => {
     });
   });
 
-  it.each([0, 3, "2", undefined, null])("rejects an invalid saved stage without touching storage: %s", (bestStage) => {
+  it.each([0, 6, 1.5, NaN, "2", undefined, null])("rejects an invalid saved stage without touching storage: %s", (bestStage) => {
     const invalid = { accountId: "a", displayName: "A", bestStage, bestScore: 10 } as unknown as Omit<LeaderboardEntry, "achievedAt">;
     expect(() => saveBestScore(invalid, fakeStorage)).toThrow(RangeError);
     expect(fakeStorage.getItem).not.toHaveBeenCalled();
   });
 
-  it.each([0, 3, "2", undefined])("clears v2 with invalid or missing stage without inferring from points: %s", (bestStage) => {
+  it.each([0, 6, 1.5, "2", undefined])("clears v3 with invalid or missing stage without inferring from points: %s", (bestStage) => {
     fakeStorage.setItem(key, JSON.stringify([{ ...entry("a", 999, "2026-01-01"), bestStage }]));
     expect(readLeaderboard(fakeStorage)).toEqual([]);
     expect(fakeStorage.getItem(key)).toBeNull();
@@ -221,6 +229,31 @@ describe("leaderboard storage", () => {
     const last = entry("a", 500, "2026-01-02", 2);
     fakeStorage.setItem(key, JSON.stringify([entry("a", 100, "2026-01-01"), last]));
     expect(readLeaderboard(fakeStorage)).toEqual([last]);
+  });
+
+  it.each([1, 2, 3, 4, 5] as const)("reads and saves stage %s without inferring from its score", (bestStage) => {
+    const result = saveBestScore({ accountId: "a", displayName: "A", bestStage, bestScore: 10 }, fakeStorage, new Date("2026-01-01"));
+    expect(result.saved).toBe(true);
+    expect(readLeaderboard(fakeStorage)).toEqual(result.entries);
+    expect(result.entries[0]).toMatchObject({ bestStage, bestScore: 10 });
+  });
+
+  it("prioritizes stage five and keeps stage/score/timestamp from a single run", () => {
+    const scores = [
+      entry("four", 99_999, "2026-01-01", 4),
+      entry("five-late", 1_501, "2026-01-03", 5),
+      entry("five-early", 1_501, "2026-01-02", 5),
+      entry("five-best", 1_502, "2026-01-04", 5),
+    ];
+    expect(getTopScores(scores).map((item) => item.accountId)).toEqual(["five-best", "five-early", "five-late", "four"]);
+    fakeStorage.setItem(key, JSON.stringify([scores[0]]));
+    const incoming = { accountId: "four", displayName: "New", bestStage: 5 as const, bestScore: 1_500 };
+    const improved = saveBestScore(incoming, fakeStorage, new Date("2026-02-01"));
+    expect(improved.entries).toEqual([{ ...incoming, achievedAt: "2026-02-01T00:00:00.000Z" }]);
+    for (const [stage, score] of [[4, 100_000], [5, 1_499], [5, 1_500]] as const) {
+      const unchanged = saveBestScore({ accountId: "four", displayName: "Changed", bestStage: stage, bestScore: score }, fakeStorage, new Date("2026-03-01"));
+      expect(unchanged.entries).toEqual(improved.entries);
+    }
   });
 
   it.each(["", null, 123])("rejects invalid account IDs before storage access: %s", (accountId) => {

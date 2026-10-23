@@ -1,4 +1,5 @@
 import type { GameStage } from "../game/types";
+import { isGameStage } from "../game/stageRules";
 
 export interface LeaderboardEntry {
   accountId: string;
@@ -14,8 +15,8 @@ export interface SaveBestScoreResult {
   error?: "storage-unavailable";
 }
 
-const STORAGE_KEY = "stair-climb:leaderboard:v2";
-const LEGACY_STORAGE_KEY = "stair-climb:leaderboard:v1";
+const STORAGE_KEY = "stair-climb:leaderboard:v3";
+const LEGACY_STORAGE_KEYS = ["stair-climb:leaderboard:v1", "stair-climb:leaderboard:v2"];
 
 function comparePerformance(
   a: Pick<LeaderboardEntry, "bestStage" | "bestScore">,
@@ -25,7 +26,9 @@ function comparePerformance(
 }
 
 function clearLegacyScores(storage: Storage): void {
-  if (storage.getItem(LEGACY_STORAGE_KEY) !== null) storage.removeItem(LEGACY_STORAGE_KEY);
+  for (const key of LEGACY_STORAGE_KEYS) {
+    if (storage.getItem(key) !== null) storage.removeItem(key);
+  }
 }
 
 function isLeaderboardEntry(value: unknown): value is LeaderboardEntry {
@@ -34,7 +37,7 @@ function isLeaderboardEntry(value: unknown): value is LeaderboardEntry {
   return (
     typeof entry.accountId === "string" && entry.accountId.length > 0 &&
     typeof entry.displayName === "string" &&
-    (entry.bestStage === 1 || entry.bestStage === 2) &&
+    isGameStage(entry.bestStage) &&
     Number.isInteger(entry.bestScore) && (entry.bestScore as number) >= 0 &&
     typeof entry.achievedAt === "string" && !Number.isNaN(Date.parse(entry.achievedAt))
   );
@@ -92,8 +95,8 @@ export function saveBestScore(
   storage?: Storage,
   now = new Date(),
 ): SaveBestScoreResult {
-  if (entry.bestStage !== 1 && entry.bestStage !== 2) {
-    throw new RangeError("bestStage must be 1 or 2.");
+  if (!isGameStage(entry.bestStage)) {
+    throw new RangeError("bestStage must be an integer from 1 to 5.");
   }
   if (!Number.isInteger(entry.bestScore) || entry.bestScore < 0) {
     throw new RangeError("bestScore must be a non-negative integer.");

@@ -1,13 +1,14 @@
-import type { GameInput, GameState } from "./types";
+import type { GameInput, GameStage, GameState } from "./types";
 import { advanceStairRoute, countStraightSteps, createStairRoute, getRouteStep } from "./stairRoute";
+import { getStageRule } from "./stageRules";
 
 const INITIAL_LIVES = 3;
 const INITIAL_PURSUER_DISTANCE = 4;
 const EVENT_STEP_TARGET = 30;
 const EVENT_DURATION_MS = 30_000;
 const RECOVERY_DURATION_MS = 500;
-export const STAGE_ONE_DURATION_MS = 90_000;
-export const STAGE_ONE_TARGET_SCORE = 300;
+export const STAGE_ONE_DURATION_MS = getStageRule(1).durationMs;
+export const STAGE_ONE_TARGET_SCORE = getStageRule(1).targetScore;
 
 function validateTime(nowMs: number): void {
   if (!Number.isFinite(nowMs) || nowMs < 0) {
@@ -56,7 +57,7 @@ export function tickGame(state: GameState, nowMs: number): GameState {
 
   const eventExpired = state.eventEndsAt !== null && nowMs >= state.eventEndsAt;
   const recoveryExpired = state.recoveryEndsAt !== null && nowMs >= state.recoveryEndsAt;
-  const stageExpired = state.status === "playing" && state.stage === 1 &&
+  const stageExpired = state.status === "playing" &&
     state.stageEndsAt !== null && nowMs >= state.stageEndsAt;
   if (!eventExpired && !recoveryExpired && !stageExpired) {
     return state;
@@ -95,11 +96,11 @@ export function resumeGameAfterPause(
   return tickGame(resumed, closedAtMs);
 }
 
-export function getStageSecondsLeft(state: GameState, nowMs: number): number | null {
+export function getStageSecondsLeft(state: GameState, nowMs: number): number {
   validateTime(nowMs);
-  if (state.stage === 2) return null;
-  if (state.endReason === "time-limit") return 0;
-  if (state.stageEndsAt === null) return STAGE_ONE_DURATION_MS / 1000;
+  const rule = getStageRule(state.stage);
+  if (state.endReason === "time-limit" || state.endReason === "cleared") return 0;
+  if (state.stageEndsAt === null) return rule.durationMs / 1000;
   return Math.max(0, Math.ceil((state.stageEndsAt - nowMs) / 1000));
 }
 
@@ -150,8 +151,7 @@ export function applyInput(
   }
 
   const nextScore = currentState.score + (eventIsActive ? 2 : 1);
-  const shouldPromote = currentState.stage === 1 && nextScore >= STAGE_ONE_TARGET_SCORE;
-  return {
+  const movedState: GameState = {
     ...currentState,
     score: nextScore,
     stepsClimbed: nextStepsClimbed,
@@ -162,13 +162,21 @@ export function applyInput(
     recoveryEndsAt: null,
     lastMistake: false,
     route,
-    ...(shouldPromote ? {
-      stage: 2 as const,
-      stageEndsAt: null,
-      lives: INITIAL_LIVES,
-      pursuerDistance: INITIAL_PURSUER_DISTANCE,
-      endReason: null,
-    } : {}),
+  };
+
+  if (nextScore < getStageRule(currentState.stage).targetScore) return movedState;
+  if (currentState.stage === 5) {
+    return { ...movedState, status: "game-over", endReason: "cleared" };
+  }
+
+  const nextRule = getStageRule((currentState.stage + 1) as GameStage);
+  return {
+    ...movedState,
+    stage: nextRule.stage,
+    stageEndsAt: nowMs + nextRule.durationMs,
+    lives: INITIAL_LIVES,
+    pursuerDistance: INITIAL_PURSUER_DISTANCE,
+    endReason: null,
   };
 }
 

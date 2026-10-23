@@ -4,9 +4,9 @@ export type GameInput = "forward" | "turn";
 
 export type GameStatus = "ready" | "playing" | "game-over";
 
-export type GameStage = 1 | 2;
+export type GameStage = 1 | 2 | 3 | 4 | 5;
 
-export type GameEndReason = "caught" | "time-limit";
+export type GameEndReason = "caught" | "time-limit" | "cleared";
 
 export type StairRunLength = 4 | 5 | 6;
 

@@ -130,7 +130,7 @@ export function StairScene({ state, climbAnimationKey, isClimbing, pursuerAnimat
         {state.status === "ready"
           ? "시작하기를 누르고 계단을 올라가세요."
           : state.status === "game-over"
-            ? `게임 종료 · 최종 점수 ${state.score}점`
+            ? `${state.endReason === "cleared" ? "최종 클리어" : "게임 종료"} · 최종 점수 ${state.score}점`
             : state.lastMistake
               ? "앗, 발을 헛디뎠어요! 잠시 숨을 고르세요."
               : atCorner
