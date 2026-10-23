@@ -117,7 +117,7 @@ Task: T01-five-stages-and-ranking
 
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: pending
+- commit: 12a49d3
 ## Validation Results — 2026-10-23
 
 - 지정된 Vitest7파일:192/192통과,7/7파일통과. 실제 명령은 Windows npm.cmd로 실행했으며 청사진의 npm CLI와 동일하다.

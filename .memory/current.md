@@ -1,25 +1,33 @@
 ﻿# Current Context
 
 ## Active Plan
-[Timed Stage Progression](./plans/2026-10-22-timed-stage-progression.md) — completed
+
+[Five Stage Obstacle Jump](./plans/2026-10-23-five-stage-obstacle-jump.md)
 
 ## Active Phase
-[P01 Timed Stages](./phases/2026-10-22-timed-stage-progression/P01-timed-stages/phase.md) — completed
+
+[P01 Five Stage Game](./phases/2026-10-23-five-stage-obstacle-jump/P01-five-stage-game/phase.md)
 
 ## Active Task
-없음. 계획의 모든 작업을 완료했다.
+
+[T02 Route and Obstacle Generation](./phases/2026-10-23-five-stage-obstacle-jump/P01-five-stage-game/T02-route-and-obstacle-generation.md)
 
 ## Last Completed Task
-[T03 Stage HUD and Results](./phases/2026-10-22-timed-stage-progression/P01-timed-stages/T03-stage-hud-and-results.md) — commit `f5ade70`.
+
+[T01 Five Stages and Ranking](./phases/2026-10-23-five-stage-obstacle-jump/P01-five-stage-game/T01-five-stages-and-ranking.md) — commit `12a49d3`.
 
 ## Status
-- T03 및 전체 계획 완료. P01 done: 3/3, Active Task 없음. T01 `1027b1f`, T02 `7349c38`, T03 `f5ade70`.
-- 1단계90초/실제300점 승급, 기회3/거리4 회복, 경로/보너스 보존, 설정 중 두 시계 pause/resume, 무제한2단계가 구현되어 있다. 시간 초과는 입력보다 먼저 판정한다.
-- 점수 옆에 현재 단계와01:30→00:00/제한 없음을 표시한다. 결과에 도달 단계와 시간 초과/잡힘 사유를 표시하며, 일반 최종 잡힘500ms/시간 초과 즉시/reduced-motion 즉시 공개를 유지한다.
-- 단계→점수→이른 달성시각 TOP10과 같은 한 판의 개인 최고 쌍을 v2로 저장한다. 초기 읽기/저장 시 승인된 구형v1 랭킹 키만 정리하며 오디오/인증/다른 키와 유효한v2는 유지한다.
-- 최종 지정 테스트10files/160tests, lint, build 통과. JS530.52kB/gzip148.37kB; 기존500kB chunk 경고는 남아 있다. 전체 저장소 테스트를 실행한 것은 아니다.
-- 로컬 데모의 격리 Chrome 컨텍스트에서320×667/390×667/768×1024/1440×900의 전체 흐름을 확인했다. 320px 글자150%/200%와 긴 점수/무제한 시간은 자연 높이의 모바일 grid와 필요 시 장면 내부 스크롤로 접근 가능하다. 일반 사용자 프로필을 직접 조작하지 않았다.
-- 기존 도움말/App 기대값·옛SVG CSS·bundle 분할 검토는 별도 대상이다. 이번 계획에서 새 범위 밖 제품 결함은 발견하지 않았다.
+
+- P01 done1/5, Active T02 구현 시작 준비. 이번 실행은 T01 한 개만 완료했으며 T02 이후 구현은 시작하지 않았다.
+- T01 구현: 공통 stageRules의5단계90/75/65/60/50초·누적300/600/900/1200/1500점, 모든 단계의 시간 만료, 승급3기회/거리4회복·점수/경로/보너스 유지,5단계 목표 최종 클리어, HUD 목표/시계·결과 이유, 단계1~5 v3랭킹과 승인된 구형v1/v2만 정리.
+- 공통 규칙표에 장애물10/20/30/40/50%와 추격 간격1000/800/600/500/400ms를 준비했으나 아직 동작에 연결하지 않았다. 실제 앱은5단계 제한시간/v3랭킹을 사용하고 계단4~6칸/기존 추격/D·J는 유지한다. 장애물/점프/시간 기반 NPC는 후속 구현이다.
+- T01 검증: 지정된 Vitest7파일192/192통과, lint와TypeScript+Vite빌드 종료코드0. 브라우저 육안/전체App.test.tsx/실제 청취는 수행하지 않았다. 실제 사용자 브라우저 저장소를 도구로 삭제하지 않았으며 새 앱의 읽기/저장 경로에서 구형 랭킹만 정리한다.
+- 후속 확정 경로: 긴5~9 뒤 짧은1~3구간1개/2개 랜덤, 구간마다 방향 전환·인접 짧은 길이 비반복, 장애물은 긴 구간만 최대1개/안전한 내부. 보이는 없음/위치 재추첨 금지.
+- 후속 추격: 별도 실제 인덱스·예정시각, 성공 시 NPC즉시 이동 없음/거리 증가, 오입력500ms 정지/즉시 추가전진 없음, 그동안 정상 추격. 실제 NPC와 최근 이동 출발점까지 경로 보관, 시간순 잡힘·숨김 복귀, 설정은 단계/이벤트/추격 시계 정지.
+- 후속 점프: Space2칸/일반2점·보너스4점/게이지+2, 빈 점프·충돌500ms실수. 모바일 앞으로 / 가까운 방향 바꾸기·점프, 중복 입력·성공 애니메이션 잠금 없음. 랭킹 단계→점수 순과v3/audio/auth/다른키 보존은 유지한다.
+- 남은 작업: T02 경로·보관 API·독립 장애물 기반 → T03 시간 기반 추격·실제 모션 → T04 장애물 표시·충돌·점프 조작 → T05 점프 아크·통합 브라우저 검증.
+- 이전 timed-stage-progression3/3 완료 이력(1027b1f,7349c38,f5ade70,문서c2fe6ca)은 유지한다. 넘어짐 소리 청취 문제/독립 App 기대값·옛 CSS 정리는 별도이고 새로 해결되었다고 보고하지 않는다.
 
 ## Next Step (IMPORTANT)
-추가 실행할 Task가 없다. 로컬 데모 `http://127.0.0.1:5174/`에서 사용자 피드백을 받은 뒤 다음 요구를 정한다. 별도 요청 없이 기존 Task를 다시 실행하거나 범위 밖 정리를 시작하지 않는다.
+
+`/memory-execute` 또는 `current 보고 이어서 해줘` 요청 시 T02 청사진 한 개만 읽고 구현·검증·커밋한다. 긴5~9/짧은1~3 패턴과 구간 메타데이터, 선택적 과거 보관 API, 긴 구간만 안정적으로 결정하는 장애물 모듈을 만든다. 이 단계는 장애물을 GameState/충돌/그림에 연결하거나 독립 추격을 먼저 구현하지 않는다. 통과 후 Task/phase/current를 동기화하고 T03으로 전진한다. T03~T05 또는 별도 소리 문제를 한 번에 실행하지 않는다.
