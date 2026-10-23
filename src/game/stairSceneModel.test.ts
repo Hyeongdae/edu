@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { applyInput, createGameState, startGame } from "./gameEngine";
 import { buildStairSceneModel, projectRouteStep } from "./stairSceneModel";
-import { getRouteStep } from "./stairRoute";
+import { advanceStairRoute, countStraightSteps, getRouteRun, getRouteStep } from "./stairRoute";
 import type { GameState } from "./types";
 
 function climb(state: GameState): GameState {
@@ -21,10 +21,10 @@ describe("stair scene projection", () => {
 
   it("uses each actor's own route direction on opposite sides of a corner", () => {
     let state = startGame(createGameState(() => 0), 0);
-    for (let index = 0; index < 5; index += 1) state = climb(state);
+    for (let index = 0; index < 6; index += 1) state = climb(state);
     let scene = buildStairSceneModel(state);
     expect(scene.player.direction).toBe("left");
-    expect(scene.pursuer).toMatchObject({ index: 1, direction: "right" });
+    expect(scene.pursuer).toMatchObject({ index: 2, direction: "right" });
     const previousPlayerIndex = scene.player.index;
     const previousPursuerIndex = scene.pursuer.index;
     state = climb(state);
@@ -35,10 +35,10 @@ describe("stair scene projection", () => {
 
     state = applyInput(state, "turn", 1_001);
     scene = buildStairSceneModel(state);
-    expect(scene.player.index).toBe(6);
-    expect(scene.pursuer.index).toBe(3);
+    expect(scene.player.index).toBe(7);
+    expect(scene.pursuer.index).toBe(4);
     expect(scene.player.index - scene.pursuer.index).toBe(3);
-    expect(state.score).toBe(6);
+    expect(state.score).toBe(7);
     expect(state.lives).toBe(3);
   });
 
@@ -53,7 +53,7 @@ describe("stair scene projection", () => {
         getRouteStep(state.route, frame.index), getRouteStep(state.route, state.stepsClimbed),
       ));
     }
-    expect(scene.catchFrames[0].x).toBeLessThan(scene.catchFrames[3 + 1].x);
+    expect(scene.catchFrames[0].x).toBeGreaterThan(scene.catchFrames[3 + 1].x);
     expect(scene.catchFrames[6]).toMatchObject({ x: scene.pursuer.x, y: scene.pursuer.y });
   });
 
@@ -61,7 +61,7 @@ describe("stair scene projection", () => {
     let state = startGame(createGameState(() => seed), 0);
     const lengths = new Set<number>();
     const directions = new Set<string>();
-    for (let index = 0; index < 300; index += 1) {
+    for (let index = 0; index < 1_000; index += 1) {
       const scene = buildStairSceneModel(state);
       expect(scene.steps).toHaveLength(11);
       expect(scene.player).toMatchObject({ x: 260, y: 216 });
@@ -77,13 +77,15 @@ describe("stair scene projection", () => {
       }
       expect(scene.player.index - scene.pursuer.index).toBe(state.pursuerDistance);
       directions.add(scene.player.direction);
-      if (state.straightStepsRemaining === 0) {
-        const next = climb(state);
-        lengths.add(next.straightStepsRemaining + 1);
-      }
-      state = climb(state);
+      const nextIndex = state.stepsClimbed + 1;
+      lengths.add(getRouteRun(state.route, nextIndex)!.length);
+      const route = advanceStairRoute(state.route, nextIndex);
+      const direction = getRouteStep(route, nextIndex).direction;
+      // Exercise geometry independently of score limits and bonus clocks.
+      state = { ...state, route, stepsClimbed: nextIndex, direction,
+        straightStepsRemaining: countStraightSteps(route, nextIndex, direction) };
     }
-    expect([...lengths].sort()).toEqual([4, 5, 6]);
+    expect([...lengths].sort((a, b) => a - b)).toEqual([1, 2, 3, 5, 6, 7, 8, 9]);
     expect([...directions].sort()).toEqual(["left", "right"]);
   });
 

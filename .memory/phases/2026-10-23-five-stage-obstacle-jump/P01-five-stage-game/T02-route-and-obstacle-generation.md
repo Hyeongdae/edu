@@ -1,6 +1,6 @@
 ﻿# Task: T02 Route and Obstacle Generation
 
-## Status: in_progress
+## Status: done
 
 ## Goal
 
@@ -112,10 +112,10 @@
 
 ## Acceptance Criteria
 
-- [ ] Both mixed patterns, all allowed lengths, opposite directions and adjacent-short nonrepetition are deterministic.
-- [ ] Requested older history and full run boundaries survive; default API remains compatible.
-- [ ] Only long runs can hold safe/stable obstacles at exact10/20/30/40/50% thresholds.
-- [ ] Existing D/J game and11node projection pass without partially connecting obstacles/independent pursuit.
+- [x] Both mixed patterns, all allowed lengths, opposite directions and adjacent-short nonrepetition are deterministic.
+- [x] Requested older history and full run boundaries survive; default API remains compatible.
+- [x] Only long runs can hold safe/stable obstacles at exact10/20/30/40/50% thresholds.
+- [x] Existing D/J game and11node projection pass without partially connecting obstacles/independent pursuit.
 
 ## Validation
 
@@ -139,6 +139,15 @@ Task: T02-route-and-obstacle-generation
 
 ## Progress
 
-- [ ] 구현 완료
-- [ ] 검증 통과
+- [x] 구현 완료
+- [x] 검증 통과
 - commit: pending
+## Validation Results — 2026-10-23
+
+- 지정 Vitest6파일:202/202tests,6/6파일 통과. 실제 Windows명령은 npm.cmd이며 청사진 npm CLI와 동일하다.
+- `npm run lint`: 종료코드0.
+- `npm run build`: 최종 종료코드0, TypeScript+Vite 통과(206modules, JS533.75kB/gzip149.36kB). 최초TS7053은 Array.isArray 검사 후 구간 타입 추론 문제였고 로컬 StairRouteRun 타입 명시로 해결했다.
+- 빌드의500kB초과 청크 경고는 남아 있다. 기능 오류와 구분하며 분할/경고 한도 변경은 수행하지 않았다.
+- 긴5~9/짧은1~3의 두 패턴, 정확한LCG추첨 순서/단일초기난수, 연속J, 과거 보관·원래 구간 경계, 긴 구간만10~50% 안전한 단일 장애물/없는 결정도 보관/단계 변경과재생 안정성을 검증했다.
+- 장애물 상태는 실제 게임/충돌/렌더에 아직 연결하지 않았고 현재 입력은D/J, 추격은 기존 방식이다. 브라우저 육안·전체App.test.tsx·실제 음원 청취는 실행하지 않았다.
+- 새 인접 결함 발견 없음. 기존 넘어짐 소리 문제/독립 App 기대값·옛 CSS 정리는 별도로 유지한다.

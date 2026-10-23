@@ -14,7 +14,7 @@ import type { GameState } from "./types";
 import { countStraightSteps, getRouteStep } from "./stairRoute";
 import { getStageRule, STAGE_RULES } from "./stageRules";
 
-const randomFiveSteps = () => 0.5;
+const randomFiveSteps = () => 0;
 
 function playingState(overrides: Partial<GameState> = {}): GameState {
   return { ...startGame(createGameState(randomFiveSteps), 0), ...overrides };
@@ -44,8 +44,9 @@ describe("createGameState", () => {
   });
 
   it.each([
-    [0, 4],
-    [0.999, 6],
+    [0, 5],
+    [0.5, 7],
+    [0.999, 9],
   ])("includes the %i random boundary and returns %i steps", (value, expected) => {
     expect(createGameState(() => value).straightStepsRemaining).toBe(expected);
   });

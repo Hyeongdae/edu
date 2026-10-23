@@ -8,7 +8,9 @@ export type GameStage = 1 | 2 | 3 | 4 | 5;
 
 export type GameEndReason = "caught" | "time-limit" | "cleared";
 
-export type StairRunLength = 4 | 5 | 6;
+export type StairRunLength = 1 | 2 | 3 | 5 | 6 | 7 | 8 | 9;
+
+export type StairRunKind = "long" | "short";
 
 export interface StairRouteStep {
   index: number;
@@ -18,10 +20,34 @@ export interface StairRouteStep {
 
 export interface StairRoute {
   steps: readonly StairRouteStep[];
+  runs: readonly StairRouteRun[];
   rngState: number;
   tailDirection: Direction;
   tailRunLength: StairRunLength;
+  tailRunKind: StairRunKind;
   tailStepsRemaining: number;
+  tailShortRunsRemaining: 0 | 1;
+}
+
+export interface StairRouteRun {
+  startIndex: number;
+  length: StairRunLength;
+  direction: Direction;
+  kind: StairRunKind;
+}
+
+export interface StairObstacleRun {
+  runStartIndex: number;
+  runLength: StairRunLength;
+  kind: StairRunKind;
+  direction: Direction;
+  stageAtGeneration: GameStage;
+  obstacleIndex: number | null;
+}
+
+export interface StairObstacleState {
+  rngState: number;
+  runs: readonly StairObstacleRun[];
 }
 
 export interface GameState {

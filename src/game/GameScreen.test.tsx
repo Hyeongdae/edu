@@ -219,20 +219,26 @@ describe("GameScreen controls", () => {
     expect(young()).toHaveAttribute("data-officer-pose", "idle");
     expect(older()).toHaveAttribute("data-officer-pose", "idle");
 
-    for (let step = 0; step < 4; step += 1) {
+    for (let step = 0; step < 5; step += 1) {
       fireEvent.keyDown(window, { key: "d" });
     }
     expect(runner()).toHaveClass("is-climbing");
-    expect(runner()).toHaveAttribute("data-step-count", "4");
-    expect(runner()).toHaveAttribute("data-motion-key", "4");
+    expect(runner()).toHaveAttribute("data-step-count", "5");
+    expect(runner()).toHaveAttribute("data-motion-key", "5");
     expect(young()).toHaveAttribute("data-officer-pose", "climb");
     expect(older()).toHaveAttribute("data-officer-pose", "climb");
 
     fireEvent.keyDown(window, { key: "j" });
-    expect(runner()).toHaveAttribute("data-step-count", "5");
-    expect(runner()).toHaveAttribute("data-motion-key", "5");
+    expect(runner()).toHaveAttribute("data-step-count", "6");
+    expect(runner()).toHaveAttribute("data-motion-key", "6");
     expect(runner()).toHaveClass("is-climbing");
     expect(young()).toHaveAttribute("transform", "scale(-1 1)");
+
+    // The short run is one stair, so J is correct again immediately.
+    fireEvent.keyDown(window, { key: "j" });
+    expect(runner()).toHaveAttribute("data-step-count", "7");
+    expect(runner()).toHaveAttribute("data-motion-key", "7");
+    expect(young()).toHaveAttribute("transform", "scale(1 1)");
 
     fireEvent.keyDown(window, { key: "j" });
     expect(runner()).toHaveClass("is-falling");
@@ -308,7 +314,7 @@ describe("GameScreen controls", () => {
     vi.spyOn(Math, "random").mockReturnValue(0);
     render(<GameScreen account={account} />);
     fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
-    for (let index = 1; index <= 5; index += 1) {
+    for (let index = 1; index <= 6; index += 1) {
       const nextStair = screen.getAllByTestId("stair-step").find((step) => step.getAttribute("data-route-index") === String(index))!;
       const direction = nextStair.getAttribute("data-direction");
       climbOneStep();
@@ -321,12 +327,15 @@ describe("GameScreen controls", () => {
     }
     expect(screen.getByTestId("runner")).toHaveAttribute("data-direction", "left");
     expect(screen.getByTestId("pursuer")).toHaveAttribute("data-direction", "right");
-    // The first run is four stairs, the new run is five; J already consumed one.
-    expect(screen.getByTestId("route-direction")).toHaveTextContent("4칸 더 올라가세요");
-    for (let step = 0; step < 4; step += 1) climbOneStep();
-    expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "5");
-    expect(screen.getByTestId("pursuer")).toHaveAttribute("data-direction", "left");
+    // One short turning stair is already complete; the next J starts the long run.
     expect(screen.getByTestId("route-direction")).toHaveTextContent("지금 방향을 바꾸세요");
+    climbOneStep();
+    expect(screen.getByTestId("runner")).toHaveAttribute("data-direction", "right");
+    expect(screen.getByTestId("route-direction")).toHaveTextContent("8칸 더 올라가세요");
+    for (let step = 0; step < 3; step += 1) climbOneStep();
+    expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "6");
+    expect(screen.getByTestId("pursuer")).toHaveAttribute("data-direction", "left");
+    expect(screen.getByTestId("route-direction")).toHaveTextContent("5칸 더 올라가세요");
   });
 
   it("replays every mistake at the recovery boundary even when lastMistake stays true", () => {
@@ -344,7 +353,7 @@ describe("GameScreen controls", () => {
       // Do not run intervals: applyInput itself expires the previous recovery.
       const previousPose = screen.getByTestId("runner-pose");
       vi.setSystemTime(1_000 + mistake * 500);
-      fireEvent.keyDown(window, { key: "j" });
+      fireEvent.keyDown(window, { key: nextClimbKey() === "d" ? "j" : "d" });
       expect(screen.getByTestId("runner-pose")).not.toBe(previousPose);
       expect(audio.playFall).toHaveBeenCalledTimes(mistake);
       expect(screen.getByTestId("pursuer")).toHaveAttribute("data-motion-key", String(6 + mistake));
@@ -357,7 +366,7 @@ describe("GameScreen controls", () => {
     expect(pursuer).toHaveClass("is-caught");
     expect(pursuer).toHaveAttribute("data-route-index", "2");
     expect(pursuer.parentElement).toHaveClass("catch-overlay");
-    expect(pursuer.style.getPropertyValue("--catch-x-1")).toBe("0%");
+    expect(pursuer.style.getPropertyValue("--catch-x-1")).toBe(`${68 / 520 * 100}%`);
     expect(pursuer.style.getPropertyValue("--catch-x-4")).toBe(`${68 / 520 * 100}%`);
     expect(Number.parseFloat(pursuer.style.getPropertyValue("--catch-y-1"))).toBeCloseTo(-28);
     expect(pursuer.style.getPropertyValue("--catch-facing-1")).toBe("-1");
