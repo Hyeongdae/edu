@@ -1,6 +1,6 @@
-﻿# Task: T05 Jump Motion and Validation
+# Task: T05 Jump Motion and Validation
 
-## Status: pending
+## Status: in_progress
 
 ## Goal
 

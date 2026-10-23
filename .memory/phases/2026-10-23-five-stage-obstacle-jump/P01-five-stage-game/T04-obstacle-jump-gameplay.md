@@ -153,7 +153,7 @@ Task: T04-obstacle-jump-gameplay
 
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: pending
+- commit: 7a61ed2
 
 ## Validation Results — 2026-10-23
 
