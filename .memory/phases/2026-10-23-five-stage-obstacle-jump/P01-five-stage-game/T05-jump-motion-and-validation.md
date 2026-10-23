@@ -138,7 +138,7 @@ Task: T05-jump-motion-and-validation
 
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: pending
+- commit: e369a28
 
 ## Validation Results — 2026-10-23
 

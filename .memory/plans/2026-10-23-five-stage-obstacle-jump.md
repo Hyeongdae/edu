@@ -1,6 +1,7 @@
 # Plan: Five Stage Obstacle Jump
 
 - Date: 2026-10-23
+- Status: completed
 - Revision: 시간 기반 독립 추격과 긴/짧은 구간 혼합 반영. 이전 4개 Task 초안은 미구현 상태에서 아래 5개로 대체한다.
 
 ## Goal
@@ -17,7 +18,7 @@
 
 | Phase | Status | Summary | Blueprint |
 | :--- | :--- | :--- | :--- |
-| P01 | in_progress | 5단계·랭킹, 경로·장애물 기반, 독립 추격, 점프 조작, 모션·검증 | [P01](../phases/2026-10-23-five-stage-obstacle-jump/P01-five-stage-game/phase.md) |
+| P01 | done ✅ | 5단계·랭킹, 경로·장애물 기반, 독립 추격, 점프 조작, 모션·검증 | [P01](../phases/2026-10-23-five-stage-obstacle-jump/P01-five-stage-game/phase.md) |
 
 ## Task Roadmap and Cohesion
 
@@ -71,5 +72,5 @@
 
 ## Progress
 
-- done: 4/5 (active: T05). T01:12a49d3(192tests), T02:7d1f426(202tests), T03:42dab25(298tests), T04:7a61ed2(335tests), 각 지정검증/lint/build 통과.
-- 5단계/최종 클리어/HUD/v3랭킹, 긴·짧은 경로/장애물과 시간 기반 추격·경로 보존·잡힘/독립 모션, 상자 표시/충돌/Space·모바일2칸 점프/2·4점 피드백까지 구현 완료. 전용 점프 아크/전체 브라우저 검증은 T05다. T04는 기존300ms 일반 오르기 피드백을 사용하며 별도 소리 청취 문제/번들 경고는 남아 있다.
+- done: 5/5 (active: none), completed. T01:12a49d3(192tests), T02:7d1f426(202tests), T03:42dab25(298tests), T04:7a61ed2(335tests), T05:e369a28(352tests), 각 지정검증/lint/build 통과.
+- 5단계/최종 클리어/HUD/v3랭킹, 긴·짧은 경로/장애물과 시간 기반 추격·경로 보존·잡힘/독립 모션, 상자 표시/충돌/Space·모바일2칸 점프/2·4점 피드백까지 구현 완료. T05에서 clip밖 좌우300ms 점프와 단일 전경sprite/모션감소를 완성했다. 모바일 자동높이 조작/내부스크롤로320px 확대글자 겹침을 수정했고 네viewport 전체5단계·별도 실제시간 추격/문서중지·랭킹/오류/모바일을 격리브라우저에서 검증했다. 방식/증거/제어시각과 실제시간 구분은 T05 Validation Results에 있다. 별도 소리 청취 문제/번들 경고는 남아 있다.

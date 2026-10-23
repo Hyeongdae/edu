@@ -2,34 +2,45 @@
 
 ## Active Plan
 
-[Five Stage Obstacle Jump](./plans/2026-10-23-five-stage-obstacle-jump.md)
+없음. 최근 완료: [Five Stage Obstacle Jump](./plans/2026-10-23-five-stage-obstacle-jump.md).
 
 ## Active Phase
 
-[P01 Five Stage Game](./phases/2026-10-23-five-stage-obstacle-jump/P01-five-stage-game/phase.md)
+없음. 완료: [P01 Five Stage Game](./phases/2026-10-23-five-stage-obstacle-jump/P01-five-stage-game/phase.md).
 
 ## Active Task
 
-[T05 Jump Motion and Validation](./phases/2026-10-23-five-stage-obstacle-jump/P01-five-stage-game/T05-jump-motion-and-validation.md)
+없음 — P01 done5/5, 계획 completed.
 
 ## Last Completed Task
 
-[T04 Obstacle Jump Gameplay](./phases/2026-10-23-five-stage-obstacle-jump/P01-five-stage-game/T04-obstacle-jump-gameplay.md) — commit `7a61ed2`.
+[T05 Jump Motion and Validation](./phases/2026-10-23-five-stage-obstacle-jump/P01-five-stage-game/T05-jump-motion-and-validation.md) — commit `e369a28`.
+
+## Completed Implementation History
+
+| Task | Implementation commit | Validation |
+| :--- | :--- | :--- |
+| T01 Five Stages and Ranking | `12a49d3` | 지정7파일192tests/lint/build |
+| T02 Route and Obstacle Generation | `7d1f426` | 지정6파일202tests/lint/build |
+| T03 Timed Pursuer | `42dab25` | 지정10파일298tests/lint/build |
+| T04 Obstacle Jump Gameplay | `7a61ed2` | 지정12파일335tests/lint/build |
+| T05 Jump Motion and Validation | `e369a28` | 지정14파일352tests/lint/build + 격리브라우저 |
+
+이전 계획/결정/개별 Task의 완료 이력을 보존한다. 이번 실행은 T05 한 개를 구현·검증·커밋했다.
 
 ## Status
 
-- P01 done4/5, Active T05 구현 시작 준비. 이번 실행은 T04 한 개만 완료했다. T01:12a49d3, T02:7d1f426, T03:42dab25, T04:7a61ed2 이력을 유지한다.
-- 현재 실제 앱:5단계90/75/65/60/50초·누적300/600/900/1200/1500점/최종 클리어, 긴5~9 뒤 짧은1~3구간1개 또는2개 랜덤, D/J/Space와 모바일3버튼 조작·보이는 상자/충돌/2칸 점프, 시간 기반 독립 추격, 단계→점수 v3랭킹이다. 승급3기회/거리4회복·점수/보너스 유지, 구형v1/v2만 정리/audio/auth/다른 키 보존을 유지한다.
-- T03 상태: pursuerIndex 실제 위치, pursuerDistance=stepsClimbed-pursuerIndex 캐시, nextPursuerStepAt 절대 예정시각, lastPursuerMove={fromIndex,toIndex,atMs}, captureCount/captureEndsAt. 모든 단계1000/800/600/500/400ms마다 한 실제 계단을 전진하며 성공 입력은 NPC를 즉시 이동시키지 않고 거리를 늘린다.
-- 오입력은500ms 제자리 정지만 벌점이며 즉시NPC전진 없음. 시간 추격은 정상 진행한다. 실제 잡힘에만 기회1회를 차감하고 NPC를플레이어-4로 재배치·온전한 새 간격을 센다. 잡힘500ms 회복 중에도 추격하며5단계는400ms후 한 칸 전진한다. 기회0이면 caught종료/최종 기록1회 저장이다.
-- tick은 절대 예정시각순으로 모든 실제 경과를 재현하고 정확히 같은 시각에는 단계 만료가 NPC/입력보다 우선한다. 이전 시각의 fatal catch는 나중 stage deadline으로 바꾸지 않는다. 설정은 단계/보너스/추격 시계를 함께 보정하고 회복·잡힘 공개는 경과한다. 일반 숨김 탭은 시간 흐름/복귀 잡힘을 반영한다.
-- 경로는 최소 player-4/NPC/최근NPC이동출발점까지 보관한다. 장면 기본11칸과 논리 경로 보관량은 다르다. 실제 화면 밖 NPC는 가짜로 표시하지 않고 실제 인덱스/거리만 유지한다. 보이는 과거NPC에는 실제 계단을 추가하고 자체 코너 방향/clip밖240ms전진과 captureCount 기반500ms잡힘을 표시한다.
-- GameScreen의 NPC key/활성은 lastPursuerMove.atMs와 시각에서 계산한다. 타이머 callback만 시각 상태를 갱신해 lint를 통과하며 플레이어300ms 모션과 간섭하지 않는다. 발소리는 성공입력당1회, 넘어짐 소리는 실제 오입력만이며 시간 잡힘에는 새 넘어짐 소리를 호출하지 않는다. 스피커 청취 문제 해결은 별도다.
-- GameState.obstacles/lastMove를 연결했다. 긴 구간만10/20/30/40/50%·최대1개·안전한 내부, 짧은 구간null, 없는 결정까지 보관·재추첨 금지. PixelObstacle 상자와 실제 판정은 같은 상태를 읽는다. 다음 상자에서 Space는같은방향두칸/일반2점·보너스4점/게이지+2/거리+2이며 NPC는 즉시이동하지 않는다. 빈 점프·상자 충돌·코너 점프는 기존500ms 실수다.
-- T03 검증: 지정Vitest10파일298/298tests, lint와TypeScript/Vite빌드 종료코드0. 최종JS537.79kB/gzip150.41kB,500kB초과 청크 경고가 남아 있다. 실제 브라우저/reduced-motion 육안/전체App.test.tsx/스피커 청취는 실행하지 않았다.
-- T04 검증: 지정12파일335/335tests, lint와TypeScript/Vite빌드 종료코드0. 실제 생성기 seeded500입력/다중승급·결정 객체 보존, 예정잡힘/만료 우선·게이지28/29·목표초과·단일포인터/Space보호·빠른후속입력·피드백/저장1회/오디오호출을 검증했다. timedPursuit 회귀도 test-only 장애물 fixture로 격리했다. JS542.45kB/gzip151.79kB·500kB경고는 별도. 현재 점프는 기존300ms 일반 오르기 모션을 사용한다. T05는 전용 공중 아크·빠른 후속 입력·모바일/확대·실제 추격 포함 전체 브라우저 검증이다.
-- 이전 계획 완료 이력과 별도 넘어짐 소리 청취 문제를 유지한다. 독립 App 기대값·옛 CSS·번들 분할 정리를 임의로 합치지 않는다.
+- 2026-10-23 five-stage-obstacle-jump 계획 완료. 단계90/75/65/60/50초·누적300/600/900/1200/1500점/최종클리어, 긴5~9 뒤 짧은1~3 구간1개 또는2개 랜덤, 긴구간만10/20/30/40/50%의안전한상자, 단계→점수v3랭킹이다. D한칸/J회전하며한칸/Space상자너머두칸, 모바일 앞으로 / 가까운방향바꾸기·점프다.
+- 장애물 상태의 hit/null 결정은 안정적으로 보존하고 표시/충돌을 공유한다. 일반점프2점/보너스4점/이벤트게이지+2,30계단30초보너스이며 중간에 새 배율을 적용하지 않는다. 승급3기회·거리4회복/점수·보너스유지, 최종실제점수/단계쌍을1회저장한다. v1/v2만정리하고v3/audio/auth/다른키보존이다.
+- 추격자는 실제 pursuerIndex/nextPursuerStepAt으로1000/800/600/500/400ms마다한계단을전진한다. 성공은거리만늘리고오입력은500ms정지만있다. 실제잡힘에만기회차감/NPC플레이어-4재배치/새예정시각이다. 회복중에도정상추격하며3회잡히면caught종료한다. tick은시간순이며동시단계만료가NPC/입력보다우선하고이전fatalcatch는보존한다.
+- 설정은단계/보너스/NPC시계를함께보정하고회복·미용모션은경과한다. 일반숨김/문서중지복귀는실제경과를반영한다. 경로는플레이어뒤4칸과실제NPC/최근이동출발점까지보관한다. 기본11칸장면과논리보관량은다르며화면밖NPC는실제거리metadata만남는다.
+- T05 SceneJump는lastMove의실제두계단출발/착지를검증·투영한다. 우출발(192,272)/좌출발(328,272),착지(260,216). runner-motion은feetclip바깥300ms포물선이며jump-overlay한sprite/착지전경으로상자를넘는다. 점프중상자보존,다음D/J/Space즉시교체,실수/잡힘/종료/재시작시취소다. NPC240ms와플레이어300ms타이머는독립이다. 모션감소에서는정적idle이다.
+- 모바일frame은스크롤게임장면/자동높이조작/footer의grid다. 확대150/200%에서필요한내부스크롤을허용하고상자안내/버튼/재시작을분리했다. 세터치버튼56px이상, turn/jump4px vs forward/group12px, desktop>=721px숨김이다.
+- 최종검증: 지정14파일352/352tests,lint,TypeScript/Vite208modules빌드통과. CSS53.81kB/gzip10.57kB,JS543.45kB/gzip152.03kB.500kB초과청크경고가남아있다. 전체App.test.tsx/별도CSS정리/번들분할은범위밖이다.
+- 격리Chrome156 CDP의disposeOnDetach전용context에서320×667/390×667/768×1024/1440×900의실제입력전체5단계·1회저장·재시작,320px root24/32px·상자안내/터치/설정/랭킹/좌우모션·모션감소를검증했다. 전체진행만seed0.5/Date.now고정으로가속했고실제시간추격은별도였다. 약12054ms무입력3잡힘/정상결과500ms가림,12.2초실제lifecycle중지복귀,제어시각5간격/정확한동시마감/95초설정정지/시간·잡힘중점프/최종점프/저장실패·sentinel보존을확인했다.
+- 임시driver/최종PASS JSON/PNG는 `C:/Users/DEX/AppData/Local/Temp/stair-five-stage-t05/`에있고검증방식·실제수치·한계는T05의Validation Results에기록했다. 일반브라우저profile/사용자저장소를초기화하지않았으며각자소유한context를정리했다. 로컬데모개발서버 `http://localhost:5173/`는응답200확인했다.
+- 발소리는성공입력당1회,넘어짐호출은실제실수만이다. 스피커청취는검증하지않았다. [별도 넘어짐 소리 문제](./decisions/2026-10-23-fall-sound-playback-fix.md)는후속요청대상이다. 기존Entra로그인경계/오디오설정/이전계획이력은유지했다.
 
 ## Next Step (IMPORTANT)
 
-`/memory-execute` 또는 `current 보고 이어서 해줘` 요청 시 T05 청사진 한 개만 읽고 구현·검증·커밋한다. T04의 안정된 상자/점프2칸·2/4점/키보드·모바일3버튼 계약과 T03의 시간순 독립 추격을 유지하며 전용 점프 아크/포즈/겹침을 완성한다. 현재 빠른 입력에 잠금이 없고 점프 상자는300ms 일반 오르기 동안 보존된다. 이 상태에서 전체5단계/랭킹/실제 경과 추격·숨김 복귀/반응형·확대·reduced-motion을 격리 브라우저로 검증한다. T05 전에는 전용 공중 모션·실제 브라우저 완료를 주장하지 않는다. 별도 넘어짐 소리 청취 문제와 독립 App 기대값/옛 CSS/번들 분할을 합치지 않는다. 최종 통과 후 Task/phase/current/plan을 완료한다.
+현재 실행할 Active Task는 없다. 사용자가 테스트 결과나 새 변경을 요청하면 해당 요구를 확인하고 필요한 결정/새계획을 만든다. 완료된 T05를 다시 실행하지 않는다. 별도 넘어짐 소리 청취 문제·App 기대값·옛CSS·번들분할·Entra설정/배포는새요청의범위를확인해서진행한다.
