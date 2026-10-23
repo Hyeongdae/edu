@@ -141,7 +141,7 @@ Task: T02-route-and-obstacle-generation
 
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: pending
+- commit: 7d1f426
 ## Validation Results — 2026-10-23
 
 - 지정 Vitest6파일:202/202tests,6/6파일 통과. 실제 Windows명령은 npm.cmd이며 청사진 npm CLI와 동일하다.

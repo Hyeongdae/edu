@@ -1,6 +1,6 @@
 ﻿# Task: T03 Timed Pursuer
 
-## Status: pending
+## Status: in_progress
 
 ## Goal
 
