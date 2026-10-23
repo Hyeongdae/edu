@@ -2,7 +2,7 @@ import type { ReactElement } from "react";
 import type { Direction } from "../types";
 
 export type OfficerVariant = "young" | "older";
-export type OfficerPose = "idle" | "climb" | "fall";
+export type OfficerPose = "idle" | "climb" | "fall" | "jump";
 type OfficerFrame = "idle" | "run-a" | "run-b" | "stumble";
 
 interface PixelOfficerProps {

@@ -370,9 +370,9 @@
 @media (max-width: 720px) {
   .stair-game.pixel-theme { --scene-top: 3rem; --scene-bottom: calc(72px + 6rem); padding: 0; }
   .stair-game.pixel-theme[data-game-status="ready"] { --scene-bottom: calc(96px + 6rem); }
-  .stair-game.pixel-theme .game-frame { border-width: 0; box-shadow: none; }
+  .stair-game.pixel-theme .game-frame { display: grid; grid-template-rows: minmax(0, 1fr) max-content max-content; gap: 8px; padding-bottom: var(--pixel-safe-bottom); border-width: 0; box-shadow: none; }
   /* Let enlarged HUD text push the scene down; keep controls outside this scroller. */
-  .stair-game.pixel-theme .game-stage { display: grid; grid-template-rows: max-content minmax(0, 1fr); gap: 8px; padding-top: 8px; overflow: auto; overscroll-behavior: contain; }
+  .stair-game.pixel-theme .game-stage { position: relative; inset: auto; display: grid; grid-template-rows: max-content minmax(0, 1fr); gap: 8px; padding-top: 8px; overflow: auto; overscroll-behavior: contain; }
   .stair-game.pixel-theme .game-layout { position: relative; inset: auto; min-height: calc(var(--scene-top) + 200px + var(--scene-bottom)); }
   .stair-game.pixel-theme .pixel-scene-stage { overflow: visible; }
   .stair-game.pixel-theme .office-backdrop { top: auto; bottom: 0; height: 100dvh; }
@@ -401,12 +401,12 @@
   .stair-game.pixel-theme .scene-heading .hud-label { display: none; }
   .stair-game.pixel-theme .route-direction { font-size: 0.75rem; }
   .stair-game.pixel-theme .direction-pill { gap: 4px; padding: 6px; font-size: 0.65rem; }
-  .stair-game.pixel-theme .scene-hint { bottom: calc(40px + 4.5rem + var(--pixel-safe-bottom)); font-size: 0.75rem; }
-  .stair-game.pixel-theme[data-game-status="ready"] .scene-hint { bottom: calc(60px + 4.5rem + var(--pixel-safe-bottom)); }
-  .stair-game.pixel-theme .game-frame > .start-button { bottom: calc(12px + 1.8rem + var(--pixel-safe-bottom)); }
-  .stair-game.pixel-theme .game-controls { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); bottom: calc(12px + 1.8rem + var(--pixel-safe-bottom)); }
-  .stair-game.pixel-theme .control-button { padding: 8px; gap: 7px; font-size: 0.85rem; }
-  .stair-game.pixel-theme .game-footer { bottom: calc(2px + var(--pixel-safe-bottom)); font-size: 0.6rem; }
+  .stair-game.pixel-theme .scene-hint { bottom: 8px; font-size: 0.75rem; }
+  .stair-game.pixel-theme[data-game-status="ready"] .scene-hint { bottom: 24px; }
+  .stair-game.pixel-theme .game-frame > .start-button { position: relative; inset: auto; justify-self: center; margin: 0 12px; transform: none; }
+  .stair-game.pixel-theme .game-controls { position: static; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); margin: 0 auto; }
+  .stair-game.pixel-theme .control-button { flex-direction: column; padding: 8px; gap: 4px; font-size: 0.85rem; }
+  .stair-game.pixel-theme .game-footer { position: static; margin: 0 12px 2px; font-size: 0.6rem; }
   .stair-game.pixel-theme .desktop-control-hint { display: none; }
   .stair-game.pixel-theme .mobile-control-hint { display: inline; }
   .stair-game.pixel-theme .settings-backdrop { padding: 12px; }
@@ -426,6 +426,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .stair-game.pixel-theme .runner-motion.is-jumping { animation: none; transform: none; }
   .stair-game.pixel-theme .pursuer-motion.is-moving { animation: none; transform: none; }
   .stair-game.pixel-theme .runner-pose,
   .stair-game.pixel-theme .runner.is-climbing .runner-pose,

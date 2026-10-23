@@ -1008,10 +1008,12 @@ describe("GameScreen obstacle gameplay", () => {
     expect(audio.playFootstep).toHaveBeenCalledOnce();
     expect(audio.playFall).not.toHaveBeenCalled();
     expect(screen.getByTestId("stair-obstacle")).toBeInTheDocument();
-    expect(screen.getByTestId("runner")).toHaveClass("is-climbing");
+    expect(screen.getByTestId("runner")).toHaveClass("is-jumping");
     await act(async () => { await vi.advanceTimersByTimeAsync(300); });
     expect(screen.queryByTestId("stair-obstacle")).not.toBeInTheDocument();
     expect(screen.getByTestId("runner")).not.toHaveClass("is-climbing");
+    expect(screen.getByTestId("runner")).not.toHaveClass("is-jumping");
+    expect(document.querySelector(".jump-overlay")).toBeNull();
     await act(async () => { await vi.advanceTimersByTimeAsync(400); });
     expect(screen.queryByTestId("score-gain")).not.toBeInTheDocument();
   });
@@ -1098,7 +1100,7 @@ describe("GameScreen obstacle gameplay", () => {
     fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
     fireEvent.keyDown(window, { key: "d" });
     fireEvent.keyDown(window, { key: " ", code: "Space" });
-    expect(screen.getByTestId("runner")).toHaveClass("is-climbing");
+    expect(screen.getByTestId("runner")).toHaveClass("is-jumping");
     vi.setSystemTime(7_000);
     fireEvent.keyDown(window, { key: " ", code: "Space" });
     expect(screen.getByText("추격자에게 잡혔어요")).toBeInTheDocument();
@@ -1108,6 +1110,119 @@ describe("GameScreen obstacle gameplay", () => {
     expect(audio.playFootstep).toHaveBeenCalledTimes(2);
     expect(audio.playFall).not.toHaveBeenCalled();
     await act(async () => { await vi.advanceTimersByTimeAsync(1_000); });
+    expect(save).toHaveBeenCalledOnce();
+  });
+});
+
+describe("dedicated jump animation lifecycle", () => {
+  afterEach(() => { cleanup(); window.localStorage.clear(); vi.useRealTimers(); });
+  function readyAt(index = 1, overrides: Partial<GameState> = {}): GameState {
+    let state = gameEngine.startGame(createGameState(() => 0), 0);
+    while (state.stepsClimbed < index) {
+      state = gameEngine.applyInput(state, getRouteStep(state.route, state.stepsClimbed + 1).direction === state.direction ? "forward" : "turn", 0);
+    }
+    return withObstacle(withPursuitAt({ ...state, ...overrides, status: "ready", stageEndsAt: null }, 0), index + 1);
+  }
+  function startAt(state: GameState): void {
+    vi.spyOn(gameEngine, "createGameState").mockReturnValue(state);
+    render(<GameScreen account={account} />);
+    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    fireEvent.keyDown(window, { key: " ", code: "Space" });
+  }
+
+  it.each([[1, "-68px"], [21, "68px"]])("moves the outer wrapper from the real takeoff %s outside its clip and above boxes", (index, x) => {
+    vi.useFakeTimers(); vi.setSystemTime(0); startAt(readyAt(index));
+    const runner = screen.getByTestId("runner");
+    const motion = screen.getByTestId("runner-motion");
+    expect(runner).toHaveClass("is-jumping");
+    expect(runner).not.toHaveClass("is-climbing");
+    expect(runner).toHaveAttribute("transform", "translate(260 216)");
+    expect(runner).toHaveAttribute("data-motion-kind", "jump");
+    expect(runner.parentElement).toHaveClass("jump-overlay");
+    expect(motion.style.getPropertyValue("--jump-x")).toBe(x);
+    expect(motion.style.getPropertyValue("--jump-y")).toBe("56px");
+    expect(motion.querySelector('[clip-path]')).toBeInTheDocument();
+    expect(motion.closest('[clip-path]')).toBeNull();
+    expect(motion.querySelector('[data-officer-pose="jump"]')).toBeInTheDocument();
+    expect(screen.getAllByTestId("runner")).toHaveLength(1);
+    expect(screen.queryAllByTestId("pursuer").length).toBeLessThanOrEqual(1);
+    expect(runner.parentElement?.lastElementChild).toHaveClass("stair-front");
+  });
+
+  it("replaces jump with immediate climb, turn and a later jump using new wrappers and keys", () => {
+    vi.useFakeTimers(); vi.setSystemTime(0);
+    startAt(withObstacle(readyAt(), 9));
+    const firstMotion = screen.getByTestId("runner-motion");
+    const firstKey = screen.getByTestId("runner").dataset.motionKey;
+    for (const key of ["d", "d", "j"]) fireEvent.keyDown(window, { key });
+    expect(screen.getByTestId("runner")).toHaveAttribute("data-route-index", "6");
+    expect(document.querySelector(".jump-overlay")).toBeNull();
+    expect(screen.getByTestId("runner-motion")).not.toBe(firstMotion);
+    for (const key of ["j", "d", " "]) fireEvent.keyDown(window, { key });
+    expect(screen.getByTestId("runner")).toHaveAttribute("data-route-index", "10");
+    expect(screen.getByTestId("runner")).toHaveClass("is-jumping");
+    expect(screen.getByTestId("runner").dataset.motionKey).not.toBe(firstKey);
+    expect(screen.getAllByTestId("runner")).toHaveLength(1);
+  });
+
+  it("keeps a jump alive across an NPC tick and lets its cosmetic timer finish while settings are paused", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(0);
+    const state = readyAt();
+    vi.spyOn(gameEngine, "createGameState").mockReturnValue(state);
+    render(<GameScreen account={account} />);
+    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(900); });
+    fireEvent.keyDown(window, { key: " ", code: "Space" });
+    const motion = screen.getByTestId("runner-motion");
+    await act(async () => { await vi.advanceTimersByTimeAsync(100); });
+    expect(screen.getByTestId("runner")).toHaveClass("is-jumping");
+    expect(screen.getByTestId("runner-motion")).toBe(motion);
+    expect(screen.getByTestId("pursuer")).toHaveClass("is-following");
+    fireEvent.click(screen.getByRole("button", { name: "게임 설정" }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(95_000); });
+    expect(document.querySelector(".jump-overlay")).toBeNull();
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+    expect(document.querySelector(".jump-overlay")).toBeNull();
+    expect(screen.getByTestId("runner")).toHaveAttribute("data-route-index", "3");
+    expect(screen.getByTestId("stage-time")).toHaveTextContent("01:29");
+  });
+
+  it("cancels a pending arc on fall and on timeout, then restarts without stale overlays", () => {
+    vi.useFakeTimers(); vi.setSystemTime(0);
+    const originalStart = gameEngine.startGame;
+    vi.spyOn(gameEngine, "startGame").mockImplementation((state, time) => ({ ...originalStart(state, time), stageEndsAt: time + 200 }));
+    startAt(readyAt());
+    expect(document.querySelector(".jump-overlay")).not.toBeNull();
+    fireEvent.keyDown(window, { key: "j" });
+    expect(screen.getByTestId("runner")).toHaveClass("is-falling");
+    expect(document.querySelector(".jump-overlay")).toBeNull();
+    vi.setSystemTime(200);
+    fireEvent.keyDown(window, { key: " " });
+    expect(screen.getByText("시간 초과")).toBeInTheDocument();
+    expect(document.querySelector(".jump-overlay")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /다시 시작/ }));
+    expect(screen.getByTestId("runner")).toHaveAttribute("data-route-index", "0");
+    expect(document.querySelector(".jump-overlay")).toBeNull();
+    expect(screen.getAllByTestId("runner")).toHaveLength(1);
+  });
+
+  it("finishes a final jump without an arc while preserving the successful sound and one save", () => {
+    vi.useFakeTimers(); vi.setSystemTime(0);
+    const originalStart = gameEngine.startGame;
+    vi.spyOn(gameEngine, "startGame").mockImplementation((state, now) => withPursuitAt({ ...originalStart(state, now), stage: 5, stageEndsAt: now + 50_000 }, now));
+    const ready = readyAt(1, { stage: 5, score: 1499 });
+    const audio = { startBgm: vi.fn().mockResolvedValue(true), stopBgm: vi.fn(), setEventActive: vi.fn(),
+      setPreferences: vi.fn(), playFootstep: vi.fn(), playFall: vi.fn(), dispose: vi.fn() } satisfies AudioController;
+    vi.spyOn(gameEngine, "createGameState").mockReturnValue(ready);
+    const save = vi.spyOn(Storage.prototype, "setItem");
+    render(<GameScreen account={account} audioController={audio} />);
+    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    fireEvent.keyDown(window, { key: " " });
+    expect(screen.getByText("최종 클리어!")).toBeInTheDocument();
+    expect(screen.getByTestId("score-value")).toHaveTextContent("1501");
+    expect(document.querySelector(".jump-overlay")).toBeNull();
+    expect(screen.getByTestId("runner")).toHaveAttribute("data-motion-kind", "idle");
+    expect(audio.playFootstep).toHaveBeenCalledOnce();
     expect(save).toHaveBeenCalledOnce();
   });
 });

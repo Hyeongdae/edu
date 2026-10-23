@@ -1,5 +1,5 @@
 import * as stairObstacles from "./stairObstacles";
-import { makeObstacleFixture } from "../test/obstacleFixtures";
+import { makeObstacleFixture, withObstacle } from "../test/obstacleFixtures";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { applyInput, createGameState, startGame, tickGame } from "./gameEngine";
 import { withPursuitAt } from "../test/gameFixtures";
@@ -158,3 +158,47 @@ beforeEach(() => {
   vi.spyOn(stairObstacles, "revealObstacles").mockImplementation((state, route, index, stage) => makeObstacleFixture(route, index, stage, state));
 });
 afterEach(() => vi.restoreAllMocks());
+
+describe("two-stair jump projection", () => {
+  function jumpFrom(index: number): GameState {
+    let state = startGame(createGameState(() => 0), 0);
+    while (state.stepsClimbed < index) state = climb(state);
+    return applyInput(withObstacle(state, index + 1), "jump", 1_000);
+  }
+
+  it.each([[1, 192], [21, 328]])("projects jump from index %s in the landing-centered view", (index, x) => {
+    const state = jumpFrom(index);
+    const before = structuredClone(state);
+    const freeze = (value: unknown): void => {
+      if (value && typeof value === "object") {
+        Object.values(value).forEach(freeze);
+        Object.freeze(value);
+      }
+    };
+    freeze(state);
+    const scene = buildStairSceneModel(state);
+    expect(scene.playerJump).toEqual({ from: { x, y: 272 }, to: { x: 260, y: 216 } });
+    expect(scene.player.index).toBe(index + 2);
+    expect(scene.steps).toHaveLength(11);
+    expect(buildStairSceneModel(state)).toEqual(scene);
+    expect(state).toEqual(before);
+    expect(buildStairSceneModel(tickGame(state, 2_000)).playerJump).toEqual(scene.playerJump);
+  });
+
+  it("removes the arc after a normal move, mistake or capture and ignores a mismatched old target", () => {
+    const jumped = jumpFrom(1);
+    expect(buildStairSceneModel(applyInput(jumped, "forward", 1_000)).playerJump).toBeNull();
+    expect(buildStairSceneModel(applyInput(jumped, "jump", 1_000)).playerJump).toBeNull();
+    expect(buildStairSceneModel(tickGame(withPursuitAt(jumped, 1_000, 1), 2_000)).playerJump).toBeNull();
+    expect(buildStairSceneModel({ ...jumped, lastMove: { ...jumped.lastMove!, toIndex: 4 } }).playerJump).toBeNull();
+  });
+
+  it("rejects malformed two-step endpoints, missing history and corner-crossing metadata", () => {
+    const state = jumpFrom(1);
+    expect(() => buildStairSceneModel({ ...state, lastMove: { ...state.lastMove!, fromIndex: 2 } })).toThrow(RangeError);
+    expect(() => buildStairSceneModel({ ...state, route: { ...state.route, steps: state.route.steps.filter((step) => step.index !== 1) } })).toThrow(RangeError);
+    let corner = startGame(createGameState(() => 0), 0);
+    for (let index = 0; index < 7; index += 1) corner = climb(corner);
+    expect(() => buildStairSceneModel({ ...corner, lastMove: { kind: "jump", fromIndex: 5, toIndex: 7, scoreGain: 2, isBonus: false } })).toThrow(RangeError);
+  });
+});

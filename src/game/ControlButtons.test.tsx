@@ -17,6 +17,18 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); expect(window.PointerEvent).toBe(OriginalPointerEvent); });
 
 describe("ControlButtons immediate actions", () => {
+  it("accepts rapid alternating turn and jump presses without waiting for an animation", () => {
+    const calls: string[] = [];
+    render(<ControlButtons onForward={vi.fn()} onTurn={() => calls.push("turn")} onJump={() => calls.push("jump")} disabled={false} />);
+    for (const name of ["방향을 바꾸며 오르기", "장애물을 뛰어넘기", "방향을 바꾸며 오르기", "장애물을 뛰어넘기"]) {
+      const button = screen.getByRole("button", { name });
+      fireEvent.pointerDown(button, { button: 0, isPrimary: true });
+      fireEvent.pointerUp(button, { button: 0, isPrimary: true });
+      fireEvent.click(button, { detail: 1 });
+    }
+    expect(calls).toEqual(["turn", "jump", "turn", "jump"]);
+  });
+
   it.each([0, 1, 2])("runs action %s on primary down once, without a second pointer click/up action", (index) => {
     const actions = [vi.fn(), vi.fn(), vi.fn()];
     render(<ControlButtons onForward={actions[0]} onTurn={actions[1]} onJump={actions[2]} disabled={false} />);

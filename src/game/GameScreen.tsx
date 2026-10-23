@@ -361,7 +361,7 @@ export function GameScreen({
               <StairScene
                 state={gameState}
                 climbAnimationKey={climbAnimationKey}
-                isClimbing={isClimbing && !gameState.lastMistake}
+                isClimbing={isClimbing && gameState.status === "playing" && !gameState.lastMistake && !pursuerCatchVisible}
                 pursuerAnimationKey={pursuerAnimationKey}
                 isPursuerMoving={isPursuerMoving}
                 isPursuerCaught={pursuerCatchVisible}

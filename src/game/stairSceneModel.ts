@@ -6,6 +6,7 @@ export interface SceneStep extends ScenePoint { index: number; direction: Direct
 export interface SceneActor extends ScenePoint { index: number; direction: Direction; }
 export interface CatchFrame extends ScenePoint { offset: number; index: number; }
 export interface ScenePursuerMotion { from: ScenePoint; to: ScenePoint; atMs: number; }
+export interface SceneJump { from: ScenePoint; to: ScenePoint; }
 export interface StairSceneModel {
   steps: readonly SceneStep[];
   player: SceneActor;
@@ -13,6 +14,7 @@ export interface StairSceneModel {
   catchFrames: readonly CatchFrame[];
   pursuerMotion: ScenePursuerMotion | null;
   pursuerVisible: boolean;
+  playerJump: SceneJump | null;
 }
 
 export function projectRouteStep(step: StairRouteStep, playerStep: StairRouteStep): ScenePoint {
@@ -52,11 +54,26 @@ export function buildStairSceneModel(state: GameState): StairSceneModel {
       to: { x: pursuer.x, y: pursuer.y }, atMs: move.atMs };
   }
 
+  let playerJump: SceneJump | null = null;
+  if (state.lastMove?.kind === "jump" && state.lastMove.toIndex === state.stepsClimbed) {
+    const move = state.lastMove;
+    if (!Number.isSafeInteger(move.fromIndex) || move.fromIndex + 2 !== move.toIndex) {
+      throw new RangeError("A jump must join two real stairs in the same direction.");
+    }
+    const from = getRouteStep(state.route, move.fromIndex);
+    const middle = getRouteStep(state.route, move.fromIndex + 1);
+    if (from.direction !== playerStep.direction || middle.direction !== playerStep.direction) {
+      throw new RangeError("A jump cannot turn a corner.");
+    }
+    playerJump = { from: projectRouteStep(from, playerStep), to: projectRouteStep(playerStep, playerStep) };
+  }
+
   return {
     steps: Array.from({ length: 11 }, (_, offset) => actorAt(state.stepsClimbed - 4 + offset)),
     player: actorAt(state.stepsClimbed),
     pursuer,
     pursuerMotion,
+    playerJump,
     pursuerVisible: pursuer.x + 34 > 0 && pursuer.x - 34 < 520 && pursuer.y + 16 > 0 && pursuer.y - 88 < 400,
     catchFrames: catchStops.map(({ offset, behind }) => {
       const { x, y, index } = actorAt(state.stepsClimbed - behind);

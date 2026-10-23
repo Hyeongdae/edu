@@ -26,8 +26,15 @@ export function StairScene({ state, climbAnimationKey, isClimbing, pursuerAnimat
   const atCorner = state.straightStepsRemaining === 0;
   const nextDirection = getRouteStep(state.route, state.stepsClimbed + 1).direction;
   const nextIsBlocked = hasObstacle(state.obstacles, state.stepsClimbed + 1);
-  const jumpedBoxIndex = isClimbing && state.lastMove?.kind === "jump" && state.lastMove.toIndex === state.stepsClimbed
+  const climbing = isClimbing && state.status === "playing" && !isPursuerCaught;
+  const jumping = climbing && model.playerJump !== null && state.lastMove?.kind === "jump" &&
+    !state.lastMistake && state.status === "playing" && !isPursuerCaught;
+  const jumpedBoxIndex = jumping && state.lastMove?.kind === "jump"
     ? state.lastMove.fromIndex + 1 : null;
+  const jumpX = model.playerJump ? model.playerJump.from.x - model.playerJump.to.x : 0;
+  const jumpY = model.playerJump ? model.playerJump.from.y - model.playerJump.to.y : 0;
+  const jumpStyle = { "--jump-x": `${jumpX}px`, "--jump-y": `${jumpY}px`, "--jump-mid-x": `${jumpX / 2}px` } as CSSProperties;
+  const motionKind = state.lastMistake ? "fall" : jumping ? "jump" : climbing ? "climb" : "idle";
   // Place a catch at its final reset stair, then visit actual route nodes with CSS offsets.
   const pursuerPoint = model.pursuer;
   const moving = isPursuerMoving && model.pursuerMotion !== null && !isPursuerCaught;
@@ -43,17 +50,20 @@ export function StairScene({ state, climbAnimationKey, isClimbing, pursuerAnimat
 
   const runner = (
     <g
-      className={`runner${state.lastMistake ? " is-falling" : isClimbing ? " is-climbing" : ""}`}
+      className={`runner${state.lastMistake ? " is-falling" : jumping ? " is-jumping" : climbing ? " is-climbing" : ""}`}
       data-testid="runner" data-step-count={state.stepsClimbed} data-route-index={model.player.index}
-      data-direction={model.player.direction} data-motion-key={climbAnimationKey}
+      data-direction={model.player.direction} data-motion-key={climbAnimationKey} data-motion-kind={motionKind}
       transform={`translate(${model.player.x} ${model.player.y})`}
     >
-      <g clipPath={`url(#${feetClipId})`}>
-        <g
-          key={state.lastMistake ? `fall-${state.recoveryEndsAt}` : climbAnimationKey}
-          className="runner-pose" data-testid="runner-pose"
-        >
-          <PixelOfficer variant="young" direction={model.player.direction} pose={state.lastMistake ? "fall" : isClimbing ? "climb" : "idle"} />
+      <g key={`${motionKind}-${climbAnimationKey}`} className={`runner-motion${jumping ? " is-jumping" : ""}`}
+        data-testid="runner-motion" style={jumping ? jumpStyle : undefined}>
+        <g clipPath={`url(#${feetClipId})`}>
+          <g
+            key={state.lastMistake ? `fall-${state.recoveryEndsAt}` : climbAnimationKey}
+            className="runner-pose" data-testid="runner-pose"
+          >
+            <PixelOfficer variant="young" direction={model.player.direction} pose={motionKind} />
+          </g>
         </g>
       </g>
     </g>
@@ -124,7 +134,7 @@ export function StairScene({ state, climbAnimationKey, isClimbing, pursuerAnimat
                   <PixelObstacle />
                 </g>
               )}
-              {!isPursuerCaught && step.index === model.player.index && runner}
+              {!isPursuerCaught && !jumping && step.index === model.player.index && runner}
               {!isPursuerCaught && !moving && model.pursuerVisible && step.index === model.pursuer.index && pursuer}
               {stairFront(step)}
             </g>
@@ -141,6 +151,7 @@ export function StairScene({ state, climbAnimationKey, isClimbing, pursuerAnimat
           {!isPursuerCaught && moving && model.pursuerVisible && (
             <g className="pursuer-move-overlay">{pursuer}{stairFront(model.pursuer)}</g>
           )}
+          {jumping && <g className="jump-overlay">{runner}{stairFront(model.player)}</g>}
           {isPursuerCaught && (
             <g className="catch-overlay">
               {pursuer}

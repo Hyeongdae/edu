@@ -47,11 +47,16 @@
   animation: pixel-pursuer-step 240ms ease-out both;
 }
 
+.stair-game .runner-motion.is-jumping {
+  animation: pixel-player-jump 300ms ease-out both;
+}
+
 .stair-game .pixel-officer .officer-frame {
   display: none;
 }
 
 .stair-game .pixel-officer[data-officer-pose="idle"] .officer-frame--idle,
+.stair-game .pixel-officer[data-officer-pose="jump"] .officer-frame--run-b,
 .stair-game .pixel-officer[data-officer-pose="fall"] .officer-frame--stumble {
   display: inline;
 }
@@ -97,6 +102,12 @@
   100% { transform: translate(0, 0); }
 }
 
+@keyframes pixel-player-jump {
+  0% { transform: translate(var(--jump-x), var(--jump-y)); }
+  50% { transform: translate(var(--jump-mid-x), -28px); }
+  100% { transform: translate(0, 0); }
+}
+
 @keyframes pixel-officer-stumble {
   0%, 100% { translate: 0 0; }
   20%, 60% { translate: -2px 0; }
@@ -104,12 +115,14 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .stair-game .runner-motion.is-jumping { animation: none; transform: none; }
   .stair-game .pursuer-motion.is-moving { animation: none; transform: none; }
   .stair-game .pursuer.is-following:not(.is-caught),
   .stair-game .pursuer.is-approaching:not(.is-caught),
   .stair-game .pixel-officer[data-officer-variant="young"][data-officer-pose="climb"] .officer-body,
   .stair-game .pixel-officer[data-officer-pose="fall"] .officer-body,
   .stair-game .pixel-officer[data-officer-pose="climb"] .officer-frame--run-a,
+  .stair-game .pixel-officer[data-officer-pose="jump"] .officer-frame--run-b,
   .stair-game .pixel-officer[data-officer-pose="climb"] .officer-frame--run-b {
     animation: none;
     transition: none;
@@ -117,11 +130,13 @@
   }
 
   .stair-game .pixel-officer[data-officer-pose="climb"] .officer-frame--run-a,
+  .stair-game .pixel-officer[data-officer-pose="jump"] .officer-frame--run-b,
   .stair-game .pixel-officer[data-officer-pose="climb"] .officer-frame--run-b {
     display: none;
   }
 
-  .stair-game .pixel-officer[data-officer-pose="climb"] .officer-frame--idle {
+  .stair-game .pixel-officer[data-officer-pose="climb"] .officer-frame--idle,
+  .stair-game .pixel-officer[data-officer-pose="jump"] .officer-frame--idle {
     display: inline;
   }
 }
