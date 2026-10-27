@@ -103,7 +103,7 @@ Task: T03-fall-pursuit-acceleration
 
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: pending
+- commit: `9a9e6b5`
 
 ## Execution Notes — 2026-10-27
 
