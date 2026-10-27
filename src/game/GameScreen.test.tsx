@@ -236,7 +236,8 @@ describe("GameScreen controls", () => {
     await act(async () => { await vi.advanceTimersByTimeAsync(500); });
     expect(screen.getByTestId("runner")).not.toHaveClass("is-falling");
     expect(screen.getByTestId("runner")).not.toHaveClass("is-climbing");
-    expect(screen.queryByTestId("pursuer")).not.toBeInTheDocument();
+    expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "-2");
+    expect(screen.getByTestId("pursuer")).toHaveClass("is-following");
   });
 
   it("layers a static pixel office behind the full route without consuming randomness", () => {
@@ -262,7 +263,7 @@ describe("GameScreen controls", () => {
     expect(document.querySelectorAll(".pixel-officer")).toHaveLength(2);
   });
 
-  it("moves the pursuer on its own schedule while a mistake only stops the player", async () => {
+  it("animates a scheduled fast step without instantly moving the pursuer on a mistake", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);
     render(<GameScreen account={account} />);
@@ -272,15 +273,15 @@ describe("GameScreen controls", () => {
     expect(screen.getByTestId("runner")).toHaveClass("is-falling");
     expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "-4");
     expect(screen.getByTestId("pursuer")).not.toHaveClass("is-approaching");
-    await act(async () => { await vi.advanceTimersByTimeAsync(900); });
-    expect(screen.getByTestId("runner")).not.toHaveClass("is-falling");
+    await act(async () => { await vi.advanceTimersByTimeAsync(300); });
+    expect(screen.getByTestId("runner")).toHaveClass("is-falling");
     expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "-3");
     expect(screen.getByTestId("pursuer")).toHaveClass("is-following");
     expect(screen.getByTestId("pursuer-motion")).toHaveClass("is-moving");
     expect(screen.getByTestId("pursuer-motion")).toHaveStyle({ "--pursuer-move-x": "-34px", "--pursuer-move-y": "28px" });
     expect(screen.getByTestId("pursuer-motion").querySelector("[clip-path]")).toBeInTheDocument();
     expect(screen.getByTestId("score-value")).toHaveTextContent(/^0$/);
-    await act(async () => { await vi.advanceTimersByTimeAsync(240); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(190); });
     expect(screen.getByTestId("pursuer")).not.toHaveClass("is-following");
     expect(screen.getByTestId("pursuer").querySelector("[data-officer-variant='older']")).toHaveAttribute("data-officer-pose", "idle");
   });
@@ -325,17 +326,22 @@ describe("GameScreen controls", () => {
     for (let mistake = 1; mistake <= 4; mistake += 1) {
       const previousPose = screen.getByTestId("runner-pose");
       vi.setSystemTime(100 + (mistake - 1) * 500);
-      fireEvent.keyDown(window, { key: "j" });
+      fireEvent.keyDown(window, { key: nextClimbKey() === "d" ? "j" : "d" });
       expect(screen.getByTestId("runner-pose")).not.toBe(previousPose);
       expect(audio.playFall).toHaveBeenCalledTimes(mistake);
-      expect(screen.getByTestId("runner")).toHaveAttribute("data-route-index", "0");
+      expect(screen.getByTestId("runner")).toHaveAttribute("data-route-index", String(2 * (mistake - 1)));
+      if (mistake < 4) {
+        vi.setSystemTime(100 + mistake * 500);
+        climbOneStep(); climbOneStep();
+      }
     }
-    vi.setSystemTime(3_200);
+    expect(audio.playFootstep).toHaveBeenCalledTimes(6);
+    vi.setSystemTime(3_700);
     fireEvent(document, new Event("visibilitychange"));
     expect(screen.getByText("추격자에게 잡혔어요")).toBeInTheDocument();
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-pursuer-catching", "true");
     expect(audio.playFall).toHaveBeenCalledTimes(4);
-    expect(audio.playFootstep).not.toHaveBeenCalled();
+    expect(audio.playFootstep).toHaveBeenCalledTimes(6);
     expect(screen.queryByText("남은 기회")).not.toBeInTheDocument();
   });
 
@@ -1196,6 +1202,134 @@ describe("unlocked stage selection", () => {
     expect(localStorage.getItem(progressKey)).toBeNull();
     expect(screen.getByRole("button", { name: "2단계 선택" })).toHaveFocus();
     expect(screen.getByRole("button", { name: "3단계 잠김" })).toBeDisabled();
+  });
+});
+
+describe("fall pursuit presentation", () => {
+  afterEach(() => { cleanup(); vi.restoreAllMocks(); localStorage.clear(); vi.useRealTimers(); });
+  function audioFixture(): AudioController {
+    return { startBgm: vi.fn().mockResolvedValue(true), stopBgm: vi.fn(), setEventActive: vi.fn(),
+      setPreferences: vi.fn(), playFootstep: vi.fn(), playFall: vi.fn(), dispose: vi.fn() };
+  }
+
+  it("shows logical250/500ms steps through100ms polling and keeps player and NPC motion independent", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(0);
+    const audio = audioFixture(), input = vi.spyOn(gameEngine, "applyInput"), tick = vi.spyOn(gameEngine, "tickGame");
+    render(<GameScreen account={account} audioController={audio} />);
+    fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
+    fireEvent.keyDown(window, { key: "j" });
+    expect(input.mock.results.at(-1)!.value).toMatchObject({ recoveryEndsAt: 500, nextPursuerStepAt: 250, pursuerIndex: -4 });
+    expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "-4");
+    expect(audio.playFall).toHaveBeenCalledOnce(); expect(audio.playFootstep).not.toHaveBeenCalled();
+    await act(async () => { await vi.advanceTimersByTimeAsync(249); });
+    for (const key of ["d", "j", " "]) fireEvent.keyDown(window, { key });
+    expect(input.mock.results.at(-1)!.value).toMatchObject({ recoveryEndsAt: 500, nextPursuerStepAt: 250 });
+    expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "-4");
+    await act(async () => { await vi.advanceTimersByTimeAsync(51); });
+    expect(tick.mock.results.at(-1)!.value.lastPursuerMove.atMs).toBe(250);
+    expect(screen.getByTestId("pursuer")).toHaveAttribute("data-motion-key", "250");
+    expect(screen.getByTestId("pursuer")).toHaveClass("is-following");
+    expect(screen.getByTestId("runner")).toHaveClass("is-falling");
+    expect(screen.getAllByTestId("pursuer")).toHaveLength(1);
+    await act(async () => { await vi.advanceTimersByTimeAsync(190); });
+    expect(screen.getByTestId("pursuer")).not.toHaveClass("is-following");
+    await act(async () => { await vi.advanceTimersByTimeAsync(10); });
+    expect(tick.mock.results.at(-1)!.value).toMatchObject({ recoveryEndsAt: null, lastMistake: false,
+      pursuerIndex: -2, nextPursuerStepAt: 1300, lastPursuerMove: { atMs: 500 } });
+    expect(screen.getByTestId("pursuer")).toHaveAttribute("data-motion-key", "500");
+    fireEvent.keyDown(window, { key: "d" });
+    const playerKey = screen.getByTestId("runner").getAttribute("data-motion-key");
+    expect(screen.getByTestId("runner")).toHaveClass("is-climbing");
+    await act(async () => { await vi.advanceTimersByTimeAsync(250); });
+    expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "-2");
+    expect(screen.getByTestId("pursuer")).not.toHaveClass("is-following");
+    expect(screen.getByTestId("runner")).toHaveClass("is-climbing");
+    expect(screen.getByTestId("runner")).toHaveAttribute("data-motion-key", playerKey);
+    await act(async () => { await vi.advanceTimersByTimeAsync(50); });
+    expect(screen.getByTestId("runner")).not.toHaveClass("is-climbing");
+    await act(async () => { await vi.advanceTimersByTimeAsync(500); });
+    expect(screen.getByTestId("pursuer")).toHaveAttribute("data-motion-key", "1300");
+    expect(screen.getAllByTestId("runner")).toHaveLength(1); expect(screen.getAllByTestId("pursuer")).toHaveLength(1);
+    expect(audio.playFall).toHaveBeenCalledOnce(); expect(audio.playFootstep).toHaveBeenCalledOnce();
+    expect(audio.stopBgm).not.toHaveBeenCalled();
+  });
+
+  it("ends at the500ms fast catch, gates the result and saves once without extra sounds", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(0); seedReadyStage(1, { score: 0, pursuerDistance: 2 });
+    const audio = audioFixture(), write = vi.spyOn(Storage.prototype, "setItem");
+    render(<StrictMode><GameScreen account={account} audioController={audio} /></StrictMode>);
+    fireEvent.click(screen.getByRole("button", { name: "시작하기" })); fireEvent.keyDown(window, { key: "j" });
+    await act(async () => { await vi.advanceTimersByTimeAsync(500); });
+    expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "game-over");
+    expect(document.querySelector(".game-frame")).toHaveAttribute("data-pursuer-catching", "true");
+    expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "-1");
+    expect(screen.getByTestId("runner")).not.toHaveClass("is-falling");
+    expect(screen.getByTestId("pursuer")).toHaveClass("is-caught");
+    fireEvent.keyDown(window, { key: " ", code: "Space" });
+    await act(async () => { await vi.advanceTimersByTimeAsync(500); });
+    expect(document.querySelector(".game-frame")).toHaveAttribute("data-pursuer-catching", "false");
+    expect(screen.getByTestId("pursuer")).not.toHaveClass("is-following");
+    expect(document.querySelector(".jump-overlay")).toBeNull();
+    expect(write).toHaveBeenCalledOnce();
+    expect(audio.playFall).toHaveBeenCalledOnce(); expect(audio.playFootstep).not.toHaveBeenCalled();
+    expect(audio.stopBgm).toHaveBeenCalledOnce();
+    fireEvent(document, new Event("visibilitychange"));
+    expect(write).toHaveBeenCalledOnce();
+  });
+
+  it("preserves a paused fast-step remainder and resumes at normal speed after recovery elapses", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(0); seedReadyStage(1, { score: 0, eventEndsAt: 30_000 });
+    const resume = vi.spyOn(gameEngine, "resumeGameAfterPause"), tick = vi.spyOn(gameEngine, "tickGame");
+    render(<GameScreen account={account} />);
+    fireEvent.click(screen.getByRole("button", { name: "시작하기" })); fireEvent.keyDown(window, { key: "j" });
+    await act(async () => { await vi.advanceTimersByTimeAsync(100); });
+    fireEvent.click(screen.getByRole("button", { name: "게임 설정" }));
+    expect(screen.getByText(/넘어진 동안 추격자는 0.25초마다 한 칸씩 올라와요/)).toBeVisible();
+    await act(async () => { await vi.advanceTimersByTimeAsync(10_000); });
+    expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "-4");
+    expect(screen.getByTestId("event-status")).toHaveTextContent("2배 점수 · 30초");
+    const close = screen.getByRole("button", { name: "설정 닫기" });
+    act(() => { fireEvent.click(close); fireEvent.click(close); });
+    expect(resume).toHaveBeenCalledOnce();
+    expect(resume.mock.results.at(-1)!.value).toMatchObject({ recoveryEndsAt: null, lastMistake: false,
+      stageEndsAt: 100_000, eventEndsAt: 40_000, nextPursuerStepAt: 10_250 });
+    await act(async () => { await vi.advanceTimersByTimeAsync(149); });
+    expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "-4");
+    await act(async () => { await vi.advanceTimersByTimeAsync(51); });
+    expect(tick.mock.results.at(-1)!.value).toMatchObject({ pursuerIndex: -3, nextPursuerStepAt: 11_050,
+      lastPursuerMove: { atMs: 10_250 } });
+    expect(screen.getByTestId("pursuer")).toHaveAttribute("data-motion-key", "10250");
+  });
+
+  it("reconciles late visibility at actual deadlines and then stops permanently on contact", () => {
+    vi.useFakeTimers(); vi.setSystemTime(0);
+    const tick = vi.spyOn(gameEngine, "tickGame"), input = vi.spyOn(gameEngine, "applyInput"), audio = audioFixture();
+    const write = vi.spyOn(Storage.prototype, "setItem");
+    render(<GameScreen account={account} audioController={audio} />);
+    fireEvent.click(screen.getByRole("button", { name: "시작하기" })); fireEvent.keyDown(window, { key: "j" });
+    const fallen: GameState = input.mock.results.at(-1)!.value;
+    vi.setSystemTime(1300); fireEvent(document, new Event("visibilitychange"));
+    expect(tick.mock.results.at(-1)!.value).toEqual(gameEngine.tickGame(fallen, 1300));
+    expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "-1");
+    expect(screen.getByTestId("pursuer")).toHaveAttribute("data-motion-key", "1300");
+    vi.setSystemTime(2100); fireEvent(document, new Event("visibilitychange"));
+    expect(screen.getByText("추격자에게 잡혔어요")).toBeInTheDocument();
+    expect(write).toHaveBeenCalledOnce();
+    vi.setSystemTime(5000); fireEvent(document, new Event("visibilitychange"));
+    expect(write).toHaveBeenCalledOnce(); expect(audio.playFall).toHaveBeenCalledOnce();
+    expect(audio.playFootstep).not.toHaveBeenCalled(); expect(audio.stopBgm).toHaveBeenCalledOnce();
+  });
+
+  it("shows time expiry instead of a simultaneous250ms catch", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(0); seedReadyStage(1, { pursuerDistance: 1 }, 250);
+    const audio = audioFixture();
+    render(<GameScreen account={account} audioController={audio} />);
+    fireEvent.click(screen.getByRole("button", { name: "시작하기" })); fireEvent.keyDown(window, { key: "j" });
+    await act(async () => { await vi.advanceTimersByTimeAsync(300); });
+    expect(screen.getByText("시간 초과")).toBeVisible();
+    expect(document.querySelector(".game-frame")).toHaveAttribute("data-pursuer-catching", "false");
+    expect(screen.getByTestId("pursuer")).not.toHaveClass("is-caught");
+    expect(audio.playFall).toHaveBeenCalledOnce(); expect(audio.playFootstep).not.toHaveBeenCalled();
   });
 });
 

@@ -7,6 +7,7 @@ const INITIAL_PURSUER_DISTANCE = 4;
 const EVENT_STEP_TARGET = 30;
 const EVENT_DURATION_MS = 30_000;
 const RECOVERY_DURATION_MS = 500;
+export const FALL_PURSUER_INTERVAL_MS = 250;
 export const STAGE_ONE_DURATION_MS = getStageRule(1).durationMs;
 export const STAGE_ONE_TARGET_SCORE = STAGE_SCORE_REQUIRED;
 
@@ -49,6 +50,13 @@ function retainPursuitRoute(state: GameState): GameState {
   const oldest = Math.min(state.stepsClimbed - 4, state.pursuerIndex, state.lastPursuerMove?.fromIndex ?? state.pursuerIndex);
   if (state.route.steps[0].index === oldest && state.route.steps.at(-1)!.index >= state.stepsClimbed + 18) return state;
   return { ...state, route: advanceStairRoute(state.route, state.stepsClimbed, oldest) };
+}
+
+function getNextPursuerStepAt(state: GameState, atMs: number): number {
+  const fastStepAt = atMs + FALL_PURSUER_INTERVAL_MS;
+  return state.lastMistake && state.recoveryEndsAt !== null && fastStepAt <= state.recoveryEndsAt
+    ? fastStepAt
+    : atMs + getStageRule(state.stage).pursuerStepIntervalMs;
 }
 
 export function createGameState(random: () => number = Math.random, options: GameStartOptions = {}): GameState {
@@ -106,7 +114,6 @@ export function tickGame(state: GameState, nowMs: number): GameState {
     if (current.captureEndsAt === at) current = { ...current, captureEndsAt: null };
     if (current.status !== "playing" || current.nextPursuerStepAt !== at) continue;
 
-    const interval = getStageRule(current.stage).pursuerStepIntervalMs;
     const fromIndex = current.pursuerIndex;
     const toIndex = fromIndex + 1;
     getRouteStep(current.route, toIndex);
@@ -120,7 +127,7 @@ export function tickGame(state: GameState, nowMs: number): GameState {
       };
     } else {
       current = { ...current, pursuerIndex: toIndex, pursuerDistance: current.stepsClimbed - toIndex,
-        nextPursuerStepAt: at + interval, lastPursuerMove: { fromIndex, toIndex, atMs: at } };
+        nextPursuerStepAt: getNextPursuerStepAt(current, at), lastPursuerMove: { fromIndex, toIndex, atMs: at } };
     }
   }
   return current === state ? state : retainPursuitRoute(current);
@@ -159,7 +166,9 @@ export function applyInput(state: GameState, input: GameInput, nowMs: number): G
     ? nextIsBlocked && nextStep.direction === currentState.direction &&
       landingStep.direction === currentState.direction && !hasObstacle(currentState.obstacles, landingStep.index)
     : !nextIsBlocked && (nextStep.direction !== currentState.direction ? input === "turn" : input === "forward");
-  if (!inputIsCorrect) return { ...currentState, recoveryEndsAt: nowMs + RECOVERY_DURATION_MS, lastMistake: true, lastMove: null };
+  if (!inputIsCorrect) return { ...currentState, recoveryEndsAt: nowMs + RECOVERY_DURATION_MS,
+    nextPursuerStepAt: Math.min(currentState.nextPursuerStepAt!, nowMs + FALL_PURSUER_INTERVAL_MS),
+    lastMistake: true, lastMove: null };
 
   const distance = input === "jump" ? 2 : 1;
   const nextStepsClimbed = landingStep.index;

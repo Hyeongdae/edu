@@ -1,6 +1,6 @@
 # Task: T03 Fall Pursuit Acceleration
 
-## Status: pending
+## Status: done
 
 ## Goal
 
@@ -75,9 +75,9 @@
 
 ## Acceptance Criteria
 
-- [ ] 오입력500ms 동안만250ms 예약을 사용하며 기존 더 이른 예정과 반복입력 무시를 보존한다.
-- [ ] 회복 종료와 겹친 전진·정상 속도 복귀·단일 잡힘·단계 만료 우선이 일관된다.
-- [ ] 설정/체크포인트/숨김/시각 모션/오디오/저장 계약을 유지한다.
+- [x] 오입력500ms 동안만250ms 예약을 사용하며 기존 더 이른 예정과 반복입력 무시를 보존한다.
+- [x] 회복 종료와 겹친 전진·정상 속도 복귀·단일 잡힘·단계 만료 우선이 일관된다.
+- [x] 설정/체크포인트/숨김/시각 모션/오디오/저장 계약을 유지한다.
 
 ## Validation
 
@@ -101,6 +101,17 @@ Task: T03-fall-pursuit-acceleration
 
 ## Progress
 
-- [ ] 구현 완료
-- [ ] 검증 통과
+- [x] 구현 완료
+- [x] 검증 통과
 - commit: pending
+
+## Execution Notes — 2026-10-27
+
+- Added exported FALL_PURSUER_INTERVAL_MS=250 and a private scheduled-time helper. A newly accepted mistake shortens nextPursuerStepAt with min(existing,next250); it never immediately moves the NPC or restarts a repeated recovery input.
+- Fast successor deadlines use lastMistake/recoveryEndsAt only. A move due at the recovery boundary is preserved; afterward the helper uses the current stage's base interval. No boost state, duplicate timer or storage schema was added.
+- Exact timelines verified across all stages: fall0 -> steps250/500 -> next500+base; earlier pending100 -> steps100/350 -> next350+base. Stage1 late1300 reproduces250/500/1300. Pause100..10100 preserves pending10250, clears elapsed recovery, then schedules normal11050.
+- Added all-stage boundary/repeat/immutability/no-RNG/no-reveal checks; gap1/2 capture, expiry priority, earlier fatal catch, bonus expiry, checkpoint freeze and base-only Continue checks. UI checks distinguish the 100ms poll observation at300 from the actual250ms move metadata and preserve independent240ms NPC/300ms player timers, one fall sound and final ranking write.
+- Updated only affected timing/visibility expectations. The existing scene projection fixture now inspects a real playing move at3101ms before the accelerated catch, rather than accidentally testing its terminal safe position at4200ms. Scene rendering/model/CSS production files remain unchanged.
+- Added the0.25-second fall-pursuit explanation in GameScreen help. No sound assets, preferences, audibility fixes, stage selection/storage/auth changes or dependencies.
+- Validation: exact17 blueprint test files passed,432/432 tests; npm run lint passed; npm run build passed; git diff --check passed. JS550.84kB(gzip153.91kB), CSS55.52kB(gzip10.78kB); existing >500kB chunk warning remains. Test timeouts were not increased.
+- Real-time browser/responsive evidence remains T04. Existing bundle splitting, independent App expectations, older CSS cleanup and the separate audible fall-sound report remain outside this Task.

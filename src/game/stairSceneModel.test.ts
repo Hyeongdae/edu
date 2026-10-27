@@ -43,7 +43,10 @@ describe("stair scene projection", () => {
     expect(scene.pursuer.index).toBe(2);
     expect(scene.player.index - scene.pursuer.index).toBe(5);
     expect(state.score).toBe(7);
-    scene = buildStairSceneModel(tickGame(state, 4_200));
+    // Fast fall steps reach this corner sooner; inspect the actual adjacent move before the first catch.
+    state = tickGame(state, 3_101);
+    expect(state.status).toBe("playing");
+    scene = buildStairSceneModel(state);
     expect(scene.player).toMatchObject({ index: 7, direction: "right" });
     expect(scene.pursuer).toMatchObject({ index: 6, direction: "left" });
   });

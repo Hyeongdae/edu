@@ -268,7 +268,8 @@ describe("applyInput", () => {
     const blocked = applyInput(fallen, "forward", 1_499);
     const recovered = applyInput(blocked, "forward", 1_500);
 
-    expect(blocked).toBe(fallen);
+    expect(blocked).toEqual(tickGame(fallen, 1_499));
+    expect(blocked).toMatchObject({ score: 0, stepsClimbed: 0, recoveryEndsAt: 1_500, lastMistake: true });
     expect(blocked.route).toBe(fallen.route);
     expect(recovered).toMatchObject({
       score: 1,
@@ -376,7 +377,7 @@ describe("tickGame", () => {
   it("clears the fall animation at its recovery boundary", () => {
     const fallen = applyInput(playingState({}, 500), "turn", 500);
 
-    expect(tickGame(fallen, 999)).toBe(fallen);
+    expect(tickGame(fallen, 999)).toMatchObject({ recoveryEndsAt: 1_000, lastMistake: true });
     expect(tickGame(fallen, 1_000)).toMatchObject({
       recoveryEndsAt: null,
       lastMistake: false,
@@ -482,7 +483,7 @@ describe("obstacle jumps", () => {
     const reveal = vi.mocked(stairObstacles.revealObstacles);
     reveal.mockClear();
     const wrong = applyInput(state, input, 10);
-    expect(wrong).toEqual({ ...state, lastMove: null, lastMistake: true, recoveryEndsAt: 510 });
+    expect(wrong).toEqual({ ...state, lastMove: null, lastMistake: true, recoveryEndsAt: 510, nextPursuerStepAt: 260 });
     expect(wrong.obstacles).toBe(state.obstacles);
     expect(wrong.route).toBe(state.route);
     expect(reveal).not.toHaveBeenCalled();
@@ -508,7 +509,7 @@ describe("obstacle jumps", () => {
     const wrong = applyInput(state, "forward", 900);
     const blocked = applyInput(wrong, "jump", 1_000);
     expect(blocked).toMatchObject({ recoveryEndsAt: 1_400, stepsClimbed: 1, score: 1,
-      pursuerIndex: state.pursuerIndex + 1, pursuerDistance: 3, nextPursuerStepAt: 1_600 });
+      pursuerIndex: state.pursuerIndex + 1, pursuerDistance: 3, nextPursuerStepAt: 1_150 });
   });
 
   it("resolves a due catch before Space and clears move metadata without revealing boxes", () => {
