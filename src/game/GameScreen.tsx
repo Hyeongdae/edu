@@ -4,6 +4,7 @@ import { applyInput, continueGame, createGameState, getStageSecondsLeft, quitAtC
 import { CheckpointPanel } from "./CheckpointPanel";
 import { StageSelectPanel } from "./StageSelectPanel";
 import { readStageProgress, saveStageProgress } from "./stageProgress";
+import { getHighestUnlockedStage } from "./stageRules";
 import { ControlButtons } from "./ControlButtons";
 import { GameHud } from "./GameHud";
 import { StairScene } from "./StairScene";
@@ -48,12 +49,11 @@ export function GameScreen({
   const [initialProfile] = useState(() => {
     const entries = readLeaderboard();
     const progress = readStageProgress(account.homeAccountId);
-    const knownHighest = Math.max(progress.highestClearedStage,
-      entries.find((entry) => entry.accountId === account.homeAccountId)?.bestStage ?? 0) as ClearedStage;
+    const knownHighest = progress.highestClearedStage;
     return { entries, knownHighest, progressAvailable: progress.available };
   });
   const [gameState, setGameState] = useState(() => createGameState(undefined, {
-    stage: Math.max(1, initialProfile.knownHighest) as GameStage, highestClearedStage: initialProfile.knownHighest,
+    stage: getHighestUnlockedStage(initialProfile.knownHighest), highestClearedStage: initialProfile.knownHighest,
   }));
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>(initialProfile.entries);
@@ -76,7 +76,7 @@ export function GameScreen({
   const settingsCloseRef = useRef<HTMLButtonElement | null>(null);
   const previousStepsRef = useRef(gameState.stepsClimbed);
   const climbTimeoutRef = useRef<number | undefined>(undefined);
-  const previousScoreRef = useRef(gameState.score);
+  const previousScoreRef = useRef({ stage: gameState.stage, score: gameState.score });
   const scoreGainTimeoutRef = useRef<number | undefined>(undefined);
   const previousRecoveryEndsAtRef = useRef(gameState.recoveryEndsAt);
   const previousPlayerCaptureRef = useRef(gameState.captureCount);
@@ -116,16 +116,14 @@ export function GameScreen({
 
   const readKnownHighest = (): ClearedStage => {
     const progress = readStageProgress(account.homeAccountId);
-    const entries = readLeaderboard();
     setProgressUnavailable(!progress.available);
-    return Math.max(gameState.recordStage, initialProfile.knownHighest, progress.highestClearedStage,
-      entries.find((entry) => entry.accountId === account.homeAccountId)?.bestStage ?? 0) as ClearedStage;
+    return Math.max(gameState.highestClearedStage, initialProfile.knownHighest, progress.highestClearedStage) as ClearedStage;
   };
 
   const handleSelectStage = (stage: GameStage) => {
     if (isSettingsOpenRef.current || gameState.status !== "ready" || runStartedRef.current || stage === gameState.stage) return;
     const knownHighest = readKnownHighest();
-    if (stage > Math.max(1, knownHighest)) return;
+    if (stage > getHighestUnlockedStage(knownHighest)) return;
     const preview = resetGame(undefined, { stage, highestClearedStage: knownHighest });
     setNowMs(Date.now());
     setGameState(preview);
@@ -134,7 +132,7 @@ export function GameScreen({
   const handleShowStageSelection = () => {
     if (isSettingsOpenRef.current || gameState.status !== "game-over" || !runStartedRef.current) return;
     const knownHighest = readKnownHighest();
-    const preview = resetGame(undefined, { stage: Math.max(1, knownHighest) as GameStage, highestClearedStage: knownHighest });
+    const preview = resetGame(undefined, { stage: getHighestUnlockedStage(knownHighest), highestClearedStage: knownHighest });
     runStartedRef.current = false;
     setNowMs(Date.now());
     setGameState(preview);
@@ -169,9 +167,9 @@ export function GameScreen({
     const previous = progressSavedRef.current;
     if (clearedStage === 0 || (previous.accountId === account.homeAccountId && previous.clearedStage >= clearedStage)) return;
     progressSavedRef.current = { accountId: account.homeAccountId, clearedStage };
-    const result = saveStageProgress(account.homeAccountId, gameState.recordStage);
+    const result = saveStageProgress(account.homeAccountId, gameState.highestClearedStage);
     window.setTimeout(() => setProgressError(!result.saved), 0);
-  }, [account.homeAccountId, gameState.clearedStageThisRun, gameState.recordStage]);
+  }, [account.homeAccountId, gameState.clearedStageThisRun, gameState.highestClearedStage]);
 
   useEffect(() => {
     const climbedSuccessfully = gameState.stepsClimbed > previousStepsRef.current;
@@ -223,8 +221,9 @@ export function GameScreen({
 
   const lastMoveIsBonus = gameState.lastMove?.isBonus === true;
   useEffect(() => {
-    if (gameState.score > previousScoreRef.current) {
-      setScoreGain(gameState.score - previousScoreRef.current);
+    const previousScore = previousScoreRef.current.stage === gameState.stage ? previousScoreRef.current.score : 0;
+    if (gameState.score > previousScore) {
+      setScoreGain(gameState.score - previousScore);
       setScoreGainIsBonus(lastMoveIsBonus);
       setScoreAnimationKey((key) => key + 1);
 
@@ -243,7 +242,7 @@ export function GameScreen({
       setScoreGain(null);
     }
 
-    previousScoreRef.current = gameState.score;
+    previousScoreRef.current = { stage: gameState.stage, score: gameState.score };
 
     return () => {
       if (scoreGainTimeoutRef.current !== undefined) {
@@ -251,7 +250,7 @@ export function GameScreen({
         scoreGainTimeoutRef.current = undefined;
       }
     };
-  }, [gameState.score, lastMoveIsBonus, gameState.lastMistake, gameState.captureCount, gameState.status]);
+  }, [gameState.stage, gameState.score, lastMoveIsBonus, gameState.lastMistake, gameState.captureCount, gameState.status]);
 
   useEffect(() => {
     const mistakeStarted = gameState.lastMistake && gameState.recoveryEndsAt !== null &&
@@ -282,7 +281,7 @@ export function GameScreen({
       ? saveBestScore({
           accountId: account.homeAccountId,
           displayName: account.name || "이름 없음",
-          bestStage: gameState.recordStage,
+          bestStage: gameState.stage,
           bestScore: gameState.score,
         })
       : { entries: leaderboard, saved: false };
@@ -290,7 +289,7 @@ export function GameScreen({
       setLeaderboard(result.entries);
       setSaveError(!result.saved);
     }, 0);
-  }, [account.homeAccountId, account.name, gameState.recordStage, gameState.score, gameState.status, leaderboard]);
+  }, [account.homeAccountId, account.name, gameState.stage, gameState.score, gameState.status, leaderboard]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -438,7 +437,7 @@ export function GameScreen({
           </div>
 
           {gameState.status === "ready" ? (
-            <StageSelectPanel selectedStage={gameState.stage} highestClearedStage={gameState.recordStage}
+            <StageSelectPanel selectedStage={gameState.stage} highestClearedStage={gameState.highestClearedStage}
               onSelect={handleSelectStage} onStart={handleStart} disabled={false} progressUnavailable={progressUnavailable} />
           ) : gameState.status === "playing" ? (
             <ControlButtons
@@ -448,7 +447,7 @@ export function GameScreen({
               disabled={controlsDisabled}
             />
           ) : gameState.status === "checkpoint" ? (
-            <CheckpointPanel stage={gameState.stage} score={gameState.score} recordStage={gameState.recordStage}
+            <CheckpointPanel stage={gameState.stage} score={gameState.score}
               onContinue={handleContinue} onQuit={handleQuit} disabled={false} progressError={progressError} />
           ) : (
             <section
@@ -459,7 +458,7 @@ export function GameScreen({
                 <PixelIcon name="flag" className="game-over-icon" size={36} />
                 <p className="game-over-kicker">이번 도전 결과</p>
                 <h2 id="game-over-title">{gameState.score}점</h2>
-                <p className="game-over-stage">{gameState.recordStage === 0 ? "미클리어(0단계)" : `기록 단계 ${gameState.recordStage}단계`}</p>
+                <p className="game-over-stage">기록 단계 {gameState.stage}단계</p>
                 <p className="game-over-reason">{gameState.endReason === "cleared" ? "최종 클리어!" : gameState.endReason === "time-limit" ? "시간 초과" : gameState.endReason === "quit" ? "체크포인트에서 종료했어요" : "추격자에게 잡혔어요"}</p>
                 <p>계단 {gameState.stepsClimbed}개를 올랐어요.</p>
                 {saveError && <p className="leaderboard-error" role="status">기록을 저장하지 못했습니다. 이 브라우저의 저장 공간을 확인해 주세요.</p>}
@@ -539,7 +538,7 @@ export function GameScreen({
                       <span className="chase-icon"><PixelIcon name="flag" size={20} /></span>
                       <div>
                         <strong>뒤쫓아오는 추격자</strong>
-                        <p>추격자는 일정 시간마다 한 칸씩 올라와요. 잘못 입력하면 0.5초 동안 멈춰요. 넘어진 동안 추격자는 0.25초마다 한 칸씩 올라와요. 한 번 잡히면 게임이 끝납니다. 단계마다 400점을 더 얻으면 계속할지 선택할 수 있어요.</p>
+                        <p>추격자는 일정 시간마다 한 칸씩 올라와요. 잘못 입력하면 0.5초 동안 멈춰요. 넘어진 동안 추격자는 0.25초마다 한 칸씩 올라와요. 한 번 잡히면 게임이 끝납니다. 각 단계는 0점부터 시작하고 목표는 150/200/250/300/350점이에요. 클리어하면 계속할지 선택할 수 있어요.</p>
                       </div>
                     </section>
                   </div>

@@ -73,8 +73,7 @@ export interface GameState {
   endReason: GameEndReason | null;
   score: number;
   stepsClimbed: number;
-  stageStartScore: number;
-  recordStage: ClearedStage;
+  highestClearedStage: ClearedStage;
   clearedStageThisRun: ClearedStage;
   checkpointEnteredAt: number | null;
   direction: Direction;

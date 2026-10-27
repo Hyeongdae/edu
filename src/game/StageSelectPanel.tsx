@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactElement } from "react";
-import { getStageRule, STAGE_RULES } from "./stageRules";
+import { getHighestUnlockedStage, getStageRule, getStageTargetScore, STAGE_RULES } from "./stageRules";
 import type { ClearedStage, GameStage } from "./types";
 
 interface StageSelectPanelProps {
@@ -22,7 +22,7 @@ export function StageSelectPanel({ selectedStage, highestClearedStage, onSelect,
       <h2>시작 단계를 선택하세요</h2>
       <div className="stage-select-grid">
         {STAGE_RULES.map(({ stage }) => {
-          const locked = stage > Math.max(1, highestClearedStage);
+          const locked = stage > getHighestUnlockedStage(highestClearedStage);
           return (
             <button key={stage} ref={stage === selectedStage ? selectedButtonRef : undefined}
               type="button" aria-label={`${stage}단계 ${locked ? "잠김" : "선택"}`}
@@ -35,9 +35,9 @@ export function StageSelectPanel({ selectedStage, highestClearedStage, onSelect,
         })}
       </div>
       <p className="stage-select-summary">선택: {selectedStage}단계 · 제한시간 {duration}</p>
-      <p>이번 판 0점부터 · 단계마다 400점</p>
-      {highestClearedStage > 0 && <p>이전 클리어 {highestClearedStage}단계가 기록 기준으로 적용됩니다.</p>}
-      {progressUnavailable && <p role="status">진행도를 읽지 못했습니다. 저장 가능한 기록과 이번 플레이 진행도를 사용합니다.</p>}
+      <p>이번 단계 0점부터 · 목표 {getStageTargetScore(selectedStage)}점</p>
+      {highestClearedStage > 0 && <p>최고 클리어 {highestClearedStage}단계</p>}
+      {progressUnavailable && <p role="status">진행도를 읽지 못했습니다. 확인된 클리어 이력과 이번 플레이 진행도를 사용합니다.</p>}
       <button className="stage-select-start" type="button" disabled={disabled} onClick={onStart}>시작하기</button>
     </section>
   );

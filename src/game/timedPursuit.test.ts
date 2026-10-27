@@ -15,7 +15,7 @@ function farAhead(): GameState {
   let state = playing();
   for (let index = 1; index <= 120; index++) state = { ...state, route: advanceStairRoute(state.route, index, -4) };
   const direction = getRouteStep(state.route, 120).direction;
-  return { ...state, stepsClimbed: 120, score: 399, pursuerDistance: 124, direction,
+  return { ...state, stepsClimbed: 120, score: 149, pursuerDistance: 124, direction,
     straightStepsRemaining: countStraightSteps(state.route, 120, direction) };
 }
 
@@ -101,8 +101,8 @@ describe("autonomous pursuit", () => {
   });
 
   it("prioritizes tied stage expiry and preserves an earlier capture over a later expiry", () => {
-    const state = withPursuitAt({ ...playing(), stageEndsAt: 800, score: 399 }, 0, 1);
-    expect(applyInput(state, "forward", 800)).toMatchObject({ endReason: "time-limit", score: 399, captureCount: 0, captureEndsAt: null });
+    const state = withPursuitAt({ ...playing(), stageEndsAt: 800, score: 149 }, 0, 1);
+    expect(applyInput(state, "forward", 800)).toMatchObject({ endReason: "time-limit", score: 149, captureCount: 0, captureEndsAt: null });
     expect(tickGame({ ...state, stageEndsAt: 1200 }, 2000)).toMatchObject({ endReason: "caught", captureCount: 1, captureEndsAt: null });
   });
 
@@ -116,7 +116,7 @@ describe("autonomous pursuit", () => {
     const state = farAhead();
     expect(buildStairSceneModel(state)).toMatchObject({ pursuerVisible: false, pursuer: { index: -4 } });
     const after = tickGame(state, 90000);
-    expect(after).toMatchObject({ endReason: "time-limit", captureCount: 0, pursuerIndex: 108, pursuerDistance: 12, score: 399 });
+    expect(after).toMatchObject({ endReason: "time-limit", captureCount: 0, pursuerIndex: 108, pursuerDistance: 12, score: 149 });
     expect(after.route.steps[0].index).toBe(108);
     expect(getRouteStep(after.route, 108).index).toBe(108);
     expect(state.route.steps[0].index).toBe(-4);
@@ -131,7 +131,7 @@ describe("autonomous pursuit", () => {
   });
 
   it.each(STAGE_RULES.slice(0,4))("freezes at stage $stage completion and rearms only on Continue", rule => {
-    const checkpoint = applyInput({ ...playing(rule.stage), score: 399 }, "forward", 100);
+    const checkpoint = applyInput({ ...playing(rule.stage), score: rule.scoreRequired - 1 }, "forward", 100);
     expect(checkpoint).toMatchObject({ stage: rule.stage, status: "checkpoint", nextPursuerStepAt: null });
     expect(tickGame(checkpoint, 100000)).toBe(checkpoint);
     const next = getStageRule((rule.stage + 1) as GameStage);
@@ -142,8 +142,8 @@ describe("autonomous pursuit", () => {
   });
 
   it("stops pursuit permanently on final clear", () => {
-    const cleared = applyInput({ ...playing(5), score: 399 }, "forward", 100);
-    expect(cleared).toMatchObject({ endReason: "cleared", score: 400, recordStage: 5,
+    const cleared = applyInput({ ...playing(5), score: 349 }, "forward", 100);
+    expect(cleared).toMatchObject({ endReason: "cleared", score: 350, highestClearedStage: 5,
       nextPursuerStepAt: null, lastPursuerMove: null, pursuerDistance: 5 });
     expect(tickGame(cleared, 1e6)).toBe(cleared);
   });
@@ -278,7 +278,7 @@ describe("fall pursuit scheduling", () => {
   it("keeps ready/checkpoint/ended states inactive and starts only base pursuit on Continue", () => {
     const ready = createGameState(() => 0);
     expect(applyInput(ready, "turn", 1e6)).toBe(ready);
-    const checkpoint = applyInput({ ...playing(), score: 399 }, "forward", 0);
+    const checkpoint = applyInput({ ...playing(), score: 149 }, "forward", 0);
     expect(applyInput(checkpoint, "turn", 95_000)).toBe(checkpoint);
     expect(resumeGameAfterPause(checkpoint, 0, 95_000)).toBe(checkpoint);
     const resumed = continueGame(checkpoint, 95_000);
@@ -288,11 +288,11 @@ describe("fall pursuit scheduling", () => {
   });
 
   it("allows a goal only after recovery and freezes the checkpoint without a remaining fast step", () => {
-    const fallen = applyInput({ ...playing(), score: 399, eventEndsAt: 30_000 }, "turn", 0);
+    const fallen = applyInput({ ...playing(), score: 149, eventEndsAt: 30_000 }, "turn", 0);
     const blocked = applyInput(fallen, "forward", 499);
-    expect(blocked).toMatchObject({ status: "playing", score: 399, stepsClimbed: 0, recoveryEndsAt: 500 });
+    expect(blocked).toMatchObject({ status: "playing", score: 149, stepsClimbed: 0, recoveryEndsAt: 500 });
     const checkpoint = applyInput(blocked, "forward", 500);
-    expect(checkpoint).toMatchObject({ status: "checkpoint", score: 401, stepsClimbed: 1,
+    expect(checkpoint).toMatchObject({ status: "checkpoint", score: 151, stepsClimbed: 1,
       recoveryEndsAt: null, lastMistake: false, nextPursuerStepAt: null, lastPursuerMove: null });
     expect(tickGame(checkpoint, 95_000)).toBe(checkpoint);
     expect(continueGame(checkpoint, 95_000)).toMatchObject({ status: "playing", stage: 2,

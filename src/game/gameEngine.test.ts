@@ -24,13 +24,13 @@ const randomFiveSteps = () => 0;
 describe("checkpoint sessions", () => {
   it("exports the stage-one duration and new score requirement", () => {
     expect(STAGE_ONE_DURATION_MS).toBe(90_000);
-    expect(STAGE_ONE_TARGET_SCORE).toBe(400);
+    expect(STAGE_ONE_TARGET_SCORE).toBe(150);
   });
   it.each(STAGE_RULES)("starts unlocked stage $stage with one seed and zero run score", (rule) => {
     const random = vi.fn(() => 0);
     const ready = createGameState(random, { stage: rule.stage, highestClearedStage: rule.stage });
     expect(random).toHaveBeenCalledTimes(1);
-    expect(ready).toMatchObject({ stage: rule.stage, score: 0, stageStartScore: 0, recordStage: rule.stage,
+    expect(ready).toMatchObject({ stage: rule.stage, score: 0, highestClearedStage: rule.stage,
       clearedStageThisRun: 0, checkpointEnteredAt: null });
     expect(ready).not.toHaveProperty("lives");
     expect(ready.obstacles.runs.every((run) => run.stageAtGeneration === rule.stage)).toBe(true);
@@ -44,7 +44,7 @@ describe("checkpoint sessions", () => {
   });
 
   it.each([
-    { stage: 0 }, { stage: 6 }, { stage: 2 }, { stage: 4, highestClearedStage: 3 },
+    { stage: 0 }, { stage: 6 }, { stage: 2 }, { stage: 4, highestClearedStage: 2 },
     { highestClearedStage: -1 }, { highestClearedStage: 6 }, { stage: "1" },
     { stage: null }, { highestClearedStage: null }, null,
   ])("rejects invalid or locked start options %j before randomness", (options) => {
@@ -53,14 +53,23 @@ describe("checkpoint sessions", () => {
     expect(random).not.toHaveBeenCalled();
   });
 
-  it.each(STAGE_RULES)("completes the move at the dynamic goal in stage $stage", (rule) => {
+  it.each([[0,1],[1,2],[2,3],[3,4],[4,5],[5,5]] as const)("starts the highest unlocked stage after clear %s", (highest, stage) => {
+    const random = vi.fn(() => 0);
+    const ready = createGameState(random, { stage, highestClearedStage: highest });
+    expect(ready).toMatchObject({ status: "ready", stage, highestClearedStage: highest, score: 0, clearedStageThisRun: 0 });
+    expect(random).toHaveBeenCalledOnce();
+    expect(ready).not.toHaveProperty("recordStage");
+    expect(ready).not.toHaveProperty("stageStartScore");
+  });
+
+  it.each(STAGE_RULES)("completes the move at the stage-local goal in stage $stage", (rule) => {
     for (const bonus of [false, true]) {
-      const before = playingState({ stage: rule.stage, stageStartScore: 200, score: 599,
+      const before = playingState({ stage: rule.stage, score: rule.scoreRequired - 1,
         eventSteps: 12, eventEndsAt: bonus ? 40_000 : null }, 100);
       const snapshot = structuredClone(before);
       const after = applyInput(before, "forward", 100);
-      expect(after).toMatchObject({ stage: rule.stage, score: bonus ? 601 : 600, stepsClimbed: 1,
-        recordStage: rule.stage, clearedStageThisRun: rule.stage, stageEndsAt: null,
+      expect(after).toMatchObject({ stage: rule.stage, score: rule.scoreRequired + (bonus ? 1 : 0), stepsClimbed: 1,
+        highestClearedStage: rule.stage, clearedStageThisRun: rule.stage, stageEndsAt: null,
         nextPursuerStepAt: null, lastPursuerMove: null, recoveryEndsAt: null, lastMistake: false,
         lastMove: { kind: "climb", fromIndex: 0, toIndex: 1, scoreGain: bonus ? 2 : 1, isBonus: bonus },
         status: rule.stage === 5 ? "game-over" : "checkpoint", endReason: rule.stage === 5 ? "cleared" : null,
@@ -77,18 +86,18 @@ describe("checkpoint sessions", () => {
     }
   });
 
-  it("freezes every logical clock for 95 seconds then rearms once with the actual overshoot", () => {
-    const before = jumpState({ score: 398, eventEndsAt: 30_000 });
+  it("freezes every logical clock for 95 seconds then resets only stage score on Continue", () => {
+    const before = jumpState({ score: 148, eventEndsAt: 30_000 });
     const checkpoint = applyInput(before, "jump", 100);
-    expect(checkpoint.score).toBe(402);
+    expect(checkpoint.score).toBe(152);
     expect(tickGame(checkpoint, 95_100)).toBe(checkpoint);
     expect(applyInput(checkpoint, "jump", 95_100)).toBe(checkpoint);
     expect(resumeGameAfterPause(checkpoint, 100, 95_100)).toBe(checkpoint);
     const resumed = continueGame(checkpoint, 95_100);
-    expect(resumed).toMatchObject({ status: "playing", stage: 2, stageStartScore: 402, score: 402,
+    expect(resumed).toMatchObject({ status: "playing", stage: 2, score: 0, lastMove: null,
       stageEndsAt: 170_100, nextPursuerStepAt: 95_750, pursuerDistance: 4,
-      eventEndsAt: 125_000, recordStage: 1, clearedStageThisRun: 1, checkpointEnteredAt: null });
-    expect(getStageTargetScore(resumed.stageStartScore)).toBe(802);
+      eventEndsAt: 125_000, highestClearedStage: 1, clearedStageThisRun: 1, checkpointEnteredAt: null });
+    expect(getStageTargetScore(resumed.stage)).toBe(200);
     expect(resumed.route).toBe(checkpoint.route);
     expect(resumed.obstacles).toBe(checkpoint.obstacles);
     expect(resumed.eventSteps).toBe(checkpoint.eventSteps);
@@ -97,10 +106,10 @@ describe("checkpoint sessions", () => {
   });
 
   it("quits at the checkpoint with only cleared progress and the completed score", () => {
-    const checkpoint = applyInput(playingState({ score: 399, eventSteps: 29 }), "forward", 100);
+    const checkpoint = applyInput(playingState({ score: 149, eventSteps: 29 }), "forward", 100);
     expect(checkpoint).toMatchObject({ stage: 1, status: "checkpoint", eventEndsAt: 30_100, eventSteps: 0 });
     const quit = quitAtCheckpoint(checkpoint, 95_100);
-    expect(quit).toMatchObject({ status: "game-over", endReason: "quit", score: 400, recordStage: 1,
+    expect(quit).toMatchObject({ status: "game-over", endReason: "quit", score: 150, highestClearedStage: 1,
       clearedStageThisRun: 1, stepsClimbed: 1, checkpointEnteredAt: null, eventEndsAt: null,
       stageEndsAt: null, nextPursuerStepAt: null, lastMove: null });
     expect(quitAtCheckpoint(quit, 95_200)).toBe(quit);
@@ -108,31 +117,32 @@ describe("checkpoint sessions", () => {
   });
 
   it.each(STAGE_RULES)("expires stage $stage before a tied goal input or capture", (rule) => {
-    const state = playingState({ stage: rule.stage, score: 399, stageEndsAt: 500,
+    const state = playingState({ stage: rule.stage, score: rule.scoreRequired - 1, stageEndsAt: 500,
       eventEndsAt: 500, eventSteps: 29 }, 0);
     const tied = { ...state, nextPursuerStepAt: 500, pursuerIndex: -1, pursuerDistance: 1 };
     expect(applyInput(tied, "forward", 500)).toMatchObject({ status: "game-over", endReason: "time-limit",
-      score: 399, stepsClimbed: 0, recordStage: 0, captureCount: 0, eventEndsAt: null, eventSteps: 0 });
+      score: rule.scoreRequired - 1, stepsClimbed: 0, highestClearedStage: state.highestClearedStage, captureCount: 0, eventEndsAt: null, eventSteps: 0 });
   });
 
   it("keeps prior progress on a replay failure and raises it only on an actual later clear", () => {
     const replay = startGame(createGameState(() => 0, { stage: 1, highestClearedStage: 3 }), 0);
-    expect(tickGame(replay, 3200)).toMatchObject({ status: "game-over", recordStage: 3, clearedStageThisRun: 0, score: 0 });
-    const checkpoint2 = applyInput(playingState({ stage: 2, score: 399 }), "forward", 0);
+    expect(tickGame(replay, 3200)).toMatchObject({ status: "game-over", highestClearedStage: 3, clearedStageThisRun: 0, score: 0 });
+    const checkpoint2 = applyInput(playingState({ stage: 2, score: 199 }), "forward", 0);
     const firstAttempt3 = continueGame(checkpoint2, 0);
-    expect(firstAttempt3).toMatchObject({ stage: 3, recordStage: 2 });
-    expect(tickGame(firstAttempt3, 2000).recordStage).toBe(2);
-    const checkpoint3 = applyInput({ ...firstAttempt3, score: 799 }, "forward", 0);
+    expect(firstAttempt3).toMatchObject({ stage: 3, highestClearedStage: 2 });
+    expect(tickGame(firstAttempt3, 2000).highestClearedStage).toBe(2);
+    const checkpoint3 = applyInput({ ...firstAttempt3, score: 249 }, "forward", 0);
     const attempt4 = continueGame(checkpoint3, 0);
-    expect(applyInput({ ...attempt4, score: 1199 }, "forward", 0)).toMatchObject({ recordStage: 4, clearedStageThisRun: 4 });
+    expect(applyInput({ ...attempt4, score: 299 }, "forward", 0)).toMatchObject({ highestClearedStage: 4, clearedStageThisRun: 4 });
   });
 
   it("rejects inconsistent record ranges and checkpoint clocks", () => {
     const state = playingState();
-    const checkpoint = applyInput({ ...state, score: 399 }, "forward", 0);
+    const checkpoint = applyInput({ ...state, score: 149 }, "forward", 0);
     for (const invalid of [
-      { ...state, recordStage: 6 }, { ...state, clearedStageThisRun: 1 },
-      { ...state, checkpointEnteredAt: 0 }, { ...state, stageStartScore: -1 },
+      { ...state, highestClearedStage: 6 }, { ...state, clearedStageThisRun: 1 },
+      { ...state, checkpointEnteredAt: 0 }, { ...state, score: -1 }, { ...state, score: NaN },
+      { ...state, score: 1.5 }, { ...state, stage: 3 },
       { ...checkpoint, stage: 5 }, { ...checkpoint, checkpointEnteredAt: null },
       { ...checkpoint, stageEndsAt: 100 }, { ...checkpoint, nextPursuerStepAt: 100 },
     ]) expect(() => tickGame(invalid as GameState, 100)).toThrow(RangeError);
@@ -151,14 +161,16 @@ describe("checkpoint sessions", () => {
       if (state.status === "checkpoint") { cleared.push(state.stage); state = continueGame(state, action * 10); }
     }
     expect(cleared).toEqual([1, 2, 3, 4]);
-    expect(state).toMatchObject({ status: "game-over", endReason: "cleared", stage: 5, recordStage: 5 });
-    expect(state.score).toBeGreaterThanOrEqual(2000);
-    expect(state.score).toBeLessThanOrEqual(2004);
+    expect(state).toMatchObject({ status: "game-over", endReason: "cleared", stage: 5, highestClearedStage: 5 });
+    expect(state.score).toBeGreaterThanOrEqual(350);
+    expect(state.score).toBeLessThanOrEqual(353);
   });
 });
 
 function playingState(overrides: Partial<GameState> = {}, nowMs = 0): GameState {
-  return withPursuitAt({ ...startGame(createGameState(randomFiveSteps), 0), ...overrides }, nowMs, overrides.pursuerDistance ?? 4);
+  const stage = overrides.stage ?? 1;
+  return withPursuitAt({ ...startGame(createGameState(randomFiveSteps, { stage,
+    highestClearedStage: (stage - 1) as GameState["highestClearedStage"] }), 0), ...overrides }, nowMs, overrides.pursuerDistance ?? 4);
 }
 
 describe("createGameState", () => {
@@ -446,7 +458,7 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 function jumpState(overrides: Partial<GameState> = {}): GameState {
-  return withObstacle({ ...applyInput(playingState(), "forward", 0), ...overrides }, 2);
+  return withObstacle({ ...applyInput(playingState({ stage: overrides.stage ?? 1 }), "forward", 0), ...overrides }, 2);
 }
 
 describe("obstacle jumps", () => {
@@ -536,15 +548,15 @@ describe("obstacle jumps", () => {
       const next = getStageRule((rule.stage + 1) as typeof rule.stage);
       expect(moved).toMatchObject({ status: "checkpoint", stageEndsAt: null, nextPursuerStepAt: null });
       const continued = continueGame(moved, 20);
-      expect(continued).toMatchObject({ status: "playing", pursuerDistance: 4, stageStartScore: 401,
+      expect(continued).toMatchObject({ status: "playing", score: 0, lastMove: null, pursuerDistance: 4,
         stageEndsAt: 20 + next.durationMs, nextPursuerStepAt: 20 + next.pursuerStepIntervalMs });
     }
     expect(stairObstacles.revealObstacles).toHaveBeenLastCalledWith(expect.anything(), moved.route, 3, Math.min(5, moved.stage + 1));
   });
 
   it("expires before a goal-reaching jump and preserves a completed move across ordinary NPC/bonus ticks", () => {
-    const state = jumpState({ score: 399, stageEndsAt: 100 });
-    expect(applyInput(state, "jump", 100)).toMatchObject({ score: 399, stepsClimbed: 1, endReason: "time-limit", lastMove: null });
+    const state = jumpState({ score: 149, stageEndsAt: 100 });
+    expect(applyInput(state, "jump", 100)).toMatchObject({ score: 149, stepsClimbed: 1, endReason: "time-limit", lastMove: null });
     const moved = applyInput(jumpState({ eventEndsAt: 100 }), "jump", 10);
     const ticked = tickGame(moved, 1_000);
     expect(ticked.lastMove).toBe(moved.lastMove);
@@ -557,7 +569,7 @@ describe("obstacle jumps", () => {
     for (let index = 0; index < 8; index += 1) {
       before = applyInput(before, getRouteStep(before.route, before.stepsClimbed + 1).direction === before.direction ? "forward" : "turn", 0);
     }
-    const state = withObstacle({ ...before, score: 399 }, 9);
+    const state = withObstacle({ ...before, score: 149 }, 9);
     const old = state.obstacles.runs.find((run) => run.runStartIndex === 7)!;
     const moved = applyInput(state, "jump", 10);
     expect(moved.obstacles.runs.find((run) => run.runStartIndex === 7)).toBe(old);

@@ -54,7 +54,7 @@ export function GameHud({ state, eventSecondsLeft, scoreGain, scoreGainIsBonus, 
             <span className="hud-label">남은 시간</span>
           </div>
           <strong className="stage-time" data-testid="stage-time">{cleared ? "클리어" : formatStageTime(stageSecondsLeft)}</strong>
-          <span className="hud-caption">{state.endReason === "cleared" ? "모든 단계 클리어" : `목표 ${getStageTargetScore(state.stageStartScore)}점`}</span>
+          <span className="hud-caption">{state.endReason === "cleared" ? "모든 단계 클리어" : `목표 ${getStageTargetScore(state.stage)}점`}</span>
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 # Task: T02 Stage Scores Unlocks and Ranking
 
-## Status: pending
+## Status: done
 
 ## Goal
 
@@ -148,11 +148,11 @@
 
 ## Acceptance Criteria
 
-- [ ] Single source of truth for targets and H+1 unlock; user clear1/Quit/retry flow opens2 at0point/target200.
-- [ ] Continue clears only stage score/obsolete move effects and preserves frozen route/event contracts.
-- [ ] Rank is actual stage/current-stage score, newv5 only, progress never inferred from new rank.
-- [ ] v4 progress/all accounts survive reset, failures keep legacy recovery source and memory unlocks.
-- [ ] All related tests/lint/build pass without skips, relaxed validators or dependencies/debug props.
+- [x] Single source of truth for targets and H+1 unlock; user clear1/Quit/retry flow opens2 at0point/target200.
+- [x] Continue clears only stage score/obsolete move effects and preserves frozen route/event contracts.
+- [x] Rank is actual stage/current-stage score, newv5 only, progress never inferred from new rank.
+- [x] v4 progress/all accounts survive reset, failures keep legacy recovery source and memory unlocks.
+- [x] All related tests/lint/build pass without skips, relaxed validators or dependencies/debug props.
 
 ## Validation
 
@@ -179,7 +179,36 @@ Task: T02-stage-scores-unlocks-and-ranking
 
 ## Progress
 
-- [ ] 구현 완료
-- [ ] 검증 통과
+- [x] 구현 완료
+- [x] 검증 통과
 - commit: pending
 - After success: mark done, record validation/hash, phase done2/3/T03 in_progress and current Active `T03-stage-score-browser-validation.md`. Do not mark plan complete before T03 actual browser acceptance.
+
+## Validation Results — 2026-10-28
+
+### Implementation
+
+- `types.ts`/`stageRules.ts`/`gameEngine.ts`: `recordStage`/`stageStartScore`를 제거하고 실제 최고 클리어 `highestClearedStage`를 분리했다. 해금/기본 선택은 공통 `getHighestUnlockedStage`의0..5→1/2/3/4/5/5, 목표는 공통 규칙150/200/250/300/350이다. Continue는 score0/lastMove null로 전환하되 route/obstacles/계단 수/이벤트와 동결 시계를 유지한다. 기존 추격/넘어짐/점프/만료 우선 로직은 유지했다.
+- `GameScreen`/`GameHud`/선택·체크포인트·랭킹 패널: 다음 해금 단계 기본 선택, 단계별0점/목표 안내, 실제 종료 단계·해당 점수 표시를 연결했다. 점수 증가 ref는 stage/score를 함께 추적해 단계 변경 후 첫 득점도0점부터 계산한다. 새 랭킹의 도전 단계는 해금이나 과거 클리어로 추론하지 않는다. 오류 문단은 기존처럼 스크롤 가능한 체크포인트 dialog 안에 있다.
+- `leaderboard.ts`: v5에서1~5 실제 도전 단계만 기록한다. 옛v4 정리 전에 T01의 전 계정 진행도 이관을 호출한다. 이관 실패 시v4를 유지하고, 구키 정리 실패만으로 유효v5 읽기/저장을 막지 않는다. 동일/열등 기록의 단계·점수·이름·시각 보존과 TOP10 정렬을 유지했다. T01의 읽기 순서 관련 주의를 이 연결에서 해소했다.
+- source/test18개 파일과 이 Task를 수정했다. App/auth/audio 구현, CSS, 패키지/설정, 실제 경로·장애물 생성기는 변경하지 않았다. 일반 브라우저 저장소를 도구로 직접 읽거나 지우지 않았다.
+
+### Regression Evidence
+
+- 1단계 클리어→Quit→다시 시작에서2단계 기본 선택/3잠김/0점/목표200/75초를 component 통합 검증으로 확인했다.
+- 합법 엔진 입력을 배치해2단계80점/3단계150점을 획득한 뒤 종료시켜, 실제 후보(2,80)/(3,150), 직전 클리어 이력 유지, 다음 미클리어 단계 잠금을 검증했다. 과거 최고 클리어3에서 낮은1단계를 재도전해도 후보는1단계이며 기존 더 높은 개인 최고는 보존된다.
+- Continue에서 이전 점수 알림/점프 연출이 지워지고 다음 성공+1/+2만 표시됨, 전환 자체의 발소리/실수/BGM/이벤트 중복 없음, 체크포인트95초·설정 대기·250/500ms 추격 경계·2칸 점프2/4점·보너스 게이지·단일 종료 저장을 유지했다.
+- v4의 유효/잘못된 행 혼합·중복·다른 계정까지 진행도를 보존한 뒤 정리함, progress/legacy 읽기·쓰기 실패 때 원본 유지/복구 재시도, v4 remove 실패 후 유효v5 사용, v5만으로 해금되지 않음을 검증했다.
+- 초기에 남은400점/기록0단계/옛 잠금/누적 점수 기대값과 fixture를 새 계약으로 고쳤다. 설정 동결 테스트는30회 SVG 개별 렌더로5초 제한에 걸려, 실제 엔진에서 합법 입력을 계산한 뒤 한 React 배치로 실행하도록 개선했다. 개별 입력/효과음 검증은 별도 기존 케이스로 유지하며 timeout 증가/skip/lint 완화는 없었다. 새 removeItem mock의 반환 타입 오류도 실제 Map.delete 반환값을 전달하도록 수정했다.
+
+| Command | Actual result |
+| :--- | :--- |
+| 위 Validation의 정확한17파일 명령 | 최종17파일 **509/509 PASS**,58.36s. T01의469개에서40개 순증. |
+| `npm.cmd run lint` | PASS |
+| `npm.cmd run build` | PASS, exit0, `tsc --noEmit && vite build`, Vite8.3.5 |
+| `git diff --check` | PASS |
+| 위 source search | 옛 필드가 없음을 확인하는 `not.toHaveProperty` assertion2건만 남음. 활성 모델/규칙/안내에는 없음. |
+
+- 빌드 JS551.91kB(gzip154.18kB), CSS55.50kB(gzip10.77kB). 초기 빌드에서는500kB chunk 경고가 출력되었고 최종 로그에는 경고 문구가 없었으나 기존 초과 크기는 남는다. 경고 제한·번들 설정을 바꾸지 않았다.
+- 로그 디렉터리: `C:\Users\DEX\AppData\Local\Temp\stair-stage-scores-t02-2026-10-28\`. 최종 `regression-17-files-final.log`, `lint-final.log`, `build.log`; 초기/수정 중 로그도 같은 디렉터리에 보관했다.
+- 검증 환경은 Vitest/jsdom이다. 실제 브라우저 네 화면/확대/일반 사용자 시연은 T03에 남아 있다. 별도 App 전체 suite/스피커 청취/Entra 설정·배포/공용 서버 랭킹 완료로 표시하지 않는다. 새로 발견해 범위를 늘린 인접 구현은 없다.

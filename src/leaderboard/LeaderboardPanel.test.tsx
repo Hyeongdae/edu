@@ -11,15 +11,16 @@ describe("LeaderboardPanel", () => {
     expect(screen.getByText(/아직 저장된 기록이 없어요/)).toBeVisible();
   });
 
-  it("labels zero progress as uncleared and places a clear above it", () => {
+  it("shows the attempted stage and zero points and prioritizes a higher stage", () => {
     render(<LeaderboardPanel currentAccountId="zero" entries={[
-      { accountId: "zero", displayName: "도전자", bestStage: 0, bestScore: 399, achievedAt: "2026-01-01" },
-      { accountId: "one", displayName: "클리어", bestStage: 1, bestScore: 0, achievedAt: "2026-01-02" },
+      { accountId: "zero", displayName: "도전자", bestStage: 1, bestScore: 0, achievedAt: "2026-01-01" },
+      { accountId: "one", displayName: "다음 도전", bestStage: 2, bestScore: 80, achievedAt: "2026-01-02" },
     ]} />);
     const rows = screen.getAllByRole("listitem");
-    expect(within(rows[0]).getByText("1단계")).toBeVisible();
-    expect(within(rows[1]).getByText("미클리어(0단계)")).toBeVisible();
-    expect(within(rows[1]).getByText("399점")).toBeVisible();
+    expect(within(rows[0]).getByText("2단계")).toBeVisible();
+    expect(within(rows[0]).getByText("80점")).toBeVisible();
+    expect(within(rows[1]).getByText("1단계")).toBeVisible();
+    expect(within(rows[1]).getByText("0점")).toBeVisible();
     expect(rows[1]).toHaveClass("is-current-player");
   });
 

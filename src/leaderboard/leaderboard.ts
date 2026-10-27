@@ -1,10 +1,11 @@
-import type { ClearedStage } from "../game/types";
-import { isClearedStage } from "../game/stageRules";
+import type { GameStage } from "../game/types";
+import { isGameStage } from "../game/stageRules";
+import { migrateLegacyStageProgress } from "../game/stageProgress";
 
 export interface LeaderboardEntry {
   accountId: string;
   displayName: string;
-  bestStage: ClearedStage;
+  bestStage: GameStage;
   bestScore: number;
   achievedAt: string;
 }
@@ -15,7 +16,7 @@ export interface SaveBestScoreResult {
   error?: "storage-unavailable";
 }
 
-const STORAGE_KEY = "stair-climb:leaderboard:v4";
+const STORAGE_KEY = "stair-climb:leaderboard:v5";
 const LEGACY_STORAGE_KEYS = ["stair-climb:leaderboard:v1", "stair-climb:leaderboard:v2", "stair-climb:leaderboard:v3"];
 
 function comparePerformance(
@@ -26,8 +27,14 @@ function comparePerformance(
 }
 
 function clearLegacyScores(storage: Storage): void {
-  for (const key of LEGACY_STORAGE_KEYS) {
-    if (storage.getItem(key) !== null) storage.removeItem(key);
+  const migration = migrateLegacyStageProgress(storage);
+  const keys = migration.available ? [...LEGACY_STORAGE_KEYS, "stair-climb:leaderboard:v4"] : LEGACY_STORAGE_KEYS;
+  for (const key of keys) {
+    try {
+      if (storage.getItem(key) !== null) storage.removeItem(key);
+    } catch {
+      // Retain the legacy source for retry; a cleanup failure must not hide valid new rankings.
+    }
   }
 }
 
@@ -37,7 +44,7 @@ function isLeaderboardEntry(value: unknown): value is LeaderboardEntry {
   return (
     typeof entry.accountId === "string" && entry.accountId.length > 0 &&
     typeof entry.displayName === "string" &&
-    isClearedStage(entry.bestStage) &&
+    isGameStage(entry.bestStage) &&
     Number.isInteger(entry.bestScore) && (entry.bestScore as number) >= 0 &&
     typeof entry.achievedAt === "string" && !Number.isNaN(Date.parse(entry.achievedAt))
   );
@@ -95,8 +102,8 @@ export function saveBestScore(
   storage?: Storage,
   now = new Date(),
 ): SaveBestScoreResult {
-  if (!isClearedStage(entry.bestStage)) {
-    throw new RangeError("bestStage must be an integer from 0 to 5.");
+  if (!isGameStage(entry.bestStage)) {
+    throw new RangeError("bestStage must be an integer from 1 to 5.");
   }
   if (!Number.isInteger(entry.bestScore) || entry.bestScore < 0) {
     throw new RangeError("bestScore must be a non-negative integer.");
