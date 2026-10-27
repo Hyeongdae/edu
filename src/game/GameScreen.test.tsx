@@ -746,7 +746,7 @@ describe("GameScreen controls", () => {
     expect(screen.getByTestId("stage-time")).toHaveTextContent("01:29");
   });
 
-  it("cleans only legacy rankings in StrictMode and preserves new records on remount", () => {
+  it("cleans only legacy rankings, migrates cleared progress once and preserves rankings on StrictMode remount", () => {
     const records = [{ accountId: "existing", displayName: "기존 사용자", bestStage: 5, bestScore: 1501, achievedAt: "2026-01-01" }];
     window.localStorage.setItem("stair-climb:leaderboard:v1", "old scores");
     window.localStorage.setItem("stair-climb:leaderboard:v2", "old stage-two scores");
@@ -760,12 +760,16 @@ describe("GameScreen controls", () => {
     expect(window.localStorage.getItem("stair-climb:leaderboard:v1")).toBeNull();
     expect(window.localStorage.getItem("stair-climb:leaderboard:v2")).toBeNull();
     expect(remove.mock.calls).toEqual([["stair-climb:leaderboard:v1"], ["stair-climb:leaderboard:v2"]]);
+    const migrated = [{ accountId: "existing", highestClearedStage: 5 }];
+    expect(save.mock.calls).toEqual([["stair-climb:stage-progress:v1", JSON.stringify(migrated)]]);
     first.unmount();
     render(<StrictMode><GameScreen account={account} /></StrictMode>);
     expect(JSON.parse(window.localStorage.getItem("stair-climb:leaderboard:v4")!)).toEqual(records);
     expect(window.localStorage.getItem("stair-climb:audio:v1")).toBe("audio-sentinel");
     expect(window.localStorage.getItem("msal.account.keys")).toBe("auth-sentinel");
-    expect(save).not.toHaveBeenCalled();
+    expect(save.mock.calls).toEqual([["stair-climb:stage-progress:v1", JSON.stringify(migrated)]]);
+    expect(JSON.parse(window.localStorage.getItem("stair-climb:stage-progress:v1")!)).toEqual(migrated);
+    expect(save.mock.calls.filter(([key]) => key === "stair-climb:leaderboard:v4")).toHaveLength(0);
     expect(clear).not.toHaveBeenCalled();
   });
 
