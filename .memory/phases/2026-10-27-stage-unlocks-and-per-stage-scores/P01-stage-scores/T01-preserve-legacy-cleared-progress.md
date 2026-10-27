@@ -102,7 +102,7 @@ Task: T01-preserve-legacy-cleared-progress
 
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: pending
+- commit: `f5ef960`
 - After success: mark this Task done, record actual validation and implementation hash, phase done1/3/T02 in_progress, current Active T02 `T02-stage-scores-unlocks-and-ranking.md`. Do not mark the final feature complete; score/unlock/ranking changes are not yet active.
 
 ## Validation Results — 2026-10-27
