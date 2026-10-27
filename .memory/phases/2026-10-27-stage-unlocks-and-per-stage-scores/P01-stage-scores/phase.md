@@ -5,16 +5,17 @@
 | Task | Status | Summary | Blueprint |
 | :--- | :--- | :--- | :--- |
 | T01 | done ✅ | 옛v4 클리어 이력을 계정별 진행도로 보존, 구랭킹 삭제 없음 | [T01](./T01-preserve-legacy-cleared-progress.md) |
-| T02 | in_progress 🔵 | 다음 단계 해금·단계별0점/목표·실제 도전 단계v5랭킹 연결 | [T02](./T02-stage-scores-unlocks-and-ranking.md) |
-| T03 | pending | 재시도/이관 오류/전체5단계/반응형 실제 브라우저 검증 | [T03](./T03-stage-score-browser-validation.md) |
+| T02 | done ✅ | 다음 단계 해금·단계별0점/목표·실제 도전 단계v5랭킹 연결 | [T02](./T02-stage-scores-unlocks-and-ranking.md) |
+| T03 | in_progress 🔵 | 재시도/이관 오류/전체5단계/반응형 실제 브라우저 검증 | [T03](./T03-stage-score-browser-validation.md) |
 
 ## Progress
 
-- done: 1/3 (active: T02)
+- done: 2/3 (active: T03)
 - Status: in_progress
 - 2026-10-27 계획 작성 당시에는 문서/실행 포인터만 준비했다.
 - 2026-10-27 T01 `f5ef960` 완료. 진행도 이관53tests, 지정17파일469/469tests, lint/build/diff check 통과. JS551.80kB(gzip154.18kB), CSS55.50kB(gzip10.77kB). 전 계정 v4 클리어 최대값을 보존하고 읽기/쓰기 실패 시 원본/알려진 값을 유지한다. StrictMode 이관1회/랭킹 쓰기0회를 확인했다. v4 삭제나 점수/해금/랭킹 의미 변경은 아직 없다.
-- 다음 T02는 게임/해금/점수/v5랭킹 연결이다. 기존 UI의 v4 읽기에서 손상 행을 정리하기 전에 새 이관을 호출해야 한다. 실제 브라우저 검증은 T03에서 수행한다.
+- 2026-10-28 T02 `f35254f` 완료. 단계별0점/목표150·200·250·300·350, H+1해금/최고 해금 기본 선택, 실제 종료 단계·해당 점수 v5랭킹을 연결했다. 구v4 정리 전에 전 계정 진행도 이관을 수행하며 실패 시 원본을 보존한다. 지정17파일509/509tests, lint/build/diff check 통과. JS551.91kB(gzip154.18kB), CSS55.50kB(gzip10.77kB); 기존500kB 초과 크기는 유지된다.
+- 다음 T03에서 실제 브라우저 검증을 수행한다. 현재 결과는 Vitest/jsdom이며 브라우저 완료 증거가 아니다.
 
 ## Execution Rule
 

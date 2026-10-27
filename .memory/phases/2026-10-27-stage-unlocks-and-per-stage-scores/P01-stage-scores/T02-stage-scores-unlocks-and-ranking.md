@@ -181,7 +181,7 @@ Task: T02-stage-scores-unlocks-and-ranking
 
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: pending
+- commit: `f35254f`
 - After success: mark done, record validation/hash, phase done2/3/T03 in_progress and current Active `T03-stage-score-browser-validation.md`. Do not mark plan complete before T03 actual browser acceptance.
 
 ## Validation Results — 2026-10-28
