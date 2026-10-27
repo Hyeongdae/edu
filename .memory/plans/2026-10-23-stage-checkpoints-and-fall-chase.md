@@ -1,7 +1,7 @@
 # Plan: Stage Checkpoints and Fall Chase
 
 - Date: 2026-10-23
-- Status: in_progress
+- Status: completed
 - Source: [확정 결정](../decisions/2026-10-23-stage-checkpoints-and-fall-chase.md)
 - Previous completed plan: [Five Stage Obstacle Jump](./2026-10-23-five-stage-obstacle-jump.md), implementation `e369a28`, memory completion `40d58a5`.
 
@@ -13,7 +13,7 @@
 
 | Phase | Status | Summary | Blueprint |
 | :--- | :--- | :--- | :--- |
-| P01 | in_progress | 체크포인트 세션·저장, 단계 선택, 넘어짐 가속, 통합 검증 | [P01](../phases/2026-10-23-stage-checkpoints-and-fall-chase/P01-checkpoint-game/phase.md) |
+| P01 | completed | 체크포인트 세션·저장, 단계 선택, 넘어짐 가속, 통합 검증 | [P01](../phases/2026-10-23-stage-checkpoints-and-fall-chase/P01-checkpoint-game/phase.md) |
 
 ## Task Roadmap
 
@@ -66,8 +66,8 @@
 
 ## Progress
 
-- done: 3/4 (active: T04). 2026-10-27 T01 `afafa68`: 체크포인트/400점/생명 제거/기록0~5/v4/계정 진행도/일반 추격 수치 구현.
+- done: 4/4 (active: none). 2026-10-27 T01 `afafa68`: 체크포인트/400점/생명 제거/기록0~5/v4/계정 진행도/일반 추격 수치 구현.
 - 지정16파일 388tests, lint/build 통과. JS548.68kB(gzip153.34kB), 기존500kB 경고 유지. 사용자 브라우저 직접 확인은 T04다.
 - 2026-10-27 T02 `fa1a5ec`: 계정별 단계 선택/해금/최고 클리어 기본값/0점 새 판/결과 뒤 선택 복귀 구현. 지정17파일402tests, lint/build 통과. JS550.61kB(gzip153.85kB), CSS55.52kB(gzip10.78kB); 기존500kB 경고 유지.
 - 2026-10-27 T03 `9a9e6b5`: 넘어짐500ms 중250ms 추격, 더 이른 예약 유지, 회복/만료 경계와 설정 대기 보존 구현. 지정17파일432tests, lint/build 통과. JS550.84kB(gzip153.91kB), CSS55.52kB(gzip10.78kB); 기존500kB 경고 유지.
-- 다음 T04 전체 브라우저/반응형/실시간 검증은 미완료.
+- 2026-10-27 T04 `9fda567` 완료. 지정17파일433/433tests/lint/build와 격리 브라우저의 네 화면 전체5단계·체크포인트/저장/실시간 추격·320px 확대·모션 감소를 통과했다. 확대된 저장 오류 안내가 체크포인트 버튼을 가리는 문제를 수정했다. 실제/제어시간, lifecycle HMR 대처, 드라이버/PNG/JSON 증거와 검증 한계는 T04 참조. JS550.83kB(gzip153.95kB), CSS55.50kB(gzip10.77kB); 번들 크기와 별도 소리 청취 이슈는 미해결로 보존한다.

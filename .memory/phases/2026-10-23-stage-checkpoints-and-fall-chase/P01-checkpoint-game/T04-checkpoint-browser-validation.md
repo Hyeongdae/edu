@@ -135,7 +135,7 @@ Task: T04-checkpoint-browser-validation
 
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: pending
+- commit: `9fda567`
 
 ## Validation Results — 2026-10-27
 
