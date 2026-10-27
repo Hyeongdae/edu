@@ -448,11 +448,8 @@ export function GameScreen({
               disabled={controlsDisabled}
             />
           ) : gameState.status === "checkpoint" ? (
-            <>
-              <CheckpointPanel stage={gameState.stage} score={gameState.score} recordStage={gameState.recordStage}
-                onContinue={handleContinue} onQuit={handleQuit} disabled={false} />
-              {progressError && <p className="checkpoint-progress-error" role="status">진행도를 저장하지 못했습니다. 이 브라우저의 저장 공간을 확인해 주세요.</p>}
-            </>
+            <CheckpointPanel stage={gameState.stage} score={gameState.score} recordStage={gameState.recordStage}
+              onContinue={handleContinue} onQuit={handleQuit} disabled={false} progressError={progressError} />
           ) : (
             <section
               className="game-over-panel"

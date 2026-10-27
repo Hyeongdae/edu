@@ -25,4 +25,14 @@ describe("CheckpointPanel", () => {
     for (const button of screen.getAllByRole("button")) { expect(button).toBeDisabled(); fireEvent.click(button); }
     expect(onContinue).not.toHaveBeenCalled(); expect(onQuit).not.toHaveBeenCalled();
   });
+  it("keeps a save error inside the scrollable dialog with both choices available", () => {
+    const onContinue = vi.fn(), onQuit = vi.fn();
+    render(<CheckpointPanel stage={1} score={400} recordStage={1} onContinue={onContinue} onQuit={onQuit} disabled={false} progressError />);
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toContainElement(screen.getByRole("status"));
+    expect(screen.getByRole("status")).toHaveTextContent("진행도를 저장하지 못했습니다");
+    fireEvent.click(screen.getByRole("button", { name: "계속하기" }));
+    fireEvent.click(screen.getByRole("button", { name: "그만두기" }));
+    expect(onContinue).toHaveBeenCalledOnce(); expect(onQuit).toHaveBeenCalledOnce();
+  });
 });
