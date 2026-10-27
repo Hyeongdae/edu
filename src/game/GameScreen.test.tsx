@@ -539,6 +539,11 @@ describe("GameScreen controls", () => {
     const randomCallsBeforeRestart = randomSpy.mock.calls.length;
     fireEvent.click(screen.getByRole("button", { name: /다시 시작/ }));
     expect(randomSpy).toHaveBeenCalledTimes(randomCallsBeforeRestart + 1);
+    expect(screen.getByRole("region", { name: "단계 선택" })).toBeVisible();
+    expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "ready");
+    expect(audio.startBgm).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
+    expect(randomSpy).toHaveBeenCalledTimes(randomCallsBeforeRestart + 1);
     expect(audio.startBgm).toHaveBeenCalledTimes(2);
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "playing");
     expect(screen.getByRole("region", { name: "게임 현황" })).toBeVisible();
@@ -612,6 +617,9 @@ describe("GameScreen controls", () => {
     expect(screen.getByTestId("runner")).toHaveAttribute("data-route-index", "0");
     expect(screen.getByTestId("pursuer").parentElement).not.toHaveClass("catch-overlay");
     expect(screen.queryByText(/게임 종료/)).not.toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "단계 선택" })).toBeVisible();
+    expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "ready");
+    fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
     fireEvent.keyDown(window, { key: "j" });
     expect(screen.getByTestId("pursuer")).not.toHaveClass("is-approaching");
     expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "-4");
@@ -632,6 +640,8 @@ describe("GameScreen controls", () => {
     fireEvent.keyDown(window, { key: "d" });
     expect(screen.getByText("시간 초과")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /다시 시작/ }));
+    expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "ready");
+    fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "playing");
     vi.setSystemTime(100_199);
     fireEvent.keyDown(window, { key: "d" });
@@ -775,7 +785,7 @@ describe("GameScreen controls", () => {
     ]);
   });
 
-  it.each([false, true])("clears stage five and saves once without catch delay, then restarts stage one (bonus=%s)", async (bonus) => {
+  it.each([false, true])("clears stage five and saves once, then selects a zero-score replay (bonus=%s)", async (bonus) => {
     vi.useFakeTimers();
     vi.setSystemTime(1_000);
     seedReadyStage(5, { pursuerDistance: 1, eventEndsAt: bonus ? 31_000 : null });
@@ -811,6 +821,11 @@ describe("GameScreen controls", () => {
     expect(save.mock.calls.filter(([key]) => key === "stair-climb:leaderboard:v4")).toHaveLength(1);
     expect(screen.getByRole("heading", { name: `${finalScore}점` })).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: /다시 시작/ }));
+    expect(screen.getByRole("button", { name: "5단계 선택" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("stage-time")).toHaveTextContent("00:50");
+    expect(audio.startBgm).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole("button", { name: "1단계 선택" }));
+    fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
     expect(screen.getByTestId("stage-value")).toHaveTextContent("1단계");
     expect(screen.getByTestId("stage-time")).toHaveTextContent("01:30");
     expect(screen.getByText("목표 400점")).toBeInTheDocument();
@@ -838,6 +853,8 @@ describe("GameScreen controls", () => {
     expect(window.localStorage.getItem(oldKey)).toBe("old scores");
     expect(window.localStorage.getItem("stair-climb:leaderboard:v4")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /다시 시작/ }));
+    expect(screen.getByRole("region", { name: "단계 선택" })).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "playing");
     expect(screen.getByTestId("score-value")).toHaveTextContent("0");
   });
@@ -936,6 +953,8 @@ describe("checkpoint session integration", () => {
     ]));
     const start = vi.spyOn(gameEngine, "startGame");
     render(<GameScreen account={account} />);
+    expect(screen.getByRole("button", { name: "3단계 선택" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByRole("button", { name: "1단계 선택" }));
     fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
     expect(start.mock.calls[0][0]).toMatchObject({ stage: 1, recordStage: 3, clearedStageThisRun: 0, score: 0 });
     fireEvent.keyDown(window, { key: "d" });
@@ -961,6 +980,222 @@ describe("checkpoint session integration", () => {
     expect(screen.getByText("기록 단계 1단계")).toBeVisible();
     expect(within(screen.getByRole("region", { name: "최고 기록 랭킹" })).getByText("1단계")).toBeVisible();
     expect(JSON.parse(localStorage.getItem(rankKey)!)[0].bestStage).toBe(1);
+  });
+});
+
+describe("unlocked stage selection", () => {
+  const progressKey = "stair-climb:stage-progress:v1", rankKey = "stair-climb:leaderboard:v4";
+  afterEach(() => { cleanup(); vi.restoreAllMocks(); localStorage.clear(); vi.useRealTimers(); });
+  function storeProgress(): void {
+    localStorage.setItem(progressKey, JSON.stringify([
+      { accountId: account.homeAccountId, highestClearedStage: 3 },
+      { accountId: "other-account", highestClearedStage: 5 },
+    ]));
+  }
+  function audioFixture(): AudioController {
+    return { startBgm: vi.fn().mockResolvedValue(true), stopBgm: vi.fn(), setEventActive: vi.fn(),
+      setPreferences: vi.fn(), playFootstep: vi.fn(), playFall: vi.fn(), dispose: vi.fn() };
+  }
+
+  it.each([1, 3] as const)("starts selected stage %s once from the unchanged zero-score preview", (stage) => {
+    vi.useFakeTimers(); vi.setSystemTime(1000); storeProgress();
+    const audio = audioFixture(), random = vi.spyOn(Math, "random").mockReturnValue(0);
+    const input = vi.spyOn(gameEngine, "applyInput"), reset = vi.spyOn(gameEngine, "resetGame"), start = vi.spyOn(gameEngine, "startGame");
+    const writes = vi.spyOn(Storage.prototype, "setItem");
+    render(<StrictMode><GameScreen account={account} audioController={audio} /></StrictMode>);
+    expect(screen.getByRole("button", { name: "3단계 선택" })).toHaveFocus();
+    expect(screen.getByRole("button", { name: "3단계 선택" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "4단계 잠김" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "5단계 잠김" })).toBeDisabled();
+    const initialRandomCalls = random.mock.calls.length;
+    fireEvent.click(screen.getByRole("button", { name: "4단계 잠김" }));
+    fireEvent.click(screen.getByRole("button", { name: "3단계 선택" }));
+    for (const key of ["d", "j", " ", "Escape"]) fireEvent.keyDown(window, { key });
+    expect(random).toHaveBeenCalledTimes(initialRandomCalls);
+    expect(reset).not.toHaveBeenCalled(); expect(input).not.toHaveBeenCalled();
+    expect(audio.startBgm).not.toHaveBeenCalled(); expect(writes).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "1단계 선택" }));
+    const firstPreview = reset.mock.results.at(-1)!.value as GameState;
+    expect(firstPreview).toMatchObject({ status: "ready", stage: 1, score: 0, stageStartScore: 0,
+      recordStage: 3, clearedStageThisRun: 0, stepsClimbed: 0, eventSteps: 0, eventEndsAt: null,
+      pursuerIndex: -4, pursuerDistance: 4, nextPursuerStepAt: null, stageEndsAt: null, lastMove: null });
+    expect(screen.getByTestId("stage-time")).toHaveTextContent("01:30");
+    fireEvent.click(screen.getByRole("button", { name: "1단계 선택" }));
+    expect(reset).toHaveBeenCalledOnce();
+    if (stage === 3) fireEvent.click(screen.getByRole("button", { name: "3단계 선택" }));
+    const preview = reset.mock.results.at(-1)!.value as GameState;
+    expect(preview.obstacles.runs.every((run) => run.stageAtGeneration === stage)).toBe(true);
+    expect(screen.getByText("목표 400점")).toBeVisible();
+    expect(writes).not.toHaveBeenCalled();
+    vi.setSystemTime(100_000); fireEvent(document, new Event("visibilitychange"));
+    expect(screen.getByTestId("stage-time")).toHaveTextContent(stage === 3 ? "01:05" : "01:30");
+    const beforeStartRandomCalls = random.mock.calls.length;
+    const button = screen.getByRole("button", { name: "시작하기" });
+    expect(fireEvent.keyDown(button, { key: " ", code: "Space" })).toBe(true);
+    expect(input).not.toHaveBeenCalled(); expect(start).not.toHaveBeenCalled();
+    act(() => { fireEvent.click(button, { detail: 0 }); fireEvent.click(button, { detail: 0 }); });
+    expect(start).toHaveBeenCalledExactlyOnceWith(preview, 100_000);
+    expect(random).toHaveBeenCalledTimes(beforeStartRandomCalls);
+    const started = start.mock.results[0].value as GameState;
+    expect(started.route).toBe(preview.route); expect(started.obstacles).toBe(preview.obstacles);
+    expect(started.stageEndsAt).toBe(100_000 + getStageRule(stage).durationMs);
+    expect(started.nextPursuerStepAt).toBe(100_000 + getStageRule(stage).pursuerStepIntervalMs);
+    expect(started).toMatchObject({ stage, score: 0, recordStage: 3, clearedStageThisRun: 0 });
+    expect(audio.startBgm).toHaveBeenCalledOnce(); expect(writes).not.toHaveBeenCalled();
+    expect(screen.queryByRole("region", { name: "단계 선택" })).not.toBeInTheDocument();
+  });
+
+  it("clears stage two, quits once, and returns to a new stage-two selection without starting its clocks", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(0); seedReadyStage(2);
+    const audio = audioFixture(), reset = vi.spyOn(gameEngine, "resetGame");
+    const writes = vi.spyOn(Storage.prototype, "setItem");
+    render(<StrictMode><GameScreen account={account} audioController={audio} /></StrictMode>);
+    fireEvent.click(screen.getByRole("button", { name: "시작하기" })); climbOneStep();
+    expect(screen.getByRole("dialog", { name: "2단계 클리어!" })).toBeVisible();
+    expect(localStorage.getItem(rankKey)).toBeNull();
+    expect(JSON.parse(localStorage.getItem(progressKey)!)[0].highestClearedStage).toBe(2);
+    fireEvent.click(screen.getByRole("button", { name: "그만두기" }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+    expect(JSON.parse(localStorage.getItem(rankKey)!)[0]).toMatchObject({ bestStage: 2, bestScore: 400 });
+    const restart = screen.getByRole("button", { name: /다시 시작/ });
+    act(() => { fireEvent.click(restart); fireEvent.click(restart); });
+    expect(reset).toHaveBeenCalledOnce();
+    expect(screen.getByRole("button", { name: "2단계 선택" })).toHaveFocus();
+    expect(screen.getByRole("button", { name: "3단계 잠김" })).toBeDisabled();
+    expect(screen.getByTestId("stage-time")).toHaveTextContent("01:15");
+    expect(screen.getByText("목표 400점")).toBeVisible();
+    const preview = reset.mock.results[0].value as GameState;
+    expect(preview).toMatchObject({ status: "ready", stage: 2, score: 0, stageStartScore: 0,
+      recordStage: 2, clearedStageThisRun: 0, stageEndsAt: null, nextPursuerStepAt: null,
+      eventSteps: 0, eventEndsAt: null, captureCount: 0, captureEndsAt: null, pursuerIndex: -4 });
+    expect(audio.startBgm).toHaveBeenCalledOnce();
+    vi.setSystemTime(100_000); fireEvent(document, new Event("visibilitychange"));
+    expect(screen.getByTestId("stage-time")).toHaveTextContent("01:15");
+    expect(writes.mock.calls.filter(([key]) => key === rankKey)).toHaveLength(1);
+    expect(writes.mock.calls.filter(([key]) => key === progressKey)).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
+    expect(audio.startBgm).toHaveBeenCalledTimes(2);
+    expect(screen.getByTestId("score-value")).toHaveTextContent(/^0$/);
+  });
+
+  it("isolates defaults and locks across keyed account changes", () => {
+    vi.useFakeTimers(); storeProgress();
+    const view = render(<GameScreen key={account.homeAccountId} account={account} />);
+    fireEvent.click(screen.getByRole("button", { name: "1단계 선택" }));
+    const other = { ...account, homeAccountId: "other-account" };
+    view.rerender(<GameScreen key={other.homeAccountId} account={other} />);
+    expect(screen.getByRole("button", { name: "5단계 선택" })).toHaveFocus();
+    expect(screen.getByRole("button", { name: "4단계 선택" })).toBeEnabled();
+    view.rerender(<GameScreen key={account.homeAccountId} account={account} />);
+    expect(screen.getByRole("button", { name: "3단계 선택" })).toHaveFocus();
+    expect(screen.getByRole("button", { name: "4단계 잠김" })).toBeDisabled();
+    expect(localStorage.getItem(rankKey)).toBeNull();
+  });
+
+  it("unlocks stage four only after actually clearing it and defaults to four on return and reload", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(0); storeProgress(); seedReadyStage(3);
+    const continued = vi.spyOn(gameEngine, "continueGame");
+    const view = render(<GameScreen account={account} />);
+    fireEvent.click(screen.getByRole("button", { name: "시작하기" })); climbOneStep();
+    expect(screen.getByRole("dialog", { name: "3단계 클리어!" })).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "계속하기" }));
+    expect(screen.getByTestId("stage-value")).toHaveTextContent("4단계");
+    expect(JSON.parse(localStorage.getItem(progressKey)!)[0].highestClearedStage).toBe(3);
+    // Compose real legal inputs in one React batch; do not spend this storage test rendering every intermediate stair.
+    let simulated: GameState = continued.mock.results.at(-1)!.value;
+    const keys: string[] = [];
+    for (let action = 0; action < 250 && simulated.status === "playing"; action++) {
+      const turn = getRouteStep(simulated.route, simulated.stepsClimbed + 1).direction !== simulated.direction;
+      keys.push(turn ? "j" : "d");
+      simulated = gameEngine.applyInput(simulated, turn ? "turn" : "forward", 0);
+    }
+    expect(simulated).toMatchObject({ status: "checkpoint", stage: 4, recordStage: 4 });
+    act(() => { for (const key of keys) fireEvent.keyDown(window, { key }); });
+    expect(screen.getByRole("dialog", { name: "4단계 클리어!" })).toBeVisible();
+    expect(JSON.parse(localStorage.getItem(progressKey)!).find((entry: { accountId: string }) => entry.accountId === account.homeAccountId).highestClearedStage).toBe(4);
+    expect(localStorage.getItem(rankKey)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "그만두기" }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+    expect(JSON.parse(localStorage.getItem(rankKey)!)[0].bestStage).toBe(4);
+    fireEvent.click(screen.getByRole("button", { name: /다시 시작/ }));
+    expect(screen.getByRole("button", { name: "4단계 선택" })).toHaveFocus();
+    expect(screen.getByRole("button", { name: "5단계 잠김" })).toBeDisabled();
+    expect(screen.getByTestId("stage-time")).toHaveTextContent("01:00");
+    expect(screen.getByTestId("score-value")).toHaveTextContent(/^0$/);
+    view.unmount();
+    vi.mocked(gameEngine.createGameState).mockRestore(); vi.mocked(gameEngine.startGame).mockRestore();
+    render(<GameScreen account={account} />);
+    expect(screen.getByRole("button", { name: "4단계 선택" })).toHaveFocus();
+    expect(screen.getByRole("button", { name: "3단계 선택" })).toBeEnabled();
+  });
+
+  it("starts fresh at one with only legacy-v3 records, preserving unrelated keys", () => {
+    localStorage.setItem("stair-climb:leaderboard:v3", JSON.stringify([
+      { accountId: account.homeAccountId, displayName: "옛 기록", bestStage: 5, bestScore: 9999, achievedAt: "2026-01-01" },
+    ]));
+    localStorage.setItem("sentinel", "keep");
+    render(<GameScreen account={account} />);
+    expect(screen.getByRole("button", { name: "1단계 선택" })).toHaveFocus();
+    expect(screen.getByRole("button", { name: "2단계 잠김" })).toBeDisabled();
+    expect(localStorage.getItem("stair-climb:leaderboard:v3")).toBeNull();
+    expect(localStorage.getItem(progressKey)).toBeNull(); expect(localStorage.getItem(rankKey)).toBeNull();
+    expect(localStorage.getItem("sentinel")).toBe("keep");
+  });
+
+  it("uses valid current-account v4 progress when progress reads fail and keeps selection usable", () => {
+    localStorage.setItem(rankKey, JSON.stringify([
+      { accountId: account.homeAccountId, displayName: "기록", bestStage: 3, bestScore: 20, achievedAt: "2026-01-01" },
+      { accountId: "other", displayName: "다른 사람", bestStage: 5, bestScore: 9999, achievedAt: "2026-01-01" },
+    ]));
+    const read = Storage.prototype.getItem;
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(function (this: Storage, key) {
+      if (key === progressKey) throw new DOMException("blocked", "SecurityError");
+      return read.call(this, key);
+    });
+    render(<GameScreen account={account} />);
+    expect(screen.getByRole("button", { name: "3단계 선택" })).toHaveFocus();
+    expect(screen.getByRole("button", { name: "4단계 잠김" })).toBeDisabled();
+    expect(screen.getByRole("status")).toHaveTextContent("진행도를 읽지 못했습니다.");
+    fireEvent.click(screen.getByRole("button", { name: "1단계 선택" }));
+    expect(screen.getByRole("button", { name: "시작하기" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "3단계 선택" })).toBeEnabled();
+  });
+
+  it("keeps a first-stage entrance and cleans up keyboard handling when storage access is blocked", () => {
+    vi.spyOn(window, "localStorage", "get").mockImplementation(() => { throw new DOMException("blocked", "SecurityError"); });
+    const input = vi.spyOn(gameEngine, "applyInput");
+    const view = render(<StrictMode><GameScreen account={account} /></StrictMode>);
+    expect(screen.getByRole("button", { name: "1단계 선택" })).toHaveFocus();
+    expect(screen.getByRole("button", { name: "2단계 잠김" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "시작하기" })).toBeEnabled();
+    expect(screen.getByRole("status")).toHaveTextContent("진행도를 읽지 못했습니다.");
+    view.unmount();
+    fireEvent.keyDown(window, { key: " ", code: "Space" }); fireEvent.keyDown(window, { key: "d" });
+    expect(input).not.toHaveBeenCalled();
+    vi.restoreAllMocks();
+  });
+
+  it("keeps in-memory unlocks after a progress write failure and reloads from a valid final rank", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(0); seedReadyStage(2);
+    const write = Storage.prototype.setItem;
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(function (this: Storage, key, value) {
+      if (key === progressKey) throw new DOMException("full", "QuotaExceededError");
+      write.call(this, key, value);
+    });
+    const view = render(<GameScreen account={account} />);
+    fireEvent.click(screen.getByRole("button", { name: "시작하기" })); climbOneStep();
+    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+    expect(screen.getByRole("status")).toHaveTextContent("진행도를 저장하지 못했습니다.");
+    fireEvent.click(screen.getByRole("button", { name: "그만두기" }));
+    fireEvent.click(screen.getByRole("button", { name: /다시 시작/ }));
+    expect(screen.getByRole("button", { name: "2단계 선택" })).toHaveAttribute("aria-pressed", "true");
+    view.unmount();
+    vi.mocked(gameEngine.createGameState).mockRestore();
+    vi.mocked(gameEngine.startGame).mockRestore();
+    render(<GameScreen account={account} />);
+    expect(localStorage.getItem(progressKey)).toBeNull();
+    expect(screen.getByRole("button", { name: "2단계 선택" })).toHaveFocus();
+    expect(screen.getByRole("button", { name: "3단계 잠김" })).toBeDisabled();
   });
 });
 
@@ -1199,6 +1434,8 @@ describe("dedicated jump animation lifecycle", () => {
     expect(screen.getByText("시간 초과")).toBeInTheDocument();
     expect(document.querySelector(".jump-overlay")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /다시 시작/ }));
+    expect(screen.getByRole("region", { name: "단계 선택" })).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
     expect(screen.getByTestId("runner")).toHaveAttribute("data-route-index", "0");
     expect(document.querySelector(".jump-overlay")).toBeNull();
     expect(screen.getAllByTestId("runner")).toHaveLength(1);

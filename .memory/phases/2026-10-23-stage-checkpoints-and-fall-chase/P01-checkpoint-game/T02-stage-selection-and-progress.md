@@ -1,6 +1,6 @@
 # Task: T02 Stage Selection and Progress
 
-## Status: pending
+## Status: done
 
 ## Goal
 
@@ -74,9 +74,9 @@
 
 ## Acceptance Criteria
 
-- [ ] 해금 범위와 기본 선택이 맞고 잠긴 단계는 시작할 수 없다.
-- [ ] 선택 단계의 조건으로 0점 새 판을 시작하며 결과→선택→시작이 연결된다.
-- [ ] 재도전 기록 기준·계정 분리·기존 체크포인트 계속하기·저장 guard를 보존한다.
+- [x] 해금 범위와 기본 선택이 맞고 잠긴 단계는 시작할 수 없다.
+- [x] 선택 단계의 조건으로 0점 새 판을 시작하며 결과→선택→시작이 연결된다.
+- [x] 재도전 기록 기준·계정 분리·기존 체크포인트 계속하기·저장 guard를 보존한다.
 
 ## Validation
 
@@ -100,6 +100,17 @@ Task: T02-stage-selection-and-progress
 
 ## Progress
 
-- [ ] 구현 완료
-- [ ] 검증 통과
+- [x] 구현 완료
+- [x] 검증 통과
 - commit: pending
+
+## Execution Notes — 2026-10-27
+
+- Added a stateless StageSelectPanel with five native stage buttons, account-specific locks/pressed state, selected-stage initial focus, time/zero-score/record-baseline descriptions, and progress-read failure guidance.
+- GameScreen defaults to max(1, known highest). Selection and result-return construct a fresh ready preview once in the event handler; Start preserves that preview and alone arms clocks/BGM. A synchronous ref prevents duplicate Start/return actions in the same React batch. Same-stage/locked clicks do not reroll or save.
+- Known progress merges the current run's record baseline, initial profile and latest current-account progress/v4 record. Failed writes retain in-memory unlocks; valid final v4 records restore defaults after reload. Continue remains separate and preserves route/score/event state.
+- Added the opaque scrollable pixel overlay, 56px targets and mobile two-column stage grid. Removed the superseded direct-child Start positioning/ready-space rules, preserving gameplay controls and the scene scroller.
+- Updated result-restart tests to go through ready selection and Start. Added stage0/2/5 panel locks, default3/accountB5 isolation, selected1/3 clocks and obstacle stage, native input/StrictMode duplicate guards, actual stage4 clear and reload, legacy-v3 reset, storage-read/write failure and v4 fallback checks.
+- Validation: exact 17 blueprint test files passed, 402/402 tests; npm run lint passed; npm run build passed; git diff --check passed. Build JS550.61kB(gzip153.85kB), CSS55.52kB(gzip10.78kB), existing >500kB chunk warning remains.
+- Validation notes: the first full-suite run concurrent with lint/build hit an existing 5-second UI timer-test deadline and cascaded; the same exact full suite passed when run independently. Test timeouts were not increased. The new clear4 storage test composes real legal inputs in one React batch to avoid rendering hundreds of intermediate stairs; existing per-input animation/audio regressions remain intact.
+- T01 engine/rule/storage/model APIs and App account key were unchanged. No dependencies, debug flags, browser signoff or audible fall-sound claim. Fall pursuit at250ms remains T03; browser/responsive signoff remains T04. Bundle splitting/independent App expectations/older CSS cleanup remain separate work.
