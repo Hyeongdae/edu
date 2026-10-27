@@ -1,11 +1,13 @@
 import { type KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 import type { AccountInfo } from "@azure/msal-browser";
-import { applyInput, createGameState, getStageSecondsLeft, resetGame, resumeGameAfterPause, startGame, tickGame } from "./gameEngine";
+import { applyInput, continueGame, createGameState, getStageSecondsLeft, quitAtCheckpoint, resetGame, resumeGameAfterPause, startGame, tickGame } from "./gameEngine";
+import { CheckpointPanel } from "./CheckpointPanel";
+import { readStageProgress, saveStageProgress } from "./stageProgress";
 import { ControlButtons } from "./ControlButtons";
 import { GameHud } from "./GameHud";
 import { StairScene } from "./StairScene";
 import { PixelIcon } from "./pixel/PixelIcon";
-import type { GameInput } from "./types";
+import type { ClearedStage, GameInput } from "./types";
 import { LeaderboardPanel } from "../leaderboard/LeaderboardPanel";
 import { readLeaderboard, saveBestScore, type LeaderboardEntry } from "../leaderboard/leaderboard";
 import { AudioControls } from "../audio/AudioControls";
@@ -42,9 +44,18 @@ export function GameScreen({
   onAudioPreferencesChange,
   onEnableAudio,
 }: GameScreenProps) {
-  const [gameState, setGameState] = useState(() => createGameState());
+  const [initialProfile] = useState(() => {
+    const entries = readLeaderboard();
+    const progress = readStageProgress(account.homeAccountId);
+    const knownHighest = Math.max(progress.highestClearedStage,
+      entries.find((entry) => entry.accountId === account.homeAccountId)?.bestStage ?? 0) as ClearedStage;
+    return { entries, knownHighest, progressAvailable: progress.available };
+  });
+  const [gameState, setGameState] = useState(() => createGameState(undefined, { stage: 1, highestClearedStage: initialProfile.knownHighest }));
   const [nowMs, setNowMs] = useState(() => Date.now());
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>(() => readLeaderboard());
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>(initialProfile.entries);
+  const [progressError, setProgressError] = useState(!initialProfile.progressAvailable);
+  const progressSavedRef = useRef({ accountId: account.homeAccountId, clearedStage: 0 });
   const [saveError, setSaveError] = useState(false);
   const [climbAnimationKey, setClimbAnimationKey] = useState(0);
   const [isClimbing, setIsClimbing] = useState(false);
@@ -68,14 +79,16 @@ export function GameScreen({
   const previousEventActiveRef = useRef(gameState.eventEndsAt !== null);
 
   const openSettings = useCallback(() => {
-    if (settingsOpenedAtRef.current !== null) return;
+    if (settingsOpenedAtRef.current !== null || gameState.status !== "playing") return;
     const openedAt = Date.now();
+    const reconciled = tickGame(gameState, openedAt);
     setNowMs(openedAt);
-    setGameState((state) => tickGame(state, openedAt));
+    setGameState(reconciled);
+    if (reconciled.status !== "playing") return;
     settingsOpenedAtRef.current = openedAt;
     isSettingsOpenRef.current = true;
     setIsSettingsOpen(true);
-  }, []);
+  }, [gameState]);
 
   const closeSettings = useCallback(() => {
     const openedAt = settingsOpenedAtRef.current;
@@ -97,14 +110,36 @@ export function GameScreen({
   }, []);
 
   const handleStart = () => {
+    if (gameState.status !== "ready" && gameState.status !== "game-over") return;
     const startedAt = Date.now();
     scoreSavedRef.current = false;
+    progressSavedRef.current = { accountId: account.homeAccountId, clearedStage: 0 };
     setSaveError(false);
     setNowMs(startedAt);
-    const nextState = startGame(gameState.status === "game-over" ? resetGame() : gameState, startedAt);
+    const nextState = startGame(gameState.status === "game-over" ? resetGame(undefined, { stage: 1, highestClearedStage: gameState.recordStage }) : gameState, startedAt);
     setGameState(nextState);
     void audioController?.startBgm();
   };
+
+  const handleContinue = () => {
+    const continuedAt = Date.now();
+    setNowMs(continuedAt);
+    setGameState((state) => continueGame(state, continuedAt));
+  };
+  const handleQuit = () => {
+    const quitAt = Date.now();
+    setNowMs(quitAt);
+    setGameState((state) => quitAtCheckpoint(state, quitAt));
+  };
+
+  useEffect(() => {
+    const clearedStage = gameState.clearedStageThisRun;
+    const previous = progressSavedRef.current;
+    if (clearedStage === 0 || (previous.accountId === account.homeAccountId && previous.clearedStage >= clearedStage)) return;
+    progressSavedRef.current = { accountId: account.homeAccountId, clearedStage };
+    const result = saveStageProgress(account.homeAccountId, gameState.recordStage);
+    window.setTimeout(() => setProgressError(!result.saved), 0);
+  }, [account.homeAccountId, gameState.clearedStageThisRun, gameState.recordStage]);
 
   useEffect(() => {
     const climbedSuccessfully = gameState.stepsClimbed > previousStepsRef.current;
@@ -215,7 +250,7 @@ export function GameScreen({
       ? saveBestScore({
           accountId: account.homeAccountId,
           displayName: account.name || "이름 없음",
-          bestStage: gameState.stage,
+          bestStage: gameState.recordStage,
           bestScore: gameState.score,
         })
       : { entries: leaderboard, saved: false };
@@ -223,11 +258,11 @@ export function GameScreen({
       setLeaderboard(result.entries);
       setSaveError(!result.saved);
     }, 0);
-  }, [account.homeAccountId, account.name, gameState.stage, gameState.score, gameState.status, leaderboard]);
+  }, [account.homeAccountId, account.name, gameState.recordStage, gameState.score, gameState.status, leaderboard]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || isSettingsOpenRef.current || isTextEntryTarget(event.target)) {
+      if (gameState.status !== "playing" || event.defaultPrevented || isSettingsOpenRef.current || isTextEntryTarget(event.target)) {
         return;
       }
 
@@ -250,7 +285,7 @@ export function GameScreen({
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [handleInput]);
+  }, [handleInput, gameState.status]);
 
   useEffect(() => {
     if (isSettingsOpen) return undefined;
@@ -294,7 +329,7 @@ export function GameScreen({
   const eventSecondsLeft =
     gameState.eventEndsAt === null
       ? 0
-      : Math.max(0, Math.ceil((gameState.eventEndsAt - nowMs) / 1000));
+      : Math.max(0, Math.ceil((gameState.eventEndsAt - (gameState.checkpointEnteredAt ?? nowMs)) / 1000));
   const controlsDisabled =
     gameState.status !== "playing" || gameState.recoveryEndsAt !== null || isSettingsOpen;
   const pursuerCatchVisible = gameState.captureEndsAt !== null &&
@@ -342,6 +377,7 @@ export function GameScreen({
             aria-label="게임 설정"
             aria-expanded={isSettingsOpen}
             aria-controls="game-settings-dialog"
+            disabled={gameState.status === "ready" || gameState.status === "checkpoint"}
             onClick={openSettings}
           >
             <PixelIcon name="settings" />
@@ -380,6 +416,12 @@ export function GameScreen({
               onJump={() => handleInput("jump")}
               disabled={controlsDisabled}
             />
+          ) : gameState.status === "checkpoint" ? (
+            <>
+              <CheckpointPanel stage={gameState.stage} score={gameState.score} recordStage={gameState.recordStage}
+                onContinue={handleContinue} onQuit={handleQuit} disabled={false} />
+              {progressError && <p className="checkpoint-progress-error" role="status">진행도를 저장하지 못했습니다. 이 브라우저의 저장 공간을 확인해 주세요.</p>}
+            </>
           ) : (
             <section
               className="game-over-panel"
@@ -389,10 +431,11 @@ export function GameScreen({
                 <PixelIcon name="flag" className="game-over-icon" size={36} />
                 <p className="game-over-kicker">이번 도전 결과</p>
                 <h2 id="game-over-title">{gameState.score}점</h2>
-                <p className="game-over-stage">도달 단계 {gameState.stage}단계</p>
-                <p className="game-over-reason">{gameState.endReason === "cleared" ? "최종 클리어!" : gameState.endReason === "time-limit" ? "시간 초과" : "추격자에게 잡혔어요"}</p>
+                <p className="game-over-stage">{gameState.recordStage === 0 ? "미클리어(0단계)" : `기록 단계 ${gameState.recordStage}단계`}</p>
+                <p className="game-over-reason">{gameState.endReason === "cleared" ? "최종 클리어!" : gameState.endReason === "time-limit" ? "시간 초과" : gameState.endReason === "quit" ? "체크포인트에서 종료했어요" : "추격자에게 잡혔어요"}</p>
                 <p>계단 {gameState.stepsClimbed}개를 올랐어요.</p>
                 {saveError && <p className="leaderboard-error" role="status">기록을 저장하지 못했습니다. 이 브라우저의 저장 공간을 확인해 주세요.</p>}
+                {progressError && <p role="status">진행도를 저장하지 못했습니다. 이 브라우저의 저장 공간을 확인해 주세요.</p>}
                 <button className="start-button restart-button" type="button" onClick={handleStart}>
                   <PixelIcon name="restart" size={20} /> 다시 시작
                 </button>
@@ -468,7 +511,7 @@ export function GameScreen({
                       <span className="chase-icon"><PixelIcon name="flag" size={20} /></span>
                       <div>
                         <strong>뒤쫓아오는 추격자</strong>
-                        <p>추격자는 일정 시간마다 한 칸씩 올라와요. 잘못 입력하면 0.5초 동안 멈춰요. 잡히면 기회를 잃고, 세 번 잡히면 게임이 끝납니다.</p>
+                        <p>추격자는 일정 시간마다 한 칸씩 올라와요. 잘못 입력하면 0.5초 동안 멈춰요. 한 번 잡히면 게임이 끝납니다. 단계마다 400점을 더 얻으면 계속할지 선택할 수 있어요.</p>
                       </div>
                     </section>
                   </div>

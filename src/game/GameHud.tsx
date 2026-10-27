@@ -1,7 +1,6 @@
 import type { ReactElement } from "react";
 import type { GameState } from "./types";
-import { getStageRule } from "./stageRules";
-import { PixelIcon } from "./pixel/PixelIcon";
+import { getStageTargetScore } from "./stageRules";
 
 interface GameHudProps {
   state: GameState;
@@ -20,7 +19,7 @@ function formatStageTime(secondsLeft: number): string {
 export function GameHud({ state, eventSecondsLeft, scoreGain, scoreGainIsBonus, scoreAnimationKey, stageSecondsLeft }: GameHudProps): ReactElement {
   const eventIsActive = state.eventEndsAt !== null;
   const eventProgress = eventIsActive ? 100 : Math.min(100, (state.eventSteps / 30) * 100);
-  const cleared = state.endReason === "cleared";
+  const cleared = state.status === "checkpoint" || state.endReason === "cleared";
 
   return (
     <section className="game-hud" aria-label="게임 현황">
@@ -55,24 +54,8 @@ export function GameHud({ state, eventSecondsLeft, scoreGain, scoreGainIsBonus, 
             <span className="hud-label">남은 시간</span>
           </div>
           <strong className="stage-time" data-testid="stage-time">{cleared ? "클리어" : formatStageTime(stageSecondsLeft)}</strong>
-          <span className="hud-caption">{cleared ? "모든 단계 클리어" : `목표 ${getStageRule(state.stage).targetScore}점`}</span>
+          <span className="hud-caption">{state.endReason === "cleared" ? "모든 단계 클리어" : `목표 ${getStageTargetScore(state.stageStartScore)}점`}</span>
         </div>
-      </div>
-
-      <div className="hud-card lives-card">
-        <span className="hud-label">남은 기회</span>
-        <div className="life-hearts" aria-label={`남은 기회 ${state.lives}회`}>
-          {Array.from({ length: 3 }, (_, index) => (
-            <span
-              key={index}
-              className={`life-heart${index < state.lives ? " is-full" : ""}`}
-              aria-hidden="true"
-            >
-              <PixelIcon name="heart" size={22} />
-            </span>
-          ))}
-        </div>
-        <span className="hud-caption">잡히면 기회가 줄어요</span>
       </div>
 
       <div className={`hud-card event-card${eventIsActive ? " is-active" : ""}`}>

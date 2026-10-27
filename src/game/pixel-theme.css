@@ -81,6 +81,32 @@
 
 .stair-game.pixel-theme .game-settings-button { z-index: 4; top: 12px; right: 12px; }
 .stair-game.pixel-theme .game-settings-button:hover { background: #263d50; }
+.stair-game.pixel-theme .game-settings-button:disabled { opacity: 0.5; cursor: default; }
+
+.stair-game.pixel-theme .checkpoint-panel {
+  position: absolute;
+  inset: 12px;
+  z-index: 5;
+  width: calc(100% - 24px);
+  max-width: 560px;
+  max-height: calc(100% - 24px);
+  height: fit-content;
+  margin: auto;
+  overflow: auto;
+  padding: 24px;
+  border: 4px solid var(--pixel-gold);
+  background: #142238;
+  color: #eef7ff;
+  box-shadow: 6px 6px 0 #080e1b;
+  overflow-wrap: anywhere;
+}
+.stair-game.pixel-theme .checkpoint-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.stair-game.pixel-theme .checkpoint-actions button { min-width: 0; min-height: 56px; white-space: normal; border-radius: 0; border: 3px solid var(--pixel-gold); background: #263d50; color: #eef7ff; font: inherit; cursor: pointer; }
+.stair-game.pixel-theme .checkpoint-actions button:focus-visible { outline: 3px solid #eef7ff; outline-offset: -6px; }
+.stair-game.pixel-theme .checkpoint-progress-error { position: absolute; inset: auto 12px 12px; z-index: 6; background: #142238; color: #f7a9c8; }
+@media (max-width: 720px) {
+  .stair-game.pixel-theme .checkpoint-actions { grid-template-columns: minmax(0, 1fr); }
+}
 
 .stair-game.pixel-theme .game-hud {
   z-index: 3;
@@ -88,7 +114,7 @@
   left: 12px;
   right: 72px;
   width: min(calc(100% - 84px), 960px);
-  grid-template-columns: minmax(0, 1.7fr) minmax(0, 0.85fr) minmax(0, 1.7fr);
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
   gap: 8px;
   padding: 0;
   transform: none;
@@ -147,9 +173,6 @@
 .stair-game.pixel-theme .score-value.is-scoring { animation: pixel-score-pop 260ms steps(1, end); }
 .stair-game.pixel-theme .score-gain { flex: 0 0 auto; color: var(--pixel-cyan); font-size: 1rem; animation: pixel-score-gain 700ms steps(1, end) both; }
 .stair-game.pixel-theme .score-gain.is-bonus { color: var(--pixel-gold); }
-.stair-game.pixel-theme .life-hearts { gap: 5px; margin: 8px 0 6px; color: #53647b; }
-.stair-game.pixel-theme .life-heart { display: flex; text-shadow: none; }
-.stair-game.pixel-theme .life-heart.is-full { color: var(--pixel-pink); text-shadow: none; }
 .stair-game.pixel-theme .event-heading { gap: 8px; }
 .stair-game.pixel-theme .event-status { color: var(--pixel-cyan); font-size: 0.85rem; overflow-wrap: anywhere; }
 .stair-game.pixel-theme .event-card { transition: none; }
@@ -377,7 +400,7 @@
   .stair-game.pixel-theme .pixel-scene-stage { overflow: visible; }
   .stair-game.pixel-theme .office-backdrop { top: auto; bottom: 0; height: 100dvh; }
   .stair-game.pixel-theme .game-settings-button { top: 8px; right: 8px; }
-  .stair-game.pixel-theme .game-hud { position: relative; top: auto; left: auto; right: auto; width: calc(100% - 68px); margin-left: 8px; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); gap: 4px; }
+  .stair-game.pixel-theme .game-hud { position: relative; top: auto; left: auto; right: auto; width: calc(100% - 68px); margin-left: 8px; grid-template-columns: minmax(0, 1fr); gap: 4px; }
   .stair-game.pixel-theme .hud-card { min-height: 64px; padding: 7px 6px; }
   .stair-game.pixel-theme .score-card { grid-column: 1 / -1; min-height: 80px; gap: 8px; }
   .stair-game.pixel-theme .stage-clock { padding-left: 8px; }
@@ -389,9 +412,7 @@
   .stair-game.pixel-theme .score-value-row { min-height: 1.9rem; gap: 3px; }
   .stair-game.pixel-theme .score-value { font-size: 1.5rem; }
   .stair-game.pixel-theme .score-gain { font-size: 0.7rem; }
-  .stair-game.pixel-theme .life-hearts { gap: 2px; margin-top: 10px; }
-  .stair-game.pixel-theme .life-heart .pixel-icon { width: 14px; height: 14px; }
-  .stair-game.pixel-theme .lives-card .hud-caption,
+  .stair-game.pixel-theme .event-card { grid-column: 1 / -1; }
   .stair-game.pixel-theme .event-card .hud-caption { display: none; }
   .stair-game.pixel-theme .event-heading { flex-direction: column; align-items: flex-start; gap: 4px; }
   .stair-game.pixel-theme .event-status { font-size: 0.65rem; text-align: left; }

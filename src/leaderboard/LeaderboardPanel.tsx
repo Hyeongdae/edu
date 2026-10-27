@@ -32,7 +32,7 @@ export function LeaderboardPanel({ entries, currentAccountId }: LeaderboardPanel
                 {entry.accountId === currentAccountId && <span className="leaderboard-you">나</span>}
               </span>
               <span className="leaderboard-record">
-                <span className="leaderboard-stage">{entry.bestStage}단계</span>
+                <span className="leaderboard-stage">{entry.bestStage === 0 ? "미클리어(0단계)" : `${entry.bestStage}단계`}</span>
                 <strong className="leaderboard-score">{entry.bestScore}점</strong>
               </span>
             </li>

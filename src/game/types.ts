@@ -2,11 +2,13 @@ export type Direction = "left" | "right";
 
 export type GameInput = "forward" | "turn" | "jump";
 
-export type GameStatus = "ready" | "playing" | "game-over";
+export type GameStatus = "ready" | "playing" | "checkpoint" | "game-over";
 
 export type GameStage = 1 | 2 | 3 | 4 | 5;
+export type ClearedStage = 0 | GameStage;
+export interface GameStartOptions { stage?: GameStage; highestClearedStage?: ClearedStage; }
 
-export type GameEndReason = "caught" | "time-limit" | "cleared";
+export type GameEndReason = "caught" | "time-limit" | "cleared" | "quit";
 
 export type StairRunLength = 1 | 2 | 3 | 5 | 6 | 7 | 8 | 9;
 
@@ -71,7 +73,10 @@ export interface GameState {
   endReason: GameEndReason | null;
   score: number;
   stepsClimbed: number;
-  lives: number;
+  stageStartScore: number;
+  recordStage: ClearedStage;
+  clearedStageThisRun: ClearedStage;
+  checkpointEnteredAt: number | null;
   direction: Direction;
   straightStepsRemaining: number;
   pursuerDistance: number;

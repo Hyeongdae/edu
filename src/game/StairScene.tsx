@@ -35,7 +35,7 @@ export function StairScene({ state, climbAnimationKey, isClimbing, pursuerAnimat
   const jumpY = model.playerJump ? model.playerJump.from.y - model.playerJump.to.y : 0;
   const jumpStyle = { "--jump-x": `${jumpX}px`, "--jump-y": `${jumpY}px`, "--jump-mid-x": `${jumpX / 2}px` } as CSSProperties;
   const motionKind = state.lastMistake ? "fall" : jumping ? "jump" : climbing ? "climb" : "idle";
-  // Place a catch at its final reset stair, then visit actual route nodes with CSS offsets.
+  // Keep the final safe stair as the catch animation's route anchor.
   const pursuerPoint = model.pursuer;
   const moving = isPursuerMoving && model.pursuerMotion !== null && !isPursuerCaught;
   const moveX = model.pursuerMotion ? model.pursuerMotion.from.x - model.pursuerMotion.to.x : 0;
@@ -169,8 +169,10 @@ export function StairScene({ state, climbAnimationKey, isClimbing, pursuerAnimat
       <p className="scene-hint" aria-live="polite">
         {state.status === "ready"
           ? "시작하기를 누르고 계단을 올라가세요."
+          : state.status === "checkpoint"
+            ? "단계를 클리어했어요. 계속할지 선택하세요."
           : state.status === "game-over"
-            ? `${state.endReason === "cleared" ? "최종 클리어" : "게임 종료"} · 최종 점수 ${state.score}점`
+            ? `${state.endReason === "cleared" ? "최종 클리어" : state.endReason === "quit" ? "체크포인트에서 종료했어요" : "게임 종료"} · 최종 점수 ${state.score}점`
             : state.captureEndsAt !== null
               ? "추격자에게 잡혔어요! 잠시 숨을 고르세요."
             : state.lastMistake

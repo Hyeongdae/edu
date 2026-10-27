@@ -36,7 +36,7 @@ function seedReadyStage(stage: GameStage, overrides: Partial<GameState> = {}, du
   const originalFactory = gameEngine.createGameState;
   const originalStart = gameEngine.startGame;
   vi.spyOn(gameEngine, "createGameState").mockImplementation(() => ({
-    ...withPursuitAt({ ...originalFactory(() => 0), stage, score: getStageRule(stage).targetScore - 1, ...overrides }, 0, overrides.pursuerDistance ?? 4),
+    ...withPursuitAt({ ...originalFactory(() => 0, { stage, highestClearedStage: stage === 1 ? 0 : stage }), stage, score: getStageRule(stage).scoreRequired - 1, ...overrides }, 0, overrides.pursuerDistance ?? 4),
   }));
   vi.spyOn(gameEngine, "startGame").mockImplementation((state, now) => {
     const started = originalStart(state, now);
@@ -67,7 +67,7 @@ describe("GameScreen controls", () => {
     });
 
     fireEvent.keyDown(window, { key: "j" });
-    expect(screen.getByLabelText("남은 기회 3회")).toBeVisible();
+    expect(screen.queryByText("남은 기회")).not.toBeInTheDocument();
     expect(screen.queryByTestId("score-gain")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "앞으로 한 칸 오르기" })).toBeDisabled();
     expect(screen.getByText(/발을 헛디뎠어요/)).toBeVisible();
@@ -88,11 +88,11 @@ describe("GameScreen controls", () => {
     expect(screen.getByRole("region", { name: "게임 현황" }).closest(".game-stage")).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "계단 장면" }).closest(".game-stage")).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "오디오 설정" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
     fireEvent.click(screen.getByRole("button", { name: "게임 설정" }));
     expect(screen.getByRole("region", { name: "오디오 설정" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "설정 닫기" }));
 
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
     expect(document.querySelector(".stair-game")).toHaveAttribute("data-game-status", "playing");
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "playing");
     const forwardButton = screen.getByRole("button", { name: "앞으로 한 칸 오르기" });
@@ -173,6 +173,8 @@ describe("GameScreen controls", () => {
     expect(screen.getByTestId("stage-time")).toHaveTextContent(stageTimeBefore!);
     expect(screen.getByRole("img")).toHaveAttribute("data-pursuer-index", pursuerBefore);
 
+    // The faster pursuit needs a few more real stairs to isolate bonus expiry from a catch.
+    for (let step = 0; step < 5; step += 1) climbOneStep();
     vi.setSystemTime(126_100);
     await act(async () => { await vi.advanceTimersByTimeAsync(100); });
     expect(eventStatus).not.toHaveTextContent("2배 점수");
@@ -302,7 +304,7 @@ describe("GameScreen controls", () => {
     expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "2");
     expect(screen.getByTestId("pursuer").parentElement).toHaveClass("pursuer-history-stair");
     for (let index = 0; index < 3; index += 1) climbOneStep();
-    vi.setSystemTime(4_000);
+    vi.setSystemTime(3_200);
     fireEvent(document, new Event("visibilitychange"));
     expect(screen.getByTestId("runner")).toHaveAttribute("data-route-index", "10");
     expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "6");
@@ -328,13 +330,13 @@ describe("GameScreen controls", () => {
       expect(audio.playFall).toHaveBeenCalledTimes(mistake);
       expect(screen.getByTestId("runner")).toHaveAttribute("data-route-index", "0");
     }
-    vi.setSystemTime(12_000);
+    vi.setSystemTime(3_200);
     fireEvent(document, new Event("visibilitychange"));
     expect(screen.getByText("추격자에게 잡혔어요")).toBeInTheDocument();
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-pursuer-catching", "true");
     expect(audio.playFall).toHaveBeenCalledTimes(4);
     expect(audio.playFootstep).not.toHaveBeenCalled();
-    expect(screen.getByLabelText("남은 기회 0회")).toBeInTheDocument();
+    expect(screen.queryByText("남은 기회")).not.toBeInTheDocument();
   });
 
   it("keeps player and pursuer motion independent across their timer updates", async () => {
@@ -346,7 +348,7 @@ describe("GameScreen controls", () => {
     } satisfies AudioController;
     render(<GameScreen account={account} audioController={audio} />);
     fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
-    await act(async () => { await vi.advanceTimersByTimeAsync(900); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(700); });
     fireEvent.keyDown(window, { key: "d" });
     const playerKey = screen.getByTestId("runner").getAttribute("data-motion-key");
     await act(async () => { await vi.advanceTimersByTimeAsync(100); });
@@ -367,7 +369,7 @@ describe("GameScreen controls", () => {
     vi.setSystemTime(0);
     render(<GameScreen account={account} />);
     fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
-    await act(async () => { await vi.advanceTimersByTimeAsync(1_000); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(800); });
     const key = screen.getByTestId("pursuer").getAttribute("data-motion-key");
     fireEvent.keyDown(window, { key: "j" });
     expect(screen.getByTestId("runner")).toHaveClass("is-falling");
@@ -385,21 +387,21 @@ describe("GameScreen controls", () => {
     seedReadyStage(5, { score: 1_200 });
     render(<GameScreen account={account} />);
     fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
-    await act(async () => { await vi.advanceTimersByTimeAsync(1_600); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(1_200); });
     const catchNode = screen.getByTestId("pursuer");
     expect(catchNode).toHaveClass("is-caught");
-    expect(catchNode).toHaveAttribute("data-route-index", "-4");
-    expect(screen.getByLabelText("남은 기회 2회")).toBeInTheDocument();
+    expect(catchNode).toHaveAttribute("data-route-index", "-1");
+    expect(screen.queryByText("남은 기회")).not.toBeInTheDocument();
     await act(async () => { await vi.advanceTimersByTimeAsync(400); });
     expect(screen.getByTestId("pursuer")).toBe(catchNode);
-    expect(catchNode).toHaveAttribute("data-route-index", "-3");
-    expect(screen.getByRole("img")).toHaveAccessibleName(/추격자와 3칸 거리/);
+    expect(catchNode).toHaveAttribute("data-route-index", "-1");
+    expect(screen.getByRole("img")).toHaveAccessibleName(/추격자와 1칸 거리/);
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-pursuer-catching", "true");
     await act(async () => { await vi.advanceTimersByTimeAsync(100); });
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-pursuer-catching", "false");
-    expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "-3");
+    expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "-1");
     expect(screen.getByTestId("pursuer")).not.toHaveClass("is-following");
-    expect(screen.getByRole("button", { name: "앞으로 한 칸 오르기" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "앞으로 한 칸 오르기" })).not.toBeInTheDocument();
   });
 
   it("retains true offscreen history and cancels stale player motion on a late capture", () => {
@@ -416,7 +418,7 @@ describe("GameScreen controls", () => {
     expect(input.mock.results.at(-1)?.value.route.steps[0].index).toBe(-4);
     expect(screen.getAllByTestId("stair-step")).toHaveLength(11);
     expect(screen.getByTestId("runner")).toHaveClass("is-climbing");
-    // The first catch is at24s, then two more four-stair catches at28/32s.
+    // A late callback must reconcile the first catch (24 stairs * 800ms) and stop permanently.
     vi.setSystemTime(32_000);
     fireEvent(document, new Event("visibilitychange"));
     expect(screen.getByText("추격자에게 잡혔어요")).toBeInTheDocument();
@@ -428,10 +430,10 @@ describe("GameScreen controls", () => {
   it("cancels pending pursuer animation when the stage expires", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);
-    seedReadyStage(1, { score: 0 }, 1_100);
+    seedReadyStage(1, { score: 0 }, 900);
     render(<GameScreen account={account} />);
     fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
-    await act(async () => { await vi.advanceTimersByTimeAsync(1_000); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(800); });
     expect(screen.getByTestId("pursuer")).toHaveClass("is-following");
     await act(async () => { await vi.advanceTimersByTimeAsync(100); });
     expect(screen.getByText("시간 초과")).toBeInTheDocument();
@@ -530,8 +532,8 @@ describe("GameScreen controls", () => {
     expect(screen.getByText("홍길동", { selector: ".leaderboard-name" }).closest("li")).toHaveClass("is-current-player");
     expect(saveSpy).toHaveBeenCalledTimes(1);
     expect(audio.stopBgm).toHaveBeenCalledOnce();
-    expect(JSON.parse(window.localStorage.getItem("stair-climb:leaderboard:v3")!)).toEqual([
-      expect.objectContaining({ accountId: "local-account", bestStage: 1, bestScore: 0 }),
+    expect(JSON.parse(window.localStorage.getItem("stair-climb:leaderboard:v4")!)).toEqual([
+      expect.objectContaining({ accountId: "local-account", bestStage: 0, bestScore: 0 }),
     ]);
 
     const randomCallsBeforeRestart = randomSpy.mock.calls.length;
@@ -553,7 +555,7 @@ describe("GameScreen controls", () => {
     render(<GameScreen account={account} />);
 
     fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
-    vi.setSystemTime(13_000);
+    vi.setSystemTime(4_200);
     fireEvent(document, new Event("visibilitychange"));
     const gameFrame = document.querySelector(".game-frame");
     const resultPanel = document.querySelector(".game-over-panel");
@@ -599,7 +601,7 @@ describe("GameScreen controls", () => {
     vi.spyOn(Math, "random").mockReturnValue(0);
     render(<StrictMode><GameScreen account={account} /></StrictMode>);
     fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
-    vi.setSystemTime(13_000);
+    vi.setSystemTime(4_200);
     fireEvent(document, new Event("visibilitychange"));
     expect(screen.getByTestId("pursuer")).toHaveClass("is-caught");
     // Reduced-motion CSS makes this restart button available immediately.
@@ -662,92 +664,25 @@ describe("GameScreen controls", () => {
     } else {
       fireEvent.click(screen.getByRole("button", { name: "게임 설정" }));
       vi.setSystemTime(200_000);
-      fireEvent.click(screen.getByRole("button", { name: "설정 닫기" }));
     }
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "game-over");
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-pursuer-catching", "false");
     expect(screen.getByRole("heading", { name: "0점" })).toBeInTheDocument();
     expect(screen.getByTestId("stage-time")).toHaveTextContent("00:00");
     expect(screen.getByText("시간 초과")).toBeInTheDocument();
-    expect(screen.getByText("도달 단계 1단계")).toBeInTheDocument();
-    expect(screen.getByLabelText("남은 기회 3회")).toBeInTheDocument();
+    expect(screen.getByText("미클리어(0단계)")).toBeInTheDocument();
+    expect(screen.queryByText("남은 기회")).not.toBeInTheDocument();
     expect(screen.getByTestId("runner")).toHaveAttribute("data-route-index", "0");
     expect(audio.playFall).not.toHaveBeenCalled();
     expect(audio.playFootstep).not.toHaveBeenCalled();
     expect(audio.stopBgm).toHaveBeenCalledOnce();
     expect(save).toHaveBeenCalledOnce();
-    expect(JSON.parse(window.localStorage.getItem("stair-climb:leaderboard:v3")!)).toEqual([
-      expect.objectContaining({ accountId: account.homeAccountId, bestStage: 1, bestScore: 0 }),
+    expect(JSON.parse(window.localStorage.getItem("stair-climb:leaderboard:v4")!)).toEqual([
+      expect.objectContaining({ accountId: account.homeAccountId, bestStage: 0, bestScore: 0 }),
     ]);
     fireEvent.keyDown(window, { key: "d" });
     expect(screen.getByTestId("score-value")).toHaveTextContent("0");
     expect(save).toHaveBeenCalledOnce();
-  });
-
-  it.each([false, true])("promotes with one real move and preserves its bonus/audio (bonus=%s)", async (bonus) => {
-    vi.useFakeTimers();
-    vi.setSystemTime(1_000);
-    const ready = createGameState(() => 0);
-    vi.spyOn(gameEngine, "createGameState").mockReturnValue({
-      ...ready, score: 299, lives: 1, pursuerDistance: 1, pursuerIndex: -1,
-      eventSteps: 12, eventEndsAt: bonus ? 31_000 : null,
-    });
-    const input = vi.spyOn(gameEngine, "applyInput");
-    const audio = {
-      startBgm: vi.fn().mockResolvedValue(true), stopBgm: vi.fn(), setEventActive: vi.fn(),
-      setPreferences: vi.fn(), playFootstep: vi.fn(), playFall: vi.fn(), dispose: vi.fn(),
-    } satisfies AudioController;
-    const save = vi.spyOn(Storage.prototype, "setItem");
-    render(<GameScreen account={account} audioController={audio} />);
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
-    fireEvent.keyDown(window, { key: "d" });
-    expect(input.mock.results.at(-1)?.value).toMatchObject({
-      stage: 2, stageEndsAt: 76_000, lives: 3, pursuerDistance: 4,
-      score: bonus ? 301 : 300, eventSteps: bonus ? 12 : 13, eventEndsAt: bonus ? 31_000 : null,
-    });
-    expect(screen.getByLabelText("남은 기회 3회")).toBeVisible();
-    expect(screen.getByTestId("runner")).toHaveAttribute("data-route-index", "1");
-    expect(document.querySelector(".game-frame")).toHaveAttribute("data-stage", "2");
-    expect(screen.getByTestId("stage-time")).toHaveTextContent("01:15");
-    expect(screen.getByTestId("stage-value")).toHaveTextContent("2단계");
-    expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "-3");
-    expect(screen.getByTestId("score-gain")).toHaveTextContent(bonus ? "+2" : "+1");
-    expect(audio.playFootstep).toHaveBeenCalledOnce();
-    expect(audio.playFall).not.toHaveBeenCalled();
-    expect(audio.startBgm).toHaveBeenCalledOnce();
-    expect(audio.setEventActive).not.toHaveBeenCalled();
-    expect(save).not.toHaveBeenCalled();
-    vi.setSystemTime(1_000_000);
-    await act(async () => { await vi.advanceTimersByTimeAsync(100); });
-    fireEvent.keyDown(window, { key: "d" });
-    expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "game-over");
-    expect(screen.getByTestId("runner")).toHaveAttribute("data-route-index", "1");
-    expect(screen.getByTestId("stage-time")).toHaveTextContent("00:00");
-    expect(screen.getByText("추격자에게 잡혔어요")).toBeInTheDocument();
-    expect(save).toHaveBeenCalledOnce();
-    expect(JSON.parse(window.localStorage.getItem("stair-climb:leaderboard:v3")!)).toEqual([
-      expect.objectContaining({ bestStage: 2, bestScore: bonus ? 301 : 300 }),
-    ]);
-    expect(audio.playFootstep).toHaveBeenCalledOnce();
-  });
-
-  it("cancels a pending nonfatal capture on time expiry", () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(1_000);
-    seedReadyStage(1, { score: 0, pursuerDistance: 1 }, 1_300);
-    render(<GameScreen account={account} />);
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
-    vi.setSystemTime(2_000);
-    fireEvent(document, new Event("visibilitychange"));
-    expect(document.querySelector(".game-frame")).toHaveAttribute("data-pursuer-catching", "true");
-    expect(screen.getByLabelText("남은 기회 2회")).toBeInTheDocument();
-    vi.setSystemTime(2_300);
-    fireEvent.keyDown(window, { key: "d" });
-    expect(screen.getByText("시간 초과")).toBeInTheDocument();
-    expect(document.querySelector(".game-frame")).toHaveAttribute("data-pursuer-catching", "false");
-    expect(screen.getByTestId("pursuer")).not.toHaveClass("is-caught");
-    expect(screen.getByRole("button", { name: /다시 시작/ })).toBeInTheDocument();
-    expect(screen.getByLabelText("남은 기회 2회")).toBeInTheDocument();
   });
 
   it("resumes the stage and pursuit remainder once after settings without accepting hidden input", () => {
@@ -768,13 +703,13 @@ describe("GameScreen controls", () => {
     fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
     expect(trigger).toHaveFocus();
     expect(screen.getByTestId("stage-time")).toHaveTextContent(remaining!);
-    vi.setSystemTime(101_999);
+    vi.setSystemTime(101_799);
     fireEvent(document, new Event("visibilitychange"));
     expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "-4");
-    vi.setSystemTime(102_000);
+    vi.setSystemTime(101_800);
     fireEvent(document, new Event("visibilitychange"));
     expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "-3");
-    expect(screen.getByTestId("stage-time")).toHaveTextContent("01:29");
+    expect(screen.getByTestId("stage-time")).toHaveTextContent("01:30");
     fireEvent.keyDown(window, { key: "d" });
     expect(screen.getByTestId("score-value")).toHaveTextContent(/^1$/);
   });
@@ -799,7 +734,7 @@ describe("GameScreen controls", () => {
     const records = [{ accountId: "existing", displayName: "기존 사용자", bestStage: 5, bestScore: 1501, achievedAt: "2026-01-01" }];
     window.localStorage.setItem("stair-climb:leaderboard:v1", "old scores");
     window.localStorage.setItem("stair-climb:leaderboard:v2", "old stage-two scores");
-    window.localStorage.setItem("stair-climb:leaderboard:v3", JSON.stringify(records));
+    window.localStorage.setItem("stair-climb:leaderboard:v4", JSON.stringify(records));
     window.localStorage.setItem("stair-climb:audio:v1", "audio-sentinel");
     window.localStorage.setItem("msal.account.keys", "auth-sentinel");
     const clear = vi.spyOn(Storage.prototype, "clear");
@@ -811,69 +746,11 @@ describe("GameScreen controls", () => {
     expect(remove.mock.calls).toEqual([["stair-climb:leaderboard:v1"], ["stair-climb:leaderboard:v2"]]);
     first.unmount();
     render(<StrictMode><GameScreen account={account} /></StrictMode>);
-    expect(JSON.parse(window.localStorage.getItem("stair-climb:leaderboard:v3")!)).toEqual(records);
+    expect(JSON.parse(window.localStorage.getItem("stair-climb:leaderboard:v4")!)).toEqual(records);
     expect(window.localStorage.getItem("stair-climb:audio:v1")).toBe("audio-sentinel");
     expect(window.localStorage.getItem("msal.account.keys")).toBe("auth-sentinel");
     expect(save).not.toHaveBeenCalled();
     expect(clear).not.toHaveBeenCalled();
-  });
-
-  it("saves reached stage two only at game-over and retains that record through restart", async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(1_000);
-    const originalFactory = gameEngine.createGameState;
-    vi.spyOn(gameEngine, "createGameState").mockImplementation(() => ({ ...originalFactory(() => 0), score: 299 }));
-    const save = vi.spyOn(Storage.prototype, "setItem");
-    render(<StrictMode><GameScreen account={account} /></StrictMode>);
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
-    climbOneStep();
-    expect(screen.getByTestId("score-value")).toHaveTextContent("300");
-    expect(save).not.toHaveBeenCalled();
-    vi.setSystemTime(1_000 + 12 * getStageRule(2).pursuerStepIntervalMs);
-    fireEvent(document, new Event("visibilitychange"));
-    expect(save).toHaveBeenCalledOnce();
-    const records = JSON.parse(window.localStorage.getItem("stair-climb:leaderboard:v3")!);
-    expect(records).toEqual([
-      expect.objectContaining({ accountId: account.homeAccountId, bestStage: 2, bestScore: 300 }),
-    ]);
-    await act(async () => { await vi.advanceTimersByTimeAsync(500); });
-    const row = screen.getByText(account.name!, { selector: ".leaderboard-name" }).closest("li")!;
-    expect(within(row).getByText("2단계")).toBeVisible();
-    expect(within(row).getByText("300점")).toBeVisible();
-    expect(screen.getByText("도달 단계 2단계")).toBeInTheDocument();
-    expect(screen.getByText("추격자에게 잡혔어요")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /다시 시작/ }));
-    expect(JSON.parse(window.localStorage.getItem("stair-climb:leaderboard:v3")!)).toEqual(records);
-    expect(save).toHaveBeenCalledOnce();
-    expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "playing");
-  });
-
-  it.each([2, 3, 4] as const)("promotes from stage %s with its next budget and target", (stage) => {
-    vi.useFakeTimers();
-    vi.setSystemTime(1_000);
-    seedReadyStage(stage, { lives: 1, pursuerDistance: 1, eventEndsAt: 31_000, eventSteps: 12 });
-    const input = vi.spyOn(gameEngine, "applyInput");
-    const save = vi.spyOn(Storage.prototype, "setItem");
-    render(<GameScreen account={account} />);
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
-    const previousRule = getStageRule(stage);
-    expect(screen.getByText(`목표 ${previousRule.targetScore}점`)).toBeInTheDocument();
-    fireEvent.keyDown(window, { key: "d" });
-    const nextStage = (stage + 1) as GameStage;
-    const nextRule = getStageRule(nextStage);
-    expect(input.mock.results.at(-1)?.value).toMatchObject({
-      stage: nextStage, stageEndsAt: 1_000 + nextRule.durationMs,
-      score: previousRule.targetScore + 1, lives: 3, pursuerDistance: 4,
-      eventEndsAt: 31_000, eventSteps: 12,
-    });
-    expect(screen.getByTestId("stage-value")).toHaveTextContent(`${nextStage}단계`);
-    expect(screen.getByText(`목표 ${nextRule.targetScore}점`)).toBeInTheDocument();
-    expect(screen.getByTestId("stage-time")).toHaveTextContent(
-      nextStage === 3 ? "01:05" : nextStage === 4 ? "01:00" : "00:50",
-    );
-    expect(screen.getByTestId("runner")).toHaveAttribute("data-route-index", "1");
-    expect(screen.getByTestId("event-status")).toHaveTextContent("2배 점수");
-    expect(save).not.toHaveBeenCalled();
   });
 
   it.each([3, 4, 5] as const)("ends stage %s at its exact deadline before accepting a goal-reaching move", (stage) => {
@@ -887,21 +764,21 @@ describe("GameScreen controls", () => {
     vi.setSystemTime(1_100);
     fireEvent.keyDown(window, { key: "d" });
     expect(screen.getByText("시간 초과")).toBeInTheDocument();
-    expect(screen.getByText(`도달 단계 ${stage}단계`)).toBeInTheDocument();
+    expect(screen.getByText(`기록 단계 ${stage}단계`)).toBeInTheDocument();
     expect(screen.getByTestId("stage-time")).toHaveTextContent("00:00");
-    expect(screen.getByTestId("score-value")).toHaveTextContent(String(rule.targetScore - 1));
+    expect(screen.getByTestId("score-value")).toHaveTextContent(String(rule.scoreRequired - 1));
     expect(screen.getByTestId("runner")).toHaveAttribute("data-route-index", "0");
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-pursuer-catching", "false");
     expect(save).toHaveBeenCalledOnce();
-    expect(JSON.parse(window.localStorage.getItem("stair-climb:leaderboard:v3")!)).toEqual([
-      expect.objectContaining({ bestStage: stage, bestScore: rule.targetScore - 1 }),
+    expect(JSON.parse(window.localStorage.getItem("stair-climb:leaderboard:v4")!)).toEqual([
+      expect.objectContaining({ bestStage: stage, bestScore: rule.scoreRequired - 1 }),
     ]);
   });
 
   it.each([false, true])("clears stage five and saves once without catch delay, then restarts stage one (bonus=%s)", async (bonus) => {
     vi.useFakeTimers();
     vi.setSystemTime(1_000);
-    seedReadyStage(5, { lives: 1, pursuerDistance: 1, eventEndsAt: bonus ? 31_000 : null });
+    seedReadyStage(5, { pursuerDistance: 1, eventEndsAt: bonus ? 31_000 : null });
     const audio = {
       startBgm: vi.fn().mockResolvedValue(true), stopBgm: vi.fn(), setEventActive: vi.fn(),
       setPreferences: vi.fn(), playFootstep: vi.fn(), playFall: vi.fn(), dispose: vi.fn(),
@@ -910,40 +787,40 @@ describe("GameScreen controls", () => {
     render(<StrictMode><GameScreen account={account} audioController={audio} /></StrictMode>);
     fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
     fireEvent.keyDown(window, { key: "d" });
-    const finalScore = bonus ? 1_501 : 1_500;
+    const finalScore = bonus ? 401 : 400;
     expect(screen.getByRole("heading", { name: `${finalScore}점` })).toBeVisible();
     expect(screen.getByText("최종 클리어!")).toBeVisible();
     expect(screen.getByText(`최종 클리어 · 최종 점수 ${finalScore}점`)).toBeInTheDocument();
-    expect(screen.getByText("도달 단계 5단계")).toBeInTheDocument();
+    expect(screen.getByText("기록 단계 5단계")).toBeInTheDocument();
     expect(screen.getByTestId("stage-time")).toHaveTextContent("클리어");
     expect(screen.getByText("모든 단계 클리어")).toBeInTheDocument();
-    expect(screen.getByLabelText("남은 기회 1회")).toBeInTheDocument();
+    expect(screen.queryByText("남은 기회")).not.toBeInTheDocument();
     expect(screen.getByTestId("runner")).toHaveAttribute("data-route-index", "1");
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-pursuer-catching", "false");
     expect(screen.getByTestId("pursuer")).not.toHaveClass("is-caught");
     expect(audio.playFootstep).toHaveBeenCalledOnce();
     expect(audio.playFall).not.toHaveBeenCalled();
     expect(audio.stopBgm).toHaveBeenCalledOnce();
-    expect(save).toHaveBeenCalledOnce();
-    const records = JSON.parse(window.localStorage.getItem("stair-climb:leaderboard:v3")!);
+    expect(save.mock.calls.filter(([key]) => key === "stair-climb:leaderboard:v4")).toHaveLength(1);
+    const records = JSON.parse(window.localStorage.getItem("stair-climb:leaderboard:v4")!);
     expect(records).toEqual([expect.objectContaining({ bestStage: 5, bestScore: finalScore })]);
     fireEvent.keyDown(window, { key: "d" });
     vi.spyOn(document, "visibilityState", "get").mockReturnValue("visible");
     fireEvent(document, new Event("visibilitychange"));
     await act(async () => { await vi.advanceTimersByTimeAsync(1); });
-    expect(save).toHaveBeenCalledOnce();
+    expect(save.mock.calls.filter(([key]) => key === "stair-climb:leaderboard:v4")).toHaveLength(1);
     expect(screen.getByRole("heading", { name: `${finalScore}점` })).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: /다시 시작/ }));
     expect(screen.getByTestId("stage-value")).toHaveTextContent("1단계");
     expect(screen.getByTestId("stage-time")).toHaveTextContent("01:30");
-    expect(screen.getByText("목표 300점")).toBeInTheDocument();
+    expect(screen.getByText("목표 400점")).toBeInTheDocument();
     expect(screen.getByTestId("score-value")).toHaveTextContent(/^0$/);
-    expect(screen.getByLabelText("남은 기회 3회")).toBeInTheDocument();
-    expect(save).toHaveBeenCalledOnce();
-    expect(JSON.parse(window.localStorage.getItem("stair-climb:leaderboard:v3")!)).toEqual(records);
+    expect(screen.queryByText("남은 기회")).not.toBeInTheDocument();
+    expect(save.mock.calls.filter(([key]) => key === "stair-climb:leaderboard:v4")).toHaveLength(1);
+    expect(JSON.parse(window.localStorage.getItem("stair-climb:leaderboard:v4")!)).toEqual(records);
   });
 
-  it.each(["stair-climb:leaderboard:v1", "stair-climb:leaderboard:v2"])("keeps play and restart available when %s cleanup fails", async (oldKey) => {
+  it.each(["stair-climb:leaderboard:v1", "stair-climb:leaderboard:v2", "stair-climb:leaderboard:v3"])("keeps play and restart available when %s cleanup fails", async (oldKey) => {
     vi.useFakeTimers();
     vi.setSystemTime(1_000);
     window.localStorage.setItem(oldKey, "old scores");
@@ -959,10 +836,131 @@ describe("GameScreen controls", () => {
     expect(screen.getByText("기록을 저장하지 못했습니다. 이 브라우저의 저장 공간을 확인해 주세요.")).toBeVisible();
     expect(save).not.toHaveBeenCalled();
     expect(window.localStorage.getItem(oldKey)).toBe("old scores");
-    expect(window.localStorage.getItem("stair-climb:leaderboard:v3")).toBeNull();
+    expect(window.localStorage.getItem("stair-climb:leaderboard:v4")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /다시 시작/ }));
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "playing");
     expect(screen.getByTestId("score-value")).toHaveTextContent("0");
+  });
+});
+
+describe("checkpoint session integration", () => {
+  afterEach(() => { cleanup(); localStorage.clear(); vi.useRealTimers(); vi.restoreAllMocks(); });
+  const rankKey = "stair-climb:leaderboard:v4";
+  const progressKey = "stair-climb:stage-progress:v1";
+  function audioFixture(): AudioController {
+    return { startBgm: vi.fn().mockResolvedValue(true), stopBgm: vi.fn(), setEventActive: vi.fn(),
+      setPreferences: vi.fn(), playFootstep: vi.fn(), playFall: vi.fn(), dispose: vi.fn() };
+  }
+
+  it.each([false, true])("freezes checkpoints, persists progress immediately and ranks only after termination (bonus=%s)", async (bonus) => {
+    vi.useFakeTimers(); vi.setSystemTime(1000);
+    seedReadyStage(1, { eventEndsAt: bonus ? 31_000 : null, eventSteps: 12 });
+    const audio = audioFixture();
+    const input = vi.spyOn(gameEngine, "applyInput");
+    const tick = vi.spyOn(gameEngine, "tickGame");
+    const writes = vi.spyOn(Storage.prototype, "setItem");
+    render(<StrictMode><GameScreen account={account} audioController={audio} /></StrictMode>);
+    expect(screen.getByRole("button", { name: "게임 설정" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    climbOneStep();
+    const checkpoint: GameState = input.mock.results.at(-1)!.value;
+    expect(checkpoint).toMatchObject({ status: "checkpoint", stage: 1, recordStage: 1, score: bonus ? 401 : 400 });
+    expect(screen.getByRole("dialog", { name: "1단계 클리어!" })).toBeVisible();
+    expect(screen.getByTestId("stage-time")).toHaveTextContent("클리어");
+    expect(screen.getByRole("button", { name: "게임 설정" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "계속하기" })).toHaveFocus();
+    expect(audio.playFootstep).toHaveBeenCalledOnce();
+    expect(audio.stopBgm).not.toHaveBeenCalled();
+    expect(localStorage.getItem(rankKey)).toBeNull();
+    expect(JSON.parse(localStorage.getItem(progressKey)!)).toEqual([{ accountId: account.homeAccountId, highestClearedStage: 1 }]);
+    input.mockClear(); tick.mockClear();
+    fireEvent.keyDown(window, { key: "d" });
+    fireEvent.keyDown(screen.getByRole("button", { name: "계속하기" }), { key: " ", code: "Space" });
+    expect(input).not.toHaveBeenCalled();
+    await act(async () => { await vi.advanceTimersByTimeAsync(95_000); });
+    expect(tick).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    if (bonus) expect(screen.getByTestId("event-status")).toHaveTextContent("2배 점수 · 30초");
+    const continued = vi.spyOn(gameEngine, "continueGame");
+    fireEvent.click(screen.getByRole("button", { name: "계속하기" }));
+    const resumed: GameState = continued.mock.results.at(-1)!.value;
+    expect(resumed).toMatchObject({ status: "playing", stage: 2, stageStartScore: checkpoint.score,
+      stageEndsAt: 171_000, nextPursuerStepAt: 96_650, pursuerDistance: 4, recordStage: 1 });
+    // StrictMode can evaluate an updater twice; compare references to the committed input to Continue.
+    const committedCheckpoint = continued.mock.calls.at(-1)![0];
+    expect(resumed.route).toBe(committedCheckpoint.route);
+    expect(resumed.obstacles).toBe(committedCheckpoint.obstacles);
+    expect(resumed.route).toEqual(checkpoint.route);
+    expect(screen.getByText(`목표 ${checkpoint.score + 400}점`)).toBeVisible();
+    expect(screen.getByTestId("stage-time")).toHaveTextContent("01:15");
+    expect(localStorage.getItem(rankKey)).toBeNull();
+    vi.setSystemTime(98_600);
+    fireEvent(document, new Event("visibilitychange"));
+    await act(async () => { await vi.advanceTimersByTimeAsync(501); });
+    const rows = JSON.parse(localStorage.getItem(rankKey)!);
+    expect(rows).toEqual([expect.objectContaining({ bestStage: 1, bestScore: checkpoint.score })]);
+    expect(writes.mock.calls.filter(([key]) => key === progressKey)).toHaveLength(1);
+    expect(writes.mock.calls.filter(([key]) => key === rankKey)).toHaveLength(1);
+    expect(audio.playFootstep).toHaveBeenCalledOnce(); expect(audio.stopBgm).toHaveBeenCalledOnce();
+    expect(screen.getByText("기록 단계 1단계")).toBeVisible();
+  });
+
+  it("quits once using the native checkpoint action and retains the record on restart", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(0); seedReadyStage(1);
+    const writes = vi.spyOn(Storage.prototype, "setItem");
+    render(<StrictMode><GameScreen account={account} /></StrictMode>);
+    fireEvent.click(screen.getByRole("button", { name: /시작하기/ })); climbOneStep();
+    const quit = screen.getByRole("button", { name: "그만두기" });
+    fireEvent.keyDown(quit, { key: " ", code: "Space" });
+    fireEvent.click(quit, { detail: 0 });
+    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+    expect(screen.getByText("체크포인트에서 종료했어요")).toBeVisible();
+    expect(screen.getByText("기록 단계 1단계")).toBeVisible();
+    expect(JSON.parse(localStorage.getItem(rankKey)!)).toEqual([expect.objectContaining({ bestStage: 1, bestScore: 400 })]);
+    fireEvent(document, new Event("visibilitychange"));
+    expect(writes.mock.calls.filter(([key]) => key === rankKey)).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: /다시 시작/ }));
+    expect(screen.getByTestId("score-value")).toHaveTextContent(/^0$/);
+    expect(screen.getByTestId("stage-value")).toHaveTextContent("1단계");
+    expect(JSON.parse(localStorage.getItem(progressKey)!)[0].highestClearedStage).toBe(1);
+  });
+
+  it.each(["progress", "rank"])("loads only the current account's known highest from %s", async (source) => {
+    vi.useFakeTimers(); vi.setSystemTime(0);
+    if (source === "progress") localStorage.setItem(progressKey, JSON.stringify([
+      { accountId: account.homeAccountId, highestClearedStage: 3 }, { accountId: "other", highestClearedStage: 5 },
+    ]));
+    else localStorage.setItem(rankKey, JSON.stringify([
+      { accountId: account.homeAccountId, displayName: "기존", bestStage: 3, bestScore: 0, achievedAt: "2026-01-01" },
+      { accountId: "other", displayName: "다른 사람", bestStage: 5, bestScore: 999, achievedAt: "2026-01-01" },
+    ]));
+    const start = vi.spyOn(gameEngine, "startGame");
+    render(<GameScreen account={account} />);
+    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    expect(start.mock.calls[0][0]).toMatchObject({ stage: 1, recordStage: 3, clearedStageThisRun: 0, score: 0 });
+    fireEvent.keyDown(window, { key: "d" });
+    vi.setSystemTime(4000); fireEvent(document, new Event("visibilitychange"));
+    await act(async () => { await vi.advanceTimersByTimeAsync(501); });
+    expect(JSON.parse(localStorage.getItem(rankKey)!).find((entry: { accountId: string }) => entry.accountId === account.homeAccountId)).toMatchObject({ bestStage: 3, bestScore: 1 });
+  });
+
+  it("reports a progress write failure while allowing Continue and retaining in-memory progress", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(0); seedReadyStage(1);
+    const write = Storage.prototype.setItem;
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(function (this: Storage, key, value) {
+      if (key === progressKey) throw new DOMException("full", "QuotaExceededError");
+      write.call(this, key, value);
+    });
+    render(<GameScreen account={account} />);
+    fireEvent.click(screen.getByRole("button", { name: /시작하기/ })); climbOneStep();
+    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+    expect(screen.getByRole("status")).toHaveTextContent("진행도를 저장하지 못했습니다.");
+    fireEvent.click(screen.getByRole("button", { name: "계속하기" }));
+    vi.setSystemTime(3000); fireEvent(document, new Event("visibilitychange"));
+    await act(async () => { await vi.advanceTimersByTimeAsync(501); });
+    expect(screen.getByText("기록 단계 1단계")).toBeVisible();
+    expect(within(screen.getByRole("region", { name: "최고 기록 랭킹" })).getByText("1단계")).toBeVisible();
+    expect(JSON.parse(localStorage.getItem(rankKey)!)[0].bestStage).toBe(1);
   });
 });
 
@@ -1093,7 +1091,7 @@ describe("GameScreen obstacle gameplay", () => {
   });
 
   it("interrupts jump feedback on a delayed fatal capture and saves exactly once", async () => {
-    vi.useFakeTimers(); vi.setSystemTime(0); seedBox({ lives: 1 });
+    vi.useFakeTimers(); vi.setSystemTime(0); seedBox({ });
     const save = vi.spyOn(Storage.prototype, "setItem");
     const audio = audioFixture();
     render(<GameScreen account={account} audioController={audio} />);
@@ -1210,7 +1208,7 @@ describe("dedicated jump animation lifecycle", () => {
     vi.useFakeTimers(); vi.setSystemTime(0);
     const originalStart = gameEngine.startGame;
     vi.spyOn(gameEngine, "startGame").mockImplementation((state, now) => withPursuitAt({ ...originalStart(state, now), stage: 5, stageEndsAt: now + 50_000 }, now));
-    const ready = readyAt(1, { stage: 5, score: 1499 });
+    const ready = readyAt(1, { stage: 5, score: 399 });
     const audio = { startBgm: vi.fn().mockResolvedValue(true), stopBgm: vi.fn(), setEventActive: vi.fn(),
       setPreferences: vi.fn(), playFootstep: vi.fn(), playFall: vi.fn(), dispose: vi.fn() } satisfies AudioController;
     vi.spyOn(gameEngine, "createGameState").mockReturnValue(ready);
@@ -1219,10 +1217,11 @@ describe("dedicated jump animation lifecycle", () => {
     fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
     fireEvent.keyDown(window, { key: " " });
     expect(screen.getByText("최종 클리어!")).toBeInTheDocument();
-    expect(screen.getByTestId("score-value")).toHaveTextContent("1501");
+    expect(screen.getByTestId("score-value")).toHaveTextContent("401");
     expect(document.querySelector(".jump-overlay")).toBeNull();
     expect(screen.getByTestId("runner")).toHaveAttribute("data-motion-kind", "idle");
     expect(audio.playFootstep).toHaveBeenCalledOnce();
-    expect(save).toHaveBeenCalledOnce();
+    expect(save.mock.calls.filter(([key]) => key === "stair-climb:leaderboard:v4")).toHaveLength(1);
+    expect(save.mock.calls.filter(([key]) => key === "stair-climb:stage-progress:v1")).toHaveLength(1);
   });
 });

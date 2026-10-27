@@ -61,6 +61,7 @@ function GameAppShell({ account }: { account: AccountInfo }) {
 
   return (
     <GameScreen
+      key={account.homeAccountId}
       account={account}
       audioController={audioController}
       audioPreferences={audioPreferences}

@@ -1,15 +1,14 @@
-import type { GameInput, GameMove, GameStage, GameState } from "./types";
+import type { ClearedStage, GameInput, GameMove, GameStage, GameStartOptions, GameState } from "./types";
 import { advanceStairRoute, countStraightSteps, createStairRoute, getRouteStep } from "./stairRoute";
-import { getStageRule } from "./stageRules";
+import { getStageRule, getStageTargetScore, isClearedStage, isGameStage, STAGE_SCORE_REQUIRED } from "./stageRules";
 import { createObstacleState, hasObstacle, revealObstacles } from "./stairObstacles";
 
-const INITIAL_LIVES = 3;
 const INITIAL_PURSUER_DISTANCE = 4;
 const EVENT_STEP_TARGET = 30;
 const EVENT_DURATION_MS = 30_000;
 const RECOVERY_DURATION_MS = 500;
 export const STAGE_ONE_DURATION_MS = getStageRule(1).durationMs;
-export const STAGE_ONE_TARGET_SCORE = getStageRule(1).targetScore;
+export const STAGE_ONE_TARGET_SCORE = STAGE_SCORE_REQUIRED;
 
 function validateTime(nowMs: number): void {
   if (!Number.isFinite(nowMs) || nowMs < 0) throw new RangeError("nowMs must be a finite, non-negative number.");
@@ -17,6 +16,13 @@ function validateTime(nowMs: number): void {
 
 function validatePursuit(state: GameState): void {
   getStageRule(state.stage);
+  getStageTargetScore(state.stageStartScore);
+  if (!isClearedStage(state.recordStage) || !isClearedStage(state.clearedStageThisRun) ||
+    state.recordStage < state.clearedStageThisRun ||
+    (state.status === "checkpoint" && (state.stage === 5 || state.checkpointEnteredAt === null || state.stageEndsAt !== null)) ||
+    (state.status !== "checkpoint" && state.checkpointEnteredAt !== null)) {
+    throw new RangeError("Invalid checkpoint session.");
+  }
   if (
     !Number.isSafeInteger(state.stepsClimbed) || state.stepsClimbed < 0 ||
     !Number.isSafeInteger(state.pursuerIndex) || !Number.isSafeInteger(state.pursuerDistance) ||
@@ -24,7 +30,7 @@ function validatePursuit(state: GameState): void {
     !Number.isSafeInteger(state.captureCount) || state.captureCount < 0 ||
     (state.status === "playing" ? state.stageEndsAt === null || state.nextPursuerStepAt === null : state.nextPursuerStepAt !== null)
   ) throw new RangeError("Invalid pursuit position or clock state.");
-  for (const time of [state.stageEndsAt, state.nextPursuerStepAt, state.eventEndsAt, state.recoveryEndsAt, state.captureEndsAt]) {
+  for (const time of [state.stageEndsAt, state.nextPursuerStepAt, state.eventEndsAt, state.recoveryEndsAt, state.captureEndsAt, state.checkpointEnteredAt]) {
     if (time !== null) validateTime(time);
   }
   getRouteStep(state.route, state.stepsClimbed);
@@ -45,16 +51,23 @@ function retainPursuitRoute(state: GameState): GameState {
   return { ...state, route: advanceStairRoute(state.route, state.stepsClimbed, oldest) };
 }
 
-export function createGameState(random: () => number = Math.random): GameState {
+export function createGameState(random: () => number = Math.random, options: GameStartOptions = {}): GameState {
+  if (typeof options !== "object" || options === null) throw new RangeError("Start options must be an object.");
+  const stage = options.stage === undefined ? 1 : options.stage;
+  const highest = options.highestClearedStage === undefined ? 0 : options.highestClearedStage;
+  if (!isGameStage(stage) || !isClearedStage(highest) || stage > Math.max(1, highest)) {
+    throw new RangeError("Selected stage must be unlocked by cleared progress.");
+  }
   const route = createStairRoute(random);
   return {
-    status: "ready", stage: 1, stageEndsAt: null, endReason: null,
-    score: 0, stepsClimbed: 0, lives: INITIAL_LIVES, direction: "right",
+    status: "ready", stage, stageEndsAt: null, endReason: null,
+    score: 0, stageStartScore: 0, recordStage: highest, clearedStageThisRun: 0, checkpointEnteredAt: null,
+    stepsClimbed: 0, direction: "right",
     straightStepsRemaining: countStraightSteps(route, 0, "right"),
     pursuerDistance: INITIAL_PURSUER_DISTANCE, pursuerIndex: -INITIAL_PURSUER_DISTANCE,
     nextPursuerStepAt: null, lastPursuerMove: null, captureCount: 0, captureEndsAt: null,
     eventSteps: 0, eventEndsAt: null, recoveryEndsAt: null, lastMistake: false, route,
-    obstacles: createObstacleState(route, 1), lastMove: null,
+    obstacles: createObstacleState(route, stage), lastMove: null,
   };
 }
 
@@ -63,8 +76,8 @@ export function startGame(state: GameState, nowMs: number): GameState {
   validatePursuit(state);
   if (state.status !== "ready") return state;
   return {
-    ...state, status: "playing", stage: 1, stageEndsAt: nowMs + STAGE_ONE_DURATION_MS, endReason: null,
-    nextPursuerStepAt: nowMs + getStageRule(1).pursuerStepIntervalMs,
+    ...state, status: "playing", stageEndsAt: nowMs + getStageRule(state.stage).durationMs, endReason: null,
+    nextPursuerStepAt: nowMs + getStageRule(state.stage).pursuerStepIntervalMs,
     lastMove: null,
   };
 }
@@ -72,6 +85,7 @@ export function startGame(state: GameState, nowMs: number): GameState {
 export function tickGame(state: GameState, nowMs: number): GameState {
   validateTime(nowMs);
   validatePursuit(state);
+  if (state.status === "checkpoint") return state;
   let current = state;
   // Deadlines remain absolute so delayed callbacks and hidden tabs follow the same timeline.
   while (true) {
@@ -82,7 +96,8 @@ export function tickGame(state: GameState, nowMs: number): GameState {
     );
     if (!Number.isFinite(at) || at > nowMs) break;
     if (current.status === "playing" && current.stageEndsAt === at) {
-      current = { ...current, status: "game-over", endReason: "time-limit", nextPursuerStepAt: null,
+      current = { ...current, status: "game-over", endReason: "time-limit", stageEndsAt: null, eventEndsAt: null,
+        eventSteps: current.eventEndsAt === at ? 0 : current.eventSteps, nextPursuerStepAt: null,
         recoveryEndsAt: null, captureEndsAt: null, lastMistake: false, lastPursuerMove: null, lastMove: null };
       continue;
     }
@@ -96,13 +111,12 @@ export function tickGame(state: GameState, nowMs: number): GameState {
     const toIndex = fromIndex + 1;
     getRouteStep(current.route, toIndex);
     if (toIndex >= current.stepsClimbed) {
-      const lives = Math.max(0, current.lives - 1);
       current = {
-        ...current, lives, status: lives === 0 ? "game-over" : "playing", endReason: lives === 0 ? "caught" : null,
-        pursuerIndex: current.stepsClimbed - INITIAL_PURSUER_DISTANCE, pursuerDistance: INITIAL_PURSUER_DISTANCE,
-        nextPursuerStepAt: lives === 0 ? null : at + interval, lastPursuerMove: null,
+        ...current, status: "game-over", endReason: "caught", stageEndsAt: null, eventEndsAt: null,
+        pursuerIndex: current.stepsClimbed - 1, pursuerDistance: 1,
+        nextPursuerStepAt: null, lastPursuerMove: null,
         captureCount: current.captureCount + 1, captureEndsAt: at + RECOVERY_DURATION_MS,
-        recoveryEndsAt: at + RECOVERY_DURATION_MS, lastMistake: false, lastMove: null,
+        recoveryEndsAt: null, lastMistake: false, lastMove: null,
       };
     } else {
       current = { ...current, pursuerIndex: toIndex, pursuerDistance: current.stepsClimbed - toIndex,
@@ -130,7 +144,7 @@ export function resumeGameAfterPause(state: GameState, openedAtMs: number, close
 export function getStageSecondsLeft(state: GameState, nowMs: number): number {
   validateTime(nowMs);
   const rule = getStageRule(state.stage);
-  if (state.endReason === "time-limit" || state.endReason === "cleared") return 0;
+  if (state.status === "checkpoint" || state.status === "game-over") return 0;
   if (state.stageEndsAt === null) return rule.durationMs / 1000;
   return Math.max(0, Math.ceil((state.stageEndsAt - nowMs) / 1000));
 }
@@ -169,20 +183,46 @@ export function applyInput(state: GameState, input: GameInput, nowMs: number): G
       toIndex: nextStepsClimbed, scoreGain, isBonus: eventIsActive },
   };
   let result = movedState;
-  if (score >= getStageRule(currentState.stage).targetScore && currentState.stage === 5) result = { ...movedState, status: "game-over", endReason: "cleared",
-    nextPursuerStepAt: null, lastPursuerMove: null, captureEndsAt: null };
-  else if (score >= getStageRule(currentState.stage).targetScore) {
-    const nextRule = getStageRule((currentState.stage + 1) as GameStage);
-    result = retainPursuitRoute({
-      ...movedState, stage: nextRule.stage, stageEndsAt: nowMs + nextRule.durationMs,
-      lives: INITIAL_LIVES, pursuerIndex: nextStepsClimbed - INITIAL_PURSUER_DISTANCE,
-      pursuerDistance: INITIAL_PURSUER_DISTANCE, nextPursuerStepAt: nowMs + nextRule.pursuerStepIntervalMs,
-      lastPursuerMove: null, captureEndsAt: null, endReason: null,
-    });
+  const completed = score >= getStageTargetScore(currentState.stageStartScore);
+  if (completed) {
+    result = {
+      ...movedState,
+      clearedStageThisRun: Math.max(movedState.clearedStageThisRun, movedState.stage) as ClearedStage,
+      recordStage: Math.max(movedState.recordStage, movedState.stage) as ClearedStage,
+      status: movedState.stage === 5 ? "game-over" : "checkpoint",
+      endReason: movedState.stage === 5 ? "cleared" : null,
+      checkpointEnteredAt: movedState.stage === 5 ? null : nowMs,
+      stageEndsAt: null, nextPursuerStepAt: null, lastPursuerMove: null, captureEndsAt: null,
+      eventEndsAt: movedState.stage === 5 ? null : movedState.eventEndsAt,
+    };
   }
-  return { ...result, obstacles: revealObstacles(result.obstacles, result.route, nextStepsClimbed, result.stage) };
+  const revealStage = completed && result.stage < 5 ? (result.stage + 1) as GameStage : result.stage;
+  return { ...result, obstacles: revealObstacles(result.obstacles, result.route, nextStepsClimbed, revealStage) };
 }
 
-export function resetGame(random: () => number = Math.random): GameState {
-  return createGameState(random);
+export function continueGame(state: GameState, nowMs: number): GameState {
+  validateTime(nowMs);
+  validatePursuit(state);
+  if (state.status !== "checkpoint") return state;
+  const rule = getStageRule((state.stage + 1) as GameStage);
+  const pausedMs = Math.max(0, nowMs - state.checkpointEnteredAt!);
+  return {
+    ...state, status: "playing", stage: rule.stage, stageStartScore: state.score,
+    checkpointEnteredAt: null, stageEndsAt: nowMs + rule.durationMs,
+    eventEndsAt: state.eventEndsAt === null ? null : state.eventEndsAt + pausedMs,
+    pursuerIndex: state.stepsClimbed - INITIAL_PURSUER_DISTANCE, pursuerDistance: INITIAL_PURSUER_DISTANCE,
+    nextPursuerStepAt: nowMs + rule.pursuerStepIntervalMs, lastPursuerMove: null,
+  };
+}
+
+export function quitAtCheckpoint(state: GameState, nowMs: number): GameState {
+  validateTime(nowMs);
+  validatePursuit(state);
+  if (state.status !== "checkpoint") return state;
+  return { ...state, status: "game-over", endReason: "quit", checkpointEnteredAt: null,
+    stageEndsAt: null, nextPursuerStepAt: null, eventEndsAt: null, lastMove: null };
+}
+
+export function resetGame(random: () => number = Math.random, options: GameStartOptions = {}): GameState {
+  return createGameState(random, options);
 }

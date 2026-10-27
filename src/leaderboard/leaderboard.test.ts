@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getTopScores, readLeaderboard, saveBestScore, type LeaderboardEntry } from "./leaderboard";
-import type { GameStage } from "../game/types";
+import type { ClearedStage } from "../game/types";
 
-const key = "stair-climb:leaderboard:v3";
+const key = "stair-climb:leaderboard:v4";
 const legacyKey = "stair-climb:leaderboard:v1";
-const legacyKeys = [legacyKey, "stair-climb:leaderboard:v2"];
+const legacyKeys = [legacyKey, "stair-climb:leaderboard:v2", "stair-climb:leaderboard:v3"];
 const storage = () => {
   const values = new Map<string, string>();
   return {
@@ -18,7 +18,7 @@ const storage = () => {
   };
 };
 
-const entry = (accountId: string, bestScore: number, achievedAt: string, bestStage: GameStage = 1): LeaderboardEntry => ({
+const entry = (accountId: string, bestScore: number, achievedAt: string, bestStage: ClearedStage = 1): LeaderboardEntry => ({
   accountId,
   displayName: accountId,
   bestStage,
@@ -132,10 +132,12 @@ describe("leaderboard storage", () => {
     const serialized = JSON.stringify(records);
     fakeStorage.setItem(legacyKey, JSON.stringify([{ accountId: "old", bestScore: 9999 }]));
     fakeStorage.setItem(legacyKeys[1], JSON.stringify([entry("old-v2", 99_999, "2026-01-01", 2)]));
+    fakeStorage.setItem(legacyKeys[2], JSON.stringify([entry("old-v3", 99_999, "2026-01-01", 5)]));
     fakeStorage.setItem(key, serialized);
     fakeStorage.setItem("stair-climb:audio:v1", "audio-sentinel");
     fakeStorage.setItem("msal.account.keys", "auth-sentinel");
     fakeStorage.setItem("unrelated", "other-sentinel");
+    fakeStorage.setItem("stair-climb:stage-progress:v1", "progress-sentinel");
     fakeStorage.setItem.mockClear();
     expect(readLeaderboard(fakeStorage)).toEqual(records);
     expect(readLeaderboard(fakeStorage)).toEqual(records);
@@ -146,6 +148,7 @@ describe("leaderboard storage", () => {
     expect(fakeStorage.getItem("stair-climb:audio:v1")).toBe("audio-sentinel");
     expect(fakeStorage.getItem("msal.account.keys")).toBe("auth-sentinel");
     expect(fakeStorage.getItem("unrelated")).toBe("other-sentinel");
+    expect(fakeStorage.getItem("stair-climb:stage-progress:v1")).toBe("progress-sentinel");
     expect(fakeStorage.setItem).not.toHaveBeenCalled();
     expect(fakeStorage.clear).not.toHaveBeenCalled();
   });
@@ -192,7 +195,7 @@ describe("leaderboard storage", () => {
     expect(readLeaderboard(fakeStorage)).toContainEqual(existing[0]);
   });
 
-  it("reports v3 read failures separately from corrupt JSON", () => {
+  it("reports v4 read failures separately from corrupt JSON", () => {
     fakeStorage.getItem.mockImplementation((item) => {
       if (item === key) throw new DOMException("blocked", "SecurityError");
       return null;
@@ -212,13 +215,13 @@ describe("leaderboard storage", () => {
     });
   });
 
-  it.each([0, 6, 1.5, NaN, "2", undefined, null])("rejects an invalid saved stage without touching storage: %s", (bestStage) => {
+  it.each([6, 1.5, NaN, "2", undefined, null])("rejects an invalid saved stage without touching storage: %s", (bestStage) => {
     const invalid = { accountId: "a", displayName: "A", bestStage, bestScore: 10 } as unknown as Omit<LeaderboardEntry, "achievedAt">;
     expect(() => saveBestScore(invalid, fakeStorage)).toThrow(RangeError);
     expect(fakeStorage.getItem).not.toHaveBeenCalled();
   });
 
-  it.each([0, 6, 1.5, "2", undefined])("clears v3 with invalid or missing stage without inferring from points: %s", (bestStage) => {
+  it.each([6, 1.5, "2", undefined])("clears v4 with invalid or missing stage without inferring from points: %s", (bestStage) => {
     fakeStorage.setItem(key, JSON.stringify([{ ...entry("a", 999, "2026-01-01"), bestStage }]));
     expect(readLeaderboard(fakeStorage)).toEqual([]);
     expect(fakeStorage.getItem(key)).toBeNull();
@@ -231,7 +234,7 @@ describe("leaderboard storage", () => {
     expect(readLeaderboard(fakeStorage)).toEqual([last]);
   });
 
-  it.each([1, 2, 3, 4, 5] as const)("reads and saves stage %s without inferring from its score", (bestStage) => {
+  it.each([0, 1, 2, 3, 4, 5] as const)("reads and saves stage %s without inferring from its score", (bestStage) => {
     const result = saveBestScore({ accountId: "a", displayName: "A", bestStage, bestScore: 10 }, fakeStorage, new Date("2026-01-01"));
     expect(result.saved).toBe(true);
     expect(readLeaderboard(fakeStorage)).toEqual(result.entries);
@@ -254,6 +257,17 @@ describe("leaderboard storage", () => {
       const unchanged = saveBestScore({ accountId: "four", displayName: "Changed", bestStage: stage, bestScore: score }, fakeStorage, new Date("2026-03-01"));
       expect(unchanged.entries).toEqual(improved.entries);
     }
+  });
+
+  it("ranks zero as uncleared and preserves its whole entry on tied or worse scores", () => {
+    const zero = entry("zero", 399, "2026-01-01", 0);
+    const cleared = entry("cleared", 0, "2026-01-02", 1);
+    expect(getTopScores([zero, cleared])).toEqual([cleared, zero]);
+    fakeStorage.setItem(key, JSON.stringify([zero]));
+    for (const bestScore of [0, 398, 399]) {
+      expect(saveBestScore({ accountId: "zero", displayName: "Changed", bestStage: 0, bestScore }, fakeStorage).entries).toEqual([zero]);
+    }
+    expect(saveBestScore({ accountId: "zero", displayName: "Clear", bestStage: 1, bestScore: 0 }, fakeStorage).entries[0]).toMatchObject({ bestStage: 1, bestScore: 0, displayName: "Clear" });
   });
 
   it.each(["", null, 123])("rejects invalid account IDs before storage access: %s", (accountId) => {
