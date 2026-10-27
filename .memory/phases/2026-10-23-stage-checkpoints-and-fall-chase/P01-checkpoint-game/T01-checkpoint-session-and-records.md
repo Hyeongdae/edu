@@ -171,7 +171,7 @@ Task: T01-checkpoint-session-and-records
 
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: pending
+- commit: `afafa68`
 
 ## Execution Notes — 2026-10-27
 
