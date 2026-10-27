@@ -102,7 +102,7 @@ Task: T02-stage-selection-and-progress
 
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: pending
+- commit: `fa1a5ec`
 
 ## Execution Notes — 2026-10-27
 

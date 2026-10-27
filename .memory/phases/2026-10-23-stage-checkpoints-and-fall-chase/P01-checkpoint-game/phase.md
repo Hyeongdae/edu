@@ -5,16 +5,17 @@
 | Task | Status | Summary | Blueprint |
 | :--- | :--- | :--- | :--- |
 | T01 | done ✅ | 체크포인트/400점/생명 제거/진행도/0단계/v4저장 | [T01](./T01-checkpoint-session-and-records.md) |
-| T02 | in_progress 🔵 | 단계 선택/해금/새 판/결과 뒤 재선택 | [T02](./T02-stage-selection-and-progress.md) |
-| T03 | pending | 넘어짐500ms 중250ms 독립 추격/설정/경계 | [T03](./T03-fall-pursuit-acceleration.md) |
+| T02 | done ✅ | 단계 선택/해금/새 판/결과 뒤 재선택 | [T02](./T02-stage-selection-and-progress.md) |
+| T03 | in_progress 🔵 | 넘어짐500ms 중250ms 독립 추격/설정/경계 | [T03](./T03-fall-pursuit-acceleration.md) |
 | T04 | pending | 17파일 및 실제 브라우저 통합/반응형 검증 | [T04](./T04-checkpoint-browser-validation.md) |
 
 ## Progress
 
-- done: 1/4 (active: T02)
+- done: 2/4 (active: T03)
 - Status: in_progress
 - 2026-10-23 계획 작성. 2026-10-27 T01 구현 완료 `afafa68`: 지정16파일 388tests, lint/build 통과. 빌드 JS548.68kB(gzip153.34kB), 기존500kB 경고 유지.
-- T02 단계 선택이 다음 작업이다. T03 넘어짐250ms 가속과 T04 브라우저 검증은 미실행.
+- 2026-10-27 T02 구현 완료 `fa1a5ec`: 단계 선택/해금/0점 새 판/결과 뒤 재선택. 지정17파일402tests, lint/build 통과. JS550.61kB(gzip153.85kB), 기존500kB 경고 유지.
+- 다음 T03 넘어짐250ms 가속. T04 브라우저 검증은 미실행.
 
 ## Execution Rule
 
