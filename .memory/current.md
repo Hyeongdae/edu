@@ -2,21 +2,60 @@
 
 ## Active Plan
 
-[Distance Based Pursuer Catch Up](./plans/2026-10-28-distance-based-pursuer-catch-up.md)
+[Time Ranking and Office Ending](./plans/2026-10-28-time-ranking-and-office-ending.md)
 
 ## Active Phase
 
-없음 — [P01 Pursuit](./phases/2026-10-28-distance-based-pursuer-catch-up/P01-pursuit/phase.md) 완료.
+[P01 Office Finish](./phases/2026-10-28-time-ranking-and-office-ending/P01-office-finish/phase.md)
 
 ## Active Task
 
-없음 — distance-based-pursuer-catch-up 완료 (1/1).
+[T01 Stage Result Snapshot](./phases/2026-10-28-time-ranking-and-office-ending/P01-office-finish/T01-stage-result-snapshot.md)
 
 ## Last Completed Task
 
-[T01 Distance Catch Up](./phases/2026-10-28-distance-based-pursuer-catch-up/P01-pursuit/T01-distance-catch-up.md) — `43db38c` (2026-10-28), 계획 `63a5773`.
+[T01 Distance Catch Up](./phases/2026-10-28-distance-based-pursuer-catch-up/P01-pursuit/T01-distance-catch-up.md) — 43db38c; 이전 계획 완료 동기화15704d3.
 
 ## Status
+
+- time-ranking-and-office-ending: in_progress, done0/4, Active Task T01 in_progress. 이번 실행은 종료 시점 시간 성적 스냅샷만 구현·검증한다. 랭킹/엔딩/계단 아트는 후속 Task다.
+- 사용자 확정: 단계→점수→남은 시간(0.01초) 랭킹, 각 단계 클리어 즉시 저장, 기존 랭킹만 초기화/해금 유지,5단계 후 약4초 자동1층퇴근엔딩,회색콘크리트·노란선 픽셀비상계단.
+- T01 결과 계약: GameState.stageResult:null|StageResult, StageResult={stage,score,remainingTimeCs,endedAtMs,outcome}. 종료전 시간을 고정하고 quit는클리어결과를보존한다. 늦은tick은실제접촉deadline기준이다.
+- T02 메인 랭킹은 stair-descent:leaderboard:v2, 시간 필수. v1 랭킹만 정리하며 progress:v1/기존 reset marker/새 랭킹은 보존. 기존 ascent v5 API의 시간 생략 호환은 별도로 둔다.
+- T03 엔딩은 UI 수명으로만관리하고 엔진은game-over. 즉시 저장후4초연출/모션감소정적결과/포커스·cleanup. 공용PixelStair 변경은메인과단독에반영되며 단독1단계·무저장경계를검증한다.
+- T01/T02 검증은 지정29파일, T03/T04는지정31파일, workers2와lint/build/diff. 이번 계획 단계에서 테스트를 실행하지 않았다.
+- 순서 T01시간스냅샷→T02랭킹·즉시저장→T03엔딩·계단아트→T04브라우저. 메모리 실행은현재Task1개씩진행한다. 알려진App전체suite/번들크기/실제Entra·배포는범위밖이다.
+- 증거 예정: %TEMP%/time-ranking-and-office-ending-2026-10-28/Task별폴더. 기존demo5175/사용자프로필·실기록을보존한다. 이전추격계획완료이력은아래에보존했다.
+
+## Source Decisions
+
+[Time Ranking and Office Ending](./decisions/2026-10-28-time-ranking-and-office-ending.md)
+
+## Next Step (IMPORTANT)
+
+/memory-execute 또는 current 보고 이어서 해줘 요청 시 T01-stage-result-snapshot.md만 읽고 구현한다. 먼저 types.ts/stageResult.ts/gameEngine.ts와단독fresh상태검사를연결한다. T01검증·지정커밋후phase/current를T02로전진한다. 다음Task를명령없이연속실행하지않는다. 계획단계에서는코드/저장소초기화/브라우저검사를실행하지않는다.
+
+---
+
+### Previous Context: Distance Based Pursuer Catch Up
+
+### Active Plan
+
+[Distance Based Pursuer Catch Up](./plans/2026-10-28-distance-based-pursuer-catch-up.md)
+
+### Active Phase
+
+없음 — [P01 Pursuit](./phases/2026-10-28-distance-based-pursuer-catch-up/P01-pursuit/phase.md) 완료.
+
+### Active Task
+
+없음 — distance-based-pursuer-catch-up 완료 (1/1).
+
+### Last Completed Task
+
+[T01 Distance Catch Up](./phases/2026-10-28-distance-based-pursuer-catch-up/P01-pursuit/T01-distance-catch-up.md) — `43db38c` (2026-10-28), 계획 `63a5773`.
+
+### Status
 
 - distance-based-pursuer-catch-up **completed, done1/1, Active Task none**. 사용자 선택3: 메인과 단독 실험 모두 적용. 기본600/500/400/300/250ms,30칸부터50ms,7칸이하 해제. 가속 중 넘어져도50ms 우선. 기존fall500ms/추격250ms 복귀 유지.
 - T01 `43db38c`: 공용 isPursuerCatchingUp boolean/30·7 hysteresis/절대기한 스케줄, 양쪽50ms polling/동기화 모션/CSS/help 구현. 새 게임·Continue·종료에서 modefalse. 기존 기록/auth/audio/목표·확률·경로는 보존했다.
@@ -25,17 +64,17 @@
 - JS554.49kB(gzip155.08)/CSS57.33kB(gzip10.97), 기존500kB chunk경고 유지. 새 범위 밖 결함: 특이사항 없음. 소유Chrome20740은 profile identity확인 후 종료했다. 기존demo5175 PID21048과 사용자프로필/기록 유지. 두URL HTTP200. 기존App suite/실제Entra/스피커청취·성능개선은 미실행.
 - 이전 main-game-descent-conversion completed3/3; T03 8da80d6, 메타데이터5f739b3. 이전 기록 아래 보존.
 
-## Source Decisions
+### Source Decisions
 
 [Distance Based Pursuer Catch Up](./decisions/2026-10-28-distance-based-pursuer-catch-up.md)
 
-## Next Step (IMPORTANT)
+### Next Step (IMPORTANT)
 
 계획 완료, 다음 Active Task 없음. `http://127.0.0.1:5175/`와 `http://127.0.0.1:5175/descent-test.html`에서 새로고침 후 테스트한다. T01/이전 계획을 재실행하지 않는다. 새 수정 요청은 해당 요구의 결정→계획→실행으로 진행한다.
 
 ---
 
-## Previous Context: Main Game Descent Conversion
+### Previous Context: Main Game Descent Conversion
 
 ### Active Plan
 
