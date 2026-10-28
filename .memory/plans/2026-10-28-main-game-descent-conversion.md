@@ -1,9 +1,9 @@
 # Plan: Main Game Descent Conversion
 
 - Date: 2026-10-28
-- Status: in_progress
+- Status: completed
 - Source: [Confirmed decisions](../decisions/2026-10-28-main-game-descent-conversion.md)
-- Execution: T01 기록 저장 준비와 T02 메인 하강 통합 완료. T03 실제 브라우저 검증은 미수행이다. 이 코드부터 최초 main 접속 시 승인된 구 기록 초기화가 활성화된다.
+- Execution: T01 기록 저장 준비/T02 메인 하강 통합/T03 실제 브라우저 검증 완료. main 최초 접속의 구 기록 한 번 초기화와 이후 새 기록 보존을 검증했다.
 - Baseline: `bdf18d5` (local descent plan completion); main ascent is still live. Previous local experiment T01 `0225893`, T02 `f9aa712`, T03 `04fdeea`.
 
 ## Goal
@@ -14,7 +14,7 @@
 
 | Phase | Status | Summary | Blueprint |
 | :--- | :--- | :--- | :--- |
-| P01 | in_progress | 기록 전환 준비 → 메인 하강 통합 → 실제 브라우저 검증 | [P01](../phases/2026-10-28-main-game-descent-conversion/P01-main-descent/phase.md) |
+| P01 | completed | 기록 전환 준비 → 메인 하강 통합 → 실제 브라우저 검증 | [P01](../phases/2026-10-28-main-game-descent-conversion/P01-main-descent/phase.md) |
 
 ## Task Roadmap
 
@@ -55,9 +55,12 @@
 
 ## Progress
 
-- done: 2/3 (active: T03)
+- done: 3/3 (active: none)
 - T01 `9b6ba54`: recordStorage와 두 API의 optional scope/회귀 테스트 구현. 지정 6파일 242/242tests(32.11초/workers2), lint/build/diff check 통과. 읽기 전용 main/실험/auth/audio/config 경로 diff 없음. 실제 브라우저 기록은 미접근이며 main은 기존 상승 화면이다.
 - 증거: `%TEMP%\main-descent-records-t01-2026-10-28\tests.log`, `lint.log`, `build.log`. JS552.85kB(gzip154.43kB)/CSS55.50kB(gzip10.77kB), 기존 500kB chunk 경고 유지. 신규 범위 밖 결함: 특이사항 없음.
 - T02 `5217dfa`: main5단계 하강 scene/step·jump·NPC·catch/레이어·문구, 모든 main 저장 descent scope, D11 오디오 재시도 focus 복구 완료. 지정27파일727/727tests(54.39초/workers2/skip0), lint/build/diff check 통과. 새 scene23tests와 GameScreen82tests를 포함하며 원본 엔진/실험/auth설정/audio/config는 보존했다.
 - T02 증거: `%TEMP%\main-descent-t02-2026-10-28\`의 tests-27-final.log/lint.log/build.log/audit.log, 초기 실패와 focused 보완 로그도 보존. JS553.68kB(gzip154.76kB)/CSS57.30kB(gzip10.95kB), 기본 dist는 index.html만 존재. 실제 브라우저는 사용하지 않았으며 T03 검증 전 전체 완료로 표시하지 않는다. 신규 범위 밖 결함: 특이사항 없음.
+- T03 `8da80d6`: 소유 Chrome156.0.8078.49의9개 driver/네 화면5단계·체크포인트·새 저장 재접속·하강 모션·실제 추격/lifecycle·native audio retry focus·모바일/font24·32·인증/실험 경계 통과. 실제 전체 진행은 seed0.5/제어 시계, 각615행동·641물리계단·26보너스 점프/최종352점이며 일반2점 점프는 seed0.19 native Space로 별도 확인했다.
+- T03 지정27파일727/727tests(56.60초/workers2/skip0), lint/build/diff check 통과. 제품 source/test 추가 수정 없음. JS553.68kB(gzip154.76kB)/CSS57.30kB(gzip10.95kB), 기존500kB chunk 경고 출력. 증거 `%TEMP%\main-game-descent-conversion-2026-10-28\evidence-index.json`:145artifact/PNG82·필수14사진과9 driver/logs/hash. 실제 tenant 로그인/회사 계정 전환·스피커 청취 품질은 미검증이며 공개 계정/함수 fixture와 실제 UI 검증을 구분했다.
+- 완료 링크 `http://127.0.0.1:5175/` HTTP200/title 내려오기/DEVtrue/demo flagtrue/main descent model 확인. 기존 PID21048은 유지하고 identity 확인한 소유 Chrome/보조5176·5177만 종료했다. 사용자 profile/실제 기록은 접근하지 않았다. 신규 범위 밖 결함: 특이사항 없음. 다음 Active Task는 없다.
 - 2026-10-28 사용자 요청으로 main 오디오 재시도 focus 복구/회귀 테스트/브라우저 검증을 T02/T03에 포함했다. 실행 순서와 T01 포인터는 유지한다.

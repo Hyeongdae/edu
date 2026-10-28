@@ -6,16 +6,17 @@
 | :--- | :--- | :--- | :--- |
 | T01 | done ✅ | 새 기록 scope/한정 구키 정리 지원; main 연결 전 | [T01](./T01-descent-record-storage.md) |
 | T02 | done ✅ |5단계 메인 하강/새 scope/오디오 재시도 focus 복구 | [T02](./T02-main-descent-integration.md) |
-| T03 | in_progress 🔵 | 실제5단계/새 기록/모바일·시간·설정 focus 검증 | [T03](./T03-main-descent-browser-validation.md) |
+| T03 | done ✅ | 실제5단계/새 기록/모바일·시간·설정 focus 검증 | [T03](./T03-main-descent-browser-validation.md) |
 
 ## Progress
 
-- done: 2/3 (active: T03)
-- Status: in_progress
+- done: 3/3 (active: none)
+- Status: completed
 - 2026-10-28 T01 완료: `9b6ba54`. 지정 6파일 242/242 tests(32.11초/workers2), lint/build/diff check 통과. 기존 main/실험/auth/audio/config 경로 diff 없음. 실제 브라우저 저장소는 접근하지 않았다.
 - T02 완료: `5217dfa`. 지정27파일727/727tests(54.39초/workers2/skip0), lint/build/diff check 통과. main5단계 하강 투영/모션·문구·새 기록scope와 D11 오디오 재시도 focus 복구를 연결했다. core/규칙/기본 상승 모델/실험/App/authConfig/audio/public/config/package diff 없음.
 - JS553.68kB(gzip154.76kB)/CSS57.30kB(gzip10.95kB), 기존500kB 초과 번들 크기 유지(이번 로그 경고 재출력 없음). 로그: `%TEMP%\main-descent-t02-2026-10-28\`.
-- 실제 브라우저/사용자 프로필에는 직접 접근하지 않았다. main 최초 접속에서 승인된 구 기록 초기화가 활성화되며 새 기록은 보존한다. native 모션·모바일·media Promise/focus·저장 재접속의 실제 브라우저 검증은 T03 미수행이다. 전체 계획은 아직 완료가 아니다.
+- T03 완료: `8da80d6`. 소유 브라우저9 driver/네 화면의 실제5단계·새 기록 보존·native 오디오 재시도 focus·모션/실제 시간/큰 글자·인증/실험 경계 통과. 지정27파일727/727tests(56.60초/workers2/skip0), lint/build/diff check 통과. 제품 source 추가 수정 없음. `%TEMP%\main-game-descent-conversion-2026-10-28\evidence-index.json`에145artifact/PNG82·필수14사진을 연결했다.
+- 최종 build JS553.68kB/CSS57.30kB이며 기존500kB chunk 경고 출력. 전체 진행은 제어 시계 UI, 실제 추격/lifecycle·함수 fixture/공개 계정 fixture를 구분했다. 실제 Entra tenant 로그인·스피커 청취는 미검증이다. 소유 helpers만 종료하고 기존 demo PID21048/`http://127.0.0.1:5175/` HTTP200·DEV demo 진입을 유지했다. 사용자 profile/실제 기록에는 직접 접근하지 않았다. 신규 범위 밖 결함: 특이사항 없음.
 
 ## Execution Rule
 

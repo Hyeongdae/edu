@@ -6,28 +6,30 @@
 
 ## Active Phase
 
-[P01 Main Descent](./phases/2026-10-28-main-game-descent-conversion/P01-main-descent/phase.md)
+없음 — [P01 Main Descent](./phases/2026-10-28-main-game-descent-conversion/P01-main-descent/phase.md) 완료.
 
 ## Active Task
 
-[T03 Main Descent Browser Validation](./phases/2026-10-28-main-game-descent-conversion/P01-main-descent/T03-main-descent-browser-validation.md)
+없음 — main-game-descent-conversion 완료 (3/3).
 
 ## Last Completed Task
 
-[T02 Main Descent Integration](./phases/2026-10-28-main-game-descent-conversion/P01-main-descent/T02-main-descent-integration.md) — `5217dfa` (2026-10-28). 이번 계획 T01 `9b6ba54`/동기화 `4d7669e`. 이전 local-descent 계획 T03 `04fdeea`/동기화 `bdf18d5`, T01 `0225893`/동기화 `4b49dc8`, T02 `f9aa712`/동기화 `8f92171`. 이전 stage-score 계획: T01 `f5ef960`/동기화 `0ca7bf2`, T02 `f35254f`/동기화 `6dfa99a`, T03 `20f8425`/완료 동기화 `8d9b31d`. 이전 checkpoint 계획 완료: T04 `9fda567`, 동기화 `cec0d37`.
+[T03 Main Descent Browser Validation](./phases/2026-10-28-main-game-descent-conversion/P01-main-descent/T03-main-descent-browser-validation.md) — `8da80d6` (2026-10-28). 이번 계획 T02 `5217dfa`/동기화 `c537dfb`, T01 `9b6ba54`/동기화 `4d7669e`. 이전 local-descent 계획 T03 `04fdeea`/동기화 `bdf18d5`, T01 `0225893`/동기화 `4b49dc8`, T02 `f9aa712`/동기화 `8f92171`. 이전 stage-score 계획: T01 `f5ef960`/동기화 `0ca7bf2`, T02 `f35254f`/동기화 `6dfa99a`, T03 `20f8425`/완료 동기화 `8d9b31d`. 이전 checkpoint 계획 완료: T04 `9fda567`, 동기화 `cec0d37`.
 
 ## Status
 
-- main-game-descent-conversion: done2/3, Active T03. 2026-10-28 T02 `5217dfa` 완료: main5단계 하강 투영·모션/레이어·문구/전용 기록scope와 D11 설정 focus 복구를 구현했다. 지정27파일727/727tests(54.39초/workers2/skip0), lint/build/diff check 통과. 실제 브라우저/사용자 프로필에는 직접 접근하지 않았다. 이 코드부터 main 최초 접속 시 승인된 구 기록 초기화가 활성화된다. 실제 브라우저 검증은 미수행이며 전체 계획은 아직 완료가 아니다.
+- main-game-descent-conversion: **completed, done3/3, Active Task none**. 2026-10-28 T03 `8da80d6` 완료: 소유 브라우저9 driver/네 화면5단계·새 저장·모션/실제 시간·모바일/큰 글자·오디오 재시도 focus·인증/독립 실험 경계를 검증했다. 지정27파일727/727tests(56.60초/workers2/skip0), lint/build/diff check 통과. 제품 source/test 추가 수정 없음. 사용자 profile/실제 기록에는 직접 접근하지 않았다.
+- T03 증거: `%TEMP%\main-game-descent-conversion-2026-10-28\evidence-index.json`의145artifact/PNG82·필수14사진/9driver와 로그·SHA256. seed0.5의320×667/390×667/768×1024/1440×900 각각615행동·641물리계단·26보너스점프/점수150·200·250·300·352. 실제 재접속/초기화 실패 재시도·public 계정분리, 양방향 animation0/150/300·catch500/reduced·실제250/500/1300과4초same-document lifecycle, native retry Promise·focus/range·늦은 결과·unmount timer0/listener0/dispose1 통과. 일반2점은 seed0.19 generated native Space로 별도 확인했다. 전체 진행의 제어 시계와 실제 시간/함수 경계 fixture/공개 GameScreen 계정 fixture를 구분했다.
+- T03 build JS553.68kB(gzip154.76kB)/CSS57.30kB(gzip10.95kB), 기존500kB chunk 경고 출력. source는 `5217dfa` 그대로이며 원본 core/규칙/실험/authConfig/audio/config/package baseline diff 없음. 실제 Entra tenant 로그인/회사 계정 전환·스피커 청취 품질은 미검증이다. 완료 링크 `http://127.0.0.1:5175/` HTTP200/title 내려오기/DEVtrue/demo flagtrue 확인; 기존 demo PID21048 유지, identity 확인한 소유 Chrome/보조5176·5177 종료. 신규 범위 밖 결함: 특이사항 없음.
 - T02 증거: `%TEMP%\main-descent-t02-2026-10-28\`의 tests-27-final.log/lint.log/build.log/audit.log; 최초717통과/10실패와 focused105/105 로그도 보존한다. 하강 표시·marker 쓰기·실제 PixelOfficer 속성·jsdom microtask에 맞게 테스트를 보완했고 timeout/skip/config/엔진·규칙은 변경하지 않았다. scene23tests, GameScreen기존77+focus5=82tests 포함. JS553.68kB(gzip154.76kB)/CSS57.30kB(gzip10.95kB); 기존500kB 초과 번들 크기는 유지되며 이번 최종 로그에 경고 재출력은 없다. 기본 dist는 index.html만 존재한다.
 - T01 증거: `%TEMP%\main-descent-records-t01-2026-10-28\`의 tests.log/lint.log/build.log. marker read/write·6개 구키 get/remove 실패 12조합과 재시도·새 기록 보존, account별 max/랭킹 pair·동점·schema·getter 오류를 검증했다. 기존 main/scene/실험/App/auth/audio/entry/config/package 경로는 baseline `bdf18d5` 대비 diff 없음. JS552.85kB/CSS55.50kB, 기존 500kB chunk 경고 유지. 신규 범위 밖 결함: 특이사항 없음.
 - 사용자 확정: 기존 `/`를5단계 내려오기로 변경/추격자는 위쪽; 기존 규칙·로그인·오디오·랭킹·checkpoint·단계 선택 유지; 구 랭킹·단계 해금 모두 초기화 후1부터 재시작.
 - 새 저장 키: stair-descent:leaderboard:v1 / stair-descent:stage-progress:v1, reset marker stair-descent:records-reset:v1=`1`. 구 랭킹v1..v5와 ascentprogressv1만 정리하고 auth/audio/session/새 기록은 보존한다. 구 랭킹에서 해금을 복원하지 않는다. 재방문/StrictMode/삭제 실패 재시도에도 새 기록을 지우지 않는다.
-- T01에서 recordStorage 신규 helper/optional scope를 stageProgress·leaderboard에 추가하고 fake Storage로 검증했다. 기존 defaultascent는 유지했다. T02에서 모든 main read/save에 descent를 명시하고 renderer/CSS/문구를 함께 전환했다. T03에서 실제5단계·저장 전환/재접속·모바일/시간을 확인한다. core/규칙/기본 상승 모델/game.css/독립 실험/App/authConfig/audio/public/config/package는 baseline `bdf18d5` 대비 diff 없음.
+- T01에서 recordStorage 신규 helper/optional scope를 stageProgress·leaderboard에 추가하고 fake Storage로 검증했다. 기존 defaultascent는 유지했다. T02에서 모든 main read/save에 descent를 명시하고 renderer/CSS/문구를 함께 전환했다. T03에서 실제5단계·저장 전환/재접속·모바일/시간을 확인했다. core/규칙/기본 상승 모델/game.css/독립 실험/App/authConfig/audio/public/config/package는 baseline `bdf18d5` 대비 diff 없음.
 - 하강 투영만 기존 src/descent/descentSceneModel.ts에서 읽기 전용 재사용한다. 기본 상승 stairSceneModel을 바꾸면 실험이 이중 반전되므로 그대로 둔다. main은 실제5단계 core엔진을 사용하며 실험의1단계 adapter/view reducer/App를 import하지 않는다.
 - 규칙 고정: 목표150/200/250/300/350; 시간90/75/65/60/50초; 긴 구간 상자10/20/30/40/50%; NPC800/650/500/400/300ms; fall500/NPC250;30물리계단→30초2배;긴5..9/짧은1..3. 각 단계0점/클리어CP/Continue·Quit/5최종/실제단계+점수랭킹 유지.
 - 검증 명령은 기존 느린 화면 테스트 자원 경쟁을 고려해 maxWorkers2를 명시한다. T01은6파일, T02/T03은 기존24+recordStorage/StairScene/authConfig의27파일/실제 count기록. timeout/skip/config 변경은 하지 않는다. 기존 App 전체suite/번들/렌더 성능/공용 서버랭킹/Entra·배포/새 모드는 이번 계획 밖이다.
-- 사용자 추가 확정(D11): T02에서 GameScreen dialog/previous-open refs와 post-commit focus 복구를 구현했다. 집중된 재시도 버튼 제거 후 close 복구, 내부 slider/button focus 유지, Tab/Escape/trigger 복귀·늦은 결과 후 외부 focus 보존과 StrictMode를 검사했다. T03는 실제 native 재시도·Tab/Escape/닫기 복귀·range focus/media Promise를 검증한다. 오디오 owner/설정 저장/게임 pause는 유지한다. 신규 범위 밖 결함 발견: 특이사항 없음.
+- 사용자 추가 확정(D11): T02에서 GameScreen dialog/previous-open refs와 post-commit focus 복구를 구현했다. 집중된 재시도 버튼 제거 후 close 복구, 내부 slider/button focus 유지, Tab/Escape/trigger 복귀·늦은 결과 후 외부 focus 보존과 StrictMode를 검사했다. T03에서 실제 native 재시도·Tab/ShiftTab/Escape/닫기 복귀·range ArrowRight/media Promise/늦은 완료까지 검증했다. 오디오 owner/설정 저장/게임 pause는 유지한다. 신규 범위 밖 결함 발견: 특이사항 없음.
 
 ## Previous Completed Plan: Stair Descent Local Test
 
@@ -108,4 +110,4 @@
 
 ## Next Step (IMPORTANT)
 
-다음 `/memory-execute` 또는 "current 보고 이어서 해줘"에서는 Active T03 청사진 한 개만 읽고 main5단계의 실제 브라우저 검증을 수행한다. 소유 격리 context에서 실제 생성기·표시 cue·native D/J/Space/터치로 단계·체크포인트/0점 전환/최종 결과·하강 step/jump/NPC/catch 레이어·모바일·모션 감소·실제 시간/lifecycle·한 번 초기화 후 새 저장 재접속·계정 분리를 확인한다. D11 오디오 재시도 버튼 제거 후 실제 native focus/Tab/Escape/range·늦은 media 결과도 검증한다. 사용자 프로필/실제 기록은 직접 건드리지 않는다. 새 증거는 임시 폴더에 보관하고 입증된 관련 결함만 허용 파일 안에서 수정한다. T01/T02를 재실행하지 말고 T03 검증이 통과하기 전 전체 완료로 표시하지 않는다. 성공 후 Taskdone/지정commit→phase done3/3/current 완료를 동기화한다.
+현재 계획은 완료됐고 Active Task는 없다. T01/T02/T03와 이전 완료 계획을 재실행하지 않는다. 사용자는 `http://127.0.0.1:5175/`에서 main 내려오기 게임을 테스트할 수 있다. 새 변경 요청이 오면 그 요구에 맞춰 인터뷰/결정→계획→Active Task 실행을 시작한다. 검증 증거는 위 임시 폴더와 T03 청사진에 보존돼 있다. 공용 서버 랭킹/실제 Entra 설정·배포/번들 성능·오래된 App 전체suite 정리는 자동으로 시작하지 않는다.

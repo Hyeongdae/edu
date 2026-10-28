@@ -151,7 +151,7 @@ Task: T03-main-descent-browser-validation
 
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: recorded in the following metadata synchronization commit
+- commit: `8da80d6`
 
 ## Execution Evidence — 2026-10-28
 
