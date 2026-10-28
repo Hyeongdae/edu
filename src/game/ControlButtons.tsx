@@ -21,15 +21,15 @@ export function ControlButtons({ onForward, onTurn, onJump, disabled }: ControlB
       onClick={(event) => { if (!disabled && event.detail === 0) action(); }}
       disabled={disabled}
     >
-      <PixelIcon name={name} size={24} />
+      <PixelIcon name={name} size={24} className={name === "forward" ? "descent-forward-icon" : undefined} />
       <span>{text}</span>
     </button>
   );
   return (
     <section className="game-controls" aria-label="게임 조작">
-      {button("forward", "앞으로 한 칸 오르기", "앞으로", onForward)}
+      {button("forward", "한 칸 내려가기", "내려가기", onForward)}
       <div className="control-actions">
-        {button("turn", "방향을 바꾸며 오르기", "방향 바꾸기", onTurn)}
+        {button("turn", "방향을 바꾸며 내려가기", "방향 바꾸기", onTurn)}
         {button("jump", "장애물을 뛰어넘기", "점프", onJump)}
       </div>
     </section>

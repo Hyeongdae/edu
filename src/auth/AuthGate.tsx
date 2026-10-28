@@ -45,7 +45,7 @@ export function AuthGate({ children }: AuthGateProps) {
       <main className="auth-page">
         <section className="auth-card">
           <p className="eyebrow">사내 전용 게임</p>
-          <h1>계단 오르기</h1>
+          <h1>계단 내려오기</h1>
           <p>회사 계정으로 로그인하면 게임을 시작할 수 있어요.</p>
           {loginError && <p className="message message-error" role="alert">{loginError}</p>}
           <button className="primary-button" onClick={() => void signIn()}>

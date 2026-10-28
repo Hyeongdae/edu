@@ -268,6 +268,16 @@
 .stair-game.pixel-theme .direction-pill.is-left { color: var(--pixel-pink); }
 .stair-game.pixel-theme .direction-pill.is-left .pixel-icon { transform: scaleX(-1); }
 
+.stair-game.pixel-theme .scene-heading { flex-wrap: wrap; }
+.stair-game.pixel-theme .scene-distance-note {
+  padding: 6px;
+  background: rgb(11 20 39 / 94%);
+  color: var(--pixel-pink);
+  font-size: 0.65rem;
+  white-space: nowrap;
+}
+.stair-game.pixel-theme .forward-control .descent-forward-icon { transform: rotate(180deg); }
+
 .stair-game.pixel-theme .scene-hint {
   position: absolute;
   z-index: 3;

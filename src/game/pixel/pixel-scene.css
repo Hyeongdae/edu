@@ -44,11 +44,30 @@
 }
 
 .stair-game .pursuer-motion.is-moving {
-  animation: pixel-pursuer-step 240ms ease-out both;
+  animation: pixel-main-descent-pursuer-step 240ms ease-out both;
 }
 
 .stair-game .runner-motion.is-jumping {
-  animation: pixel-player-jump 300ms ease-out both;
+  animation: pixel-main-descent-player-jump 300ms ease-out both;
+}
+
+.stair-game .runner-motion.is-stepping {
+  animation: pixel-main-descent-player-step 300ms ease-out both;
+}
+
+/* Travel never changes the outer SVG translate anchor. */
+.stair-game .pursuer.is-caught {
+  animation: none;
+  translate: none;
+}
+
+.stair-game .pursuer-motion.is-catching {
+  animation: pixel-main-descent-catch 500ms steps(1, end) both;
+}
+
+.stair-game .pursuer.is-caught .pursuer-facing {
+  transform: scaleX(var(--catch-base-facing));
+  animation: pixel-main-descent-catch-facing 500ms steps(1, end) both;
 }
 
 .stair-game .pixel-officer .officer-frame {
@@ -72,7 +91,7 @@
 }
 
 .stair-game .pixel-officer[data-officer-variant="young"][data-officer-pose="climb"] .officer-body {
-  animation: pixel-officer-hop 300ms steps(1, end) both;
+  animation: none;
 }
 
 .stair-game .pixel-officer[data-officer-pose="fall"] .officer-body {
@@ -89,23 +108,42 @@
   50% { opacity: 1; }
 }
 
-@keyframes pixel-officer-hop {
-  0%, 100% { translate: 0 0; }
-  25% { translate: 0 -4px; }
-  50% { translate: 0 -8px; }
-  75% { translate: 0 -4px; }
+@keyframes pixel-main-descent-player-step {
+  0% { transform: translate(var(--step-x), var(--step-y)); }
+  50% { transform: translate(var(--step-mid-x), var(--step-mid-y)); }
+  100% { transform: translate(0, 0); }
 }
 
-@keyframes pixel-pursuer-step {
+@keyframes pixel-main-descent-pursuer-step {
   0% { transform: translate(var(--pursuer-move-x), var(--pursuer-move-y)); }
-  50% { transform: translate(var(--pursuer-mid-x), -8px); }
+  50% { transform: translate(var(--pursuer-move-mid-x), var(--pursuer-move-mid-y)); }
   100% { transform: translate(0, 0); }
 }
 
-@keyframes pixel-player-jump {
+@keyframes pixel-main-descent-player-jump {
   0% { transform: translate(var(--jump-x), var(--jump-y)); }
-  50% { transform: translate(var(--jump-mid-x), -28px); }
+  50% { transform: translate(var(--jump-mid-x), var(--jump-mid-y)); }
   100% { transform: translate(0, 0); }
+}
+
+@keyframes pixel-main-descent-catch {
+  0% { transform: translate(var(--catch-x-0), var(--catch-y-0)); }
+  20% { transform: translate(var(--catch-x-1), var(--catch-y-1)); }
+  40% { transform: translate(var(--catch-x-2), var(--catch-y-2)); }
+  55% { transform: translate(var(--catch-x-3), var(--catch-y-3)); }
+  70% { transform: translate(var(--catch-x-4), var(--catch-y-4)); }
+  85% { transform: translate(var(--catch-x-5), var(--catch-y-5)); }
+  100% { transform: translate(var(--catch-x-6), var(--catch-y-6)); }
+}
+
+@keyframes pixel-main-descent-catch-facing {
+  0% { transform: scaleX(var(--catch-facing-0)); }
+  20% { transform: scaleX(var(--catch-facing-1)); }
+  40% { transform: scaleX(var(--catch-facing-2)); }
+  55% { transform: scaleX(var(--catch-facing-3)); }
+  70% { transform: scaleX(var(--catch-facing-4)); }
+  85% { transform: scaleX(var(--catch-facing-5)); }
+  100% { transform: scaleX(var(--catch-facing-6)); }
 }
 
 @keyframes pixel-officer-stumble {
@@ -116,7 +154,10 @@
 
 @media (prefers-reduced-motion: reduce) {
   .stair-game .runner-motion.is-jumping { animation: none; transform: none; }
+  .stair-game .runner-motion.is-stepping { animation: none; transform: none; }
   .stair-game .pursuer-motion.is-moving { animation: none; transform: none; }
+  .stair-game .pursuer-motion.is-catching { animation: none; transform: none; }
+  .stair-game .pursuer.is-caught .pursuer-facing { animation: none; transform: scaleX(var(--catch-base-facing)); }
   .stair-game .pursuer.is-following:not(.is-caught),
   .stair-game .pursuer.is-approaching:not(.is-caught),
   .stair-game .pixel-officer[data-officer-variant="young"][data-officer-pose="climb"] .officer-body,

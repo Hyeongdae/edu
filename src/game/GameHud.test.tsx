@@ -25,6 +25,8 @@ describe("GameHud stage clock", () => {
     expect(screen.getByTestId("score-value")).toHaveTextContent("0");
     expect(screen.queryByText("남은 기회")).not.toBeInTheDocument();
     expect(screen.getByRole("progressbar", { name: "이벤트 게이지" })).toHaveAttribute("aria-valuemax", "30");
+    expect(screen.getByText("내려온 계단 0칸")).toBeInTheDocument();
+    expect(screen.getByText("30칸을 내려오면 30초 보너스")).toBeInTheDocument();
   });
 
   it.each(STAGE_RULES)("shows stage $stage with its timed goal", (rule) => {

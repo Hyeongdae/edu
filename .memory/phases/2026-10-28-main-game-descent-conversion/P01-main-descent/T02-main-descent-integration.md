@@ -1,6 +1,6 @@
 # Task: T02 Main Descent Integration
 
-## Status: pending
+## Status: done
 
 ## Goal
 
@@ -190,11 +190,11 @@
 
 ## Acceptance Criteria
 
-- [ ] Main `/` renders downward with top NPC/correct step·jump·catch layering through all5stages, keeping pixel UI and checkpoints.
-- [ ] Every main record read/save explicitly uses descent; first reset/afterward persistence/account separation and old migration blocking pass.
-- [ ] Downward labels/arrow/title are consistent; auth/audio/rules/independent experiment behavior stay intact.
-- [ ] Audio retry button removal restores dialog focus; internal focus is preserved, Escape/Tab work and closing restores the trigger without late-result focus stealing.
-- [ ] All27testfiles/lint/build/diff checks pass; actual browser validation remains T03.
+- [x] Main `/` renders downward with top NPC/correct step·jump·catch layering through all5stages, keeping pixel UI and checkpoints.
+- [x] Every main record read/save explicitly uses descent; first reset/afterward persistence/account separation and old migration blocking pass.
+- [x] Downward labels/arrow/title are consistent; auth/audio/rules/independent experiment behavior stay intact.
+- [x] Audio retry button removal restores dialog focus; internal focus is preserved, Escape/Tab work and closing restores the trigger without late-result focus stealing.
+- [x] All27testfiles/lint/build/diff checks pass; actual browser validation remains T03.
 
 ## Validation
 
@@ -224,7 +224,19 @@ Task: T02-main-descent-integration
 
 ## Progress
 
-- [ ] 구현 완료
-- [ ] 검증 통과
-- commit: pending
+- [x] 구현 완료
+- [x] 검증 통과
+- commit: recorded in the following metadata synchronization commit
 - After success: Task done/commit, phase done2/3/T03 in_progress, current Active T03. Do not claim browser completion or implement T03 in this invocation.
+
+## Execution Evidence — 2026-10-28
+
+- 지정 **27파일 727/727 tests 통과** (54.39초, `--maxWorkers=2`, skip0). lint 오류·경고0, TypeScript/Vite build 성공, diff check 통과. timeout/skip/config/dependency 변경 없음.
+- 기존 main의 다섯 기록 접근(initial rank/progress, stage/restart progress, clear save, end rank save)에 모두 descent를 명시했다. StrictMode에서 구 랭킹v1~v5/구progressv1만 초기화·marker1 단일 쓰기, 새 기록 없음/1단계0점/150점 목표와 잠금, 재마운트 후 새 기록 보존·2단계0점/200점 목표·재등장 구키 무시를 검증했다. 기존 체크포인트/단계 해금/실제 단계 점수/계정 분리/저장 실패 검사는 새 namespace로 유지했다.
+- 신규 StairScene 23tests: 1~5단계의 player(260,216)/NPC(124,104)/미래+1y244·+6y384, index 오름차순 11계단, 일반 step/코너와 양방향 jump의 실제 출발점·중간점, 단일 actor·clip 내부 pose·overlay/landing front, NPC 독립 모션/픽셀 catch 7frames·자기 방향·safe facing, 실제 history/offscreen 메타데이터를 확인했다. checkpoint/최종 결과/ready/fall/catch에서 retained jump·지나온 상자 연출을 억제하고 미래 장애물은 유지한다.
+- main 기존 77tests + focus 5tests = 82tests. 오디오 재시도 버튼에 명시적 focus→클릭→autoplayBlocked false rerender에서 close 복구, Tab/ShiftTab loop/Escape/trigger 복귀·D/J/Space 차단, 내부 slider/button focus 유지와 range 변경, 닫은 뒤 늦은 결과의 외부 focus 보존을 검사했다. StrictMode/일반 mount·unmount 및 jsdom microtask를 0ms flush한 뒤 timer0도 검증했다. 추가 production 타이머나 오디오 owner 변경은 없다.
+- 첫 27파일 검증은 717통과/10실패(66.27초): 하강 후 화면 밖 NPC 기대값, 새 marker 쓰기와 랭킹 저장 횟수 구분, 종료 후 미래 상자를 지나온 상자로 취급한 신규 검사, 기존 PixelOfficer에 없는 방향 속성, fake-timer microtask 미정리 등 테스트 기대값/새 테스트를 바로잡았다. 엔진·난이도·시간·기존 검증 범위는 완화하지 않았다. 보완한 두 파일 105/105(33.25초) 후 동일 27파일 전체 검증을 재실행해 통과했다.
+- baseline `bdf18d5` 대비 지정 core엔진/규칙/기본 상승 모델/game.css/독립 src/descent/실험HTML/App/인증설정/audio/public/config/package 경로 diff 없음. AuthGate는 제목 한 줄만 수정했다. main 허용 경로의 사용자용 상승 문구 검색 0건, 실험 adapter/App import 없음. 기본 dist는 index.html만 존재하며 descent-test.html은 없다.
+- 빌드: JS553.68kB(gzip154.76kB), CSS57.30kB(gzip10.95kB). 기존 번들 500kB 초과 크기는 유지되며 이번 최종 로그에는 해당 경고가 재출력되지 않았다. 범위 밖 성능·App 전체 suite 정리는 수행하지 않았다.
+- 로그: `%TEMP%\main-descent-t02-2026-10-28\`의 `tests-27.log`(최초 실패), `tests-focused.log`, `tests-27-final.log`, `lint.log`, `build.log`, `audit.log`. 실제 브라우저/사용자 프로필에 직접 접근하지 않았다. 이 코드부터 main 최초 접속 시 승인된 구 기록 초기화가 활성화된다. 실제 native 모션·모바일·media Promise/focus·재접속 저장은 T03 미수행이다.
+- 신규 범위 밖 결함 발견: 특이사항 없음. D11 main focus 복구는 요청된 T02 범위 안에서 완료했다.

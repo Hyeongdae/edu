@@ -46,7 +46,7 @@ export function GameHud({ state, eventSecondsLeft, scoreGain, scoreGainIsBonus, 
               </span>
             )}
           </div>
-          <span className="hud-caption">계단 {state.stepsClimbed}칸</span>
+          <span className="hud-caption">내려온 계단 {state.stepsClimbed}칸</span>
         </div>
         <div className="stage-clock" role="timer" aria-label="단계 제한시간" aria-live="off">
           <div className="stage-clock-heading">
@@ -76,7 +76,7 @@ export function GameHud({ state, eventSecondsLeft, scoreGain, scoreGainIsBonus, 
           <span className="event-progress-fill" style={{ width: `${eventProgress}%` }} />
         </div>
         <span className="hud-caption">
-          {eventIsActive ? "30초 동안 한 칸마다 2점!" : "30칸을 오르면 30초 보너스"}
+          {eventIsActive ? "30초 동안 한 칸마다 2점!" : "30칸을 내려오면 30초 보너스"}
         </span>
       </div>
     </section>

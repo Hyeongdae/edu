@@ -47,8 +47,8 @@ export function GameScreen({
   onEnableAudio,
 }: GameScreenProps) {
   const [initialProfile] = useState(() => {
-    const entries = readLeaderboard();
-    const progress = readStageProgress(account.homeAccountId);
+    const entries = readLeaderboard(undefined, "descent");
+    const progress = readStageProgress(account.homeAccountId, undefined, "descent");
     const knownHighest = progress.highestClearedStage;
     return { entries, knownHighest, progressAvailable: progress.available };
   });
@@ -74,6 +74,8 @@ export function GameScreen({
   const isSettingsOpenRef = useRef(false);
   const settingsTriggerRef = useRef<HTMLButtonElement | null>(null);
   const settingsCloseRef = useRef<HTMLButtonElement | null>(null);
+  const settingsDialogRef = useRef<HTMLElement | null>(null);
+  const previousSettingsOpenRef = useRef(false);
   const previousStepsRef = useRef(gameState.stepsClimbed);
   const climbTimeoutRef = useRef<number | undefined>(undefined);
   const previousScoreRef = useRef({ stage: gameState.stage, score: gameState.score });
@@ -104,7 +106,6 @@ export function GameScreen({
     setIsSettingsOpen(false);
     setNowMs(closedAt);
     setGameState((state) => resumeGameAfterPause(state, openedAt, closedAt));
-    settingsTriggerRef.current?.focus();
   }, []);
 
   const handleInput = useCallback((input: GameInput) => {
@@ -115,7 +116,7 @@ export function GameScreen({
   }, []);
 
   const readKnownHighest = (): ClearedStage => {
-    const progress = readStageProgress(account.homeAccountId);
+    const progress = readStageProgress(account.homeAccountId, undefined, "descent");
     setProgressUnavailable(!progress.available);
     return Math.max(gameState.highestClearedStage, initialProfile.knownHighest, progress.highestClearedStage) as ClearedStage;
   };
@@ -167,7 +168,7 @@ export function GameScreen({
     const previous = progressSavedRef.current;
     if (clearedStage === 0 || (previous.accountId === account.homeAccountId && previous.clearedStage >= clearedStage)) return;
     progressSavedRef.current = { accountId: account.homeAccountId, clearedStage };
-    const result = saveStageProgress(account.homeAccountId, gameState.highestClearedStage);
+    const result = saveStageProgress(account.homeAccountId, gameState.highestClearedStage, undefined, "descent");
     window.setTimeout(() => setProgressError(!result.saved), 0);
   }, [account.homeAccountId, gameState.clearedStageThisRun, gameState.highestClearedStage]);
 
@@ -283,7 +284,7 @@ export function GameScreen({
           displayName: account.name || "이름 없음",
           bestStage: gameState.stage,
           bestScore: gameState.score,
-        })
+        }, undefined, undefined, "descent")
       : { entries: leaderboard, saved: false };
     window.setTimeout(() => {
       setLeaderboard(result.entries);
@@ -367,8 +368,13 @@ export function GameScreen({
     (gameState.status === "playing" || gameState.endReason === "caught");
 
   useEffect(() => {
-    if (isSettingsOpen) settingsCloseRef.current?.focus();
-  }, [isSettingsOpen]);
+    if (isSettingsOpen) {
+      if (!settingsDialogRef.current?.contains(document.activeElement)) settingsCloseRef.current?.focus();
+    } else if (previousSettingsOpenRef.current) {
+      settingsTriggerRef.current?.focus();
+    }
+    previousSettingsOpenRef.current = isSettingsOpen;
+  }, [isSettingsOpen, autoplayBlocked]);
 
   const onSettingsDialogKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
     if (event.key === "Escape") {
@@ -460,7 +466,7 @@ export function GameScreen({
                 <h2 id="game-over-title">{gameState.score}점</h2>
                 <p className="game-over-stage">기록 단계 {gameState.stage}단계</p>
                 <p className="game-over-reason">{gameState.endReason === "cleared" ? "최종 클리어!" : gameState.endReason === "time-limit" ? "시간 초과" : gameState.endReason === "quit" ? "체크포인트에서 종료했어요" : "추격자에게 잡혔어요"}</p>
-                <p>계단 {gameState.stepsClimbed}개를 올랐어요.</p>
+                <p>계단 {gameState.stepsClimbed}개를 내려왔어요.</p>
                 {saveError && <p className="leaderboard-error" role="status">기록을 저장하지 못했습니다. 이 브라우저의 저장 공간을 확인해 주세요.</p>}
                 {progressError && <p role="status">진행도를 저장하지 못했습니다. 이 브라우저의 저장 공간을 확인해 주세요.</p>}
                 <button className="start-button restart-button" type="button" onClick={handleShowStageSelection}>
@@ -471,8 +477,8 @@ export function GameScreen({
             </section>
           )}
           <p className="game-footer">
-            <span className="desktop-control-hint"><kbd>D</kbd> 한 칸 오르기 <span>·</span> <kbd>J</kbd> 방향 바꾸며 오르기 <span>·</span> <kbd>Space</kbd> 장애물 점프</span>
-            <span className="mobile-control-hint">앞으로 · 방향 바꾸기 · 장애물은 점프!</span>
+            <span className="desktop-control-hint"><kbd>D</kbd> 한 칸 내려가기 <span>·</span> <kbd>J</kbd> 방향 바꾸며 내려가기 <span>·</span> <kbd>Space</kbd> 장애물 점프</span>
+            <span className="mobile-control-hint">내려가기 · 방향 바꾸기 · 장애물은 점프!</span>
           </p>
           {isSettingsOpen && (
             <div
@@ -482,6 +488,7 @@ export function GameScreen({
               }}
             >
               <section
+                ref={settingsDialogRef}
                 id="game-settings-dialog"
                 className="settings-dialog"
                 role="dialog"
@@ -530,15 +537,15 @@ export function GameScreen({
                       <span className="instruction-icon"><PixelIcon name="forward" size={20} /></span>
                       <div>
                         <strong>조작 방법</strong>
-                        <p><kbd>D</kbd> 한 칸 오르기 <span>·</span> <kbd>J</kbd> 모퉁이에서 방향 바꾸기 <span>·</span> <kbd>Space</kbd> 장애물을 넘어 두 칸 이동</p>
-                        <p>모바일에서는 앞으로 · 방향 바꾸기 · 점프 버튼을 사용하세요. 장애물이 없을 때 점프하거나 상자에 부딪히면 0.5초 동안 멈춰요.</p>
+                        <p><kbd>D</kbd> 한 칸 내려가기 <span>·</span> <kbd>J</kbd> 모퉁이에서 방향을 바꾸며 내려가기 <span>·</span> <kbd>Space</kbd> 장애물을 넘어 두 칸 이동</p>
+                        <p>모바일에서는 내려가기 · 방향 바꾸기 · 점프 버튼을 사용하세요. 장애물이 없을 때 점프하거나 상자에 부딪히면 0.5초 동안 멈춰요.</p>
                       </div>
                     </section>
                     <section className="chase-card">
                       <span className="chase-icon"><PixelIcon name="flag" size={20} /></span>
                       <div>
                         <strong>뒤쫓아오는 추격자</strong>
-                        <p>추격자는 일정 시간마다 한 칸씩 올라와요. 잘못 입력하면 0.5초 동안 멈춰요. 넘어진 동안 추격자는 0.25초마다 한 칸씩 올라와요. 한 번 잡히면 게임이 끝납니다. 각 단계는 0점부터 시작하고 목표는 150/200/250/300/350점이에요. 클리어하면 계속할지 선택할 수 있어요.</p>
+                        <p>추격자는 위에서 일정 시간마다 한 칸씩 따라 내려와요. 잘못 입력하면 0.5초 동안 멈춰요. 넘어진 동안 추격자는 0.25초마다 한 칸씩 내려와요. 한 번 잡히면 게임이 끝납니다. 각 단계는 0점부터 시작하고 목표는 150/200/250/300/350점이에요. 클리어하면 계속할지 선택할 수 있어요.</p>
                       </div>
                     </section>
                   </div>

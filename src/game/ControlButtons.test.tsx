@@ -20,7 +20,7 @@ describe("ControlButtons immediate actions", () => {
   it("accepts rapid alternating turn and jump presses without waiting for an animation", () => {
     const calls: string[] = [];
     render(<ControlButtons onForward={vi.fn()} onTurn={() => calls.push("turn")} onJump={() => calls.push("jump")} disabled={false} />);
-    for (const name of ["방향을 바꾸며 오르기", "장애물을 뛰어넘기", "방향을 바꾸며 오르기", "장애물을 뛰어넘기"]) {
+    for (const name of ["방향을 바꾸며 내려가기", "장애물을 뛰어넘기", "방향을 바꾸며 내려가기", "장애물을 뛰어넘기"]) {
       const button = screen.getByRole("button", { name });
       fireEvent.pointerDown(button, { button: 0, isPrimary: true });
       fireEvent.pointerUp(button, { button: 0, isPrimary: true });
@@ -61,8 +61,10 @@ describe("ControlButtons immediate actions", () => {
   it("places turn beside jump after forward with accessible names", () => {
     render(<ControlButtons onForward={vi.fn()} onTurn={vi.fn()} onJump={vi.fn()} disabled={false} />);
     expect(screen.getAllByRole("button").map((button) => button.getAttribute("aria-label")))
-      .toEqual(["앞으로 한 칸 오르기", "방향을 바꾸며 오르기", "장애물을 뛰어넘기"]);
-    expect(screen.getByRole("button", { name: "장애물을 뛰어넘기" }).parentElement).toBe(screen.getByRole("button", { name: "방향을 바꾸며 오르기" }).parentElement);
-    expect(screen.getByRole("button", { name: "앞으로 한 칸 오르기" }).parentElement).toHaveAccessibleName("게임 조작");
+      .toEqual(["한 칸 내려가기", "방향을 바꾸며 내려가기", "장애물을 뛰어넘기"]);
+    expect(screen.getByRole("button", { name: "장애물을 뛰어넘기" }).parentElement).toBe(screen.getByRole("button", { name: "방향을 바꾸며 내려가기" }).parentElement);
+    expect(screen.getByRole("button", { name: "한 칸 내려가기" }).parentElement).toHaveAccessibleName("게임 조작");
+    expect(screen.getByRole("button", { name: "한 칸 내려가기" }).querySelector(".pixel-icon")).toHaveClass("descent-forward-icon");
+    expect(screen.getByRole("button", { name: "방향을 바꾸며 내려가기" }).querySelector(".pixel-icon")).not.toHaveClass("descent-forward-icon");
   });
 });

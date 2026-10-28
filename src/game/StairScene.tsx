@@ -1,5 +1,6 @@
 import { useId, type CSSProperties, type ReactElement } from "react";
-import { buildStairSceneModel, type SceneStep } from "./stairSceneModel";
+import type { ScenePoint, SceneStep } from "./stairSceneModel";
+import { buildDescentSceneModel } from "../descent/descentSceneModel";
 import { getRouteStep } from "./stairRoute";
 import { hasObstacle } from "./stairObstacles";
 import type { GameState } from "./types";
@@ -19,34 +20,38 @@ interface StairSceneProps {
   isPursuerCaught: boolean;
 }
 
+function travelStyle(from: ScenePoint, to: ScenePoint, prefix: string, lift: number): CSSProperties {
+  return {
+    [`--${prefix}-x`]: `${from.x - to.x}px`,
+    [`--${prefix}-y`]: `${from.y - to.y}px`,
+    [`--${prefix}-mid-x`]: `${(from.x - to.x) / 2}px`,
+    [`--${prefix}-mid-y`]: `${(from.y - to.y) / 2 - lift}px`,
+  } as CSSProperties;
+}
+
 export function StairScene({ state, climbAnimationKey, isClimbing, pursuerAnimationKey, isPursuerMoving, isPursuerCaught }: StairSceneProps): ReactElement {
   const sceneId = useId();
   const feetClipId = `${sceneId}-feet`;
-  const model = buildStairSceneModel(state);
+  const model = buildDescentSceneModel(state);
   const atCorner = state.straightStepsRemaining === 0;
   const nextDirection = getRouteStep(state.route, state.stepsClimbed + 1).direction;
   const nextIsBlocked = hasObstacle(state.obstacles, state.stepsClimbed + 1);
-  const climbing = isClimbing && state.status === "playing" && !isPursuerCaught;
-  const jumping = climbing && model.playerJump !== null && state.lastMove?.kind === "jump" &&
-    !state.lastMistake && state.status === "playing" && !isPursuerCaught;
+  const climbing = isClimbing && model.playerMotion !== null && state.status === "playing" && !state.lastMistake && !isPursuerCaught;
+  const jumping = climbing && model.playerMotion?.kind === "jump";
   const jumpedBoxIndex = jumping && state.lastMove?.kind === "jump"
     ? state.lastMove.fromIndex + 1 : null;
-  const jumpX = model.playerJump ? model.playerJump.from.x - model.playerJump.to.x : 0;
-  const jumpY = model.playerJump ? model.playerJump.from.y - model.playerJump.to.y : 0;
-  const jumpStyle = { "--jump-x": `${jumpX}px`, "--jump-y": `${jumpY}px`, "--jump-mid-x": `${jumpX / 2}px` } as CSSProperties;
+  const playerStyle = climbing ? travelStyle(model.playerMotion!.from, model.playerMotion!.to, jumping ? "jump" : "step", jumping ? 56 : 8) : undefined;
   const motionKind = state.lastMistake ? "fall" : jumping ? "jump" : climbing ? "climb" : "idle";
   // Keep the final safe stair as the catch animation's route anchor.
   const pursuerPoint = model.pursuer;
-  const moving = isPursuerMoving && model.pursuerMotion !== null && !isPursuerCaught;
-  const moveX = model.pursuerMotion ? model.pursuerMotion.from.x - model.pursuerMotion.to.x : 0;
-  const moveY = model.pursuerMotion ? model.pursuerMotion.from.y - model.pursuerMotion.to.y : 0;
-  const motionStyle = { "--pursuer-move-x": `${moveX}px`, "--pursuer-move-y": `${moveY}px`, "--pursuer-mid-x": `${moveX / 2}px` } as CSSProperties;
+  const moving = isPursuerMoving && model.pursuerMotion !== null && state.status === "playing" && !isPursuerCaught;
+  const motionStyle = moving ? travelStyle(model.pursuerMotion!.from, model.pursuerMotion!.to, "pursuer-move", 8) : undefined;
   const extraPursuerStair = model.pursuerVisible && !model.steps.some((step) => step.index === model.pursuer.index);
-  const catchStyle = Object.fromEntries(model.catchFrames.flatMap((frame, index) => [
-    [`--catch-x-${index}`, `${(frame.x - pursuerPoint.x) / 520 * 100}%`],
-    [`--catch-y-${index}`, `${(frame.y - pursuerPoint.y) / 400 * 100}%`],
+  const catchStyle = { "--catch-base-facing": pursuerPoint.direction === "right" ? 1 : -1, ...Object.fromEntries(model.catchFrames.flatMap((frame, index) => [
+    [`--catch-x-${index}`, `${frame.x - pursuerPoint.x}px`],
+    [`--catch-y-${index}`, `${frame.y - pursuerPoint.y}px`],
     [`--catch-facing-${index}`, getRouteStep(state.route, frame.index).direction === "right" ? 1 : -1],
-  ])) as CSSProperties;
+  ])) } as CSSProperties;
 
   const runner = (
     <g
@@ -55,8 +60,8 @@ export function StairScene({ state, climbAnimationKey, isClimbing, pursuerAnimat
       data-direction={model.player.direction} data-motion-key={climbAnimationKey} data-motion-kind={motionKind}
       transform={`translate(${model.player.x} ${model.player.y})`}
     >
-      <g key={`${motionKind}-${climbAnimationKey}`} className={`runner-motion${jumping ? " is-jumping" : ""}`}
-        data-testid="runner-motion" style={jumping ? jumpStyle : undefined}>
+      <g key={`${motionKind}-${climbAnimationKey}`} className={`runner-motion${climbing ? jumping ? " is-jumping" : " is-stepping" : ""}`}
+        data-testid="runner-motion" style={playerStyle}>
         <g clipPath={`url(#${feetClipId})`}>
           <g
             key={state.lastMistake ? `fall-${state.recoveryEndsAt}` : climbAnimationKey}
@@ -74,15 +79,14 @@ export function StairScene({ state, climbAnimationKey, isClimbing, pursuerAnimat
       className={`pursuer${isPursuerCaught ? " is-caught" : moving ? " is-following" : ""}`}
       data-testid="pursuer" data-motion-key={pursuerAnimationKey}
       data-route-index={pursuerPoint.index} data-direction={pursuerPoint.direction}
-      transform={`translate(${pursuerPoint.x} ${pursuerPoint.y})`} style={isPursuerCaught ? catchStyle : undefined}
+      transform={`translate(${pursuerPoint.x} ${pursuerPoint.y})`}
     >
-      <g className={`pursuer-motion${moving ? " is-moving" : ""}`} style={motionStyle} data-testid="pursuer-motion">
+      <g className={`pursuer-motion${isPursuerCaught ? " is-catching" : moving ? " is-moving" : ""}`} style={isPursuerCaught ? catchStyle : motionStyle} data-testid="pursuer-motion">
         <g clipPath={`url(#${feetClipId})`}>
           <g
             className="pursuer-facing"
-            transform={isPursuerCaught ? `scale(${pursuerPoint.direction === "right" ? 1 : -1} 1)` : undefined}
           >
-            {/* Catch keyframes own facing; the final facing above also works without motion. */}
+            {/* Catch travel and facing belong to inner nodes, leaving the stair anchor fixed. */}
             <PixelOfficer
               variant="older" direction={isPursuerCaught ? "right" : pursuerPoint.direction}
               pose={moving || isPursuerCaught ? "climb" : "idle"}
@@ -104,9 +108,10 @@ export function StairScene({ state, climbAnimationKey, isClimbing, pursuerAnimat
         <div>
           <span className="hud-label">다음 모퉁이</span>
           <strong className="route-direction" data-testid="route-direction">
-            {nextIsBlocked ? "장애물! 점프하세요" : atCorner ? "지금 방향을 바꾸세요" : `${state.straightStepsRemaining}칸 더 올라가세요`}
+            {nextIsBlocked ? "장애물! 점프하세요" : atCorner ? "지금 방향을 바꾸세요" : `${state.straightStepsRemaining}칸 더 내려가세요`}
           </strong>
         </div>
+        <span className="scene-distance-note">추격자 {state.pursuerDistance}칸</span>
         <span className={`direction-pill is-${nextDirection}`}>
           <PixelIcon name="stair" size={16} />
           {nextDirection === "right" ? "오른쪽 길" : "왼쪽 길"}
@@ -117,14 +122,14 @@ export function StairScene({ state, climbAnimationKey, isClimbing, pursuerAnimat
         <svg
           className="stair-scene" viewBox="0 0 520 400" preserveAspectRatio="xMidYMid meet" role="img" shapeRendering="crispEdges"
           data-pursuer-index={model.pursuer.index} data-pursuer-visible={model.pursuerVisible}
-          aria-label={`계단이 ${nextDirection === "right" ? "오른쪽" : "왼쪽"}으로 이어집니다. 추격자와 ${state.pursuerDistance}칸 거리입니다.${nextIsBlocked ? " 다음 계단에 장애물이 있습니다. Space 또는 점프 버튼을 누르세요." : ""}`}
+          aria-label={`계단이 ${nextDirection === "right" ? "오른쪽" : "왼쪽"} 아래로 이어집니다. 위쪽 추격자와 ${state.pursuerDistance}칸 거리입니다.${nextIsBlocked ? " 다음 계단에 장애물이 있습니다. Space 또는 점프 버튼을 누르세요." : ""}`}
         >
           <defs>
             <clipPath id={feetClipId} clipPathUnits="userSpaceOnUse">
               <rect x="-34" y="-88" width="68" height="84" />
             </clipPath>
           </defs>
-          {[...model.steps].reverse().map((step) => (
+          {model.steps.map((step) => (
             <g key={step.index} data-testid="stair-step" data-route-index={step.index} data-direction={step.direction}>
               <g className="stair-top" transform={`translate(${step.x} ${step.y})`}>
                 <PixelStair face="top" direction={step.direction} />
@@ -134,7 +139,7 @@ export function StairScene({ state, climbAnimationKey, isClimbing, pursuerAnimat
                   <PixelObstacle />
                 </g>
               )}
-              {!isPursuerCaught && !jumping && step.index === model.player.index && runner}
+              {!isPursuerCaught && !climbing && step.index === model.player.index && runner}
               {!isPursuerCaught && !moving && model.pursuerVisible && step.index === model.pursuer.index && pursuer}
               {stairFront(step)}
             </g>
@@ -151,7 +156,7 @@ export function StairScene({ state, climbAnimationKey, isClimbing, pursuerAnimat
           {!isPursuerCaught && moving && model.pursuerVisible && (
             <g className="pursuer-move-overlay">{pursuer}{stairFront(model.pursuer)}</g>
           )}
-          {jumping && <g className="jump-overlay">{runner}{stairFront(model.player)}</g>}
+          {climbing && <g className={jumping ? "jump-overlay" : "step-overlay"}>{runner}{stairFront(model.player)}</g>}
           {isPursuerCaught && (
             <g className="catch-overlay">
               {pursuer}
@@ -159,16 +164,11 @@ export function StairScene({ state, climbAnimationKey, isClimbing, pursuerAnimat
               {stairFront(model.player)}
             </g>
           )}
-          <g className="scene-distance-tag" transform="translate(26 45)">
-            <rect width="120" height="34" fill="#0b1427" stroke="#42647b" strokeWidth="2" />
-            <rect x="12" y="12" width="8" height="8" fill="#f07cbd" />
-            <text x="31" y="22" fill="#eef7ff" fontSize="13" fontWeight="700">추격자 {state.pursuerDistance}칸</text>
-          </g>
         </svg>
       </div>
       <p className="scene-hint" aria-live="polite">
         {state.status === "ready"
-          ? "시작하기를 누르고 계단을 올라가세요."
+          ? "시작하기를 누르고 계단을 내려가세요."
           : state.status === "checkpoint"
             ? "단계를 클리어했어요. 계속할지 선택하세요."
           : state.status === "game-over"
@@ -181,7 +181,7 @@ export function StairScene({ state, climbAnimationKey, isClimbing, pursuerAnimat
                 ? "장애물이에요. Space 또는 점프 버튼으로 두 칸을 뛰어넘으세요."
               : atCorner
                 ? "모퉁이에 도착했어요. J 또는 방향 바꾸기 버튼을 누르세요."
-                : "D 또는 앞으로 버튼을 눌러 한 칸 올라가세요."}
+                : "D 또는 내려가기 버튼을 눌러 한 칸 내려가세요."}
       </p>
     </section>
   );
