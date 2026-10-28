@@ -60,5 +60,6 @@
 
 ## Progress
 
-- done: 0/4 (active: T01)
+- done: 1/4 (active: T02)
+- T01 `cbc6c26`: 종료 성적 스냅샷·단위/표시/helper·엔진 전환·단독 fresh guard 완료. 지정29파일864/864tests/workers2/124.79초, lint/build/diff 통과. 증거/중간 실패와 제한은 T01 Validation Results에 기록했다. 다음 실행은 T02 한 개다.
 - Last completed plan: distance-based-pursuer-catch-up, implementation43db38c / memory15704d3.

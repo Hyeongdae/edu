@@ -1,6 +1,6 @@
 # Task: T02 Time Ranking and Checkpoint Saves
 
-## Status: pending
+## Status: in_progress
 
 ## Goal
 

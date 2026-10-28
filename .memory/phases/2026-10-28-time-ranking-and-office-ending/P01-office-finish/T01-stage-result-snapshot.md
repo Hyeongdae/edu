@@ -131,7 +131,7 @@ Task: T01-stage-result-snapshot
 
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: implementation commit containing this Task; hash recorded in subsequent memory sync.
+- commit: `cbc6c26`; plan docs `b3c67aa`.
 
 ## Validation Results — 2026-10-28
 

@@ -10,20 +10,24 @@
 
 ## Active Task
 
-[T01 Stage Result Snapshot](./phases/2026-10-28-time-ranking-and-office-ending/P01-office-finish/T01-stage-result-snapshot.md)
+[T02 Time Ranking and Checkpoint Saves](./phases/2026-10-28-time-ranking-and-office-ending/P01-office-finish/T02-time-ranking-and-checkpoint-saves.md)
 
 ## Last Completed Task
 
-[T01 Distance Catch Up](./phases/2026-10-28-distance-based-pursuer-catch-up/P01-pursuit/T01-distance-catch-up.md) — 43db38c; 이전 계획 완료 동기화15704d3.
+[T01 Stage Result Snapshot](./phases/2026-10-28-time-ranking-and-office-ending/P01-office-finish/T01-stage-result-snapshot.md) — `cbc6c26`; 계획 문서 `b3c67aa`. 이전 추격 계획 T01 `43db38c`/완료 동기화 `15704d3`.
 
 ## Status
 
-- time-ranking-and-office-ending: in_progress, done0/4, Active Task T01 in_progress. 이번 실행은 종료 시점 시간 성적 스냅샷만 구현·검증한다. 랭킹/엔딩/계단 아트는 후속 Task다.
+- time-ranking-and-office-ending: in_progress, done1/4, Active Task T02 in_progress. 이번 실행에서는 T01만 완료했다. T02 구현은 아직 시작하지 않았으며 다음 실행 대상이다.
+- T01 `cbc6c26`: GameState.stageResult와 StageResult 순수 생성/검증/표시 API, 실제 clear/catch/timeout 시점 보관, CP/quit 동일 결과·Continue/reset null, 단독 fresh guard 연결. 기존 adapter는 spread로 결과를 보존해 수정이 불필요했다. 기존 검사/fixture 변경도 필요하지 않았다.
+- 검증: 지정29파일864/864tests/skip0/workers2/124.79초, 신규110개. lint 오류0/경고0, tsc/Vite build/diff 통과. JS555.79kB(gzip155.40)/CSS57.33kB(gzip10.97), 기존500kB초과 크기 유지/이번 build.log에 해당 경고 재출력 없음.
+- 중간29파일 실행은 build/lint를 함께 실행하던 중 기존 GameScreen bonus-pause 검사의5초 제한 초과(7.847초) 후79개연쇄실패/785개통과(101.98초)였다. 다른 검증 종료 후 동일 명령을 별도 실행해864/864 통과했다. 두 실행 사이 source/test/timeout/skip/config 변경 없음. 최종 근거는 %TEMP%/time-ranking-and-office-ending-2026-10-28/T01/regression-29-serial.log, lint.log, build.log. 실패/초기 로그도 보존한다.
+- T01에서 랭킹/recordStorage/진행도/auth/audio/설정/추격·단계규칙/계단 아트/실제 기록은 변경하지 않았다. 브라우저 검증은 T04 대상. 기존 화면 검사 자원 경쟁과 알려진 번들/App 부채 외 신규 범위 밖 결함: 특이사항 없음.
 - 사용자 확정: 단계→점수→남은 시간(0.01초) 랭킹, 각 단계 클리어 즉시 저장, 기존 랭킹만 초기화/해금 유지,5단계 후 약4초 자동1층퇴근엔딩,회색콘크리트·노란선 픽셀비상계단.
 - T01 결과 계약: GameState.stageResult:null|StageResult, StageResult={stage,score,remainingTimeCs,endedAtMs,outcome}. 종료전 시간을 고정하고 quit는클리어결과를보존한다. 늦은tick은실제접촉deadline기준이다.
 - T02 메인 랭킹은 stair-descent:leaderboard:v2, 시간 필수. v1 랭킹만 정리하며 progress:v1/기존 reset marker/새 랭킹은 보존. 기존 ascent v5 API의 시간 생략 호환은 별도로 둔다.
 - T03 엔딩은 UI 수명으로만관리하고 엔진은game-over. 즉시 저장후4초연출/모션감소정적결과/포커스·cleanup. 공용PixelStair 변경은메인과단독에반영되며 단독1단계·무저장경계를검증한다.
-- T01/T02 검증은 지정29파일, T03/T04는지정31파일, workers2와lint/build/diff. 이번 계획 단계에서 테스트를 실행하지 않았다.
+- T02 검증은 지정29파일, T03/T04는지정31파일, workers2와lint/build/diff. T01은 위29파일 검증 완료이며 다른 무거운 검증을 동시에 실행하지 않는 것이 좋다.
 - 순서 T01시간스냅샷→T02랭킹·즉시저장→T03엔딩·계단아트→T04브라우저. 메모리 실행은현재Task1개씩진행한다. 알려진App전체suite/번들크기/실제Entra·배포는범위밖이다.
 - 증거 예정: %TEMP%/time-ranking-and-office-ending-2026-10-28/Task별폴더. 기존demo5175/사용자프로필·실기록을보존한다. 이전추격계획완료이력은아래에보존했다.
 
@@ -33,7 +37,7 @@
 
 ## Next Step (IMPORTANT)
 
-/memory-execute 또는 current 보고 이어서 해줘 요청 시 T01-stage-result-snapshot.md만 읽고 구현한다. 먼저 types.ts/stageResult.ts/gameEngine.ts와단독fresh상태검사를연결한다. T01검증·지정커밋후phase/current를T02로전진한다. 다음Task를명령없이연속실행하지않는다. 계획단계에서는코드/저장소초기화/브라우저검사를실행하지않는다.
+/memory-execute 또는 current 보고 이어서 해줘 요청 시 T02-time-ranking-and-checkpoint-saves.md만 읽고 구현한다. T01의 stageResult/formatRemainingTimeCs를 사용해 새v2 시간 랭킹·구랭킹만 정리·해금보존·클리어 즉시 저장·동일 성적 중복 쓰기 방지·시간 표시를 연결한다. T01을 재실행하지 않는다. T02 검증·지정 커밋 후 T03으로 전진하며 다음 Task를 명령 없이 연속 실행하지 않는다.
 
 ---
 
