@@ -1,6 +1,6 @@
 # Task: T02 Isolated Local Descent Screen
 
-## Status: pending
+## Status: done
 
 ## Goal
 
@@ -179,10 +179,10 @@
 
 ## Acceptance Criteria
 
-- [ ] Separate dev-only URL plays stage1 descent with original app untouched and no storage access.
-- [ ] Downward stairs/NPC/step/jump/catch motion and mobile/native controls are integrated with original rules.
-- [ ] Memory-only audio/settings pause/end/restart behave without duplicate effects/old timers.
-- [ ] New tests + original17/lint/build pass; actual browser validation remains explicitly T03.
+- [x] Separate dev-only URL plays stage1 descent with original app untouched and no storage access.
+- [x] Downward stairs/NPC/step/jump/catch motion and mobile/native controls are integrated with original rules.
+- [x] Memory-only audio/settings pause/end/restart behave without duplicate effects/old timers.
+- [x] New tests + original17/lint/build pass; actual browser validation remains explicitly T03.
 
 ## Validation
 
@@ -209,7 +209,22 @@ Task: T02-isolated-local-descent-screen
 
 ## Progress
 
-- [ ] 구현 완료
-- [ ] 검증 통과
+- [x] 구현 완료
+- [x] 검증 통과
 - commit: pending
 - After success: Task done/commit, phase done2/3/T03 in_progress, current Active T03. Do not mark plan completed before actual browser validation.
+
+## Validation Results — 2026-10-28
+
+- 구현: 별도 HTML/entry/gate/메모리 오디오 owner/view reducer/screen/scene/CSS와 신규5테스트 파일을 추가했다. 제품 파일은 신규13개뿐이며 T01 파일과 원본 게임/오디오/인증/랭킹/기존 테스트/설정/의존성은 변경하지 않았다.
+- 지정24파일 전체 회귀: **642/642 tests 통과(72.08s)**. 기존17파일509개 + T01 신규80개 + T02 신규53개다. 최종 실행은 위 Validation의 동일24경로에 **`--maxWorkers=2`만 추가**했다. 파일 제외/skip/timeout 변경/fixture 완화/config 변경은 없다. 로그 `regression-24-final.log`.
+- 기본 동시 실행 명령은 두 번 모두 기존 `src/game/GameScreen.test.tsx:198`의30회 렌더링 검사에서5000ms 시간 초과 후 React act 정리 실패가 연쇄 발생했다. 원본 파일 단독은77/77(28.25s), 동일24파일의 workers2 첫 재실행은642/642(47.08s)였다. 최종 소스 재검사도 위642개 전부 통과했다. 기본 명령이 그대로 통과했다고 기록하지 않는다.
+- 초기 새 화면 실패2건은 contenteditable 테스트 fixture의 실제 attribute 설정과 설정창 닫기 후 gear 재활성화 이후 focus 복귀로 해결했다. 설정 열기 때 과거 NPC의 cosmetic lastPursuerMove도 비워 빠른 열기/닫기에서 이전240ms 모션이 재생되지 않게 했다. 수치/경로/시계는 보존한다.
+- StrictMode/React 배치 성공 수·실수 수를 단조 증가 counter로 처리했다. 한 점프는2칸이어도 footstep1회, 마지막 성공 소리 보존, final clear에서 retained lastMove의 이동 연출 억제, 잡힘500ms gate/정리,95초 설정 동결·focus trap, native Space/터치 중복 방지,300/600ms cosmetics를 확인했다. 실제 생성기로 합법 입력을 계산한 전체1단계 종료 검사와 경계 fixture 검사를 구분했다.
+- 저장소 getter를 예외로 바꾸고 Storage 메서드를 감시한 앱 시작/입력/오디오 설정/실패/재시작/해제 검사는0접근이었다. 신규 런타임 파일의 정적 검색에도 저장/이관/helper/원본 App·GameScreen import는 없다. 실제 브라우저 sentinel 보존과 전체 클리어 중 접근 검사는 T03에 남긴다.
+- `npm.cmd run lint`: 오류0/경고0 (`lint-final.log`). 첫 lint의 audioAttempt cleanup ref 경고는 mount 시 시도 번호 갱신 + unmount mounted guard로 해결했다. disabled gate는 owner 자체를 장착하지 않는다.
+- `npm.cmd run build`: 성공 (`build-final.log`), JS551.91kB(gzip154.18kB), CSS55.50kB(gzip10.77kB). `dist/` HTML은 기존 `index.html` 하나이며 descent HTML은 없다. 기존500kB chunk 경고는 유지한다.
+- `git diff --check`/staged diff check 통과. 지정 원본 파일 범위의 diff는 비어 있다. 요구된 rg 결과를 모두 검토했으며 own component 이름과 테스트의 storage 감시만 나온다.
+- HTTP 확인: 기존 소유 데모 서버 PID21048/port5175의 `http://127.0.0.1:5175/descent-test.html`은200이며 새 module만 참조한다. 변환된 main의 env는 DEV=true/VITE_LOCAL_DEMO_MODE=true다. 새 서버/브라우저는 실행하지 않았고 환경 파일을 수정하지 않았다.
+- 증거: `C:\Users\DEX\AppData\Local\Temp\stair-descent-t02-2026-10-28\`에 초기/재시도/최종 로그를 보존한다. `tests-24-final.log`는 수동 명령의 leaderboard 확장자 오타로23파일591개만 실행된 중간 로그이며 완료 근거로 사용하지 않는다. 최종 `regression-24-final.log`는 청사진에서 명령을 추출해24경로를 확인한 결과다.
+- 실제 화면의 가림/브라우저 애니메이션 위치/320px 큰 글꼴/소리 청취는 단위 테스트·HTTP로 판정하지 않았다. 실제 브라우저 검증은 T03이며 계획은 아직 진행 중이다. 새 범위 밖 결함은 발견되지 않았다.
