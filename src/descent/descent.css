@@ -132,7 +132,7 @@
 .descent-game .pixel-officer[data-officer-pose="climb"] .officer-frame--run-b { display: inline; animation: descent-stride-b 300ms steps(1, end) infinite; }
 .descent-game .pixel-officer[data-officer-pose="fall"] .officer-body { animation: descent-stumble 500ms steps(1, end) both; }
 .descent-game .descent-player-motion.is-stepping, .descent-game .descent-player-motion.is-jumping { animation: descent-travel 300ms ease-out both; }
-.descent-game .descent-npc-motion.is-moving { animation: descent-travel 240ms ease-out both; }
+.descent-game .descent-npc-motion.is-moving { animation: descent-travel var(--pursuer-step-duration, 240ms) ease-out both; }
 .descent-game .descent-catch-motion { animation: descent-catch 500ms linear both; }
 .descent-game .descent-catch-facing { animation: descent-catch-facing 500ms steps(1, end) both; }
 @keyframes descent-travel {

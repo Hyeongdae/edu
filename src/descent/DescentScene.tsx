@@ -3,6 +3,7 @@ import type { SceneActor, ScenePoint } from "../game/stairSceneModel";
 import { getRouteStep } from "../game/stairRoute";
 import { hasObstacle } from "../game/stairObstacles";
 import type { GameState } from "../game/types";
+import { getPursuerMotionDurationMs } from "../game/pursuitRules";
 import { PixelOfficer } from "../game/pixel/PixelOfficer";
 import { PixelOfficeBackdrop } from "../game/pixel/PixelOfficeBackdrop";
 import { PixelObstacle } from "../game/pixel/PixelObstacle";
@@ -52,7 +53,8 @@ export function DescentScene({ state, playerMotionKey, isPlayerMoving, isPursuer
       data-testid="descent-pursuer" data-route-index={model.pursuer.index} data-direction={model.pursuer.direction}
       transform={`translate(${model.pursuer.x} ${model.pursuer.y})`}>
       <g data-testid="descent-pursuer-motion" className={isCaught ? "descent-catch-motion" : `descent-npc-motion${npcMoving ? " is-moving" : ""}`}
-        style={isCaught ? catchStyle : npcMoving ? travelStyle(model.pursuerMotion!.from, model.pursuerMotion!.to, 8) : undefined}>
+        style={isCaught ? catchStyle : npcMoving ? { ...travelStyle(model.pursuerMotion!.from, model.pursuerMotion!.to, 8),
+          "--pursuer-step-duration": `${getPursuerMotionDurationMs(state)}ms` } as CSSProperties : undefined}>
         <g clipPath={`url(#${clipId})`}><g className={isCaught ? "descent-catch-facing" : undefined} style={isCaught ? catchStyle : undefined}>
           <PixelOfficer variant="older" direction={isCaught ? "right" : model.pursuer.direction} pose={npcMoving || isCaught ? "climb" : "idle"} />
         </g></g>

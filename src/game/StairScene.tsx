@@ -4,6 +4,7 @@ import { buildDescentSceneModel } from "../descent/descentSceneModel";
 import { getRouteStep } from "./stairRoute";
 import { hasObstacle } from "./stairObstacles";
 import type { GameState } from "./types";
+import { getPursuerMotionDurationMs } from "./pursuitRules";
 import { PixelOfficer } from "./pixel/PixelOfficer";
 import { PixelOfficeBackdrop } from "./pixel/PixelOfficeBackdrop";
 import { PixelStair } from "./pixel/PixelStair";
@@ -45,7 +46,8 @@ export function StairScene({ state, climbAnimationKey, isClimbing, pursuerAnimat
   // Keep the final safe stair as the catch animation's route anchor.
   const pursuerPoint = model.pursuer;
   const moving = isPursuerMoving && model.pursuerMotion !== null && state.status === "playing" && !isPursuerCaught;
-  const motionStyle = moving ? travelStyle(model.pursuerMotion!.from, model.pursuerMotion!.to, "pursuer-move", 8) : undefined;
+  const motionStyle = moving ? { ...travelStyle(model.pursuerMotion!.from, model.pursuerMotion!.to, "pursuer-move", 8),
+    "--pursuer-step-duration": `${getPursuerMotionDurationMs(state)}ms` } as CSSProperties : undefined;
   const extraPursuerStair = model.pursuerVisible && !model.steps.some((step) => step.index === model.pursuer.index);
   const catchStyle = { "--catch-base-facing": pursuerPoint.direction === "right" ? 1 : -1, ...Object.fromEntries(model.catchFrames.flatMap((frame, index) => [
     [`--catch-x-${index}`, `${frame.x - pursuerPoint.x}px`],

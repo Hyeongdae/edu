@@ -140,7 +140,7 @@ describe("stair scene projection", () => {
   it("projects the last real adjacent pursuer step with motion outside the clip", () => {
     const state = tickGame(startGame(createGameState(() => 0), 0), 1_000);
     expect(buildStairSceneModel(state).pursuerMotion).toEqual({
-      from: { x: 124, y: 328 }, to: { x: 158, y: 300 }, atMs: 800,
+      from: { x: 124, y: 328 }, to: { x: 158, y: 300 }, atMs: 600,
     });
     expect(() => buildStairSceneModel({ ...state, lastPursuerMove: { fromIndex: -4, toIndex: -2, atMs: 1_000 } })).toThrow(RangeError);
   });

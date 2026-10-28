@@ -5,6 +5,7 @@ import { CheckpointPanel } from "./CheckpointPanel";
 import { StageSelectPanel } from "./StageSelectPanel";
 import { readStageProgress, saveStageProgress } from "./stageProgress";
 import { getHighestUnlockedStage } from "./stageRules";
+import { getPursuerMotionDurationMs, PURSUER_POLL_INTERVAL_MS } from "./pursuitRules";
 import { ControlButtons } from "./ControlButtons";
 import { GameHud } from "./GameHud";
 import { StairScene } from "./StairScene";
@@ -199,21 +200,22 @@ export function GameScreen({
   }, [audioController, gameState.lastMistake, gameState.stepsClimbed, gameState.status, gameState.captureCount]);
 
   const pursuerMoveAt = gameState.lastPursuerMove?.atMs ?? null;
+  const pursuerMotionDuration = getPursuerMotionDurationMs(gameState);
   const pursuerAnimationKey = pursuerMoveAt ?? 0;
   const isPursuerMoving = pursuerMoveAt !== null && gameState.status === "playing" &&
     gameState.captureEndsAt === null && !isSettingsOpen &&
-    Math.max(nowMs, pursuerAnimationTime) < pursuerMoveAt + 240;
+    Math.max(nowMs, pursuerAnimationTime) < pursuerMoveAt + pursuerMotionDuration;
 
   useEffect(() => {
     if (pursuerMoveAt === null) return;
-    const endsAt = pursuerMoveAt + 240;
+    const endsAt = pursuerMoveAt + pursuerMotionDuration;
     const suppressed = gameState.status !== "playing" || gameState.captureEndsAt !== null || isSettingsOpen;
     pursuerTimeoutRef.current = window.setTimeout(() => {
       setPursuerAnimationTime(endsAt);
       pursuerTimeoutRef.current = undefined;
     }, suppressed ? 0 : Math.max(0, endsAt - Date.now()));
     return () => window.clearTimeout(pursuerTimeoutRef.current);
-  }, [pursuerMoveAt, gameState.status, gameState.captureEndsAt, isSettingsOpen]);
+  }, [pursuerMoveAt, pursuerMotionDuration, gameState.status, gameState.captureEndsAt, isSettingsOpen]);
 
   useEffect(() => () => {
     window.clearTimeout(climbTimeoutRef.current);
@@ -338,7 +340,7 @@ export function GameScreen({
         return stageChanged || eventChanged || pursuerDue ? tickTime : previousTime;
       });
       setGameState((state) => tickGame(state, tickTime));
-    }, 100);
+    }, PURSUER_POLL_INTERVAL_MS);
 
     return () => window.clearInterval(intervalId);
   }, [gameState, isSettingsOpen]);
@@ -545,7 +547,7 @@ export function GameScreen({
                       <span className="chase-icon"><PixelIcon name="flag" size={20} /></span>
                       <div>
                         <strong>뒤쫓아오는 추격자</strong>
-                        <p>추격자는 위에서 일정 시간마다 한 칸씩 따라 내려와요. 잘못 입력하면 0.5초 동안 멈춰요. 넘어진 동안 추격자는 0.25초마다 한 칸씩 내려와요. 한 번 잡히면 게임이 끝납니다. 각 단계는 0점부터 시작하고 목표는 150/200/250/300/350점이에요. 클리어하면 계속할지 선택할 수 있어요.</p>
+                        <p>추격자는 위에서 한 칸씩 따라 내려와요. 단계별 간격은 0.6/0.5/0.4/0.3/0.25초예요. 30칸 이상 멀어지면 0.05초마다 추격하고, 7칸까지 좁혀지면 원래 속도로 돌아와요. 잘못 입력하면 0.5초 동안 멈춰요. 넘어진 동안 추격 간격은 0.25초지만, 가속 추격 중에는 0.05초를 유지해요. 한 번 잡히면 게임이 끝납니다. 각 단계는 0점부터 시작하고 목표는 150/200/250/300/350점이에요. 클리어하면 계속할지 선택할 수 있어요.</p>
                       </div>
                     </section>
                   </div>

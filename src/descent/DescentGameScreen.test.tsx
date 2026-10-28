@@ -41,6 +41,20 @@ beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(0); vi.spyOn(Math, "rand
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.useRealTimers(); });
 
 describe("dedicated descending screen", () => {
+  it("updates catch-up at50ms and keeps the motion duration in sync until gap7", () => {
+    const tick = vi.spyOn(engine, "tickDescent");
+    draw(true); start();
+    act(() => { for (const value of legalKeys(26)) key(value); });
+    act(() => { vi.advanceTimersByTime(50); });
+    expect(screen.getByRole("img")).toHaveAttribute("data-pursuer-index", "-3");
+    act(() => { vi.advanceTimersByTime(1000); });
+    expect(tick.mock.results.at(-1)!.value).toMatchObject({ pursuerDistance: 9, isPursuerCatchingUp: true });
+    act(() => { vi.advanceTimersByTime(50); });
+    expect(screen.getByTestId("descent-pursuer-motion").style.getPropertyValue("--pursuer-step-duration")).toBe("50ms");
+    act(() => { vi.advanceTimersByTime(50); });
+    expect(tick.mock.results.at(-1)!.value).toMatchObject({ pursuerDistance: 7, isPursuerCatchingUp: false, nextPursuerStepAt: 1750 });
+    expect(screen.getByTestId("descent-pursuer-motion").style.getPropertyValue("--pursuer-step-duration")).toBe("240ms");
+  });
   it("starts stopped, shows only the one-stage experiment, and arms once", () => {
     const { enable, c } = draw(true);
     expect(screen.getByTestId("descent-score")).toHaveTextContent("0");
@@ -204,7 +218,7 @@ describe("dedicated descending screen", () => {
 
   it("settles a catch gate, stops once, and cleans all timers/listeners on unmount", () => {
     const { c, unmount } = draw(); start();
-    act(() => { vi.advanceTimersByTime(3200); });
+    act(() => { vi.advanceTimersByTime(2400); });
     expect(document.querySelector(".descent-game")).toHaveAttribute("data-capture", "true");
     expect(c.stopBgm).toHaveBeenCalledOnce();
     act(() => { vi.advanceTimersByTime(500); });

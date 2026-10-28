@@ -3,6 +3,7 @@ import { AudioControls } from "../audio/AudioControls";
 import type { AudioController } from "../audio/audioController";
 import type { AudioPreferences } from "../audio/audioPreferences";
 import { getStageSecondsLeft, STAGE_ONE_TARGET_SCORE } from "../game/gameEngine";
+import { getPursuerMotionDurationMs, PURSUER_POLL_INTERVAL_MS } from "../game/pursuitRules";
 import type { GameInput } from "../game/types";
 import { PixelIcon } from "../game/pixel/PixelIcon";
 import { createDescentState, resetDescent } from "./descentEngine";
@@ -21,6 +22,7 @@ interface DescentGameScreenProps {
 export function DescentGameScreen({ audioController, audioPreferences, autoplayBlocked, onAudioPreferencesChange, onEnableAudio }: DescentGameScreenProps): ReactElement {
   const [view, dispatch] = useReducer(descentViewReducer, undefined, () => createDescentViewState(createDescentState(), Date.now()));
   const { game, nowMs } = view;
+  const pursuerMotionDuration = getPursuerMotionDurationMs(game);
   const settingsOpen = view.settingsOpenedAt !== null;
   const started = useRef(false);
   const gear = useRef<HTMLButtonElement>(null);
@@ -86,13 +88,13 @@ export function DescentGameScreen({ audioController, audioPreferences, autoplayB
       view.playerMoveAt !== null || view.scoreGainUntil !== null;
     if (!active) return;
     const tick = () => dispatch({ type: "tick", nowMs: Date.now() });
-    const interval = window.setInterval(tick, 100);
+    const interval = window.setInterval(tick, PURSUER_POLL_INTERVAL_MS);
     const ends = [view.playerMoveAt === null ? null : view.playerMoveAt + 300,
-      game.lastPursuerMove === null ? null : game.lastPursuerMove.atMs + 240, view.scoreGainUntil,
+      game.lastPursuerMove === null ? null : game.lastPursuerMove.atMs + pursuerMotionDuration, view.scoreGainUntil,
       game.captureEndsAt, game.recoveryEndsAt].filter((end): end is number => end !== null && end > nowMs);
     const cosmetic = ends.length ? window.setTimeout(tick, Math.max(1, Math.min(...ends) - Date.now())) : undefined;
     return () => { window.clearInterval(interval); window.clearTimeout(cosmetic); };
-  }, [game, nowMs, settingsOpen, view.playerMoveAt, view.scoreGainUntil]);
+  }, [game, nowMs, settingsOpen, view.playerMoveAt, view.scoreGainUntil, pursuerMotionDuration]);
 
   useEffect(() => {
     const onVisible = () => {
@@ -164,7 +166,7 @@ export function DescentGameScreen({ audioController, audioPreferences, autoplayB
       </header>
       <DescentScene state={game} playerMotionKey={view.playerMotionKey}
         isPlayerMoving={!settingsOpen && view.playerMoveAt !== null && nowMs < view.playerMoveAt + 300}
-        isPursuerMoving={!settingsOpen && game.lastPursuerMove !== null && nowMs < game.lastPursuerMove.atMs + 240} isCaught={caught} />
+        isPursuerMoving={!settingsOpen && game.lastPursuerMove !== null && nowMs < game.lastPursuerMove.atMs + pursuerMotionDuration} isCaught={caught} />
       {game.status === "playing" && <section className="descent-controls" aria-label="게임 조작">
         {control("forward", "한 칸 내려가기", "내려가기", "forward")}
         <div className="descent-control-actions">{control("turn", "방향을 바꾸며 내려가기", "방향 전환", "turn")}
@@ -187,7 +189,7 @@ export function DescentGameScreen({ audioController, audioPreferences, autoplayB
           <header><h2 id="descent-settings-title">게임 설정</h2><button ref={closeButton} type="button" aria-label="설정 닫기" onClick={closeSettings}><PixelIcon name="close" /></button></header>
           <AudioControls preferences={audioPreferences} onChange={onAudioPreferencesChange} autoplayBlocked={autoplayBlocked} onEnableAudio={onEnableAudio} />
           <section className="descent-help"><h3>내려오는 방법</h3><p>D로 한 칸, J로 방향을 바꾸며 한 칸 내려가세요. Space로 상자를 넘어 두 칸 이동해요.</p>
-            <p>잘못 입력하면 0.5초 동안 멈춰요. 그 동안 추격자는 0.25초마다 내려와요. 한 번 잡히면 도전이 끝납니다.</p>
+            <p>추격자는 0.6초마다 내려와요. 30칸 이상 멀어지면 0.05초마다 추격하고, 7칸까지 좁혀지면 원래 속도로 돌아와요. 잘못 입력하면 0.5초 동안 멈춰요. 그 동안 추격 간격은 0.25초지만, 가속 추격 중에는 0.05초를 유지해요. 한 번 잡히면 도전이 끝납니다.</p>
             <p>긴 계단 구간마다 10% 확률로 상자가 나와요. 30칸을 내려오면 30초 동안 2배 점수예요.</p>
             <p>설정을 보는 동안 게임은 멈춰 있어요. 오디오 설정과 게임 기록은 저장하지 않아요.</p></section>
         </section>

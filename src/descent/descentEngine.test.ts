@@ -53,10 +53,10 @@ describe("single-stage descent sessions", () => {
     expect(applyDescentInput(ready, "forward", 1e6)).toBe(ready);
   });
 
-  it("arms ninety seconds and the 800ms pursuit only once on start", () => {
+  it("arms ninety seconds and the 600ms pursuit only once on start", () => {
     const ready = createDescentState(() => 0);
     const started = startDescent(ready, 123);
-    expect(started).toMatchObject({ status: "playing", stageEndsAt: 90_123, nextPursuerStepAt: 923 });
+    expect(started).toMatchObject({ status: "playing", stageEndsAt: 90_123, nextPursuerStepAt: 723 });
     expect(started.route).toBe(ready.route);
     expect(started.obstacles).toBe(ready.obstacles);
     expect(startDescent(started, 500)).toBe(started);
@@ -229,17 +229,17 @@ describe("single-stage descent sessions", () => {
 });
 
 describe("descent timing remains the original engine's timing", () => {
-  it("walks the real NPC stairs at 800/1600/2400 then catches once at3200", () => {
+  it("walks the real NPC stairs at 600/1200/1800 then catches once at2400", () => {
     const initial = freeze(playing());
-    for (const [at, index] of [[800, -3], [1600, -2], [2400, -1]]) {
+    for (const [at, index] of [[600, -3], [1200, -2], [1800, -1]]) {
       expect(tickDescent(initial, at)).toMatchObject({ status: "playing", pursuerIndex: index,
-        lastPursuerMove: { toIndex: index, atMs: at }, nextPursuerStepAt: at + 800 });
+        lastPursuerMove: { toIndex: index, atMs: at }, nextPursuerStepAt: at + 600 });
     }
-    const caught = tickDescent(initial, 3200);
+    const caught = tickDescent(initial, 2400);
     expect(caught).toMatchObject({ status: "game-over", endReason: "caught", score: 0,
-      captureCount: 1, pursuerIndex: -1, pursuerDistance: 1, captureEndsAt: 3700, nextPursuerStepAt: null });
-    expect(tickDescent(caught, 3699)).toBe(caught);
-    const expired = tickDescent(caught, 3700);
+      captureCount: 1, pursuerIndex: -1, pursuerDistance: 1, captureEndsAt: 2900, nextPursuerStepAt: null });
+    expect(tickDescent(caught, 2899)).toBe(caught);
+    const expired = tickDescent(caught, 2900);
     expect(expired.captureEndsAt).toBeNull();
     expect(applyDescentInput(expired, "forward", 1e6)).toBe(expired);
     expect(tickDescent(initial, 1e6)).toEqual(expired);
@@ -255,10 +255,10 @@ describe("descent timing remains the original engine's timing", () => {
       lastPursuerMove: { atMs: 250 }, nextPursuerStepAt: 500 });
     const recovered = tickDescent(first, 500);
     expect(recovered).toMatchObject({ pursuerIndex: -2, recoveryEndsAt: null,
-      lastMistake: false, lastPursuerMove: { atMs: 500 }, nextPursuerStepAt: 1300 });
+      lastMistake: false, lastPursuerMove: { atMs: 500 }, nextPursuerStepAt: 1100 });
     const moved = applyDescentInput(first, "forward", 500);
-    expect(moved).toMatchObject({ stepsClimbed: 1, pursuerIndex: -2, nextPursuerStepAt: 1300 });
-    expect(tickDescent(moved, 1300).lastPursuerMove?.atMs).toBe(1300);
+    expect(moved).toMatchObject({ stepsClimbed: 1, pursuerIndex: -2, nextPursuerStepAt: 1100 });
+    expect(tickDescent(moved, 1100).lastPursuerMove?.atMs).toBe(1100);
   });
 
   it("falls when a normal step collides with a box", () => {
@@ -270,7 +270,7 @@ describe("descent timing remains the original engine's timing", () => {
     const fallen = applyDescentInput({ ...playing(), nextPursuerStepAt: 100 }, "turn", 0);
     expect(fallen.nextPursuerStepAt).toBe(100);
     expect(tickDescent(fallen, 100)).toMatchObject({ lastPursuerMove: { atMs: 100 }, nextPursuerStepAt: 350 });
-    expect(tickDescent(fallen, 500)).toMatchObject({ lastPursuerMove: { atMs: 350 }, nextPursuerStepAt: 1150 });
+    expect(tickDescent(fallen, 500)).toMatchObject({ lastPursuerMove: { atMs: 350 }, nextPursuerStepAt: 950 });
   });
 
   it.each([[1, 250], [2, 500]])("expiry wins at the fast catch boundary with gap%s at%s", (gap, at) => {
@@ -296,7 +296,7 @@ describe("descent timing remains the original engine's timing", () => {
     const state = freeze({ ...playing(), eventEndsAt: 30_000, eventSteps: 12 });
     const after = resumeDescentAfterPause(state, 100, 95_100);
     expect(after).toMatchObject({ stageEndsAt: 185_000, eventEndsAt: 125_000,
-      nextPursuerStepAt: 95_800, eventSteps: 12, pursuerIndex: -4 });
+      nextPursuerStepAt: 95_600, eventSteps: 12, pursuerIndex: -4 });
     expect(after.route).toBe(state.route);
     expect(after.obstacles).toBe(state.obstacles);
     expect(resumeDescentAfterPause(state, 100, 100)).toBe(state);
@@ -309,7 +309,7 @@ describe("descent timing remains the original engine's timing", () => {
       lastMistake: false, pursuerIndex: -4 });
     expect(tickDescent(after, 10_249)).toBe(after);
     expect(tickDescent(after, 10_250)).toMatchObject({ pursuerIndex: -3,
-      lastPursuerMove: { atMs: 10_250 }, nextPursuerStepAt: 11_050 });
+      lastPursuerMove: { atMs: 10_250 }, nextPursuerStepAt: 10_850 });
   });
 
   it("reconciles a catch that was already due before opening settings", () => {

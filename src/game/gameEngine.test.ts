@@ -95,7 +95,7 @@ describe("checkpoint sessions", () => {
     expect(resumeGameAfterPause(checkpoint, 100, 95_100)).toBe(checkpoint);
     const resumed = continueGame(checkpoint, 95_100);
     expect(resumed).toMatchObject({ status: "playing", stage: 2, score: 0, lastMove: null,
-      stageEndsAt: 170_100, nextPursuerStepAt: 95_750, pursuerDistance: 4,
+      stageEndsAt: 170_100, nextPursuerStepAt: 95_600, pursuerDistance: 4,
       eventEndsAt: 125_000, highestClearedStage: 1, clearedStageThisRun: 1, checkpointEnteredAt: null });
     expect(getStageTargetScore(resumed.stage)).toBe(200);
     expect(resumed.route).toBe(checkpoint.route);

@@ -55,6 +55,34 @@ describe("GameScreen controls", () => {
     vi.restoreAllMocks();
   });
 
+  it("polls catch-up every50ms, matches the animation and restores fall pursuit at gap7", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(0);
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    const tick = vi.spyOn(gameEngine, "tickGame"), input = vi.spyOn(gameEngine, "applyInput");
+    render(<StrictMode><GameScreen account={account} /></StrictMode>);
+    fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
+    let preview = gameEngine.startGame(createGameState(() => 0), 0);
+    const keys: string[] = [];
+    for (let step = 0; step < 26; step++) {
+      const turn = getRouteStep(preview.route, preview.stepsClimbed + 1).direction !== preview.direction;
+      keys.push(turn ? "j" : "d");
+      preview = gameEngine.applyInput(preview, turn ? "turn" : "forward", 0);
+    }
+    act(() => { for (const key of keys) fireEvent.keyDown(window, { key }); });
+    expect(input.mock.results.at(-1)!.value).toMatchObject({ pursuerDistance: 30, isPursuerCatchingUp: true, nextPursuerStepAt: 50 });
+    await act(async () => { await vi.advanceTimersByTimeAsync(50); });
+    expect(screen.getByRole("img")).toHaveAttribute("data-pursuer-index", "-3");
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    expect(tick.mock.results.at(-1)!.value.pursuerDistance).toBe(9);
+    fireEvent.keyDown(window, { key: nextClimbKey() === "d" ? "j" : "d" });
+    await act(async () => { await vi.advanceTimersByTimeAsync(50); });
+    expect(tick.mock.results.at(-1)!.value).toMatchObject({ pursuerDistance: 8, isPursuerCatchingUp: true, nextPursuerStepAt: 1150 });
+    expect(screen.getByTestId("pursuer-motion").style.getPropertyValue("--pursuer-step-duration")).toBe("50ms");
+    await act(async () => { await vi.advanceTimersByTimeAsync(50); });
+    expect(tick.mock.results.at(-1)!.value).toMatchObject({ pursuerDistance: 7, isPursuerCatchingUp: false, nextPursuerStepAt: 1400 });
+    expect(screen.getByTestId("pursuer-motion").style.getPropertyValue("--pursuer-step-duration")).toBe("240ms");
+  });
+
   it("starts the game and maps D/J keys to the same engine inputs", () => {
     vi.useFakeTimers();
     render(<GameScreen account={account} />);
@@ -185,10 +213,13 @@ describe("GameScreen controls", () => {
     expect(screen.getByTestId("stage-time")).toHaveTextContent(stageTimeBefore!);
     expect(screen.getByRole("img")).toHaveAttribute("data-pursuer-index", pursuerBefore);
 
-    // The faster pursuit needs a few more real stairs to isolate bonus expiry from a catch.
+    // Keep playing while the real catch-up and base clocks run through bonus expiry.
     climbBatch(5);
-    vi.setSystemTime(126_100);
-    await act(async () => { await vi.advanceTimersByTimeAsync(100); });
+    for (let elapsed = 3_000; elapsed <= 30_000; elapsed += 3_000) {
+      vi.setSystemTime(96_100 + elapsed);
+      fireEvent(document, new Event("visibilitychange"));
+      climbBatch(5);
+    }
     expect(eventStatus).not.toHaveTextContent("2배 점수");
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "playing");
     vi.setSystemTime(186_100);
@@ -318,7 +349,7 @@ describe("GameScreen controls", () => {
     expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "2");
     expect(screen.getByTestId("pursuer").parentElement).toHaveClass("pursuer-history-stair");
     for (let index = 0; index < 3; index += 1) climbOneStep();
-    vi.setSystemTime(3_200);
+    vi.setSystemTime(2_400);
     fireEvent(document, new Event("visibilitychange"));
     expect(screen.getByTestId("runner")).toHaveAttribute("data-route-index", "10");
     expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "6");
@@ -367,7 +398,7 @@ describe("GameScreen controls", () => {
     } satisfies AudioController;
     render(<GameScreen account={account} audioController={audio} />);
     fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
-    await act(async () => { await vi.advanceTimersByTimeAsync(700); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(500); });
     fireEvent.keyDown(window, { key: "d" });
     const playerKey = screen.getByTestId("runner").getAttribute("data-motion-key");
     await act(async () => { await vi.advanceTimersByTimeAsync(100); });
@@ -406,7 +437,7 @@ describe("GameScreen controls", () => {
     seedReadyStage(5, { score: 1_200 });
     render(<GameScreen account={account} />);
     fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
-    await act(async () => { await vi.advanceTimersByTimeAsync(1_200); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(1_000); });
     const catchNode = screen.getByTestId("pursuer");
     expect(catchNode).toHaveClass("is-caught");
     expect(catchNode).toHaveAttribute("data-route-index", "-1");
@@ -437,7 +468,7 @@ describe("GameScreen controls", () => {
     expect(input.mock.results.at(-1)?.value.route.steps[0].index).toBe(-4);
     expect(screen.getAllByTestId("stair-step")).toHaveLength(11);
     expect(screen.getByTestId("runner")).toHaveClass("is-climbing");
-    // A late callback must reconcile the first catch (24 stairs * 800ms) and stop permanently.
+    // A late callback must reconcile the first catch (24 stairs * 600ms) and stop permanently.
     vi.setSystemTime(32_000);
     fireEvent(document, new Event("visibilitychange"));
     expect(screen.getByText("추격자에게 잡혔어요")).toBeInTheDocument();
@@ -579,7 +610,7 @@ describe("GameScreen controls", () => {
     render(<GameScreen account={account} />);
 
     fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
-    vi.setSystemTime(4_200);
+    vi.setSystemTime(3_400);
     fireEvent(document, new Event("visibilitychange"));
     const gameFrame = document.querySelector(".game-frame");
     const resultPanel = document.querySelector(".game-over-panel");
@@ -625,7 +656,7 @@ describe("GameScreen controls", () => {
     vi.spyOn(Math, "random").mockReturnValue(0);
     render(<StrictMode><GameScreen account={account} /></StrictMode>);
     fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
-    vi.setSystemTime(4_200);
+    vi.setSystemTime(3_400);
     fireEvent(document, new Event("visibilitychange"));
     expect(screen.getByTestId("pursuer")).toHaveClass("is-caught");
     // Reduced-motion CSS makes this restart button available immediately.
@@ -732,10 +763,10 @@ describe("GameScreen controls", () => {
     fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
     expect(trigger).toHaveFocus();
     expect(screen.getByTestId("stage-time")).toHaveTextContent(remaining!);
-    vi.setSystemTime(101_799);
+    vi.setSystemTime(101_599);
     fireEvent(document, new Event("visibilitychange"));
     expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "-4");
-    vi.setSystemTime(101_800);
+    vi.setSystemTime(101_600);
     fireEvent(document, new Event("visibilitychange"));
     expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "-3");
     expect(screen.getByTestId("stage-time")).toHaveTextContent("01:30");
@@ -1031,7 +1062,7 @@ describe("checkpoint session integration", () => {
     fireEvent.click(screen.getByRole("button", { name: "계속하기" }));
     const resumed: GameState = continued.mock.results.at(-1)!.value;
     expect(resumed).toMatchObject({ status: "playing", stage: 2, score: 0, lastMove: null,
-      stageEndsAt: 171_000, nextPursuerStepAt: 96_650, pursuerDistance: 4, highestClearedStage: 1 });
+      stageEndsAt: 171_000, nextPursuerStepAt: 96_500, pursuerDistance: 4, highestClearedStage: 1 });
     expect(screen.getByTestId("score-value")).toHaveTextContent(/^0$/);
     expect(screen.queryByTestId("score-gain")).not.toBeInTheDocument();
     expect(document.querySelector(".jump-overlay")).toBeNull();
@@ -1413,7 +1444,7 @@ describe("fall pursuit presentation", () => {
       setPreferences: vi.fn(), playFootstep: vi.fn(), playFall: vi.fn(), dispose: vi.fn() };
   }
 
-  it("shows logical250/500ms steps through100ms polling and keeps player and NPC motion independent", async () => {
+  it("shows logical250/500ms steps through50ms polling and keeps player and NPC motion independent", async () => {
     vi.useFakeTimers(); vi.setSystemTime(0);
     const audio = audioFixture(), input = vi.spyOn(gameEngine, "applyInput"), tick = vi.spyOn(gameEngine, "tickGame");
     render(<GameScreen account={account} audioController={audio} />);
@@ -1436,7 +1467,7 @@ describe("fall pursuit presentation", () => {
     expect(screen.getByTestId("pursuer")).not.toHaveClass("is-following");
     await act(async () => { await vi.advanceTimersByTimeAsync(10); });
     expect(tick.mock.results.at(-1)!.value).toMatchObject({ recoveryEndsAt: null, lastMistake: false,
-      pursuerIndex: -2, nextPursuerStepAt: 1300, lastPursuerMove: { atMs: 500 } });
+      pursuerIndex: -2, nextPursuerStepAt: 1100, lastPursuerMove: { atMs: 500 } });
     expect(screen.getByTestId("pursuer")).toHaveAttribute("data-motion-key", "500");
     fireEvent.keyDown(window, { key: "d" });
     const playerKey = screen.getByTestId("runner").getAttribute("data-motion-key");
@@ -1449,7 +1480,7 @@ describe("fall pursuit presentation", () => {
     await act(async () => { await vi.advanceTimersByTimeAsync(50); });
     expect(screen.getByTestId("runner")).not.toHaveClass("is-climbing");
     await act(async () => { await vi.advanceTimersByTimeAsync(500); });
-    expect(screen.getByTestId("pursuer")).toHaveAttribute("data-motion-key", "1300");
+    expect(screen.getByTestId("pursuer")).toHaveAttribute("data-motion-key", "1100");
     expect(screen.getAllByTestId("runner")).toHaveLength(1); expect(screen.getAllByTestId("pursuer")).toHaveLength(1);
     expect(audio.playFall).toHaveBeenCalledOnce(); expect(audio.playFootstep).toHaveBeenCalledOnce();
     expect(audio.stopBgm).not.toHaveBeenCalled();
@@ -1485,7 +1516,7 @@ describe("fall pursuit presentation", () => {
     fireEvent.click(screen.getByRole("button", { name: "시작하기" })); fireEvent.keyDown(window, { key: "j" });
     await act(async () => { await vi.advanceTimersByTimeAsync(100); });
     fireEvent.click(screen.getByRole("button", { name: "게임 설정" }));
-    expect(screen.getByText(/넘어진 동안 추격자는 0.25초마다 한 칸씩 내려와요/)).toBeVisible();
+    expect(screen.getByText(/넘어진 동안 추격 간격은 0.25초지만, 가속 추격 중에는 0.05초/)).toBeVisible();
     await act(async () => { await vi.advanceTimersByTimeAsync(10_000); });
     expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "-4");
     expect(screen.getByTestId("event-status")).toHaveTextContent("2배 점수 · 30초");
@@ -1497,7 +1528,7 @@ describe("fall pursuit presentation", () => {
     await act(async () => { await vi.advanceTimersByTimeAsync(149); });
     expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "-4");
     await act(async () => { await vi.advanceTimersByTimeAsync(51); });
-    expect(tick.mock.results.at(-1)!.value).toMatchObject({ pursuerIndex: -3, nextPursuerStepAt: 11_050,
+    expect(tick.mock.results.at(-1)!.value).toMatchObject({ pursuerIndex: -3, nextPursuerStepAt: 10_850,
       lastPursuerMove: { atMs: 10_250 } });
     expect(screen.getByTestId("pursuer")).toHaveAttribute("data-motion-key", "10250");
   });
@@ -1512,7 +1543,7 @@ describe("fall pursuit presentation", () => {
     vi.setSystemTime(1300); fireEvent(document, new Event("visibilitychange"));
     expect(tick.mock.results.at(-1)!.value).toEqual(gameEngine.tickGame(fallen, 1300));
     expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "-1");
-    expect(screen.getByTestId("pursuer")).toHaveAttribute("data-motion-key", "1300");
+    expect(screen.getByTestId("pursuer")).toHaveAttribute("data-motion-key", "1100");
     vi.setSystemTime(2100); fireEvent(document, new Event("visibilitychange"));
     expect(screen.getByText("추격자에게 잡혔어요")).toBeInTheDocument();
     expect(write.mock.calls.filter(([key]) => key === DESCENT_LEADERBOARD_KEY)).toHaveLength(1);
@@ -1741,7 +1772,7 @@ describe("dedicated jump animation lifecycle", () => {
     vi.spyOn(gameEngine, "createGameState").mockReturnValue(state);
     render(<GameScreen account={account} />);
     fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
-    await act(async () => { await vi.advanceTimersByTimeAsync(900); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(1_100); });
     fireEvent.keyDown(window, { key: " ", code: "Space" });
     const motion = screen.getByTestId("runner-motion");
     await act(async () => { await vi.advanceTimersByTimeAsync(100); });

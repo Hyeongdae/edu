@@ -44,7 +44,7 @@
 }
 
 .stair-game .pursuer-motion.is-moving {
-  animation: pixel-main-descent-pursuer-step 240ms ease-out both;
+  animation: pixel-main-descent-pursuer-step var(--pursuer-step-duration, 240ms) ease-out both;
 }
 
 .stair-game .runner-motion.is-jumping {

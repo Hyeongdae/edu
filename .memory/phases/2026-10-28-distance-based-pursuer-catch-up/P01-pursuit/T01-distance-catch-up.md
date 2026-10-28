@@ -1,6 +1,6 @@
 # Task: T01 Distance Catch Up
 
-## Status: in_progress
+## Status: done
 
 ## Goal
 
@@ -71,10 +71,10 @@ export function getPursuerMotionDurationMs(state: Pick<GameState, "isPursuerCatc
 
 ## Acceptance Criteria
 
-- [ ] Five base intervals exact, standalone600ms.
-- [ ] Threshold30/7 and50ms catch-up including fall/jump/late callbacks/pause/reset tested.
-- [ ] Both screens and NPC animation honor50ms with existing accessibility/input/records intact.
-- [ ] Scoped tests, lint, build, diff and two-entrypoint browser smoke pass; report actual counts and limitations.
+- [x] Five base intervals exact, standalone600ms.
+- [x] Threshold30/7 and50ms catch-up including fall/jump/late callbacks/pause/reset tested.
+- [x] Both screens and NPC animation honor50ms with existing accessibility/input/records intact.
+- [x] Scoped tests, lint, build, diff and two-entrypoint browser smoke pass; report actual counts and limitations.
 
 ## Validation
 
@@ -103,6 +103,16 @@ Task: T01-distance-catch-up
 
 ## Progress
 
-- [ ] 구현 완료
-- [ ] 검증 통과
-- commit: pending
+- [x] 구현 완료
+- [x] 검증 통과
+- commit: implementation commit containing this Task (hash recorded in subsequent memory sync).
+
+## Validation Results — 2026-10-28
+
+- 지정28파일 **754/754tests** 통과, skip0, workers2,63.48초. `regression-verified.log`. 신규 순수규칙25tests/각 화면 통합1test 추가. 기존 시간 기대값을 새 간격으로 갱신했고 timeout/skip/config는 바꾸지 않았다.
+- lint 오류0/경고0: `lint-verified.log`; TypeScript/Vite build 통과: `build-verified.log`; git diff --check 통과.
+- 처음 회귀727개 중44개는 기존 속도 기대값이어서 수정했다. 중간754검사 신규2개 실패는 화면 밖 NPC를 gap9에서 조회한 검증 오류였고, 한 개의 추가 실패는 DOM 방향 안내를 React batch 안에서 반복 읽은 fixture 오류였다. gap8에서 모션 검사/미리 계산한 합법 입력으로 수정했다. 잘못된 runtime boolean 테스트는 의도된 unknown 단언을 추가해 TypeScript검사를 통과했다. 실패 로그도 보존한다.
+- 브라우저 `browser-smoke-final.log`/`browser-smoke.json`: Chrome156.0.8078.49, 격리 context2개, 메인1440×900/단독390×844. 기본600ms 경계·native D/J로gap30·21개 연속50ms 인접 이동·gap8 CSS0.05s·잘못된 Space 후500ms회복 중50ms유지·gap7에서250ms복귀·설정10초동결·남은250ms후기본600ms복귀 확인, Runtime예외0. 이 브라우저 시나리오는 Date.now 제어와 visibility reconciliation을 사용했고 실제 interval50ms는 양쪽 화면의 가짜 타이머 통합검사로 확인했다. 사용자 프로필/기록은 접근하지 않았다.
+- 증거 폴더: `C:/Users/DEX/AppData/Local/Temp/distance-based-pursuer-catch-up-2026-10-28/`, 두 화면별 PNG2개·CDP helper/driver·전체 로그 보존.
+- 빌드 JS554.49kB(gzip155.08)/CSS57.33kB(gzip10.97), 기존500kB chunk경고 유지. 기존 App suite/실제 Entra 로그인/스피커청취는 이번 검증 대상이 아니다.
+- 메인 `/`와 단독 `/descent-test.html` HTTP200, 기존demo5175서버 유지. 신규 범위 밖 결함: 특이사항 없음.

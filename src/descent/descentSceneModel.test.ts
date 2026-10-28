@@ -107,7 +107,7 @@ describe("downward staircase coordinates", () => {
   it("keeps the NPC's own direction through a short corner without moving the player", () => {
     const state = withPursuitAt(geometryAt(0, 10), 0, 5);
     const originalObstacles = state.obstacles;
-    const moves = [800, 1600, 2400].map(at => buildDescentSceneModel(tickDescent(state, at)));
+    const moves = [600, 1200, 1800].map(at => buildDescentSceneModel(tickDescent(state, at)));
     expect(moves.map(model => model.pursuer.index)).toEqual([6, 7, 8]);
     expect(new Set(moves.map(model => model.pursuer.direction)).size).toBe(2);
     for (const model of moves) {
@@ -121,7 +121,7 @@ describe("downward staircase coordinates", () => {
   it("maps both endpoints and timing of an independent adjacent NPC step", () => {
     const state = tickDescent(geometryAt(0, 0), 800);
     expect(buildDescentSceneModel(state).pursuerMotion).toEqual({
-      from: { x: 124, y: 104 }, to: { x: 158, y: 132 }, atMs: 800,
+      from: { x: 124, y: 104 }, to: { x: 158, y: 132 }, atMs: 600,
     });
   });
 

@@ -79,6 +79,7 @@ export interface GameState {
   direction: Direction;
   straightStepsRemaining: number;
   pursuerDistance: number;
+  isPursuerCatchingUp: boolean;
   pursuerIndex: number;
   nextPursuerStepAt: number | null;
   lastPursuerMove: PursuerMove | null;
