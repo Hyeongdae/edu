@@ -132,7 +132,7 @@ Task: T01-descent-engine-and-scene-model
 
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: pending
+- commit: `0225893`
 - After success: Task done/commit, phase done1/3/T02 in_progress, current Active T02. Do not implement the screen or run browser validation in this Task.
 
 ## Validation Results — 2026-10-28

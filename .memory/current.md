@@ -2,21 +2,38 @@
 
 ## Active Plan
 
-[Stage Unlocks and Per-Stage Scores](./plans/2026-10-27-stage-unlocks-and-per-stage-scores.md)
+[Stair Descent Local Test](./plans/2026-10-28-stair-descent-local-test.md)
 
 ## Active Phase
 
-[P01 Stage Scores](./phases/2026-10-27-stage-unlocks-and-per-stage-scores/P01-stage-scores/phase.md)
+[P01 Local Descent](./phases/2026-10-28-stair-descent-local-test/P01-local-descent/phase.md)
 
 ## Active Task
 
-None — 현재 계획의 모든 Task가 완료되었습니다.
+[T02 Isolated Local Descent Screen](./phases/2026-10-28-stair-descent-local-test/P01-local-descent/T02-isolated-local-descent-screen.md)
 
 ## Last Completed Task
 
-[T03 Stage Score Browser Validation](./phases/2026-10-27-stage-unlocks-and-per-stage-scores/P01-stage-scores/T03-stage-score-browser-validation.md) — `20f8425` (2026-10-28). T01 `f5ef960`, 동기화 `0ca7bf2`; T02 `f35254f`, 동기화 `6dfa99a`. 이전 계획 완료: T04 `9fda567`, 동기화 `cec0d37`.
+[T01 Descent Engine and Scene Model](./phases/2026-10-28-stair-descent-local-test/P01-local-descent/T01-descent-engine-and-scene-model.md) — `0225893` (2026-10-28). 이전 stage-score 계획: T01 `f5ef960`/동기화 `0ca7bf2`, T02 `f35254f`/동기화 `6dfa99a`, T03 `20f8425`/완료 동기화 `8d9b31d`. 이전 checkpoint 계획 완료: T04 `9fda567`, 동기화 `cec0d37`.
 
 ## Status
+
+- stair-descent-local-test: done1/3, Active T02. 이번 실행에서는 T01 한 개만 구현·검증·커밋했다. `0225893`: 지정8파일356/356tests(9.07s), lint/build/diff check 통과. 화면/HTML/서버/실제 브라우저는 아직 구현·검증하지 않았다.
+- 확정 범위: 기존 오르기 게임 유지, 별도 `/descent-test.html` 개발용 로컬 데모, D내려가기/J회전하며내려가기/Space2칸점프, 위쪽 NPC추격,1단계150점·90초, 기존10% 긴 구간 장애물·30칸 보너스·500ms넘어짐/250ms추격 유지, 기록 미저장.
+- 새 제품 코드는 `src/descent/`와 별도HTML에만 추가한다. 기존 index/main/App/game/audio/auth/leaderboard/test/config는 읽기 전용. 원본 GameScreen의 저장/이관 부수 효과를 가져오지 않는다. 오디오 설정도 기본값 복사/메모리 전용이다.
+- T01 완료: 순수 stage1 adapter와 하강 좌표 모델/두 테스트를 추가했다. 원본 체크포인트→최종cleared, 입력 전 obstacles로 마지막stage1 reveal, index계속증가/좌표y432−oldY, NPC visible재계산/모든 모션점 변환을 구현했다. terminal lastMove는 성공 데이터로 보존하므로 T02는 status!==playing에서 이동 연출을 억제해야 한다. adapter는 stage2/클리어>1/외부 raw checkpoint 입력을 거절한다.
+- T01 증거: C:\Users\DEX\AppData\Local\Temp\stair-descent-t01-2026-10-28\의 tests.log/lint.log/build.log와 초기 실패 로그. JS551.91kB(gzip154.18kB), CSS55.50kB(gzip10.77kB). 기존500kB chunk 경고가 출력됐으며 번들 설정은 바꾸지 않았다. 실제 생성기7seed/합법 입력·기존 시간/확률/보너스/범위 오류·좌표/불변성을 확인했다. UI 전체 저장 무접근과 실제 브라우저 모션은 후속 작업이다.
+- T02는 별도HTML/gate/저장없는 앱·view reducer·화면·scene·CSS와5테스트를 연결한다. sound counter로 React 배치/StrictMode 중복을 막고 원본 CSS를 수정하지 않는다. T03은 신규7+기존17 회귀/실제 하강브라우저/원본보존/저장0접근/타이밍·모바일·모션을 검증한다.
+- 이전 테스트용 개발 서버는 당시 `http://127.0.0.1:5175/`였다. 새 내려오기 링크는 아직 구현/확인하지 않았다. 이후 서버를 재사용하려면 실제 응답/프로세스 env를 확인한다.
+- 새 범위 밖 결함 발견 없음. 기존 번들 크기/독립 App 전체 suite/공용 랭킹/Entra·배포/원본 리팩터링/내려오기5단계는 추가하지 않는다.
+
+## Source Decisions
+
+[Stair Descent Local Test](./decisions/2026-10-28-stair-descent-local-test.md)
+
+## Previous Completed Plan: Stage Unlocks and Per-Stage Scores
+
+[완료 계획](./plans/2026-10-27-stage-unlocks-and-per-stage-scores.md) — completed3/3, T01 `f5ef960`, T02 `f35254f`, T03 `20f8425`, 완료 동기화 `8d9b31d`. 아래는 이전 계획 완료 당시 기록이다.
 
 - stage-unlocks-and-per-stage-scores: **completed, done3/3, Active Task none**. 이번 실행에서는 T03 한 개만 검증·커밋했다. `20f8425`: 지정17파일509/509tests(47.80s)/lint/build/diff check 및 격리 Chrome156 브라우저 드라이버9개 통과. 제품 source/test 수정이 필요한 결함은 발견되지 않았다.
 - 확정된 최종 규칙: 클리어 H의 다음 단계까지 min(5,H+1) 해금/최고 해금 단계 기본 선택; 단계별0점/목표150·200·250·300·350; 체크포인트 계속/그만두기 유지; 실제 종료 단계와 해당 단계 점수를 v5랭킹에 기록; 기존 랭킹만 초기화하고 클리어 이력은 보존.
@@ -28,7 +45,7 @@ None — 현재 계획의 모든 Task가 완료되었습니다.
 - T02 로그: C:\Users\DEX\AppData\Local\Temp\stair-stage-scores-t02-2026-10-28\. 최종 regression-17-files-final.log/lint-final.log/build.log. 빌드 JS551.91kB(gzip154.18kB), CSS55.50kB(gzip10.77kB). 초기 빌드의500kB chunk 경고와 기존 초과 크기는 해결하지 않았다. T01 로그는 C:\Users\DEX\AppData\Local\Temp\stair-stage-scores-t01-2026-10-27\에 보존한다.
 - 별도 소리 청취, 공용 서버 랭킹, 번들 크기, 독립 App 테스트 정리, Entra 설정/배포는 이번 계획에 추가하지 않는다.
 
-## Source Decisions
+## Previous Stage Score Source Decisions
 
 [Stage Unlocks and Per-Stage Scores](./decisions/2026-10-27-stage-unlocks-and-per-stage-scores.md)
 
@@ -60,4 +77,4 @@ None — 현재 계획의 모든 Task가 완료되었습니다.
 
 ## Next Step (IMPORTANT)
 
-현재 계획은 완료되어 실행할 Active Task가 없다. 직접 플레이는 `http://127.0.0.1:5175/`에서 할 수 있다(개발 서버 실행 중에만 유효). 새 변경 요청은 인터뷰/결정→새 계획으로 이어간다. 완료된 T01~T03를 재실행하거나 범위 밖 인증/배포/공용 서버/번들 개선을 자동으로 시작하지 않는다.
+다음 `/memory-execute` 또는 "current 보고 이어서 해줘" 요청에서는 Active T02 청사진 한 개만 읽고 별도 `descent-test.html`/개발모드gate/저장없는 앱·view reducer·화면·scene·CSS와5테스트를 구현한다. T01 순수 함수와 원본 자산을 읽기 전용으로 재사용하며 원본 GameScreen/저장 이관/오디오 설정 저장은 연결하지 않는다. 하강 모션/기록 미저장/StrictMode·배치 사운드 중복 방지 및 신규7+기존17 검증을 따른다. 성공 후 phase done2/3/current T03로 전진한다. T01과 이전 완료 계획은 재실행하지 않으며 실제 브라우저 완료는 T03에 남겨둔다.
