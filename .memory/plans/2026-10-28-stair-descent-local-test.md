@@ -1,7 +1,7 @@
 # Plan: Stair Descent Local Test
 
 - Date: 2026-10-28
-- Status: in_progress
+- Status: completed
 - Source: [확정 결정](../decisions/2026-10-28-stair-descent-local-test.md)
 - Planning history: 계획 작성 단계에서는 `.memory/` 문서만 작성했다. 후속 실행의 구현·검증 결과는 아래 Progress에 기록한다.
 - Previous completed plan: [Stage Unlocks and Per-Stage Scores](./2026-10-27-stage-unlocks-and-per-stage-scores.md), T01 `f5ef960`, T02 `f35254f`, T03 `20f8425`, 완료 동기화 `8d9b31d`.
@@ -14,7 +14,7 @@
 
 | Phase | Status | Summary | Blueprint |
 | :--- | :--- | :--- | :--- |
-| P01 | in_progress | 순수 규칙·좌표 → 독립 로컬 화면 → 실제 브라우저 검증 | [P01](../phases/2026-10-28-stair-descent-local-test/P01-local-descent/phase.md) |
+| P01 | completed | 순수 규칙·좌표 → 독립 로컬 화면 → 실제 브라우저 검증 | [P01](../phases/2026-10-28-stair-descent-local-test/P01-local-descent/phase.md) |
 
 ## Task Roadmap
 
@@ -63,9 +63,12 @@
 
 ## Progress
 
-- done: 2/3 (active: T03)
+- done: 3/3 (active: none)
 - 2026-10-28 T01 `0225893` 완료: 순수1단계 adapter/하강 좌표 모델과 두 테스트. 지정8파일356/356tests(9.07s), lint/build/diff check 통과. 마지막 장애물의stage1 결정과 전체 모션점/가시성 변환을 확인했으며 원본 구현/저장소/설정/의존성은 변경하지 않았다. JS551.91kB(gzip154.18kB), CSS55.50kB(gzip10.77kB), 기존500kB chunk 경고 유지.
 - T01 로그 `%TEMP%\stair-descent-t01-2026-10-28\`, 상세 결과는 T01 Validation Results.
 - 2026-10-28 T02 `f9aa712` 완료: 독립 로컬 HTML/DEV gate/메모리 전용 오디오/하강 화면·모션·입력/설정 pause/결과·ready 재시작과 신규5테스트를 추가했다. 동일24파일642/642tests(72.08s, 동시 실행 수만 `--maxWorkers=2`), lint 오류0·경고0/build/diff check 통과. 기본 동시 실행의 기존 GameScreen30회 렌더링 테스트는 시간 초과였으며 원본 단독77/77 및 전체 동시2개 재실행은 통과했다. 원본/테스트 timeout/config/패키지를 수정하지 않았다.
 - T02 로그 `%TEMP%\stair-descent-t02-2026-10-28\`, 최종 `regression-24-final.log`/`lint-final.log`/`build-final.log`. 기존 JS551.91kB/CSS55.50kB/500kB 경고 유지, 기본 dist의 HTML은 index.html 하나다. `http://127.0.0.1:5175/descent-test.html` HTTP200와 DEVtrue/demo flagtrue를 확인했다.
-- 현재 T03에서 실제 브라우저/저장 sentinel 보존/원본 유지/모션·모바일·큰 글꼴을 확인한다. T02에는 실제 브라우저/소리 청취 검증이 없고 계획은 아직 in_progress다.
+- T02에는 실제 브라우저/소리 청취 검증이 없다. 후속 T03의 실제 브라우저 결과로 아래와 같이 계획을 완료했다.
+- 2026-10-28 T03 `04fdeea` 완료: Chrome156.0.8078.48 소유 context9 driver/네 viewport 실제 UI87행동·90계단·150점/양쪽 생성 점프·모션·설정95제어초·원본 진행/저장0접근·sentinel 보존/devfalse·기본 build 제외·preview 원본 fallback을 확인했다. 실제 Date.now 추격·4초 lifecycle과 제어시간 flow/명시적 함수 경계 fixture를 구분했다. 오디오 재시도 버튼 제거 후 focus 유실 결함은 신규 내려오기 화면과 기존 테스트만 수정했다.
+- T03 최종24파일642/642tests(47.17s, `--maxWorkers=2`)/lint 오류0·경고0/build/diff check 통과. 기본 pool은 기존 원본 화면 검사5000ms 시간 초과가 발생했으며 테스트·timeout/config는 바꾸지 않았다. 기본 dist는 index.html만, JS551.91kB/CSS55.50kB 그대로다. 최종 build에는 chunk 경고가 재출력되지 않았다.
+- 증거 `%TEMP%\stair-descent-local-test-2026-10-28\`: evidence-index.json/97개 mjs·JSON·PNG·log/PNG40개(필수11개), final-driver와 regression-24-final.log/lint-final.log/build-final.log. 소유 headless 브라우저와 보조 서버는 종료했다. 사용자 로컬 링크 `http://127.0.0.1:5175/descent-test.html`은 기존 데모 서버에서 유지한다. 실제 스피커 청취 품질/기존 번들·원본 테스트 성능 개선/Entra·배포/5단계 확장은 별도다.

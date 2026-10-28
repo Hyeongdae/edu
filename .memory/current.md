@@ -2,36 +2,48 @@
 
 ## Active Plan
 
-[Stair Descent Local Test](./plans/2026-10-28-stair-descent-local-test.md)
+[Stair Descent Local Test](./plans/2026-10-28-stair-descent-local-test.md) — completed (done3/3)
 
 ## Active Phase
 
-[P01 Local Descent](./phases/2026-10-28-stair-descent-local-test/P01-local-descent/phase.md)
+None — [P01 Local Descent](./phases/2026-10-28-stair-descent-local-test/P01-local-descent/phase.md) completed.
 
 ## Active Task
 
-[T03 Descent Browser Validation](./phases/2026-10-28-stair-descent-local-test/P01-local-descent/T03-descent-browser-validation.md)
+None — stair-descent-local-test completed.
 
 ## Last Completed Task
 
-[T02 Isolated Local Descent Screen](./phases/2026-10-28-stair-descent-local-test/P01-local-descent/T02-isolated-local-descent-screen.md) — `f9aa712` (2026-10-28). 이 계획 T01 `0225893`/동기화 `4b49dc8`. 이전 stage-score 계획: T01 `f5ef960`/동기화 `0ca7bf2`, T02 `f35254f`/동기화 `6dfa99a`, T03 `20f8425`/완료 동기화 `8d9b31d`. 이전 checkpoint 계획 완료: T04 `9fda567`, 동기화 `cec0d37`.
+[T03 Descent Browser Validation](./phases/2026-10-28-stair-descent-local-test/P01-local-descent/T03-descent-browser-validation.md) — `04fdeea` (2026-10-28). 이 계획 T01 `0225893`/동기화 `4b49dc8`, T02 `f9aa712`/동기화 `8f92171`. 이전 stage-score 계획: T01 `f5ef960`/동기화 `0ca7bf2`, T02 `f35254f`/동기화 `6dfa99a`, T03 `20f8425`/완료 동기화 `8d9b31d`. 이전 checkpoint 계획 완료: T04 `9fda567`, 동기화 `cec0d37`.
 
 ## Status
 
-- stair-descent-local-test: done2/3, Active T03. 이번 실행에서는 T02 한 개만 구현·검증·커밋했다. `f9aa712`: 지정24파일642/642tests(72.08s, `--maxWorkers=2`), lint 오류0·경고0/build/diff check 통과. 실제 브라우저 검증은 아직 하지 않았다.
+- stair-descent-local-test: **completed, done3/3, Active Task none**. 이번 실행에서는 T03 한 개만 검증·관련 결함 수정·커밋했다. `04fdeea`: 실제 브라우저9 driver/지정24파일642/642tests(47.17s, `--maxWorkers=2`)/lint 오류0·경고0/build/diff check 통과.
 - 확정 범위: 기존 오르기 게임 유지, 별도 `/descent-test.html` 개발용 로컬 데모, D내려가기/J회전하며내려가기/Space2칸점프, 위쪽 NPC추격,1단계150점·90초, 기존10% 긴 구간 장애물·30칸 보너스·500ms넘어짐/250ms추격 유지, 기록 미저장.
 - 새 제품 코드는 `src/descent/`와 별도HTML에만 추가한다. 기존 index/main/App/game/audio/auth/leaderboard/test/config는 읽기 전용. 원본 GameScreen의 저장/이관 부수 효과를 가져오지 않는다. 오디오 설정도 기본값 복사/메모리 전용이다.
 - T01 완료: 순수 stage1 adapter와 하강 좌표 모델/두 테스트를 추가했다. 원본 체크포인트→최종cleared, 입력 전 obstacles로 마지막stage1 reveal, index계속증가/좌표y432−oldY, NPC visible재계산/모든 모션점 변환을 구현했다. terminal lastMove는 성공 데이터로 보존하므로 T02는 status!==playing에서 이동 연출을 억제해야 한다. adapter는 stage2/클리어>1/외부 raw checkpoint 입력을 거절한다.
-- T01 증거: C:\Users\DEX\AppData\Local\Temp\stair-descent-t01-2026-10-28\의 tests.log/lint.log/build.log와 초기 실패 로그. JS551.91kB(gzip154.18kB), CSS55.50kB(gzip10.77kB). 기존500kB chunk 경고가 출력됐으며 번들 설정은 바꾸지 않았다. 실제 생성기7seed/합법 입력·기존 시간/확률/보너스/범위 오류·좌표/불변성을 확인했다. UI 전체 저장 무접근과 실제 브라우저 모션은 후속 작업이다.
+- T01 증거: C:\Users\DEX\AppData\Local\Temp\stair-descent-t01-2026-10-28\의 tests.log/lint.log/build.log와 초기 실패 로그. JS551.91kB(gzip154.18kB), CSS55.50kB(gzip10.77kB). 당시 기존500kB chunk 경고가 출력됐으며 번들 설정은 바꾸지 않았다. 실제 생성기7seed/합법 입력·기존 시간/확률/보너스/범위 오류·좌표/불변성을 확인했다. UI 저장 무접근과 브라우저 모션은 후속 T03에서 완료했다.
 - T02 완료: 별도HTML/gate/저장없는 앱·view reducer·화면·scene·CSS와5테스트를 연결했다. sound counter로 React 배치/StrictMode 중복을 막고 restart RNG는 이벤트에서 생성한다. 설정 닫기 후 gear 재활성화 이후 focus 복귀/빠른 열기·닫기의 NPC 과거 cosmetic 모션 재생 방지/오디오 전용 scoped grid도 반영했다. 원본 CSS/기능/오디오/저장 helper는 변경하지 않았다.
 - T02 검증: 기본 동시 실행24파일은 기존 GameScreen.test.tsx:198의30회 렌더링 검사에서5000ms 시간 초과 후 연쇄 실패했다. 원본 단독77/77(28.25s), 동일24경로에 `--maxWorkers=2`만 추가한 최종 검사는642/642(72.08s) 통과다. timeout/skip/config 변경은 없다. 중간 `tests-24-final.log`는 확장자 오타로23파일만 실행된 로그이므로 최종 근거는 `regression-24-final.log`다.
 - T02 증거: `C:\Users\DEX\AppData\Local\Temp\stair-descent-t02-2026-10-28\`의 최종 regression-24-final.log/lint-final.log/build-final.log. JS551.91kB(gzip154.18kB), CSS55.50kB(gzip10.77kB), 기본 dist는 기존 index.html만/기존500kB chunk 경고 유지. 테스트에서는 storage throwing getter/메서드0접근,1단계 실제 합법 입력 전체 클리어·마지막 점프·pause95초/음향 counter/StrictMode/터치·Space/300·600ms정리/잡힘 gate를 확인했다.
-- 로컬 내려오기 링크 `http://127.0.0.1:5175/descent-test.html`: 기존 소유 데모 서버 PID21048/port5175를 재사용하고 HTTP200/새 module/DEVtrue/VITE_LOCAL_DEMO_MODEtrue를 확인했다. 새 서버/브라우저를 실행하지 않았으며 env 파일은 변경하지 않았다. 실제 하강브라우저/원본보존/저장 sentinel0접근·보존/타이밍·모바일·모션·큰 글꼴 판정은 T03에 남겨둔다.
+- T03 완료: 실제0.19 seed/10% 생성기·표시 cue·native키/터치로 네 viewport(320×667/390×667/768×1024/1440×900) 모두87행동/90물리계단/150점/생성 jump3회/1단계 최종 종료·ready 재시작을 확인했다. 저장 getter/메서드0/유효v4-only·v5·progress/audio/auth/session/unrelated sentinel byte equality, blocked getter 정상 실행, 원본 y188/NPC328 및clear→Quit→retry2/0점/목표200/랭킹 쓰기를 별도 context에서 확인했다.
+- T03 모션/시간/접근성: actual Date.now800·1600·2400·3200 NPC/250·500 fall/1300 정상 successor/4초 frozen→active same-document 단일 잡힘, WebAnimation step300/jump양쪽300/NPC240/catch500의 실제 좌표, 설정95제어초 동결/Tab·nativeSpace·터치중복·range·root24/32 scroll hit-test/음악1↔1.25/종료·unmount timer0/listener0/dispose1을 확인했다. 전체 flow는 제어시간 UI이며 함수 fixture로 검사한90초expiry·250/500tie·pending150·149→153 경계와 실제 시간 검사를 구분했다. 실제 스피커 청취 품질은 판정하지 않았다.
+- T03 관련 결함1개 수정: 오디오 허용 후 enable 버튼이 사라지면서 modal focus/Escape가 끊겼다. DescentGameScreen의 settingsDialog ref/유효 내부focus 보존·외부focus 복구와 DescentTestApp 기존 재시도 테스트를 보완했다. 수정 전6개 중1실패→수정 후6/6 및 최종 전체 회귀/브라우저 모두 통과다. 기존 게임/공용 오디오/설정/원본 테스트는 그대로다.
+- T03 검증/증거: `%TEMP%\stair-descent-local-test-2026-10-28\`의 evidence-index.json(97artifact/PNG40·필수11)/final-driver9개/regression-24-final.log/lint-final.log/build-final.log. Node24.21.0/npm11.19.0/Chrome156.0.8078.48, 소유 숨김 headless/CDP context만 사용했다. 기본24파일 명령은 기존 GameScreen30회 렌더링5000ms 시간 초과 후73연쇄실패/569통과(21.03s), 동일24파일 workers2는642/642(47.17s)다. timeout/skip/config 변경 없음. default build는 기존index.html만/JS551.91kB/CSS55.50kB이며 이번 최종 로그에는 chunk 경고가 재출력되지 않았다.
+- 로컬 링크 `http://127.0.0.1:5175/descent-test.html`: 기존 소유 데모 PID21048 유지/최종HTTP200/새 module/DEVtrue/demo flagtrue 확인. devfalse5176은 이용 불가, production preview5177의 동일경로200은 원본index SPA fallback·Entra 설정 안내이며 descent 미배포다. 소유 Chrome17080/보조5176·5177 서버는 identity 확인 후 종료했고 사용자 프로필/다른 서버는 건드리지 않았다. env 파일은 변경하지 않았다.
 - 새 범위 밖 결함 발견 없음. 기존 번들 크기/독립 App 전체 suite/공용 랭킹/Entra·배포/원본 리팩터링/내려오기5단계는 추가하지 않는다.
 
 ## Source Decisions
 
 [Stair Descent Local Test](./decisions/2026-10-28-stair-descent-local-test.md)
+
+## Completed Stair Descent Plan History
+
+| Task | Implementation commit | Validation |
+| :--- | :--- | :--- |
+| T01 Descent Engine and Scene Model | `0225893` | 지정8파일356tests/lint/build |
+| T02 Isolated Local Descent Screen | `f9aa712` | 지정24파일642tests/workers2/lint/build/entry HTTP |
+| T03 Descent Browser Validation | `04fdeea` | 지정24파일642tests/workers2/lint/build + 소유 브라우저9 driver |
 
 ## Previous Completed Plan: Stage Unlocks and Per-Stage Scores
 
@@ -79,4 +91,4 @@
 
 ## Next Step (IMPORTANT)
 
-다음 `/memory-execute` 또는 "current 보고 이어서 해줘" 요청에서는 Active T03 청사진 한 개만 읽고 실제 브라우저 내려오기/원본 유지/저장소0접근·sentinel 보존/시간·모션·모바일·큰 글꼴을 검증한다. T02 테스트와 HTTP 확인을 실제 브라우저 증거로 대신하지 않는다. 관련 신규 파일에서 입증된 결함만 수정하고 기존 game/audio/auth/leaderboard/test/config는 읽기 전용으로 유지한다. 지정24파일 회귀는 기본 병렬 실행에서 기존 화면 테스트 시간 초과가 있었으므로 동시2개 실행 결과와 원래 명령 결과를 구분해 기록한다. 성공 후 phase done3/3/plan completed/current none으로 전환한다. T01/T02와 이전 완료 계획은 재구현하지 않는다.
+현재 계획은 모두 완료되어 실행할 Active Task가 없다. 사용자에게 로컬 내려오기 링크로 플레이 피드백을 받는다. 새 규칙/단계/디자인 변경은 요구사항을 확정하고 새 계획을 만든 뒤 실행한다. 기존 완료 Task와 과거 계획은 재실행하지 않는다. 실제 스피커 청취/기존 번들·원본 테스트 성능 개선/공용 랭킹/Entra·배포/내려오기5단계는 이번 완료 범위를 넘어 자동으로 진행하지 않는다.

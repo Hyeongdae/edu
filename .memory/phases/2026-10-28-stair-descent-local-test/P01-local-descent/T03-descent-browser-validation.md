@@ -142,7 +142,7 @@ Task: T03-descent-browser-validation
 
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: pending
+- commit: `04fdeea`
 
 ## Validation Results — 2026-10-28
 
