@@ -156,7 +156,7 @@ Task: T01-descent-record-storage
 
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: recorded in the following metadata synchronization commit
+- commit: `9b6ba54`
 - After success: Task done/commit, phase done1/3/T02 in_progress, current Active T02; do not implement the next Task in this invocation.
 
 ## Execution Evidence — 2026-10-28

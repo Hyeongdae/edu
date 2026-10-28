@@ -2,21 +2,33 @@
 
 ## Active Plan
 
-[Stair Descent Local Test](./plans/2026-10-28-stair-descent-local-test.md) — completed (done3/3)
+[Main Game Descent Conversion](./plans/2026-10-28-main-game-descent-conversion.md)
 
 ## Active Phase
 
-None — [P01 Local Descent](./phases/2026-10-28-stair-descent-local-test/P01-local-descent/phase.md) completed.
+[P01 Main Descent](./phases/2026-10-28-main-game-descent-conversion/P01-main-descent/phase.md)
 
 ## Active Task
 
-None — stair-descent-local-test completed.
+[T02 Main Descent Integration](./phases/2026-10-28-main-game-descent-conversion/P01-main-descent/T02-main-descent-integration.md)
 
 ## Last Completed Task
 
-[T03 Descent Browser Validation](./phases/2026-10-28-stair-descent-local-test/P01-local-descent/T03-descent-browser-validation.md) — `04fdeea` (2026-10-28). 이 계획 T01 `0225893`/동기화 `4b49dc8`, T02 `f9aa712`/동기화 `8f92171`. 이전 stage-score 계획: T01 `f5ef960`/동기화 `0ca7bf2`, T02 `f35254f`/동기화 `6dfa99a`, T03 `20f8425`/완료 동기화 `8d9b31d`. 이전 checkpoint 계획 완료: T04 `9fda567`, 동기화 `cec0d37`.
+[T01 Descent Record Storage](./phases/2026-10-28-main-game-descent-conversion/P01-main-descent/T01-descent-record-storage.md) — `9b6ba54` (2026-10-28). 이전 local-descent 계획 T03 `04fdeea`/동기화 `bdf18d5`, T01 `0225893`/동기화 `4b49dc8`, T02 `f9aa712`/동기화 `8f92171`. 이전 stage-score 계획: T01 `f5ef960`/동기화 `0ca7bf2`, T02 `f35254f`/동기화 `6dfa99a`, T03 `20f8425`/완료 동기화 `8d9b31d`. 이전 checkpoint 계획 완료: T04 `9fda567`, 동기화 `cec0d37`.
 
 ## Status
+
+- main-game-descent-conversion: done1/3, Active T02. 2026-10-28 T01 `9b6ba54` 완료: 전용 recordStorage/optional scope와 테스트만 추가했다. 지정 6파일 242/242tests(32.11초/workers2), lint/build/diff check 통과. 현재 main은 여전히 상승 게임이며 실제 브라우저 기록은 접근·초기화하지 않았다.
+- T01 증거: `%TEMP%\main-descent-records-t01-2026-10-28\`의 tests.log/lint.log/build.log. marker read/write·6개 구키 get/remove 실패 12조합과 재시도·새 기록 보존, account별 max/랭킹 pair·동점·schema·getter 오류를 검증했다. 기존 main/scene/실험/App/auth/audio/entry/config/package 경로는 baseline `bdf18d5` 대비 diff 없음. JS552.85kB/CSS55.50kB, 기존 500kB chunk 경고 유지. 신규 범위 밖 결함: 특이사항 없음.
+- 사용자 확정: 기존 `/`를5단계 내려오기로 변경/추격자는 위쪽; 기존 규칙·로그인·오디오·랭킹·checkpoint·단계 선택 유지; 구 랭킹·단계 해금 모두 초기화 후1부터 재시작.
+- 새 저장 키: stair-descent:leaderboard:v1 / stair-descent:stage-progress:v1, reset marker stair-descent:records-reset:v1=`1`. 구 랭킹v1..v5와 ascentprogressv1만 정리하고 auth/audio/session/새 기록은 보존한다. 구 랭킹에서 해금을 복원하지 않는다. 재방문/StrictMode/삭제 실패 재시도에도 새 기록을 지우지 않는다.
+- T01은 recordStorage 신규 helper/optional scope를 stageProgress·leaderboard에 추가하고 fake Storage로 검증한다. 기존 defaultascent를 유지하고 main에는 연결하지 않는다. T02에서 모든 main read/save를 descent로 연결하면서 renderer/CSS/문구를 함께 전환한다. T03에서 실제5단계·저장 전환/재접속·모바일/시간을 확인한다.
+- 하강 투영만 기존 src/descent/descentSceneModel.ts에서 읽기 전용 재사용한다. 기본 상승 stairSceneModel을 바꾸면 실험이 이중 반전되므로 그대로 둔다. main은 실제5단계 core엔진을 사용하며 실험의1단계 adapter/view reducer/App를 import하지 않는다.
+- 규칙 고정: 목표150/200/250/300/350; 시간90/75/65/60/50초; 긴 구간 상자10/20/30/40/50%; NPC800/650/500/400/300ms; fall500/NPC250;30물리계단→30초2배;긴5..9/짧은1..3. 각 단계0점/클리어CP/Continue·Quit/5최종/실제단계+점수랭킹 유지.
+- 검증 명령은 기존 느린 화면 테스트 자원 경쟁을 고려해 maxWorkers2를 명시한다. T01은6파일, T02/T03은 기존24+recordStorage/StairScene/authConfig의27파일/실제 count기록. timeout/skip/config 변경은 하지 않는다. 기존 App 전체suite/번들/렌더 성능/공용 서버랭킹/Entra·배포/새 모드는 이번 계획 밖이다.
+- 사용자 추가 확정(D11): main autoplay 재시도 버튼 제거 후 modal focus 유실도 함께 처리한다. T02는 GameScreen dialog/previous-open refs와 post-commit focus 복구/기존 GameScreen 회귀 검사를 포함하며 T03는 native 재시도·Tab/Escape/닫기 복귀·range focus/늦은 결과 검증을 수행한다. 오디오 owner/설정 저장/게임 pause는 유지하고 Task 수3개/Active T01 순서는 바꾸지 않는다.
+
+## Previous Completed Plan: Stair Descent Local Test
 
 - stair-descent-local-test: **completed, done3/3, Active Task none**. 이번 실행에서는 T03 한 개만 검증·관련 결함 수정·커밋했다. `04fdeea`: 실제 브라우저9 driver/지정24파일642/642tests(47.17s, `--maxWorkers=2`)/lint 오류0·경고0/build/diff check 통과.
 - 확정 범위: 기존 오르기 게임 유지, 별도 `/descent-test.html` 개발용 로컬 데모, D내려가기/J회전하며내려가기/Space2칸점프, 위쪽 NPC추격,1단계150점·90초, 기존10% 긴 구간 장애물·30칸 보너스·500ms넘어짐/250ms추격 유지, 기록 미저장.
@@ -34,6 +46,10 @@ None — stair-descent-local-test completed.
 - 새 범위 밖 결함 발견 없음. 기존 번들 크기/독립 App 전체 suite/공용 랭킹/Entra·배포/원본 리팩터링/내려오기5단계는 추가하지 않는다.
 
 ## Source Decisions
+
+[Main Game Descent Conversion](./decisions/2026-10-28-main-game-descent-conversion.md)
+
+## Previous Stair Descent Source Decisions
 
 [Stair Descent Local Test](./decisions/2026-10-28-stair-descent-local-test.md)
 
@@ -91,4 +107,4 @@ None — stair-descent-local-test completed.
 
 ## Next Step (IMPORTANT)
 
-현재 계획은 모두 완료되어 실행할 Active Task가 없다. 사용자에게 로컬 내려오기 링크로 플레이 피드백을 받는다. 새 규칙/단계/디자인 변경은 요구사항을 확정하고 새 계획을 만든 뒤 실행한다. 기존 완료 Task와 과거 계획은 재실행하지 않는다. 실제 스피커 청취/기존 번들·원본 테스트 성능 개선/공용 랭킹/Entra·배포/내려오기5단계는 이번 완료 범위를 넘어 자동으로 진행하지 않는다.
+다음 `/memory-execute` 또는 "current 보고 이어서 해줘"에서는 Active T02 청사진 한 개만 읽고 기존5단계 main을 하강으로 연결한다. 모든 main 기록 read/save에 descent scope를 명시하고 StairScene 투영·모션/CSS/문구를 함께 전환한다. 사용자 확정 D11 오디오 재시도 후 설정 dialog focus 복구와 기존 GameScreen 회귀 검증도 T02 범위다. 기본 상승 좌표 모델/엔진·규칙/실험 adapter·화면/auth 설정/audio owner는 보존한다. T01은 재실행하지 않고 T03 실제 브라우저 검증은 함께 수행하지 않는다. 성공 후 Taskdone/지정commit→phase done2/3/currentT03를 동기화한다.
