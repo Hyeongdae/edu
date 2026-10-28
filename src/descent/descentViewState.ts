@@ -26,7 +26,7 @@ export function createDescentViewState(readyState: GameState, nowMs: number): De
     readyState.stageEndsAt !== null || readyState.nextPursuerStepAt !== null || readyState.eventEndsAt !== null ||
     readyState.recoveryEndsAt !== null || readyState.captureEndsAt !== null || readyState.captureCount !== 0 ||
     readyState.pursuerDistance !== 4 || readyState.pursuerIndex !== -4 || readyState.lastMove !== null ||
-    readyState.lastPursuerMove !== null || readyState.lastMistake || readyState.endReason !== null) {
+    readyState.lastPursuerMove !== null || readyState.lastMistake || readyState.endReason !== null || readyState.stageResult !== null) {
     throw new RangeError("A descent preview must be a fresh, unstarted first stage.");
   }
   return { game: readyState, nowMs, settingsOpenedAt: null, playerMoveAt: null, playerMotionKey: 0,

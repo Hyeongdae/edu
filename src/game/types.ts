@@ -66,10 +66,19 @@ export interface GameMove {
   isBonus: boolean;
 }
 
+export interface StageResult {
+  readonly stage: GameStage;
+  readonly score: number;
+  readonly remainingTimeCs: number;
+  readonly endedAtMs: number;
+  readonly outcome: "cleared" | "caught" | "time-limit";
+}
+
 export interface GameState {
   status: GameStatus;
   stage: GameStage;
   stageEndsAt: number | null;
+  stageResult: StageResult | null;
   endReason: GameEndReason | null;
   score: number;
   stepsClimbed: number;

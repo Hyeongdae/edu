@@ -1,6 +1,6 @@
 # Task: T01 Stage Result Snapshot
 
-## Status: in_progress
+## Status: done
 
 ## Goal
 
@@ -96,10 +96,10 @@ export function formatRemainingTimeCs(remainingTimeCs: number): string;
 
 ## Acceptance Criteria
 
-- [ ] 실제종료경계에서유효한StageResult가생성되고 보통진행은null.
-- [ ] 표시0.01초와저장정수값/단계기한/pause계산이일치.
-- [ ] 메인5단계·단독1단계의기존추격/경로/장애물/연출검사통과.
-- [ ] 지정29파일·lint·build·diff검사통과와실제결과기록.
+- [x] 실제종료경계에서유효한StageResult가생성되고 보통진행은null.
+- [x] 표시0.01초와저장정수값/단계기한/pause계산이일치.
+- [x] 메인5단계·단독1단계의기존추격/경로/장애물/연출검사통과.
+- [x] 지정29파일·lint·build·diff검사통과와실제결과기록.
 
 ## Validation
 
@@ -129,6 +129,16 @@ Task: T01-stage-result-snapshot
 
 ## Progress
 
-- [ ] 구현 완료
-- [ ] 검증 통과
-- commit: pending
+- [x] 구현 완료
+- [x] 검증 통과
+- commit: implementation commit containing this Task; hash recorded in subsequent memory sync.
+
+## Validation Results — 2026-10-28
+
+- 지정29파일 **864/864tests**, skip0, workers2,124.79초 통과. 기존754개와 신규 stageResult110개. 최종 근거 `regression-29-serial.log`.
+- 새 pure helper/schema/format과 실제 engine 경계에서 모든 단계 목표/초과 점수, 0.01초 내림, 잡힘 실제2400ms/지연callback100000ms, 넘어짐250/500·가속50/gap7, timeout우선, 체크포인트95초/quit 동일 결과 참조, Continue/null, 설정pause, 단독1단계clear/저장getter0/RNG0을 확인했다.
+- 초기 신규 검사 전28파일754/754(55.17초), 초기 helper109/109(1.49초). 신규 factory 검사를 추가한29파일 실행은 빌드/lint를 함께 실행하던 중 기존 GameScreen의 bonus-pause 검사가5초 제한을 넘겨(7.847초)79개 연쇄실패/785개통과(101.98초)했다. 다른 검증 종료 후 동일 명령을 별도 실행해864/864 통과했다. 두 실행 사이 제품 source/검사/timeout/skip/config는 변경하지 않았다.
+- lint 오류0/경고0, TypeScript·Vite build 통과, git diff --check 통과. JS555.79kB(gzip155.40)/CSS57.33kB(gzip10.97); 기존500kB초과 번들 크기는 유지되고 이번 build.log에는 해당 경고 재출력이 없다.
+- 증거: `C:/Users/DEX/AppData/Local/Temp/time-ranking-and-office-ending-2026-10-28/T01/`의 regression-initial.log/result-focus-initial.log/regression-29-final.log(중간실패)/regression-29-serial.log(최종성공)/lint.log/build.log.
+- 제품 변경: types.ts, gameEngine.ts, 신규stageResult.ts, 단독fresh guard(descentViewState.ts) 및 신규stageResult.test.ts. 기존 검사/fixture 수정은 불필요했고 descentEngine.ts도 기존 spread가 core snapshot을 보존해 source수정이 필요하지 않았다.
+- 랭킹/recordStorage/진행도/auth/audio/설정/규칙/계단 아트/실제 기록에는 추가 변경 없음. 브라우저 검증은 후속T04 대상이다. 기존 화면 검사 시간 제한의 자원 경쟁 이슈 외 신규 범위 밖 결함: 특이사항 없음.

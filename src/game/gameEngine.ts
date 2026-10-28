@@ -3,6 +3,7 @@ import { advanceStairRoute, countStraightSteps, createStairRoute, getRouteStep }
 import { getHighestUnlockedStage, getStageRule, getStageTargetScore, isClearedStage, isGameStage } from "./stageRules";
 import { createObstacleState, hasObstacle, revealObstacles } from "./stairObstacles";
 import { getPursuerCatchUpState, PURSUER_CATCH_UP_INTERVAL_MS } from "./pursuitRules";
+import { captureStageResult, isStageResult } from "./stageResult";
 
 const INITIAL_PURSUER_DISTANCE = 4;
 const EVENT_STEP_TARGET = 30;
@@ -34,6 +35,13 @@ function validatePursuit(state: GameState): void {
     !Number.isSafeInteger(state.captureCount) || state.captureCount < 0 ||
     (state.status === "playing" ? state.stageEndsAt === null || state.nextPursuerStepAt === null : state.nextPursuerStepAt !== null)
   ) throw new RangeError("Invalid pursuit position or clock state.");
+  const hasResult = state.status === "checkpoint" || state.status === "game-over";
+  const result = state.stageResult;
+  const expectedOutcome = state.status === "checkpoint" || state.endReason === "quit" ? "cleared" : state.endReason;
+  if (hasResult ? !isStageResult(result) || result.stage !== state.stage || result.score !== state.score ||
+    result.outcome !== expectedOutcome : result !== null) {
+    throw new RangeError("Invalid stage result for the current session.");
+  }
   for (const time of [state.stageEndsAt, state.nextPursuerStepAt, state.eventEndsAt, state.recoveryEndsAt, state.captureEndsAt, state.checkpointEnteredAt]) {
     if (time !== null) validateTime(time);
   }
@@ -72,7 +80,7 @@ export function createGameState(random: () => number = Math.random, options: Gam
   }
   const route = createStairRoute(random);
   return {
-    status: "ready", stage, stageEndsAt: null, endReason: null,
+    status: "ready", stage, stageEndsAt: null, stageResult: null, endReason: null,
     score: 0, highestClearedStage: highest, clearedStageThisRun: 0, checkpointEnteredAt: null,
     stepsClimbed: 0, direction: "right",
     straightStepsRemaining: countStraightSteps(route, 0, "right"),
@@ -91,7 +99,7 @@ export function startGame(state: GameState, nowMs: number): GameState {
   return {
     ...state, status: "playing", stageEndsAt: nowMs + getStageRule(state.stage).durationMs, endReason: null,
     nextPursuerStepAt: nowMs + getStageRule(state.stage).pursuerStepIntervalMs,
-    isPursuerCatchingUp: false, lastMove: null,
+    isPursuerCatchingUp: false, stageResult: null, lastMove: null,
   };
 }
 
@@ -110,6 +118,7 @@ export function tickGame(state: GameState, nowMs: number): GameState {
     if (!Number.isFinite(at) || at > nowMs) break;
     if (current.status === "playing" && current.stageEndsAt === at) {
       current = { ...current, status: "game-over", endReason: "time-limit", stageEndsAt: null, eventEndsAt: null,
+        stageResult: captureStageResult(current, "time-limit", at),
         eventSteps: current.eventEndsAt === at ? 0 : current.eventSteps, nextPursuerStepAt: null,
         isPursuerCatchingUp: false,
         recoveryEndsAt: null, captureEndsAt: null, lastMistake: false, lastPursuerMove: null, lastMove: null };
@@ -126,6 +135,7 @@ export function tickGame(state: GameState, nowMs: number): GameState {
     if (toIndex >= current.stepsClimbed) {
       current = {
         ...current, status: "game-over", endReason: "caught", stageEndsAt: null, eventEndsAt: null,
+        stageResult: captureStageResult(current, "caught", at),
         pursuerIndex: current.stepsClimbed - 1, pursuerDistance: 1,
         nextPursuerStepAt: null, lastPursuerMove: null,
         isPursuerCatchingUp: false,
@@ -212,6 +222,7 @@ export function applyInput(state: GameState, input: GameInput, nowMs: number): G
   if (completed) {
     result = {
       ...movedState,
+      stageResult: captureStageResult(movedState, "cleared", nowMs),
       clearedStageThisRun: Math.max(movedState.clearedStageThisRun, movedState.stage) as ClearedStage,
       highestClearedStage: Math.max(movedState.highestClearedStage, movedState.stage) as ClearedStage,
       status: movedState.stage === 5 ? "game-over" : "checkpoint",
@@ -233,7 +244,7 @@ export function continueGame(state: GameState, nowMs: number): GameState {
   const rule = getStageRule((state.stage + 1) as GameStage);
   const pausedMs = Math.max(0, nowMs - state.checkpointEnteredAt!);
   return {
-    ...state, status: "playing", stage: rule.stage, score: 0, lastMove: null,
+    ...state, status: "playing", stage: rule.stage, score: 0, stageResult: null, lastMove: null,
     recoveryEndsAt: null, captureEndsAt: null, lastMistake: false,
     checkpointEnteredAt: null, stageEndsAt: nowMs + rule.durationMs,
     eventEndsAt: state.eventEndsAt === null ? null : state.eventEndsAt + pausedMs,
