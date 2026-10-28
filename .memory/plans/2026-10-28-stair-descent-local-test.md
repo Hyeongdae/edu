@@ -63,6 +63,9 @@
 
 ## Progress
 
-- done: 1/3 (active: T02)
+- done: 2/3 (active: T03)
 - 2026-10-28 T01 `0225893` 완료: 순수1단계 adapter/하강 좌표 모델과 두 테스트. 지정8파일356/356tests(9.07s), lint/build/diff check 통과. 마지막 장애물의stage1 결정과 전체 모션점/가시성 변환을 확인했으며 원본 구현/저장소/설정/의존성은 변경하지 않았다. JS551.91kB(gzip154.18kB), CSS55.50kB(gzip10.77kB), 기존500kB chunk 경고 유지.
-- 로그 `%TEMP%\stair-descent-t01-2026-10-28\`, 상세 결과는 T01 Validation Results. 다음 T02에서 별도 로컬 HTML/화면을 연결하고, 실제 브라우저 완료는 T03에서 판정한다. 계획은 아직 in_progress다.
+- T01 로그 `%TEMP%\stair-descent-t01-2026-10-28\`, 상세 결과는 T01 Validation Results.
+- 2026-10-28 T02 `f9aa712` 완료: 독립 로컬 HTML/DEV gate/메모리 전용 오디오/하강 화면·모션·입력/설정 pause/결과·ready 재시작과 신규5테스트를 추가했다. 동일24파일642/642tests(72.08s, 동시 실행 수만 `--maxWorkers=2`), lint 오류0·경고0/build/diff check 통과. 기본 동시 실행의 기존 GameScreen30회 렌더링 테스트는 시간 초과였으며 원본 단독77/77 및 전체 동시2개 재실행은 통과했다. 원본/테스트 timeout/config/패키지를 수정하지 않았다.
+- T02 로그 `%TEMP%\stair-descent-t02-2026-10-28\`, 최종 `regression-24-final.log`/`lint-final.log`/`build-final.log`. 기존 JS551.91kB/CSS55.50kB/500kB 경고 유지, 기본 dist의 HTML은 index.html 하나다. `http://127.0.0.1:5175/descent-test.html` HTTP200와 DEVtrue/demo flagtrue를 확인했다.
+- 현재 T03에서 실제 브라우저/저장 sentinel 보존/원본 유지/모션·모바일·큰 글꼴을 확인한다. T02에는 실제 브라우저/소리 청취 검증이 없고 계획은 아직 in_progress다.

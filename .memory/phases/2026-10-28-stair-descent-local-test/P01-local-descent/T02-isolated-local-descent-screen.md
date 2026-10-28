@@ -211,7 +211,7 @@ Task: T02-isolated-local-descent-screen
 
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: pending
+- commit: `f9aa712`
 - After success: Task done/commit, phase done2/3/T03 in_progress, current Active T03. Do not mark plan completed before actual browser validation.
 
 ## Validation Results — 2026-10-28

@@ -10,21 +10,23 @@
 
 ## Active Task
 
-[T02 Isolated Local Descent Screen](./phases/2026-10-28-stair-descent-local-test/P01-local-descent/T02-isolated-local-descent-screen.md)
+[T03 Descent Browser Validation](./phases/2026-10-28-stair-descent-local-test/P01-local-descent/T03-descent-browser-validation.md)
 
 ## Last Completed Task
 
-[T01 Descent Engine and Scene Model](./phases/2026-10-28-stair-descent-local-test/P01-local-descent/T01-descent-engine-and-scene-model.md) — `0225893` (2026-10-28). 이전 stage-score 계획: T01 `f5ef960`/동기화 `0ca7bf2`, T02 `f35254f`/동기화 `6dfa99a`, T03 `20f8425`/완료 동기화 `8d9b31d`. 이전 checkpoint 계획 완료: T04 `9fda567`, 동기화 `cec0d37`.
+[T02 Isolated Local Descent Screen](./phases/2026-10-28-stair-descent-local-test/P01-local-descent/T02-isolated-local-descent-screen.md) — `f9aa712` (2026-10-28). 이 계획 T01 `0225893`/동기화 `4b49dc8`. 이전 stage-score 계획: T01 `f5ef960`/동기화 `0ca7bf2`, T02 `f35254f`/동기화 `6dfa99a`, T03 `20f8425`/완료 동기화 `8d9b31d`. 이전 checkpoint 계획 완료: T04 `9fda567`, 동기화 `cec0d37`.
 
 ## Status
 
-- stair-descent-local-test: done1/3, Active T02. 이번 실행에서는 T01 한 개만 구현·검증·커밋했다. `0225893`: 지정8파일356/356tests(9.07s), lint/build/diff check 통과. 화면/HTML/서버/실제 브라우저는 아직 구현·검증하지 않았다.
+- stair-descent-local-test: done2/3, Active T03. 이번 실행에서는 T02 한 개만 구현·검증·커밋했다. `f9aa712`: 지정24파일642/642tests(72.08s, `--maxWorkers=2`), lint 오류0·경고0/build/diff check 통과. 실제 브라우저 검증은 아직 하지 않았다.
 - 확정 범위: 기존 오르기 게임 유지, 별도 `/descent-test.html` 개발용 로컬 데모, D내려가기/J회전하며내려가기/Space2칸점프, 위쪽 NPC추격,1단계150점·90초, 기존10% 긴 구간 장애물·30칸 보너스·500ms넘어짐/250ms추격 유지, 기록 미저장.
 - 새 제품 코드는 `src/descent/`와 별도HTML에만 추가한다. 기존 index/main/App/game/audio/auth/leaderboard/test/config는 읽기 전용. 원본 GameScreen의 저장/이관 부수 효과를 가져오지 않는다. 오디오 설정도 기본값 복사/메모리 전용이다.
 - T01 완료: 순수 stage1 adapter와 하강 좌표 모델/두 테스트를 추가했다. 원본 체크포인트→최종cleared, 입력 전 obstacles로 마지막stage1 reveal, index계속증가/좌표y432−oldY, NPC visible재계산/모든 모션점 변환을 구현했다. terminal lastMove는 성공 데이터로 보존하므로 T02는 status!==playing에서 이동 연출을 억제해야 한다. adapter는 stage2/클리어>1/외부 raw checkpoint 입력을 거절한다.
 - T01 증거: C:\Users\DEX\AppData\Local\Temp\stair-descent-t01-2026-10-28\의 tests.log/lint.log/build.log와 초기 실패 로그. JS551.91kB(gzip154.18kB), CSS55.50kB(gzip10.77kB). 기존500kB chunk 경고가 출력됐으며 번들 설정은 바꾸지 않았다. 실제 생성기7seed/합법 입력·기존 시간/확률/보너스/범위 오류·좌표/불변성을 확인했다. UI 전체 저장 무접근과 실제 브라우저 모션은 후속 작업이다.
-- T02는 별도HTML/gate/저장없는 앱·view reducer·화면·scene·CSS와5테스트를 연결한다. sound counter로 React 배치/StrictMode 중복을 막고 원본 CSS를 수정하지 않는다. T03은 신규7+기존17 회귀/실제 하강브라우저/원본보존/저장0접근/타이밍·모바일·모션을 검증한다.
-- 이전 테스트용 개발 서버는 당시 `http://127.0.0.1:5175/`였다. 새 내려오기 링크는 아직 구현/확인하지 않았다. 이후 서버를 재사용하려면 실제 응답/프로세스 env를 확인한다.
+- T02 완료: 별도HTML/gate/저장없는 앱·view reducer·화면·scene·CSS와5테스트를 연결했다. sound counter로 React 배치/StrictMode 중복을 막고 restart RNG는 이벤트에서 생성한다. 설정 닫기 후 gear 재활성화 이후 focus 복귀/빠른 열기·닫기의 NPC 과거 cosmetic 모션 재생 방지/오디오 전용 scoped grid도 반영했다. 원본 CSS/기능/오디오/저장 helper는 변경하지 않았다.
+- T02 검증: 기본 동시 실행24파일은 기존 GameScreen.test.tsx:198의30회 렌더링 검사에서5000ms 시간 초과 후 연쇄 실패했다. 원본 단독77/77(28.25s), 동일24경로에 `--maxWorkers=2`만 추가한 최종 검사는642/642(72.08s) 통과다. timeout/skip/config 변경은 없다. 중간 `tests-24-final.log`는 확장자 오타로23파일만 실행된 로그이므로 최종 근거는 `regression-24-final.log`다.
+- T02 증거: `C:\Users\DEX\AppData\Local\Temp\stair-descent-t02-2026-10-28\`의 최종 regression-24-final.log/lint-final.log/build-final.log. JS551.91kB(gzip154.18kB), CSS55.50kB(gzip10.77kB), 기본 dist는 기존 index.html만/기존500kB chunk 경고 유지. 테스트에서는 storage throwing getter/메서드0접근,1단계 실제 합법 입력 전체 클리어·마지막 점프·pause95초/음향 counter/StrictMode/터치·Space/300·600ms정리/잡힘 gate를 확인했다.
+- 로컬 내려오기 링크 `http://127.0.0.1:5175/descent-test.html`: 기존 소유 데모 서버 PID21048/port5175를 재사용하고 HTTP200/새 module/DEVtrue/VITE_LOCAL_DEMO_MODEtrue를 확인했다. 새 서버/브라우저를 실행하지 않았으며 env 파일은 변경하지 않았다. 실제 하강브라우저/원본보존/저장 sentinel0접근·보존/타이밍·모바일·모션·큰 글꼴 판정은 T03에 남겨둔다.
 - 새 범위 밖 결함 발견 없음. 기존 번들 크기/독립 App 전체 suite/공용 랭킹/Entra·배포/원본 리팩터링/내려오기5단계는 추가하지 않는다.
 
 ## Source Decisions
@@ -77,4 +79,4 @@
 
 ## Next Step (IMPORTANT)
 
-다음 `/memory-execute` 또는 "current 보고 이어서 해줘" 요청에서는 Active T02 청사진 한 개만 읽고 별도 `descent-test.html`/개발모드gate/저장없는 앱·view reducer·화면·scene·CSS와5테스트를 구현한다. T01 순수 함수와 원본 자산을 읽기 전용으로 재사용하며 원본 GameScreen/저장 이관/오디오 설정 저장은 연결하지 않는다. 하강 모션/기록 미저장/StrictMode·배치 사운드 중복 방지 및 신규7+기존17 검증을 따른다. 성공 후 phase done2/3/current T03로 전진한다. T01과 이전 완료 계획은 재실행하지 않으며 실제 브라우저 완료는 T03에 남겨둔다.
+다음 `/memory-execute` 또는 "current 보고 이어서 해줘" 요청에서는 Active T03 청사진 한 개만 읽고 실제 브라우저 내려오기/원본 유지/저장소0접근·sentinel 보존/시간·모션·모바일·큰 글꼴을 검증한다. T02 테스트와 HTTP 확인을 실제 브라우저 증거로 대신하지 않는다. 관련 신규 파일에서 입증된 결함만 수정하고 기존 game/audio/auth/leaderboard/test/config는 읽기 전용으로 유지한다. 지정24파일 회귀는 기본 병렬 실행에서 기존 화면 테스트 시간 초과가 있었으므로 동시2개 실행 결과와 원래 명령 결과를 구분해 기록한다. 성공 후 phase done3/3/plan completed/current none으로 전환한다. T01/T02와 이전 완료 계획은 재구현하지 않는다.
