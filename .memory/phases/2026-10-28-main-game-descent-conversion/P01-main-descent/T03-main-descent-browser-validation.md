@@ -1,6 +1,6 @@
 # Task: T03 Main Descent Browser Validation
 
-## Status: pending
+## Status: done
 
 ## Goal
 
@@ -117,11 +117,11 @@
 
 ## Acceptance Criteria
 
-- [ ] Main actual5stage flow and checkpoints work on four sizes with correct downward coordinates/motion/topNPC and existing rules.
-- [ ] First conversion clears only authorized legacykeys; new rankings/unlocks survive reload/restarts/retries/accounts with auth/audio retained.
-- [ ] Timings/lifecycle/settings/mobile/reduced-motion and source/auth/standalone boundaries pass with owned browser artifacts.
-- [ ] Native audio retry removes its control safely, keeps focus inside settings/Escape·Tab usable, preserves range focus and does not steal focus after close.
-- [ ] Explicit27files/lint/build/diff checks pass, exact counts/limitations recorded, completion pointers and main local link updated.
+- [x] Main actual5stage flow and checkpoints work on four sizes with correct downward coordinates/motion/topNPC and existing rules.
+- [x] First conversion clears only authorized legacykeys; new rankings/unlocks survive reload/restarts/retries/accounts with auth/audio retained.
+- [x] Timings/lifecycle/settings/mobile/reduced-motion and source/auth/standalone boundaries pass with owned browser artifacts.
+- [x] Native audio retry removes its control safely, keeps focus inside settings/Escape·Tab usable, preserves range focus and does not steal focus after close.
+- [x] Explicit27files/lint/build/diff checks pass, exact counts/limitations recorded, completion pointers and main local link updated.
 
 ## Validation
 
@@ -149,6 +149,38 @@ Task: T03-main-descent-browser-validation
 
 ## Progress
 
-- [ ] 구현 완료
-- [ ] 검증 통과
-- commit: pending
+- [x] 구현 완료
+- [x] 검증 통과
+- commit: recorded in the following metadata synchronization commit
+
+## Execution Evidence — 2026-10-28
+
+### Result and methods
+
+- **9 browser drivers + 지정27파일727/727tests(56.60초, workers2, skip0) 통과**. lint 오류·경고0, TypeScript/Vite build와 diff check 통과. 제품 source/test 추가 수정이 필요한 결함은 발견하지 않았다. source는 T02 `5217dfa` 그대로다. timeout/skip/config/dependency 변경 없음.
+- 브라우저 도구 검색 결과 연결된 브라우저 도구가 없어 Node 내장 fetch/WebSocket/CDP와 소유 hidden headless Chrome만 사용했다. Node24.21.0/npm11.19.0/Chrome156.0.8078.49/Vite8.3.5. 매 탐색의 document UUID·실제 ready를 기다렸고 GameScreen의 raw GameState hook은 읽기 전용으로 탐색했다. fiber dispatch/props 변경/강제 화면 승급은 수행하지 않았다.
+- 전체 진행은 실제 생성기 seed0.5·표시 cue의 D/J/Space/primary pointer 이벤트와 native 키·터치 대표 입력이다. document Date.now를 제어해 긴 진행과95초 대기를 검사했다. 실제 추격/lifecycle는 Date.now를 수정하지 않은 별도 driver다. 함수 fixture/공개 GameScreen 계정 fixture는 화면 전체 진행의 증거와 구분했다.
+
+### Browser evidence
+
+| Driver | Verified result |
+| :--- | :--- |
+| `full-flow.mjs` | 320×667/390×667/768×1024/1440×900 모두 실제5단계 클리어. 점수150/200/250/300/352, 각615행동·641물리계단·26보너스점프·발소리615회·넘어짐0회. 제한90/75/65/60/50초와 NPC800/650/500/400/300ms, checkpoint95초 동결/입력 차단/다음 단계0점·같은 route/obstacles/event 유지, 최종5단계·낮은 단계 재도전의 최고 기록 보존 통과. 긴5..9/짧은1..3 및1/2짧은 구간 혼합, 안전한 긴 구간 장애물·generation stage1..5 확인. |
+| `storage.mjs` | 구6키/두 계정 high5·3에서 빈 랭킹·1단계0점/목표150·4잠금, 정확히6삭제·marker1 단일 쓰기와 auth/audio/session/무관한 byte 보존. 초기 seed script 제거 후 실제 clear1→Quit→restart→동일 context reload2/0/목표200, clear2 후 reload3와 새 기록 보존. 새 rank만으로 해금 금지, 공개 account/key fixture의 A/B 해금 분리, whole best pair/이름/시간 동점·하위 보존·정렬. 구키 get/remove 및 marker write 실패 후 새 기록 보존·재시도, 새키 읽기 실패의 덮어쓰기 방지, blocked getter의 실제 오류 UI/메모리 플레이/재시작 통과. 실제 Entra 계정 전환 증거로 주장하지 않는다. |
+| `motion.mjs` | 실제 generated 양방향 점프에서 WebAnimation0/150/300ms의 ±68,−56→±34,−84→0, step300/NPC240의 ±34,−28→±17,−22→0 확인. 고정 anchor/inner clip·단일 actor/landing front, resize의 장애물 결정 보존, catch500의7개 px 경유점·inner travel/facing, reduced static idle와 safe facing/즉시 결과 접근 통과. 본문 screenshot3개와 양방향 midpoint를 실제로 열어 픽셀 장면·클립/상자 가림도 확인했다. |
+| `real-time.mjs` | 실제800/1600/2400/3200ms 추격·safeindex−1/gap1/capture1/3700ms 종료, 실제250/500 빠른 추격/1300 정상 복귀, 잘못된 입력 즉시 이동 없음·회복 후 D와 소리, NPC 자기 코너/extra history/far 메타데이터, 같은 문서4실제초 frozen→active 단일 잡힘·새 랭킹 쓰기1회, reduced 즉시 결과 통과. 관측 polling 지연과 엔진 atMs를 구분했다. 소유 문서의 Vite WebSocket만 stub해 HMR 새 문서를 lifecycle 증거로 오인하지 않았다. |
+| `audio-settings.mjs` | 실제 main에서 native HTMLMediaElement.play의 거부→native 재시도→원래 play Promise 성공 후 버튼 제거/close focus, Tab·ShiftTab trap/Escape·trigger 복귀. pending 재시도 중 내부 range focus 유지·native ArrowRight, 닫은 뒤 늦은 완료의 외부 focus 보존. 활성 보너스에서 설정95제어초의 stage/event/NPC 동결·회복, 볼륨/음소거 audio:v1 재접속 보존, 실제 재생 중 BGM1↔1.25, cosmetic 완료 후 재생 없음. 소유 공개 root unmount 시 GameScreen timer0/listener0/audio dispose1 통과. |
+| `layout.mjs` | 네 화면의 ready/play/settings/checkpoint/result와320px root font24/32의 내부 스크롤 hit-test를 확인했다. scene≥200px/root overflow 없음/gear≥44/mobile≥56, turn-jump gap4/outer12·720 breakpoint·내려가기 화살표·NPC와 HUD/gear/cue 거리 badge 비중첩, 단계·시작·닫기·range·Continue/Quit·재시작·랭킹 접근 통과. high-clear5/rank5score352 입장 fixture임을 명시했고 checkpoint는 실제1단계 입력으로 도달했다. |
+| `boundaries.mjs` | 실제 ES module 함수 fixture로28/29+2 gauge,90초 expiry before score,250/500 동시 만료 우선·이른 capture, pending100/150 pause, 회복 종료 직전 잡힘/탈출 우선순위, stage5 bonus349→353, Continue0을 검사했다. 별도 실제 UI에서 빈/반복 Space·연속 넘어짐 소리, native touch/focused Space 점프와 상자 충돌, 즉시 다음 입력의 arc 교체와 NPC tick 중 player key 보존 통과. 함수 fixture를 강제 화면 승급에 사용하지 않았다. |
+| `auth-standalone.mjs` | dev demo false/기본 production은 기존 Entra 설정 안내이며 새 우회 없음. production의 descent-test.html HTTP200은 main SPA fallback이고 독립 실험 배포가 아니다. 별도 DEV 실험은 그대로1단계150~153점/90초·좌표 한 번 반전이며 구·새 기록/auth/audio/session sentinel의 Storage getter/메서드0회·byte equality 통과. 실제 tenant 로그인은 설정/자격 증명 없이 미검증이다. |
+| `normal-generated-jump.mjs` | seed0.19 실제 main의 보너스 전 generated 장애물을 native Space로 넘어 실제2물리계단/2점·발소리1회·넘어짐0·단일 player를 확인했다. seed0.5 전체 진행의26점프는 모두4점 보너스였으므로 일반 점수 증거를 별도 보완했다. |
+
+### Artifacts, boundaries and cleanup
+
+- 증거 폴더: `C:\Users\DEX\AppData\Local\Temp\main-game-descent-conversion-2026-10-28\`. `evidence-index.json`은 **145 artifacts/PNG82·필수14사진**의 크기·SHA256과9개 driver 결과를 연결한다. 과거 실험 사진을 main 증거로 재사용하지 않았다.
+- 최종 로그: `full-flow-final.log`, `storage-final.log`, `real-time-final.log`, 나머지 driver 동명 `.log`, `regression-27-final.log`, `lint-final.log`, `build-final.log`, `source-audit.log`, `final-link.json`. raw source/규칙/실험/authConfig/audio/public/config/package의 baseline `bdf18d5` diff 없음, T03의 제품 source는 `5217dfa` 대비 diff 없음. 기본 dist는 index.html만 있고 실험 HTML은 없다.
+- 빌드 JS553.68kB(gzip154.76kB)/CSS57.30kB(gzip10.95kB). 기존500kB 초과 chunk 경고가 최종 build에 출력됐다. 번들 개선이나 오래된 App 전체suite 수리는 범위를 확장하지 않았다.
+- driver 오류 보존/수정: CJS ReactDOM default export interop, 실험→main selector, StrictMode의 비활성 첫 Audio 대신 실제 재생 인스턴스 선택, native Space가 집중된 close를 정상 클릭한 경우, dispose 계측 wrapper의 this binding, box 탐색 중 checkpoint Continue, React commit 전 motion 샘플링, Chrome 재시작 직후 연결 race를 수정해 재검증했다. 보조 복합 실행 명령은 자동 검토에서 한 번 거부되어 허용된 단일 프로세스 시작과 별도 검증 명령으로 나누어 정상 완료했다. 제품 결함으로 간주하거나 검사를 생략하지 않았다.
+- 사용자 profile/실제 기록에는 접근하지 않았다. context를 폐기하고 identity 확인한 소유 Chrome/보조5176·5177만 종료했다. 기존 demo PID21048과 `http://127.0.0.1:5175/`는 유지했다. 최종 HTML HTTP200/title 내려오기/main entry/DEVtrue/demo true/descent model을 확인했다. `.env`/인증 설정/서버 배포·push는 변경하지 않았다.
+- 제한: 전체5단계는 제어 시계 UI 검증이며 실제 제한시간 전체 대기는 아니다. 순수 함수 경계·공개 계정 fixture와 native main 사례를 구분했다. 실제 Entra tenant 로그인/회사 계정 전환·스피커 청취 품질은 판정하지 않았다.
+- 신규 범위 밖 결함 발견: **특이사항 없음**. 다음 Task는 없으며 phase/plan/current 완료 동기화만 남는다.
