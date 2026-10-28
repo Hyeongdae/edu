@@ -1,5 +1,7 @@
 import { isClearedStage } from "./stageRules";
 import type { ClearedStage } from "./types";
+import { DESCENT_PROGRESS_KEY, prepareDescentRecords } from "./recordStorage";
+import type { GameRecordScope } from "./recordStorage";
 
 export interface StageProgressEntry { accountId: string; highestClearedStage: ClearedStage; }
 export interface ReadStageProgressResult { highestClearedStage: ClearedStage; available: boolean; }
@@ -26,9 +28,9 @@ function parseArray(serialized: string | null): unknown[] {
   }
 }
 
-function readEntries(storage: Storage): Map<string, ClearedStage> {
+function readEntries(storage: Storage, key = STORAGE_KEY): Map<string, ClearedStage> {
   const entries = new Map<string, ClearedStage>();
-  for (const value of parseArray(storage.getItem(STORAGE_KEY))) {
+  for (const value of parseArray(storage.getItem(key))) {
     if (typeof value !== "object" || value === null) continue;
     const entry = value as Record<string, unknown>;
     if (typeof entry.accountId !== "string" ||
@@ -82,27 +84,39 @@ export function migrateLegacyStageProgress(storage?: Storage): StageProgressMigr
   return { entries: merged, available };
 }
 
-/** Reading may persist an idempotent migration of version-four cleared progress. */
-export function readStageProgress(accountId: string, storage?: Storage): ReadStageProgressResult {
+/** Ascent reads may migrate legacy clears; descent reads use independent progress only. */
+export function readStageProgress(accountId: string, storage?: Storage, scope: GameRecordScope = "ascent"): ReadStageProgressResult {
   validateAccount(accountId);
+  if (scope === "descent") {
+    try {
+      const target = storageTarget(storage);
+      prepareDescentRecords(target);
+      return { highestClearedStage: readEntries(target, DESCENT_PROGRESS_KEY).get(accountId) ?? 0, available: true };
+    } catch {
+      return { highestClearedStage: 0, available: false };
+    }
+  }
   const migration = migrateLegacyStageProgress(storage);
   return { highestClearedStage: migration.entries.find((entry) => entry.accountId === accountId)?.highestClearedStage ?? 0,
     available: migration.available };
 }
 
-export function saveStageProgress(accountId: string, clearedStage: ClearedStage, storage?: Storage): SaveStageProgressResult {
+export function saveStageProgress(accountId: string, clearedStage: ClearedStage, storage?: Storage, scope: GameRecordScope = "ascent"): SaveStageProgressResult {
   validateAccount(accountId);
   if (!isClearedStage(clearedStage)) throw new RangeError("clearedStage must be an integer from 0 to 5.");
   let highestClearedStage = clearedStage;
   try {
     const target = storageTarget(storage);
-    const migration = migrateLegacyStageProgress(target);
+    if (scope === "descent") prepareDescentRecords(target);
+    const migration = scope === "descent"
+      ? { entries: progressEntries(readEntries(target, DESCENT_PROGRESS_KEY)), available: true }
+      : migrateLegacyStageProgress(target);
     const entries = new Map(migration.entries.map((entry) => [entry.accountId, entry.highestClearedStage]));
     highestClearedStage = Math.max(entries.get(accountId) ?? 0, clearedStage) as ClearedStage;
     if (!migration.available) return { highestClearedStage, saved: false, error: "storage-unavailable" };
     if ((entries.get(accountId) ?? 0) !== highestClearedStage) {
       entries.set(accountId, highestClearedStage);
-      target.setItem(STORAGE_KEY, JSON.stringify(progressEntries(entries)));
+      target.setItem(scope === "descent" ? DESCENT_PROGRESS_KEY : STORAGE_KEY, JSON.stringify(progressEntries(entries)));
     }
     return { highestClearedStage, saved: true };
   } catch {

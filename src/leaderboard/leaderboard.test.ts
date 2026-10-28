@@ -1,6 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getTopScores, readLeaderboard, saveBestScore, type LeaderboardEntry } from "./leaderboard";
 import type { GameStage } from "../game/types";
+import { DESCENT_LEADERBOARD_KEY, DESCENT_PROGRESS_KEY, DESCENT_RESET_KEY } from "../game/recordStorage";
 
 const key = "stair-climb:leaderboard:v5";
 const legacyKey = "stair-climb:leaderboard:v1";
@@ -351,5 +352,137 @@ describe("leaderboard storage", () => {
     fakeStorage.removeItem.mockImplementation(remove);
     expect(readLeaderboard(fakeStorage)).toHaveLength(2);
     expect(fakeStorage.getItem(oldKey)).toBeNull();
+  });
+});
+
+describe("descent leaderboard storage", () => {
+  let target: ReturnType<typeof storage>;
+  beforeEach(() => {
+    target = storage();
+    target.values.set(DESCENT_RESET_KEY, "1");
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it("keeps separate accounts and replaces a stage/score pair only when strictly better", () => {
+    const initial = entry("a", 80, "2026-10-01T00:00:00.000Z", 2);
+    const other = entry("b", 150, "2026-10-02T00:00:00.000Z", 3);
+    target.values.set(DESCENT_LEADERBOARD_KEY, JSON.stringify([initial, other]));
+    const now = new Date("2026-10-28T00:00:00.000Z");
+    for (const [bestStage, bestScore] of [[1, 999], [2, 79], [2, 80]] as const) {
+      const result = saveBestScore({ accountId: "a", displayName: "new name", bestStage, bestScore }, target, now, "descent");
+      expect(result).toEqual({ entries: [initial, other], saved: true });
+    }
+    expect(target.setItem).not.toHaveBeenCalled();
+    expect(saveBestScore({ accountId: "a", displayName: "A", bestStage: 2, bestScore: 81 }, target, now, "descent").entries)
+      .toEqual([{ ...initial, displayName: "A", bestScore: 81, achievedAt: now.toISOString() }, other]);
+    const result = saveBestScore({ accountId: "a", displayName: "A3", bestStage: 3, bestScore: 0 }, target, now, "descent");
+    expect(result.entries).toEqual([{ ...initial, displayName: "A3", bestStage: 3, bestScore: 0, achievedAt: now.toISOString() }, other]);
+    expect(getTopScores(result.entries).map((row) => row.accountId)).toEqual(["b", "a"]);
+    expect(target.setItem.mock.calls.every(([key]) => key === DESCENT_LEADERBOARD_KEY)).toBe(true);
+    expect(target.values.has(DESCENT_PROGRESS_KEY)).toBe(false);
+  });
+
+  it("keeps last duplicate account rows, handles special IDs and sorts stage, score, time with a ten-row limit", () => {
+    const rows = [entry("a", 999, "2026-10-01", 1), entry("a", 80, "2026-10-02", 2),
+      entry("__proto__", 150, "2026-10-02", 3), entry("earlier", 150, "2026-10-01", 3),
+      ...Array.from({ length: 10 }, (_, index) => entry(`other-${index}`, index, "2026-10-01"))];
+    target.values.set(DESCENT_LEADERBOARD_KEY, JSON.stringify(rows));
+    const result = readLeaderboard(target, "descent");
+    expect(result).toEqual(rows.slice(1));
+    const snapshot = structuredClone(result);
+    expect(getTopScores(result)).toHaveLength(10);
+    expect(getTopScores(result, 3).map((row) => row.accountId)).toEqual(["earlier", "__proto__", "a"]);
+    expect(result).toEqual(snapshot);
+  });
+
+  it.each([
+    "invalid JSON", "null", "{}", '[{"accountId":"a"}]',
+    ...[
+      { accountId: "" }, { accountId: 1 }, { displayName: null }, { bestStage: 0 }, { bestStage: 6 },
+      { bestStage: 1.5 }, { bestScore: -1 }, { bestScore: 1.5 }, { bestScore: "1" },
+      { achievedAt: "invalid date" }, { achievedAt: null },
+    ].map((overrides) => JSON.stringify([{ ...entry("a", 80, "2026-10-01", 2), ...overrides }])),
+  ])("cleans only a malformed new ranking (%s) and remains writable", (serialized) => {
+    target.values.set(DESCENT_LEADERBOARD_KEY, serialized);
+    target.values.set(DESCENT_PROGRESS_KEY, "unchanged progress");
+    target.values.set(key, "unchanged ascent rank");
+    expect(readLeaderboard(target, "descent")).toEqual([]);
+    expect(target.removeItem.mock.calls).toEqual([[DESCENT_LEADERBOARD_KEY]]);
+    expect(saveBestScore({ accountId: "a", displayName: "A", bestStage: 2, bestScore: 80 }, target, undefined, "descent").saved).toBe(true);
+    expect(target.values.get(DESCENT_PROGRESS_KEY)).toBe("unchanged progress");
+    expect(target.values.get(key)).toBe("unchanged ascent rank");
+    expect(target.setItem.mock.calls.every(([name]) => name === DESCENT_LEADERBOARD_KEY)).toBe(true);
+  });
+
+  it("remains writable when malformed new data cannot be removed", () => {
+    target.values.set(DESCENT_LEADERBOARD_KEY, "broken");
+    target.removeItem.mockImplementation(() => { throw new Error("remove blocked"); });
+    expect(readLeaderboard(target, "descent")).toEqual([]);
+    expect(saveBestScore({ accountId: "a", displayName: "A", bestStage: 2, bestScore: 80 }, target, undefined, "descent").saved).toBe(true);
+    expect(readLeaderboard(target, "descent")[0]).toMatchObject({ accountId: "a", bestStage: 2, bestScore: 80 });
+  });
+
+  it("never overwrites an unreadable new ranking or removes it as malformed data", () => {
+    const serialized = JSON.stringify([entry("a", 80, "2026-10-01", 2)]);
+    target.values.set(DESCENT_LEADERBOARD_KEY, serialized);
+    target.getItem.mockImplementation((name) => {
+      if (name === DESCENT_LEADERBOARD_KEY) throw new Error("new read blocked");
+      return target.values.get(name) ?? null;
+    });
+    expect(readLeaderboard(target, "descent")).toEqual([]);
+    expect(saveBestScore({ accountId: "b", displayName: "B", bestStage: 3, bestScore: 150 }, target, undefined, "descent"))
+      .toEqual({ entries: [], saved: false, error: "storage-unavailable" });
+    expect(target.setItem).not.toHaveBeenCalled();
+    expect(target.removeItem).not.toHaveBeenCalled();
+    expect(target.values.get(DESCENT_LEADERBOARD_KEY)).toBe(serialized);
+  });
+
+  it("returns existing records on write failure without changing saved stage/score pairs", () => {
+    const existing = entry("a", 80, "2026-10-01", 2);
+    target.values.set(DESCENT_LEADERBOARD_KEY, JSON.stringify([existing]));
+    target.setItem.mockImplementation(() => { throw new Error("full"); });
+    expect(saveBestScore({ accountId: "a", displayName: "A", bestStage: 3, bestScore: 0 }, target, undefined, "descent"))
+      .toEqual({ entries: [existing], saved: false, error: "storage-unavailable" });
+    expect(readLeaderboard(target, "descent")).toEqual([existing]);
+  });
+
+  it("guards blocked localStorage and uses supplied fake storage without accessing the browser", () => {
+    const getter = vi.spyOn(window, "localStorage", "get").mockImplementation(() => { throw new Error("blocked"); });
+    const input = { accountId: "a", displayName: "A", bestStage: 2 as const, bestScore: 80 };
+    expect(readLeaderboard(undefined, "descent")).toEqual([]);
+    expect(saveBestScore(input, undefined, undefined, "descent"))
+      .toEqual({ entries: [], saved: false, error: "storage-unavailable" });
+    getter.mockClear();
+    expect(saveBestScore(input, target, undefined, "descent").saved).toBe(true);
+    expect(readLeaderboard(target, "descent")[0]).toMatchObject(input);
+    expect(getter).not.toHaveBeenCalled();
+  });
+
+  it("validates descent input before storage access", () => {
+    const getter = vi.spyOn(window, "localStorage", "get");
+    const input = { accountId: "a", displayName: "A", bestStage: 2 as const, bestScore: 80 };
+    for (const bestStage of [0, 6, 1.5, NaN, "1", null]) {
+      expect(() => saveBestScore({ ...input, bestStage: bestStage as GameStage }, target, undefined, "descent")).toThrow(RangeError);
+    }
+    for (const bestScore of [-1, 1.5, NaN]) {
+      expect(() => saveBestScore({ ...input, bestScore }, target, undefined, "descent")).toThrow(RangeError);
+    }
+    for (const accountId of ["", null, 1]) {
+      expect(() => saveBestScore({ ...input, accountId: accountId as string }, target, undefined, "descent")).toThrow(RangeError);
+    }
+    expect(getter).not.toHaveBeenCalled();
+    expect(target.getItem).not.toHaveBeenCalled();
+  });
+
+  it("keeps explicit ascent on its legacy migration path without initializing descent", () => {
+    target.values.delete(DESCENT_RESET_KEY);
+    target.values.set("stair-climb:leaderboard:v4", JSON.stringify([entry("old", 400, "2026-10-01", 3)]));
+    expect(readLeaderboard(target, "ascent")).toEqual([]);
+    expect(JSON.parse(target.values.get("stair-climb:stage-progress:v1")!))
+      .toEqual([{ accountId: "old", highestClearedStage: 3 }]);
+    expect(saveBestScore({ accountId: "a", displayName: "A", bestStage: 2, bestScore: 80 }, target, undefined, "ascent").saved).toBe(true);
+    expect(target.values.has(key)).toBe(true);
+    expect(target.values.has(DESCENT_RESET_KEY)).toBe(false);
+    expect(target.values.has(DESCENT_LEADERBOARD_KEY)).toBe(false);
   });
 });

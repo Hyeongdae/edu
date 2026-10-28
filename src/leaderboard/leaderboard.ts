@@ -1,6 +1,8 @@
 import type { GameStage } from "../game/types";
 import { isGameStage } from "../game/stageRules";
 import { migrateLegacyStageProgress } from "../game/stageProgress";
+import { DESCENT_LEADERBOARD_KEY, prepareDescentRecords } from "../game/recordStorage";
+import type { GameRecordScope } from "../game/recordStorage";
 
 export interface LeaderboardEntry {
   accountId: string;
@@ -58,9 +60,11 @@ function browserStorage(): Storage | undefined {
   }
 }
 
-function readFromStorage(storage: Storage): LeaderboardEntry[] {
-  clearLegacyScores(storage);
-  const serialized = storage.getItem(STORAGE_KEY);
+function readFromStorage(storage: Storage, scope: GameRecordScope): LeaderboardEntry[] {
+  if (scope === "descent") prepareDescentRecords(storage);
+  else clearLegacyScores(storage);
+  const key = scope === "descent" ? DESCENT_LEADERBOARD_KEY : STORAGE_KEY;
+  const serialized = storage.getItem(key);
   if (serialized === null) return [];
 
   try {
@@ -73,7 +77,7 @@ function readFromStorage(storage: Storage): LeaderboardEntry[] {
     return [...unique.values()];
   } catch {
     try {
-      storage.removeItem(STORAGE_KEY);
+      storage.removeItem(key);
     } catch {
       // Corrupt data should not prevent a new game from starting.
     }
@@ -81,11 +85,11 @@ function readFromStorage(storage: Storage): LeaderboardEntry[] {
   }
 }
 
-export function readLeaderboard(storage?: Storage): LeaderboardEntry[] {
+export function readLeaderboard(storage?: Storage, scope: GameRecordScope = "ascent"): LeaderboardEntry[] {
   const target = storage ?? browserStorage();
   if (!target) return [];
   try {
-    return readFromStorage(target);
+    return readFromStorage(target, scope);
   } catch {
     return [];
   }
@@ -101,6 +105,7 @@ export function saveBestScore(
   entry: Omit<LeaderboardEntry, "achievedAt">,
   storage?: Storage,
   now = new Date(),
+  scope: GameRecordScope = "ascent",
 ): SaveBestScoreResult {
   if (!isGameStage(entry.bestStage)) {
     throw new RangeError("bestStage must be an integer from 1 to 5.");
@@ -117,7 +122,7 @@ export function saveBestScore(
 
   let entries: LeaderboardEntry[];
   try {
-    entries = readFromStorage(target);
+    entries = readFromStorage(target, scope);
   } catch {
     return { entries: [], saved: false, error: "storage-unavailable" };
   }
@@ -133,7 +138,7 @@ export function saveBestScore(
     : [...entries, updated];
 
   try {
-    target.setItem(STORAGE_KEY, JSON.stringify(nextEntries));
+    target.setItem(scope === "descent" ? DESCENT_LEADERBOARD_KEY : STORAGE_KEY, JSON.stringify(nextEntries));
     return { entries: nextEntries, saved: true };
   } catch {
     return { entries, saved: false, error: "storage-unavailable" };

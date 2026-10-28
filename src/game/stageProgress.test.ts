@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { migrateLegacyStageProgress, readStageProgress, saveStageProgress } from "./stageProgress";
 import type { ClearedStage } from "./types";
+import { DESCENT_LEADERBOARD_KEY, DESCENT_PROGRESS_KEY, DESCENT_RESET_KEY } from "./recordStorage";
 
 const key = "stair-climb:stage-progress:v1";
 beforeEach(() => localStorage.clear());
@@ -268,5 +269,106 @@ describe("legacy cleared progress migration", () => {
     expect(() => saveStageProgress("", 1)).toThrow(RangeError);
     expect(() => saveStageProgress("a", 6 as ClearedStage)).toThrow(RangeError);
     expect(getter).not.toHaveBeenCalled();
+  });
+});
+
+describe("descent stage progress", () => {
+  beforeEach(() => localStorage.setItem(DESCENT_RESET_KEY, "1"));
+
+  it("isolates accounts, uses monotonic clears and never infers progress from any ranking", () => {
+    localStorage.setItem(legacyKey, JSON.stringify([legacyEntry("a", 5)]));
+    localStorage.setItem("stair-climb:leaderboard:v5", JSON.stringify([legacyEntry("a", 5)]));
+    localStorage.setItem(key, JSON.stringify([{ accountId: "a", highestClearedStage: 5 }]));
+    localStorage.setItem(DESCENT_LEADERBOARD_KEY, JSON.stringify([legacyEntry("a", 5)]));
+    const write = vi.spyOn(Storage.prototype, "setItem");
+    expect(readStageProgress("a", undefined, "descent")).toEqual({ highestClearedStage: 0, available: true });
+    expect(saveStageProgress("a", 0, undefined, "descent")).toEqual({ highestClearedStage: 0, saved: true });
+    expect(write).not.toHaveBeenCalled();
+    expect(saveStageProgress("a", 1, undefined, "descent").saved).toBe(true);
+    saveStageProgress("b", 3, undefined, "descent");
+    write.mockClear();
+    expect(saveStageProgress("a", 0, undefined, "descent").highestClearedStage).toBe(1);
+    expect(saveStageProgress("b", 3, undefined, "descent").highestClearedStage).toBe(3);
+    expect(write).not.toHaveBeenCalled();
+    expect(readStageProgress("a", undefined, "descent").highestClearedStage).toBe(1);
+    expect(readStageProgress("b", undefined, "descent").highestClearedStage).toBe(3);
+    expect(JSON.parse(localStorage.getItem(key)!)).toEqual([{ accountId: "a", highestClearedStage: 5 }]);
+  });
+
+  it.each(["bad JSON", "null", "{}", "42"])("treats malformed new progress %s as empty", (serialized) => {
+    localStorage.setItem(DESCENT_PROGRESS_KEY, serialized);
+    expect(readStageProgress("a", undefined, "descent")).toEqual({ highestClearedStage: 0, available: true });
+    expect(saveStageProgress("a", 2, undefined, "descent")).toEqual({ highestClearedStage: 2, saved: true });
+    expect(readStageProgress("a", undefined, "descent").highestClearedStage).toBe(2);
+  });
+
+  it("keeps independently valid rows and maximum duplicates, including special account IDs", () => {
+    localStorage.setItem(DESCENT_PROGRESS_KEY, JSON.stringify([
+      { accountId: "a", highestClearedStage: 4 }, { accountId: "a", highestClearedStage: 2 },
+      null, { accountId: "", highestClearedStage: 3 }, { accountId: 5, highestClearedStage: 2 },
+      ...[-1, 6, 1.5, "2", null].map((highestClearedStage) => ({ accountId: "bad", highestClearedStage })),
+      { accountId: "__proto__", highestClearedStage: 2 }, { accountId: "b", highestClearedStage: 0 },
+    ]));
+    expect(readStageProgress("a", undefined, "descent").highestClearedStage).toBe(4);
+    expect(readStageProgress("__proto__", undefined, "descent").highestClearedStage).toBe(2);
+    expect(readStageProgress("bad", undefined, "descent").highestClearedStage).toBe(0);
+    saveStageProgress("c", 1, undefined, "descent");
+    expect(JSON.parse(localStorage.getItem(DESCENT_PROGRESS_KEY)!)).toEqual([
+      { accountId: "a", highestClearedStage: 4 }, { accountId: "__proto__", highestClearedStage: 2 },
+      { accountId: "b", highestClearedStage: 0 }, { accountId: "c", highestClearedStage: 1 },
+    ]);
+  });
+
+  it("does not overwrite unreadable progress and reports known progress when writes fail", () => {
+    const original = JSON.stringify([{ accountId: "a", highestClearedStage: 4 }]);
+    localStorage.setItem(DESCENT_PROGRESS_KEY, original);
+    const originalRead = Storage.prototype.getItem;
+    const read = vi.spyOn(Storage.prototype, "getItem").mockImplementation(function (this: Storage, item) {
+      if (item === DESCENT_PROGRESS_KEY) throw new Error("blocked progress");
+      return originalRead.call(this, item);
+    });
+    const write = vi.spyOn(Storage.prototype, "setItem");
+    expect(readStageProgress("a", undefined, "descent")).toEqual({ highestClearedStage: 0, available: false });
+    expect(saveStageProgress("b", 3, undefined, "descent")).toEqual({ highestClearedStage: 3, saved: false, error: "storage-unavailable" });
+    expect(write).not.toHaveBeenCalled();
+    read.mockRestore();
+    expect(localStorage.getItem(DESCENT_PROGRESS_KEY)).toBe(original);
+    write.mockImplementation(() => { throw new Error("full"); });
+    expect(saveStageProgress("a", 5, undefined, "descent")).toEqual({ highestClearedStage: 5, saved: false, error: "storage-unavailable" });
+    expect(readStageProgress("a", undefined, "descent").highestClearedStage).toBe(4);
+    expect(saveStageProgress("a", 2, undefined, "descent")).toEqual({ highestClearedStage: 4, saved: true });
+  });
+
+  it("guards blocked browser storage but independently uses supplied storage", () => {
+    const supplied = localStorage;
+    const getter = vi.spyOn(window, "localStorage", "get").mockImplementation(() => { throw new Error("blocked getter"); });
+    expect(readStageProgress("a", undefined, "descent")).toEqual({ highestClearedStage: 0, available: false });
+    expect(saveStageProgress("a", 3, undefined, "descent")).toEqual({ highestClearedStage: 3, saved: false, error: "storage-unavailable" });
+    getter.mockClear();
+    expect(saveStageProgress("a", 3, supplied, "descent")).toEqual({ highestClearedStage: 3, saved: true });
+    expect(readStageProgress("a", supplied, "descent")).toEqual({ highestClearedStage: 3, available: true });
+    expect(getter).not.toHaveBeenCalled();
+  });
+
+  it("validates descent arguments before touching storage", () => {
+    const getter = vi.spyOn(window, "localStorage", "get");
+    for (const id of ["", null, 1]) {
+      expect(() => readStageProgress(id as string, undefined, "descent")).toThrow(RangeError);
+      expect(() => saveStageProgress(id as string, 1, undefined, "descent")).toThrow(RangeError);
+    }
+    for (const stage of [-1, 6, 1.5, NaN, "1", null]) {
+      expect(() => saveStageProgress("a", stage as ClearedStage, undefined, "descent")).toThrow(RangeError);
+    }
+    expect(getter).not.toHaveBeenCalled();
+  });
+
+  it("keeps explicit ascent migration unchanged and does not prepare descent records", () => {
+    localStorage.removeItem(DESCENT_RESET_KEY);
+    localStorage.setItem(legacyKey, JSON.stringify([legacyEntry("a", 4), legacyEntry("b", 2)]));
+    expect(readStageProgress("a", undefined, "ascent")).toEqual({ highestClearedStage: 4, available: true });
+    expect(saveStageProgress("b", 3, undefined, "ascent")).toEqual({ highestClearedStage: 3, saved: true });
+    expect(localStorage.getItem(legacyKey)).not.toBeNull();
+    expect(localStorage.getItem(DESCENT_RESET_KEY)).toBeNull();
+    expect(localStorage.getItem(DESCENT_PROGRESS_KEY)).toBeNull();
   });
 });
