@@ -1,7 +1,7 @@
 # Plan: Stage Unlocks and Per-Stage Scores
 
 - Date: 2026-10-27
-- Status: in_progress
+- Status: completed
 - Source: [확정 결정](../decisions/2026-10-27-stage-unlocks-and-per-stage-scores.md)
 - Previous completed plan: [Stage Checkpoints and Fall Chase](./2026-10-23-stage-checkpoints-and-fall-chase.md), T04 `9fda567`, 완료 동기화 `cec0d37`.
 - Planning only: 이 단계에서는 `.memory/` 문서만 작성한다. 게임 구현·테스트 실행·실제 저장소 초기화는 후속 실행 단계다.
@@ -14,7 +14,7 @@
 
 | Phase | Status | Summary | Blueprint |
 | :--- | :--- | :--- | :--- |
-| P01 | in_progress | 진행도 보존 이관 → 게임/해금/랭킹 연결 → 통합 검증 | [P01](../phases/2026-10-27-stage-unlocks-and-per-stage-scores/P01-stage-scores/phase.md) |
+| P01 | completed | 진행도 보존 이관 → 게임/해금/랭킹 연결 → 통합 검증 | [P01](../phases/2026-10-27-stage-unlocks-and-per-stage-scores/P01-stage-scores/phase.md) |
 
 ## Task Roadmap
 
@@ -79,7 +79,8 @@
 
 ## Progress
 
-- done: 2/3 (active: T03).
+- done: 3/3 (active: none).
 - 2026-10-27 T01 `f5ef960` 완료: 전 계정 v4 클리어 이관 기반/실패 보존/재시도. 진행도53tests, 지정17파일469/469tests, lint/build/diff check 통과. JS551.80kB(gzip154.18kB), CSS55.50kB(gzip10.77kB). T01 당시에는 기존400점/v4/해금 규칙을 유지했다.
 - 2026-10-28 T02 `f35254f` 완료: 단계별0점/목표150·200·250·300·350, H+1해금/기본 선택, 실제 종료 단계와 해당 단계 점수의 v5랭킹을 연결했다. 전 계정 v4 진행도 이관 성공 뒤에만 구랭킹을 정리하며 새v5에서는 클리어를 추론하지 않는다. 지정17파일509/509tests(58.36s), lint/build/diff check 통과. JS551.91kB(gzip154.18kB), CSS55.50kB(gzip10.77kB); 기존500kB 초과 크기는 남는다.
-- 일반 브라우저 저장소를 도구로 직접 읽거나 지우지 않았다. T02 검증은 Vitest/jsdom이며 다음 T03의 실제 브라우저/전체5단계/이관 오류/반응형 검증이 남아 있다. 계획은 아직 in_progress다.
+- 2026-10-28 T03 `20f8425` 완료: 지정17파일509/509tests(47.80s), lint/build/diff check와 격리 Chrome156 브라우저 드라이버9개 PASS. 네 화면의 실제 표시 입력으로5단계352점, 재시도/재접속2단계0점·목표200, 단계별0점/실제 종료 단계 랭킹, 전 계정 이관/부분 실패 복구, 실제 시간 추격/250ms 넘어짐/4초 lifecycle, 양방향 점프·모션 감소,320px root24/32 접근성을 확인했다. 제품 source/test 수정은 없었다. JS551.91kB/CSS55.50kB로 기존 번들 크기 이슈는 유지된다.
+- 계획 completed, Active Task none. 증거/드라이버/스크린샷은 `%TEMP%\stair-stage-scores-t03-2026-10-28\`와 T03 Validation Results에 기록했다. 전체 단계의 제어시간과 실제 시간 추격 검사를 분리했으며 일반 사용자 프로필은 접근하지 않았다. 별도 소리 청취/공용 랭킹/Entra 설정·배포 완료로 표시하지 않는다.

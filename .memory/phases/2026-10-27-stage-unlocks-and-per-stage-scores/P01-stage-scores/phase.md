@@ -6,16 +6,17 @@
 | :--- | :--- | :--- | :--- |
 | T01 | done ✅ | 옛v4 클리어 이력을 계정별 진행도로 보존, 구랭킹 삭제 없음 | [T01](./T01-preserve-legacy-cleared-progress.md) |
 | T02 | done ✅ | 다음 단계 해금·단계별0점/목표·실제 도전 단계v5랭킹 연결 | [T02](./T02-stage-scores-unlocks-and-ranking.md) |
-| T03 | in_progress 🔵 | 재시도/이관 오류/전체5단계/반응형 실제 브라우저 검증 | [T03](./T03-stage-score-browser-validation.md) |
+| T03 | done ✅ | 재시도/이관 오류/전체5단계/반응형 실제 브라우저 검증 | [T03](./T03-stage-score-browser-validation.md) |
 
 ## Progress
 
-- done: 2/3 (active: T03)
-- Status: in_progress
+- done: 3/3 (active: none)
+- Status: completed
 - 2026-10-27 계획 작성 당시에는 문서/실행 포인터만 준비했다.
 - 2026-10-27 T01 `f5ef960` 완료. 진행도 이관53tests, 지정17파일469/469tests, lint/build/diff check 통과. JS551.80kB(gzip154.18kB), CSS55.50kB(gzip10.77kB). 전 계정 v4 클리어 최대값을 보존하고 읽기/쓰기 실패 시 원본/알려진 값을 유지한다. StrictMode 이관1회/랭킹 쓰기0회를 확인했다. v4 삭제나 점수/해금/랭킹 의미 변경은 아직 없다.
 - 2026-10-28 T02 `f35254f` 완료. 단계별0점/목표150·200·250·300·350, H+1해금/최고 해금 기본 선택, 실제 종료 단계·해당 점수 v5랭킹을 연결했다. 구v4 정리 전에 전 계정 진행도 이관을 수행하며 실패 시 원본을 보존한다. 지정17파일509/509tests, lint/build/diff check 통과. JS551.91kB(gzip154.18kB), CSS55.50kB(gzip10.77kB); 기존500kB 초과 크기는 유지된다.
-- 다음 T03에서 실제 브라우저 검증을 수행한다. 현재 결과는 Vitest/jsdom이며 브라우저 완료 증거가 아니다.
+- 2026-10-28 T03 `20f8425` 완료. 지정17파일509/509tests(47.80s), lint/build/diff check 및 소유 CDP context의 브라우저 드라이버9개 PASS. 네 화면에서 실제 표시 입력으로5단계352점 완료, clear1→Quit→재시작/재접속2기본·0점·목표200, 실제 단계 랭킹/전 계정 이관·실패 복구/실제 추격·250ms 넘어짐·4초 lifecycle/양방향 점프/320px root24·32 접근성을 확인했다. 제품 source/test 수정은 없었다. 증거는 `%TEMP%\stair-stage-scores-t03-2026-10-28\`, 상세 방법·제어시간 구분·드라이버 초기 오류는 T03 Validation Results에 기록했다.
+- 전체3개 Task 완료. 다음 Active Task는 없다. 개발용 데모 서버 `http://127.0.0.1:5175/`는 직접 플레이용으로 유지한다.
 
 ## Execution Rule
 

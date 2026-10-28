@@ -155,7 +155,7 @@ Task: T03-stage-score-browser-validation
 
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: pending
+- commit: `20f8425`
 
 ## Validation Results — 2026-10-28
 
