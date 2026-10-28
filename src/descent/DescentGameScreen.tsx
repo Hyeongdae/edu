@@ -25,6 +25,7 @@ export function DescentGameScreen({ audioController, audioPreferences, autoplayB
   const started = useRef(false);
   const gear = useRef<HTMLButtonElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
+  const settingsDialog = useRef<HTMLElement>(null);
   const resultButton = useRef<HTMLButtonElement>(null);
   const previousSounds = useRef({ success: 0, mistake: 0 });
   const previousEvent = useRef(false);
@@ -51,10 +52,12 @@ export function DescentGameScreen({ audioController, audioPreferences, autoplayB
   }, [audioController, game.status]);
 
   useEffect(() => {
-    if (settingsOpen) closeButton.current?.focus();
+    if (settingsOpen) {
+      if (!settingsDialog.current?.contains(document.activeElement)) closeButton.current?.focus();
+    }
     else if (previousSettingsOpen.current) gear.current?.focus();
     previousSettingsOpen.current = settingsOpen;
-  }, [settingsOpen]);
+  }, [settingsOpen, autoplayBlocked]);
   useEffect(() => {
     if (game.status === "game-over") resultButton.current?.focus();
   }, [game.status, game.captureEndsAt]);
@@ -180,7 +183,7 @@ export function DescentGameScreen({ audioController, audioPreferences, autoplayB
         <p className="descent-muted">기록은 저장하지 않아요.</p><button ref={resultButton} className="descent-restart" type="button" onClick={restart}>다시 시작</button>
       </section></div>}
       {settingsOpen && <div className="descent-settings-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) closeSettings(); }}>
-        <section className="descent-settings" role="dialog" aria-modal="true" aria-labelledby="descent-settings-title" onKeyDown={dialogKeys}>
+        <section ref={settingsDialog} className="descent-settings" role="dialog" aria-modal="true" aria-labelledby="descent-settings-title" onKeyDown={dialogKeys}>
           <header><h2 id="descent-settings-title">게임 설정</h2><button ref={closeButton} type="button" aria-label="설정 닫기" onClick={closeSettings}><PixelIcon name="close" /></button></header>
           <AudioControls preferences={audioPreferences} onChange={onAudioPreferencesChange} autoplayBlocked={autoplayBlocked} onEnableAudio={onEnableAudio} />
           <section className="descent-help"><h3>내려오는 방법</h3><p>D로 한 칸, J로 방향을 바꾸며 한 칸 내려가세요. Space로 상자를 넘어 두 칸 이동해요.</p>

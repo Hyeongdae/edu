@@ -1,6 +1,6 @@
 # Task: T03 Descent Browser Validation
 
-## Status: pending
+## Status: done
 
 ## Goal
 
@@ -108,11 +108,11 @@
 
 ## Acceptance Criteria
 
-- [ ] Original ascending `/`/source/config/records behavior is preserved; dev-only descent entry gate/build exclusion work.
-- [ ] Descent full actual UI flow on four screens ends1stage150..153 withoutcheckpoint/stage2 and restarts fresh.
-- [ ] App makes0 local/session storage reads/writes/getter calls, preserves all sentinels, and remains usable with blocked getters.
-- [ ] Original obstacle/bonus/fall/pursuit rules, actual-time/lifecycle, independent upward-lift/downward-landing motion and accessible mobile/settings/result pass with evidence.
-- [ ] All24testfiles/lint/build/actualbrowser passed; Task/phase/plan/current completion and user local test link recorded.
+- [x] Original ascending `/`/source/config/records behavior is preserved; dev-only descent entry gate/build exclusion work.
+- [x] Descent full actual UI flow on four screens ends1stage150..153 withoutcheckpoint/stage2 and restarts fresh.
+- [x] App makes0 local/session storage reads/writes/getter calls, preserves all sentinels, and remains usable with blocked getters.
+- [x] Original obstacle/bonus/fall/pursuit rules, actual-time/lifecycle, independent upward-lift/downward-landing motion and accessible mobile/settings/result pass with evidence.
+- [x] All24testfiles/lint/build/actualbrowser passed; Task/phase/plan/current completion and user local test link recorded.
 
 ## Validation
 
@@ -140,6 +140,58 @@ Task: T03-descent-browser-validation
 
 ## Progress
 
-- [ ] 구현 완료
-- [ ] 검증 통과
+- [x] 구현 완료
+- [x] 검증 통과
 - commit: pending
+
+## Validation Results — 2026-10-28
+
+### Source correction and regression
+
+- 실제 오디오 재시도에서 관련 신규 결함1건을 확인했다. 재생 허용으로 `음악 켜기` 버튼이 제거되면 focus가 body로 빠져 dialog의 Escape 처리가 끊겼다. `DescentGameScreen.tsx`에 dialog ref를 두고 settingsOpen/autoplayBlocked 변경 후 focus가 dialog 밖일 때만 close로 복구한다. 안쪽 range/button의 유효한 focus는 유지한다.
+- `DescentTestApp.test.tsx`의 기존 재시도 검사를 확장해 실제 enable 버튼에 focus→재시도→버튼 제거→close focus→Escape 종료를 확인했다. 수정 전 해당 파일6개 중1실패(`focus-regression-before-fix.log`), 수정 후6/6통과(`focus-regression-after-fix.log`). 제품 수정은 이 두 신규 내려오기 파일뿐이며 기존 오르기 소스/테스트/설정/패키지/인증/저장 코드는 그대로다.
+- 지정24경로 회귀 최종 **642/642 tests 통과,47.17s**, skip0 (`regression-24-final.log`). 명령은 위 Validation의 동일24경로에 **`--maxWorkers=2`만 추가**했다. 기본 동시 실행은 기존 `GameScreen.test.tsx:198`의30회 렌더링 검사에서5000ms 시간 초과 후73개 연쇄 실패/569통과(21.03s, `regression-24-default.log`)였다. 기존 테스트·timeout·검증 범위·config를 완화하지 않았으며 기본 명령이 그대로 성공했다고 기록하지 않는다.
+- `npm.cmd run lint`: 오류0/경고0 (`lint-final.log`). `npm.cmd run build`: 성공 (`build-final.log`),211modules/JS551.91kB(gzip154.18kB)/CSS55.50kB(gzip10.77kB). 최종 build 로그에는 chunk 경고가 재출력되지 않았으나 기존551.91kB 크기는 그대로이며 번들 개선은 하지 않았다. `dist/` HTML은 기존 index.html 하나, descent-test.html 부재 검사를 통과했다.
+- `git diff --check`/staged diff check 통과. 지정 원본 범위의 `git diff --name-only 8d9b31d -- ...`는 비어 있다. src/descent 정적 검색 결과는 자체 component import와 테스트 storage 감시뿐이며 런타임 storage/이관/helper/원본 App·GameScreen import는 없다.
+
+### Actual owned browser — 9 drivers passed
+
+- 환경: Node24.21.0/npm11.19.0/Vite8.3.5/Chrome156.0.8078.48. 연결된 브라우저 도구가 없어 Node 내장 fetch/WebSocket/CDP9226를 사용했다. 숨김 headless 소유 프로필과 driver마다 `Target.createBrowserContext({disposeOnDetach:true})`를 사용하고 finally에서 해당 context를 폐기했다. 일반 사용자 브라우저/프로필을 사용하지 않았다. 브라우저 검사와 무거운 테스트·빌드는 겹치지 않았다.
+- 최종 성공 driver: `full-flow`, `layout-settings`, `motion`, `boundaries`, `actions-cleanup`, `disabled-gate`, `ascent-preserved`, `real-time`, `production-default`. 각 mjs/JSON/`final-*.log`를 보관한다. 증거 디렉터리는 `C:\Users\DEX\AppData\Local\Temp\stair-descent-local-test-2026-10-28\`, `evidence-index.json`에97개 script/JSON/PNG/log의 크기·SHA256, PNG40개/필수11개를 기록했다.
+- 실제 generator/adapter로 seed를 탐색해0.19를 선택했다. chance를 바꾸지 않고 실제10% 생성기·긴5~9/짧은1~3/1개·2개 짧은 구간 혼합/안전한 내부 box를 사용했다. React hook은 `{game,nowMs,...}` 구조로 찾아 queue.lastRenderedState를 읽기만 했다. 임의 GameState dispatch나 fiber 변경/강제 승급은 하지 않았다.
+
+| Actual UI viewport | Actions | Physical stairs | Final points | Generated jumps |
+| :--- | ---: | ---: | ---: | ---: |
+| 320×667 | 87 | 90 | 150 | 3 |
+| 390×667 | 87 | 90 | 150 | 3 |
+| 768×1024 | 87 | 90 | 150 | 3 |
+| 1440×900 | 87 | 90 | 150 | 3 |
+
+- 각 화면에서 실제 시작 버튼/native CDP touch 또는 keyboard를 사용한 뒤 표시된 box→Space/코너→J/그 외D를 따랐다. 반복 조작은 실제 DOM keyboard 또는 primary pointerdown+detail1 click이었다. 오른쪽 일반 점프1회(2점), 왼쪽 보너스 점프2회(각4점), footstep87/fall0/BGMstart1/stop1을 확인했다. stage는 항상1, 최종cleared/모든 active clocknull/terminal obstacle 전부stage1, CP/continue/2단계 없음, clear 즉시 arc/gain 제거, restart ready0/90/event0/새 진행 경로/시계 미시작을 확인했다.
+- 전체 traversal은 document Date.now를 고정한 실제 UI 플레이이며 실제90초 경과 플레이로 주장하지 않는다. 아래 actual-time 검사는 별도 real Date.now다.
+
+### Storage, original preservation and gates
+
+- entry script 전에 v1/v2/v3/v4/v5 ranking, progress:v1, audio:v1, auth/session/unrelated sentinel을 도구 원본 Storage API로 심었다. v4에는 유효한 v4-only 사용자(achievedAt 포함), v5에는 별도 유효 기록을 넣었다. 앱 getters/methods 감시를 그 후 설치했다. 전체 clear, 설정 volume/mute, 실패/restart/unmount에 local/session getter/getItem/setItem/removeItem/clear/key **모두0회**, 모든 sentinel byte equality가 true였다. 도구 seed/snapshot은 원본 API로 읽어 앱 호출에서 제외했다.
+- 두 storage getter가 entry 전부터 throw하는 별도 문서도 mount/start/settings/mute/end/restart/unmount가 가능했고0접근이었다. 기본 audio .5/unmuted는 저장 sentinel 값을 읽지 않으며 메모리에서만 수정된다.
+- 다른 context의 원본 `/`: 다음 계단y188/NPC328/상승 좌표 유지, 실제 cue-play150→checkpoint→Quit→restart에서2기본/0점/목표200/3개잠김을 확인했다. original progress/랭킹 쓰기와 v4-only 타 계정 이관은 정상 실행됐다. 이 원본의 합법적 저장 접근을 내려오기0접근과 혼합하지 않았다. `ascent-original-preserved.png`, `ascent-stage2-preserved.png`.
+- devfalse는 별도 소유 서버5176의 process env VITE_LOCAL_DEMO_MODE=false로 실제 HTML을 열어 이용 불가/게임 없음/controls0/Audio생성0/storage0을 확인했다. env/설정 파일은 바꾸지 않았다. DEVfalse gate 조합은 단위 테스트에서도 통과한다.
+- default build를 별도 preview5177에서 확인했다. `/descent-test.html` HTTP200은 **원본 index로의 SPA fallback**이며 script는 원본 bundle/제목은 계단 오르기/Entra 설정 안내/desc root·module 없음이었다. 이를 내려오기 배포로 오인하지 않았다. production-default.json/PNG에 기록했다.
+
+### Timing, motion, settings, accessibility and cleanup
+
+- real-time.mjs는 Date.now를 바꾸지 않았다. NPC logical atMs800/1600/2400, catch3200/ends3700을 확인했다. 마지막 실행의 관측 시점은 시작 후955/1640/2432/3282ms였으며100ms polling/호스트 지연과 logical deadline을 구분했다. 안전index−1/gap1/captureCount1/stopBgm1, 보통 결과는 gate 동안 숨김→500ms 후 접근, reduced는 즉시 접근을 확인했다.
+- 실제 wrong J는 즉시 NPC 이동 없이500ms fall, 반복 키는 연장 없음,250/500ms logical 이동 후1300ms 정상 successor, 회복 후D 성공/발소리1/실수소리1이었다. NPC를 기다리는 실제 시간 검사에서 플레이어 고정/원본 경로의 양쪽 짧은 코너를 NPC 자신의 방향으로 이동/실제 extra history/far metadata/기본11계단/중복 actor 없음도 확인했다.
+- CDP Page frozen/active4실제 초 후 같은 document token을 유지하고 늦은 tick에서 초기 caught 이유/capture1/clocksnull/옛 arc 제거/storage0을 확인했다. 소유 문서의 Vite HMR WebSocket만 stub해 개발 클라이언트 재로드를 막았다. OS 탭 전환을 검사했다고 주장하지 않는다.
+- boundaries.mjs는 실제 import한 adapter/view 함수에 명시적 coherent fixture를 전달한 **함수 경계 검사**다.90초 목표 입력보다 expiry 우선,250/500ms tie expiry와250catch→251expiry, pending100→350→1150, recovery-end NPC/잡힘 우선,28/29+2→30초 이벤트,149+보너스 jump→153, pause100→10100의 pending150/next10250→11050을 검증했다. 이를 화면에서 실제90초를 플레이한 증거로 사용하지 않는다.
+- 실제 UI로30물리계단/active bonus→설정95제어초 정지→D/J/Space/touch 차단→Escape 후 stage/event/NPC remainder 및 route/obstacles 보존을 확인했다. Tab/ShiftTab loop, gearfocus, range ArrowRight, native focused-button Space1행동/터치중복 방지, blocked BGM retry/메모리 mute를 확인했다. NPC를 충분히 따돌린60계단 run에서는 종료 없이30초 bonus 만료/BGM1.25→1/다음 점수1도 확인했다.
+- WebAnimation time0/150/300으로 실제 D/J step(±34,−28)→(±17,−22)→0 및 실제 생성된 양쪽 jump(±68,−56)→(±34,−84)→0을 측정했다. 장면은 위로 이동/플레이어 고정anchor260,216/도착은 실제 아래 계단/자산 upright, 발 clip은 안쪽 pose에만 적용됐다. 점프 overlay가 상자·중간 계단 위에 있고 착지 front만 발을 가리는지 PNG도 확인했다. NPC240ms 독립 이동/점프와 동시 진행, catch500ms7실제 좌표, reduced static idle/이동 없음도 확인했다.
+- ready/play/settings/result의 네 viewport/root overflow0/scene≥200/gear≥44/mobilecontrols≥56/turn-jumpgap4<outer12/desktop controlsnone/HUD·gear·footer 분리를 확인했다.320px root24/32에서 내부 scroll 후 start/range/close/restart 실제 hit-test와 native 입력이 통과했다. 유효150점 결과 PNG와 필수 양쪽 점프6PNG/모바일·데스크톱·설정·원본PNG를 보관한다.
+- 실제 빈 점프/box 충돌/반복오입력/fall500/빠른 jump→J의 옛 arc 교체/설정 중 옛gain·NPC 이동 재생 방지를 확인했다. 공개 ReactRoot.unmount 후 신규 화면 timer1→0/listener(keydown,visibilitychange)2→0/audio.dispose1, 해제 후 입력 무반응/늦은 BGM Promise 완료 무해/storage0을 확인했다. root handle만 소유 CDP 응답의 entry에서 캡처했으며 저장소 파일/생산용 debug prop/game state는 변경하지 않았다.
+
+### Evidence integrity, cleanup and limitations
+
+- 초기 driver 오류인 DOM 객체 반환 직렬화, entry timestamp/cache 패턴, audio method wrapper의 this 누락은 도구에서 수정하고 로그를 별도로 보존했다. 최초 v4 fixture의 updatedAt 오타는 achievedAt으로 고친 뒤 최종 전체 flow를 재실행했다. 실제 autoplay focus 결함은 위 source/test 수정으로 해결했으며 최종9 driver 모두 통과했다.
+- 소유 Chrome PID17080/profile/CDP9226, 보조 devfalse PID9540/5176, preview PID16140/5177의 identity를 확인한 후 종료했다. 일반 프로필/다른 서버/아티팩트는 건드리지 않았다. `helper-cleanup-and-link.json`에 종료 및 링크 확인을 기록했다.
+- 사용자 링크 `http://127.0.0.1:5175/descent-test.html`: 기존 데모 PID21048을 유지했으며 최종 HTTP200/정확한 entry/DEVtrue/demo flagtrue를 확인했다. 로컬 개발 전용이며 공개 배포 링크가 아니다.
+- 소리는 호출 횟수/media API/재생 속도·mute로 검증했으며 실제 스피커 청취 품질은 판정하지 않았다. 기본 test worker pool의 기존 화면 성능 문제/기존 번들 크기는 별도 후속 대상이다. 새 범위 밖 결함은 발견되지 않았고 기존 Entra 설정/공용 서버 랭킹/배포/5단계 확장은 수행하지 않았다.

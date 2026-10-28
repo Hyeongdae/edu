@@ -47,13 +47,18 @@ describe("independent descent app ownership", () => {
     fireEvent.keyDown(window, { key: "d" });
     expect(screen.getByTestId("descent-score")).toHaveTextContent("1");
     fireEvent.click(screen.getByRole("button", { name: "게임 설정" }));
-    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "음악 켜기" })); });
+    const enableButton = screen.getByRole("button", { name: "음악 켜기" });
+    enableButton.focus();
+    await act(async () => { fireEvent.click(enableButton); });
     expect(c.startBgm).toHaveBeenCalledTimes(2);
     expect(screen.queryByRole("button", { name: "음악 켜기" })).toBeNull();
+    expect(screen.getByRole("button", { name: "설정 닫기" })).toHaveFocus();
     fireEvent.change(screen.getByRole("slider", { name: "배경 음악 음량" }), { target: { value: "37" } });
     fireEvent.click(screen.getByRole("button", { name: "효과음 음소거" }));
     expect(c.setPreferences).toHaveBeenLastCalledWith({ ...defaults, bgmVolume: .37, effectsMuted: true });
     expect(DEFAULT_AUDIO_PREFERENCES).toEqual(defaults);
+    fireEvent.keyDown(document.activeElement!, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
   it("treats a rejected audio promise as blocked without an unhandled error", async () => {
