@@ -226,7 +226,7 @@ Task: T02-main-descent-integration
 
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: recorded in the following metadata synchronization commit
+- commit: `5217dfa`
 - After success: Task done/commit, phase done2/3/T03 in_progress, current Active T03. Do not claim browser completion or implement T03 in this invocation.
 
 ## Execution Evidence — 2026-10-28

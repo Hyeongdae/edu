@@ -3,7 +3,7 @@
 - Date: 2026-10-28
 - Status: in_progress
 - Source: [Confirmed decisions](../decisions/2026-10-28-main-game-descent-conversion.md)
-- Execution: T01 기록 저장 준비 완료. T02 메인 하강 연결과 T03 브라우저 검증은 미수행이다. 실제 브라우저 저장소는 아직 초기화하지 않았다.
+- Execution: T01 기록 저장 준비와 T02 메인 하강 통합 완료. T03 실제 브라우저 검증은 미수행이다. 이 코드부터 최초 main 접속 시 승인된 구 기록 초기화가 활성화된다.
 - Baseline: `bdf18d5` (local descent plan completion); main ascent is still live. Previous local experiment T01 `0225893`, T02 `f9aa712`, T03 `04fdeea`.
 
 ## Goal
@@ -55,7 +55,9 @@
 
 ## Progress
 
-- done: 1/3 (active: T02)
+- done: 2/3 (active: T03)
 - T01 `9b6ba54`: recordStorage와 두 API의 optional scope/회귀 테스트 구현. 지정 6파일 242/242tests(32.11초/workers2), lint/build/diff check 통과. 읽기 전용 main/실험/auth/audio/config 경로 diff 없음. 실제 브라우저 기록은 미접근이며 main은 기존 상승 화면이다.
 - 증거: `%TEMP%\main-descent-records-t01-2026-10-28\tests.log`, `lint.log`, `build.log`. JS552.85kB(gzip154.43kB)/CSS55.50kB(gzip10.77kB), 기존 500kB chunk 경고 유지. 신규 범위 밖 결함: 특이사항 없음.
+- T02 `5217dfa`: main5단계 하강 scene/step·jump·NPC·catch/레이어·문구, 모든 main 저장 descent scope, D11 오디오 재시도 focus 복구 완료. 지정27파일727/727tests(54.39초/workers2/skip0), lint/build/diff check 통과. 새 scene23tests와 GameScreen82tests를 포함하며 원본 엔진/실험/auth설정/audio/config는 보존했다.
+- T02 증거: `%TEMP%\main-descent-t02-2026-10-28\`의 tests-27-final.log/lint.log/build.log/audit.log, 초기 실패와 focused 보완 로그도 보존. JS553.68kB(gzip154.76kB)/CSS57.30kB(gzip10.95kB), 기본 dist는 index.html만 존재. 실제 브라우저는 사용하지 않았으며 T03 검증 전 전체 완료로 표시하지 않는다. 신규 범위 밖 결함: 특이사항 없음.
 - 2026-10-28 사용자 요청으로 main 오디오 재시도 focus 복구/회귀 테스트/브라우저 검증을 T02/T03에 포함했다. 실행 순서와 T01 포인터는 유지한다.
