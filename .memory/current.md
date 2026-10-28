@@ -2,21 +2,50 @@
 
 ## Active Plan
 
-[Main Game Descent Conversion](./plans/2026-10-28-main-game-descent-conversion.md)
+[Distance Based Pursuer Catch Up](./plans/2026-10-28-distance-based-pursuer-catch-up.md)
 
 ## Active Phase
 
-없음 — [P01 Main Descent](./phases/2026-10-28-main-game-descent-conversion/P01-main-descent/phase.md) 완료.
+[P01 Pursuit](./phases/2026-10-28-distance-based-pursuer-catch-up/P01-pursuit/phase.md)
 
 ## Active Task
 
+[T01 Distance Catch Up](./phases/2026-10-28-distance-based-pursuer-catch-up/P01-pursuit/T01-distance-catch-up.md)
+
+## Status
+
+- T01 in_progress. 사용자 선택3: 메인과 단독 실험 모두 적용. 기본600/500/400/300/250ms,30칸부터50ms,7칸이하 해제. 가속 중 넘어져도50ms 우선.
+- 이전 main-game-descent-conversion completed3/3; T03 8da80d6, 메타데이터5f739b3. 이전 기록 아래 보존.
+
+## Source Decisions
+
+[Distance Based Pursuer Catch Up](./decisions/2026-10-28-distance-based-pursuer-catch-up.md)
+
+## Next Step (IMPORTANT)
+
+T01 청사진에 따라 공용 엔진과 양쪽 화면/회귀 검사를 함께 구현한다. 기존 로컬5175 서버 및 사용자 기록은 보존한다. 이 Task 완료 후 Active Task 없음으로 전진한다.
+
+---
+
+## Previous Context: Main Game Descent Conversion
+
+### Active Plan
+
+[Main Game Descent Conversion](./plans/2026-10-28-main-game-descent-conversion.md)
+
+### Active Phase
+
+없음 — [P01 Main Descent](./phases/2026-10-28-main-game-descent-conversion/P01-main-descent/phase.md) 완료.
+
+### Active Task
+
 없음 — main-game-descent-conversion 완료 (3/3).
 
-## Last Completed Task
+### Last Completed Task
 
 [T03 Main Descent Browser Validation](./phases/2026-10-28-main-game-descent-conversion/P01-main-descent/T03-main-descent-browser-validation.md) — `8da80d6` (2026-10-28). 이번 계획 T02 `5217dfa`/동기화 `c537dfb`, T01 `9b6ba54`/동기화 `4d7669e`. 이전 local-descent 계획 T03 `04fdeea`/동기화 `bdf18d5`, T01 `0225893`/동기화 `4b49dc8`, T02 `f9aa712`/동기화 `8f92171`. 이전 stage-score 계획: T01 `f5ef960`/동기화 `0ca7bf2`, T02 `f35254f`/동기화 `6dfa99a`, T03 `20f8425`/완료 동기화 `8d9b31d`. 이전 checkpoint 계획 완료: T04 `9fda567`, 동기화 `cec0d37`.
 
-## Status
+### Status
 
 - main-game-descent-conversion: **completed, done3/3, Active Task none**. 2026-10-28 T03 `8da80d6` 완료: 소유 브라우저9 driver/네 화면5단계·새 저장·모션/실제 시간·모바일/큰 글자·오디오 재시도 focus·인증/독립 실험 경계를 검증했다. 지정27파일727/727tests(56.60초/workers2/skip0), lint/build/diff check 통과. 제품 source/test 추가 수정 없음. 사용자 profile/실제 기록에는 직접 접근하지 않았다.
 - T03 증거: `%TEMP%\main-game-descent-conversion-2026-10-28\evidence-index.json`의145artifact/PNG82·필수14사진/9driver와 로그·SHA256. seed0.5의320×667/390×667/768×1024/1440×900 각각615행동·641물리계단·26보너스점프/점수150·200·250·300·352. 실제 재접속/초기화 실패 재시도·public 계정분리, 양방향 animation0/150/300·catch500/reduced·실제250/500/1300과4초same-document lifecycle, native retry Promise·focus/range·늦은 결과·unmount timer0/listener0/dispose1 통과. 일반2점은 seed0.19 generated native Space로 별도 확인했다. 전체 진행의 제어 시계와 실제 시간/함수 경계 fixture/공개 GameScreen 계정 fixture를 구분했다.
@@ -31,7 +60,7 @@
 - 검증 명령은 기존 느린 화면 테스트 자원 경쟁을 고려해 maxWorkers2를 명시한다. T01은6파일, T02/T03은 기존24+recordStorage/StairScene/authConfig의27파일/실제 count기록. timeout/skip/config 변경은 하지 않는다. 기존 App 전체suite/번들/렌더 성능/공용 서버랭킹/Entra·배포/새 모드는 이번 계획 밖이다.
 - 사용자 추가 확정(D11): T02에서 GameScreen dialog/previous-open refs와 post-commit focus 복구를 구현했다. 집중된 재시도 버튼 제거 후 close 복구, 내부 slider/button focus 유지, Tab/Escape/trigger 복귀·늦은 결과 후 외부 focus 보존과 StrictMode를 검사했다. T03에서 실제 native 재시도·Tab/ShiftTab/Escape/닫기 복귀·range ArrowRight/media Promise/늦은 완료까지 검증했다. 오디오 owner/설정 저장/게임 pause는 유지한다. 신규 범위 밖 결함 발견: 특이사항 없음.
 
-## Previous Completed Plan: Stair Descent Local Test
+### Previous Completed Plan: Stair Descent Local Test
 
 - stair-descent-local-test: **completed, done3/3, Active Task none**. 이번 실행에서는 T03 한 개만 검증·관련 결함 수정·커밋했다. `04fdeea`: 실제 브라우저9 driver/지정24파일642/642tests(47.17s, `--maxWorkers=2`)/lint 오류0·경고0/build/diff check 통과.
 - 확정 범위: 기존 오르기 게임 유지, 별도 `/descent-test.html` 개발용 로컬 데모, D내려가기/J회전하며내려가기/Space2칸점프, 위쪽 NPC추격,1단계150점·90초, 기존10% 긴 구간 장애물·30칸 보너스·500ms넘어짐/250ms추격 유지, 기록 미저장.
@@ -48,15 +77,15 @@
 - 로컬 링크 `http://127.0.0.1:5175/descent-test.html`: 기존 소유 데모 PID21048 유지/최종HTTP200/새 module/DEVtrue/demo flagtrue 확인. devfalse5176은 이용 불가, production preview5177의 동일경로200은 원본index SPA fallback·Entra 설정 안내이며 descent 미배포다. 소유 Chrome17080/보조5176·5177 서버는 identity 확인 후 종료했고 사용자 프로필/다른 서버는 건드리지 않았다. env 파일은 변경하지 않았다.
 - 새 범위 밖 결함 발견 없음. 기존 번들 크기/독립 App 전체 suite/공용 랭킹/Entra·배포/원본 리팩터링/내려오기5단계는 추가하지 않는다.
 
-## Source Decisions
+### Source Decisions
 
 [Main Game Descent Conversion](./decisions/2026-10-28-main-game-descent-conversion.md)
 
-## Previous Stair Descent Source Decisions
+### Previous Stair Descent Source Decisions
 
 [Stair Descent Local Test](./decisions/2026-10-28-stair-descent-local-test.md)
 
-## Completed Stair Descent Plan History
+### Completed Stair Descent Plan History
 
 | Task | Implementation commit | Validation |
 | :--- | :--- | :--- |
@@ -64,7 +93,7 @@
 | T02 Isolated Local Descent Screen | `f9aa712` | 지정24파일642tests/workers2/lint/build/entry HTTP |
 | T03 Descent Browser Validation | `04fdeea` | 지정24파일642tests/workers2/lint/build + 소유 브라우저9 driver |
 
-## Previous Completed Plan: Stage Unlocks and Per-Stage Scores
+### Previous Completed Plan: Stage Unlocks and Per-Stage Scores
 
 [완료 계획](./plans/2026-10-27-stage-unlocks-and-per-stage-scores.md) — completed3/3, T01 `f5ef960`, T02 `f35254f`, T03 `20f8425`, 완료 동기화 `8d9b31d`. 아래는 이전 계획 완료 당시 기록이다.
 
@@ -78,11 +107,11 @@
 - T02 로그: C:\Users\DEX\AppData\Local\Temp\stair-stage-scores-t02-2026-10-28\. 최종 regression-17-files-final.log/lint-final.log/build.log. 빌드 JS551.91kB(gzip154.18kB), CSS55.50kB(gzip10.77kB). 초기 빌드의500kB chunk 경고와 기존 초과 크기는 해결하지 않았다. T01 로그는 C:\Users\DEX\AppData\Local\Temp\stair-stage-scores-t01-2026-10-27\에 보존한다.
 - 별도 소리 청취, 공용 서버 랭킹, 번들 크기, 독립 App 테스트 정리, Entra 설정/배포는 이번 계획에 추가하지 않는다.
 
-## Previous Stage Score Source Decisions
+### Previous Stage Score Source Decisions
 
 [Stage Unlocks and Per-Stage Scores](./decisions/2026-10-27-stage-unlocks-and-per-stage-scores.md)
 
-## Previous Completed Plan: Stage Checkpoints and Fall Chase
+### Previous Completed Plan: Stage Checkpoints and Fall Chase
 
 | Task | Implementation commit | Validation |
 | :--- | :--- | :--- |
@@ -91,11 +120,11 @@
 | T03 Fall Pursuit Acceleration | `9a9e6b5` | 지정17파일432tests/lint/build |
 | T04 Checkpoint Browser Validation | `9fda567` | 지정17파일433tests/lint/build + 격리 브라우저 |
 
-## Previous Source Decisions
+### Previous Source Decisions
 
 [Stage Checkpoints and Fall Chase](./decisions/2026-10-23-stage-checkpoints-and-fall-chase.md)
 
-## Previous Completed Plan History
+### Previous Completed Plan History
 
 [Five Stage Obstacle Jump](./plans/2026-10-23-five-stage-obstacle-jump.md) — completed5/5. 아래 구현/검증 이력은 이전 계획에 속한다.
 | Task | Implementation commit | Validation |
@@ -108,6 +137,6 @@
 
 위 표는 이전 계획의 완료 이력이다. stage-checkpoints-and-fall-chase T01~T04 구현/검증 이력은 위 Previous Completed Plan 표에 기록했다.
 
-## Next Step (IMPORTANT)
+### Next Step (IMPORTANT)
 
 현재 계획은 완료됐고 Active Task는 없다. T01/T02/T03와 이전 완료 계획을 재실행하지 않는다. 사용자는 `http://127.0.0.1:5175/`에서 main 내려오기 게임을 테스트할 수 있다. 새 변경 요청이 오면 그 요구에 맞춰 인터뷰/결정→계획→Active Task 실행을 시작한다. 검증 증거는 위 임시 폴더와 T03 청사진에 보존돼 있다. 공용 서버 랭킹/실제 Entra 설정·배포/번들 성능·오래된 App 전체suite 정리는 자동으로 시작하지 않는다.
