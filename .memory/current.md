@@ -6,15 +6,23 @@
 
 ## Active Phase
 
-[P01 Pursuit](./phases/2026-10-28-distance-based-pursuer-catch-up/P01-pursuit/phase.md)
+없음 — [P01 Pursuit](./phases/2026-10-28-distance-based-pursuer-catch-up/P01-pursuit/phase.md) 완료.
 
 ## Active Task
 
-[T01 Distance Catch Up](./phases/2026-10-28-distance-based-pursuer-catch-up/P01-pursuit/T01-distance-catch-up.md)
+없음 — distance-based-pursuer-catch-up 완료 (1/1).
+
+## Last Completed Task
+
+[T01 Distance Catch Up](./phases/2026-10-28-distance-based-pursuer-catch-up/P01-pursuit/T01-distance-catch-up.md) — `43db38c` (2026-10-28), 계획 `63a5773`.
 
 ## Status
 
-- T01 in_progress. 사용자 선택3: 메인과 단독 실험 모두 적용. 기본600/500/400/300/250ms,30칸부터50ms,7칸이하 해제. 가속 중 넘어져도50ms 우선.
+- distance-based-pursuer-catch-up **completed, done1/1, Active Task none**. 사용자 선택3: 메인과 단독 실험 모두 적용. 기본600/500/400/300/250ms,30칸부터50ms,7칸이하 해제. 가속 중 넘어져도50ms 우선. 기존fall500ms/추격250ms 복귀 유지.
+- T01 `43db38c`: 공용 isPursuerCatchingUp boolean/30·7 hysteresis/절대기한 스케줄, 양쪽50ms polling/동기화 모션/CSS/help 구현. 새 게임·Continue·종료에서 modefalse. 기존 기록/auth/audio/목표·확률·경로는 보존했다.
+- 지정28파일754/754tests/skip0/workers2/63.48초, lint/build/diff 통과. 새 순수규칙25+화면통합2검사, 기존고정시간/수동far fixture 갱신. 테스트의 잘못된 화면밖 gap9 조회/배치 중 DOMcue 조회/잘못된runtime타입단언만 보완했고 timeout/skip/config는 변경하지 않았다.
+- 증거: `C:/Users/DEX/AppData/Local/Temp/distance-based-pursuer-catch-up-2026-10-28/`의 regression-verified.log/lint-verified.log/build-verified.log/browser-smoke-final.log/browser-smoke.json·PNG4. 격리Chrome156 두context 메인1440×900/단독390×844, native입력30칸·50ms21인접이동·gap8CSS0.05s·fall중가속·gap7에서250·설정10초pause후600복귀/예외0. 브라우저 시각은 제어했고 실제 interval은 가짜타이머 화면통합검사로 확인했다.
+- JS554.49kB(gzip155.08)/CSS57.33kB(gzip10.97), 기존500kB chunk경고 유지. 새 범위 밖 결함: 특이사항 없음. 소유Chrome20740은 profile identity확인 후 종료했다. 기존demo5175 PID21048과 사용자프로필/기록 유지. 두URL HTTP200. 기존App suite/실제Entra/스피커청취·성능개선은 미실행.
 - 이전 main-game-descent-conversion completed3/3; T03 8da80d6, 메타데이터5f739b3. 이전 기록 아래 보존.
 
 ## Source Decisions
@@ -23,7 +31,7 @@
 
 ## Next Step (IMPORTANT)
 
-T01 청사진에 따라 공용 엔진과 양쪽 화면/회귀 검사를 함께 구현한다. 기존 로컬5175 서버 및 사용자 기록은 보존한다. 이 Task 완료 후 Active Task 없음으로 전진한다.
+계획 완료, 다음 Active Task 없음. `http://127.0.0.1:5175/`와 `http://127.0.0.1:5175/descent-test.html`에서 새로고침 후 테스트한다. T01/이전 계획을 재실행하지 않는다. 새 수정 요청은 해당 요구의 결정→계획→실행으로 진행한다.
 
 ---
 

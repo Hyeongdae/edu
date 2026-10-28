@@ -105,7 +105,7 @@ Task: T01-distance-catch-up
 
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: implementation commit containing this Task (hash recorded in subsequent memory sync).
+- commit: `43db38c`; plan docs `63a5773`.
 
 ## Validation Results — 2026-10-28
 

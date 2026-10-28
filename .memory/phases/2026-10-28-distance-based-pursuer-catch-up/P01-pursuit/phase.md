@@ -4,8 +4,8 @@
 
 | Task | Status | Summary | Blueprint |
 | :--- | :--- | :--- | :--- |
-| T01 | in_progress | 단계 속도·거리 가속·양쪽 화면 동기화 | [T01](./T01-distance-catch-up.md) |
+| T01 | done ✅ | 단계 속도·거리 가속·양쪽 화면 동기화, `43db38c` | [T01](./T01-distance-catch-up.md) |
 
 ## Progress
 
-- done: 0/1 (active: T01)
+- done: 1/1 (active: none), completed.
