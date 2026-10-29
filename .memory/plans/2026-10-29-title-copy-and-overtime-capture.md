@@ -9,14 +9,14 @@ Change the title subtitle to `계단을 내려가 1층까지 도착해 퇴근하
 ## Phases
 | Phase | Status | Summary | Blueprint |
 | :--- | :--- | :--- | :--- |
-| P01 | `in_progress` | Build the office scene and its timing, then integrate it with the existing capture, result, focus, and title flows. | [P01](../phases/2026-10-29-title-copy-and-overtime-capture/P01-overtime-capture/phase.md) |
+| P01 | `completed` | Built and integrated the office scene, capture/result lifecycle and title subtitle; browser-check limitation recorded in T02. | [P01](../phases/2026-10-29-title-copy-and-overtime-capture/P01-overtime-capture/phase.md) |
 
 ## Task Order
 1. T01 creates an independently renderable office scene, dedicated character poses, and a timestamp-based presentation hook with focused tests.
 2. T02 connects the completed scene to GameScreen, changes the exact title subtitle, updates affected integration tests, and checks the visible animation in a browser.
 
 ## Progress
-- done: 1/2; T01 completed at `4e41af6` with 33 tests, lint, build, and standalone visual inspection passing. T02 is the next active task.
+- done: 2/2; no active task. T01 completed at `4e41af6` with 33 tests, lint, build, and standalone visual inspection passing. T02 completed at `10e1ac4` (2026-10-30) with 182/182 targeted tests, lint, build, and HTTP/module verification passing. Main-game browser inspection was blocked by automatic approval review; no T02 visual acceptance is claimed.
 
 ## Scope and Invariants
 - Normal timeline relative to caught result: 0–499 ms existing staircase catch; 500–2,499 ms office scene; at 2,500 ms existing result and leaderboard.

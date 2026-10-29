@@ -127,7 +127,7 @@ Task: T02-title-copy-and-capture-integration
 ## Progress
 - [x] Implementation complete
 - [x] Required automated validation passed; browser limitation documented
-- commit: pending
+- commit: `10e1ac4`
 
 ## Validation Results (2026-10-30)
 - Final exact four-file validation command: **182/182 tests passed, 4/4 files, no skips**, 60.32 s. The earlier filtered diagnostic run is not the final acceptance run.

@@ -1,28 +1,29 @@
 # Current Context
 
 ## Active Plan
-[Title Copy and Overtime Capture](./plans/2026-10-29-title-copy-and-overtime-capture.md)
+None. [Title Copy and Overtime Capture](./plans/2026-10-29-title-copy-and-overtime-capture.md) is complete.
 
 ## Active Phase
-[P01 Overtime Capture](./phases/2026-10-29-title-copy-and-overtime-capture/P01-overtime-capture/phase.md)
+None. [P01 Overtime Capture](./phases/2026-10-29-title-copy-and-overtime-capture/P01-overtime-capture/phase.md) is complete.
 
 ## Active Task
-[T02 Title Copy and Capture Integration](./phases/2026-10-29-title-copy-and-overtime-capture/P01-overtime-capture/T02-title-copy-and-capture-integration.md)
+None.
 
 ## Last Completed Task
-[T01 Overtime Scene and Lifecycle](./phases/2026-10-29-title-copy-and-overtime-capture/P01-overtime-capture/T01-overtime-scene-and-lifecycle.md) — `4e41af6` (2026-10-29).
+[T02 Title Copy and Capture Integration](./phases/2026-10-29-title-copy-and-overtime-capture/P01-overtime-capture/T02-title-copy-and-capture-integration.md) — `10e1ac4` (2026-10-30). T01: `4e41af6`, memory sync `2d73945`.
 
 ## Status
-- title-copy-and-overtime-capture: done 1/2; T01 complete, T02 ready to execute.
-- T01 added the standalone office scene, dedicated grab/drag/seated poses, and the capture/overtime/complete lifecycle hook. Validation: 33/33 tests, lint, build, and standalone desktop/mobile visual inspection passed. Evidence: `%TEMP%\overtime-t01-2026-10-29\preview-evidence.json` and six PNGs.
-- T02 will connect the scene to GameScreen and change the title subtitle. Main gameplay/auth/audio/records and shared sprites have not been modified by T01.
+- title-copy-and-overtime-capture: completed 2/2; Active Task none.
+- T02 connected the 500 ms staircase catch → 2,000 ms office scene → recorded result flow in GameScreen, with reduced-motion static results and restart focus, and changed the exact title subtitle. Captured-result storage, engine rules, auth/config files, and audio ownership are unchanged.
+- Final T02 validation: 182/182 tests across four targeted files, lint, and build passed. HTTP 200 and connected module/development-demo flag verified at `http://127.0.0.1:5176/`; process-only demo server retained for the user. Existing protected port 5175 retained.
+- T02 real-browser inspection was blocked by automatic approval review (`blocked by policy`); no main-game visual acceptance claimed. Evidence and logs: `%TEMP%\overtime-t02-2026-10-30\`. T01 standalone artwork inspection remains at `%TEMP%\overtime-t01-2026-10-29\preview-evidence.json` with six PNGs.
 - Previous title-scene-and-guide-copy plan completed 1/1 with 119/119 targeted tests, lint, and build passing.
 
 ## Source Decisions
 [Title Copy and Overtime Capture](./decisions/2026-10-29-title-copy-and-overtime-capture.md)
 
 ## Next Step (IMPORTANT)
-Read the T02 blueprint and integrate the completed scene into `src/game/GameScreen.tsx`, update its exact title subtitle and capture/result/focus branches, add the active-frame CSS selectors, and update `src/game/GameScreen.test.tsx`. Preserve immediate captured-result saving and the existing successful office-exit ending. Run T02 validation and main-game browser checks; do not rerun T01 as a new task.
+No active task. The user can test the integrated game at `http://127.0.0.1:5176/`: 게임 시작 → 시작하기 → let the pursuer catch the player. Reduced motion shows a static office illustration with results. Future changes need a new selected task; do not rerun T01/T02 or expand the already recorded App.test.tsx cleanup without a new request.
 ---
 
 ### Previous Context: Main Game Descent Conversion
