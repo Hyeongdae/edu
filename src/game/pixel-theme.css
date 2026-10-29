@@ -63,7 +63,6 @@
 }
 
 .stair-game.pixel-theme .game-settings-button,
-.stair-game.pixel-theme .game-instructions-button,
 .stair-game.pixel-theme .settings-close-button,
 .stair-game.pixel-theme .instructions-close-button {
   display: grid;
@@ -80,10 +79,49 @@
 }
 
 .stair-game.pixel-theme .game-settings-button { z-index: 6; top: 12px; right: 12px; }
-.stair-game.pixel-theme .game-instructions-button { z-index: 6; top: 12px; right: 64px; font: 900 1.25rem ui-monospace, Consolas, monospace; }
 .stair-game.pixel-theme .game-settings-button:hover { background: #263d50; }
-.stair-game.pixel-theme .game-settings-button:disabled,
-.stair-game.pixel-theme .game-instructions-button:disabled { opacity: 0.5; cursor: default; }
+.stair-game.pixel-theme .game-settings-button:disabled { opacity: 0.5; cursor: default; }
+
+.stair-game.pixel-theme .game-title-screen {
+  border: 8px solid #202d49;
+  background: radial-gradient(ellipse at 50% 36%, #26385a 0%, #151f37 67%, #10182d 100%);
+  box-shadow: inset 0 0 0 2px #536781;
+}
+.stair-game.pixel-theme .game-title-kicker {
+  color: var(--pixel-cyan);
+  font: 800 clamp(0.72rem, 1.5vw, 0.95rem) ui-monospace, Consolas, monospace;
+  letter-spacing: 0.18em;
+}
+.stair-game.pixel-theme .game-title-screen h1 {
+  color: var(--pixel-gold);
+  font-size: clamp(2.1rem, 8vw, 5.5rem);
+  font-weight: 950;
+  letter-spacing: 0.02em;
+  line-height: 1.14;
+  text-shadow: 4px 4px 0 #111827, 7px 7px 0 #0a0f1e;
+}
+.stair-game.pixel-theme .game-title-tagline {
+  color: var(--pixel-muted);
+  font-size: clamp(0.9rem, 2vw, 1.15rem);
+  line-height: 1.6;
+}
+.stair-game.pixel-theme .game-title-actions button {
+  border: 3px solid #fff0bc;
+  border-radius: 0;
+  box-shadow: 5px 5px 0 #050b19;
+  transition: none;
+}
+.stair-game.pixel-theme .game-title-start {
+  background: var(--pixel-gold);
+  color: #151d32;
+}
+.stair-game.pixel-theme .game-title-guide {
+  border-color: var(--pixel-cyan);
+  background: #15243b;
+  color: var(--pixel-cyan);
+}
+.stair-game.pixel-theme .game-title-actions button:hover { transform: translateY(-2px); }
+.stair-game.pixel-theme .game-title-actions button:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #050b19; }
 
 .stair-game.pixel-theme .stage-select-panel {
   position: absolute;
@@ -471,7 +509,6 @@
   .stair-game.pixel-theme .pixel-scene-stage { overflow: visible; }
   .stair-game.pixel-theme .office-backdrop { top: auto; bottom: 0; height: 100dvh; }
   .stair-game.pixel-theme .game-settings-button { top: 8px; right: 8px; }
-  .stair-game.pixel-theme .game-instructions-button { top: 8px; right: 60px; }
   .stair-game.pixel-theme .game-hud { position: relative; top: auto; left: auto; right: auto; width: calc(100% - 68px); margin-left: 8px; grid-template-columns: minmax(0, 1fr); gap: 4px; }
   .stair-game.pixel-theme .hud-card { min-height: 64px; padding: 7px 6px; }
   .stair-game.pixel-theme .score-card { grid-column: 1 / -1; min-height: 80px; gap: 8px; }

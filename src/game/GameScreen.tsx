@@ -60,6 +60,7 @@ export function GameScreen({
   const [gameState, setGameState] = useState(() => createGameState(undefined, {
     stage: getHighestUnlockedStage(initialProfile.knownHighest), highestClearedStage: initialProfile.knownHighest,
   }));
+  const [isTitleScreen, setIsTitleScreen] = useState(true);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>(initialProfile.entries);
   const [progressError, setProgressError] = useState(!initialProfile.progressAvailable);
@@ -98,7 +99,7 @@ export function GameScreen({
   const openGameDialog = useCallback((dialog: "settings" | "instructions") => {
     if (activeDialogRef.current !== null) return;
     if (dialog === "settings" && gameState.status !== "playing") return;
-    if (dialog === "instructions" && gameState.status !== "playing" && gameState.status !== "ready" && gameState.status !== "game-over") return;
+    if (dialog === "instructions" && !isTitleScreen) return;
 
     const openedAt = Date.now();
     if (gameState.status === "playing") {
@@ -113,7 +114,7 @@ export function GameScreen({
 
     activeDialogRef.current = dialog;
     setActiveDialog(dialog);
-  }, [gameState]);
+  }, [gameState, isTitleScreen]);
 
   const closeGameDialog = useCallback((dialog: "settings" | "instructions") => {
     if (activeDialogRef.current !== dialog) return;
@@ -173,6 +174,11 @@ export function GameScreen({
     runStartedRef.current = false;
     setNowMs(Date.now());
     setGameState(preview);
+  };
+
+  const handleEnterStageSelection = () => {
+    if (activeDialogRef.current !== null || gameState.status !== "ready") return;
+    setIsTitleScreen(false);
   };
 
   const handleStart = () => {
@@ -458,95 +464,110 @@ export function GameScreen({
           data-pursuer-catching={pursuerCatchVisible}
           data-office-ending={isEnding}
         >
-          <button
-            ref={settingsTriggerRef}
-            className="game-settings-button"
-            type="button"
-            aria-label="게임 설정"
-            aria-expanded={isSettingsOpen}
-            aria-controls="game-settings-dialog"
-            disabled={gameState.status === "ready" || gameState.status === "checkpoint" || isEnding}
-            onClick={openSettings}
-          >
-            <PixelIcon name="settings" />
-          </button>
-          <button
-            ref={instructionsTriggerRef}
-            className="game-instructions-button"
-            type="button"
-            aria-label="게임 설명"
-            aria-haspopup="dialog"
-            aria-expanded={isInstructionsOpen}
-            aria-controls="game-instructions-dialog"
-            disabled={gameState.status === "checkpoint" || isEnding}
-            onClick={openInstructions}
-          >
-            ?
-          </button>
-
-          <div className="game-stage" aria-hidden={isEnding || undefined} inert={isEnding || undefined}>
-            <GameHud
-              state={gameState}
-              eventSecondsLeft={eventSecondsLeft}
-              scoreGain={scoreGain}
-              scoreGainIsBonus={scoreGainIsBonus}
-              scoreAnimationKey={scoreAnimationKey}
-              stageSecondsLeft={getStageSecondsLeft(gameState, nowMs)}
-            />
-
-            <div className="game-layout" data-game-status={gameState.status}>
-              <StairScene
-                state={gameState}
-                climbAnimationKey={climbAnimationKey}
-                isClimbing={isClimbing && gameState.status === "playing" && !gameState.lastMistake && !pursuerCatchVisible}
-                pursuerAnimationKey={pursuerAnimationKey}
-                isPursuerMoving={isPursuerMoving}
-                isPursuerCaught={pursuerCatchVisible}
-              />
-            </div>
-          </div>
-
-          {gameState.status === "ready" ? (
-            <StageSelectPanel selectedStage={gameState.stage} highestClearedStage={gameState.highestClearedStage}
-              onSelect={handleSelectStage} onStart={handleStart} disabled={false} progressUnavailable={progressUnavailable} />
-          ) : gameState.status === "playing" ? (
-            <ControlButtons
-              onForward={() => handleInput("forward")}
-              onTurn={() => handleInput("turn")}
-              onJump={() => handleInput("jump")}
-              disabled={controlsDisabled}
-            />
-          ) : gameState.status === "checkpoint" ? (
-            <CheckpointPanel stage={gameState.stage} score={gameState.score}
-              remainingTimeCs={stageResult!.remainingTimeCs}
-              onContinue={handleContinue} onQuit={handleQuit} disabled={false} progressError={progressError} rankingError={saveError} />
-          ) : isEnding ? <OfficeExitEnding key={stageResult!.endedAtMs} variant="animated" startedAtMs={stageResult!.endedAtMs} /> : (
-            <section
-              className="game-over-panel"
-              aria-labelledby="game-over-title"
-            >
-              <div className="game-over-result">
-                {stageResult?.stage === 5 && stageResult.outcome === "cleared" && <OfficeExitEnding variant="complete" />}
-                <PixelIcon name="flag" className="game-over-icon" size={36} />
-                <p className="game-over-kicker">이번 도전 결과</p>
-                <h2 id="game-over-title">{gameState.score}점</h2>
-                <p className="game-over-stage">기록 단계 {gameState.stage}단계</p>
-                <p className="game-over-time">남은 시간 {formatRemainingTimeCs(stageResult!.remainingTimeCs)}</p>
-                <p className="game-over-reason">{gameState.endReason === "cleared" ? "최종 클리어!" : gameState.endReason === "time-limit" ? "시간 초과" : gameState.endReason === "quit" ? "체크포인트에서 종료했어요" : "추격자에게 잡혔어요"}</p>
-                <p>계단 {gameState.stepsClimbed}개를 내려왔어요.</p>
-                {saveError && <p className="leaderboard-error" role="status">기록을 저장하지 못했습니다. 이 브라우저의 저장 공간을 확인해 주세요.</p>}
-                {progressError && <p role="status">진행도를 저장하지 못했습니다. 이 브라우저의 저장 공간을 확인해 주세요.</p>}
-                <button ref={restartButtonRef} className="start-button restart-button" type="button" onClick={handleShowStageSelection}>
-                  <PixelIcon name="restart" size={20} /> 다시 시작
+          {isTitleScreen ? (
+            <section className="game-title-screen" aria-labelledby="game-title">
+              <div className="game-title-copy">
+                <p className="game-title-kicker">STAIRWAY CHALLENGE</p>
+                <h1 id="game-title">덱스 탈출 넘버원</h1>
+                <p className="game-title-tagline">계단을 내려가 추격자를 따돌리고 퇴근하세요!</p>
+              </div>
+              <div className="game-title-actions">
+                <button className="game-title-start" type="button" onClick={handleEnterStageSelection}>
+                  게임 시작
+                </button>
+                <button
+                  ref={instructionsTriggerRef}
+                  className="game-title-guide"
+                  type="button"
+                  aria-haspopup="dialog"
+                  aria-expanded={isInstructionsOpen}
+                  aria-controls="game-instructions-dialog"
+                  onClick={openInstructions}
+                >
+                  게임 설명
                 </button>
               </div>
-              <LeaderboardPanel entries={leaderboard} currentAccountId={account.homeAccountId} />
             </section>
+          ) : (
+            <>
+              <button
+                ref={settingsTriggerRef}
+                className="game-settings-button"
+                type="button"
+                aria-label="게임 설정"
+                aria-expanded={isSettingsOpen}
+                aria-controls="game-settings-dialog"
+                disabled={gameState.status === "ready" || gameState.status === "checkpoint" || isEnding}
+                onClick={openSettings}
+              >
+                <PixelIcon name="settings" />
+              </button>
+
+              <div className="game-stage" aria-hidden={isEnding || undefined} inert={isEnding || undefined}>
+                <GameHud
+                  state={gameState}
+                  eventSecondsLeft={eventSecondsLeft}
+                  scoreGain={scoreGain}
+                  scoreGainIsBonus={scoreGainIsBonus}
+                  scoreAnimationKey={scoreAnimationKey}
+                  stageSecondsLeft={getStageSecondsLeft(gameState, nowMs)}
+                />
+
+                <div className="game-layout" data-game-status={gameState.status}>
+                  <StairScene
+                    state={gameState}
+                    climbAnimationKey={climbAnimationKey}
+                    isClimbing={isClimbing && gameState.status === "playing" && !gameState.lastMistake && !pursuerCatchVisible}
+                    pursuerAnimationKey={pursuerAnimationKey}
+                    isPursuerMoving={isPursuerMoving}
+                    isPursuerCaught={pursuerCatchVisible}
+                  />
+                </div>
+              </div>
+
+              {gameState.status === "ready" ? (
+                <StageSelectPanel selectedStage={gameState.stage} highestClearedStage={gameState.highestClearedStage}
+                  onSelect={handleSelectStage} onStart={handleStart} disabled={false} progressUnavailable={progressUnavailable} />
+              ) : gameState.status === "playing" ? (
+                <ControlButtons
+                  onForward={() => handleInput("forward")}
+                  onTurn={() => handleInput("turn")}
+                  onJump={() => handleInput("jump")}
+                  disabled={controlsDisabled}
+                />
+              ) : gameState.status === "checkpoint" ? (
+                <CheckpointPanel stage={gameState.stage} score={gameState.score}
+                  remainingTimeCs={stageResult!.remainingTimeCs}
+                  onContinue={handleContinue} onQuit={handleQuit} disabled={false} progressError={progressError} rankingError={saveError} />
+              ) : isEnding ? <OfficeExitEnding key={stageResult!.endedAtMs} variant="animated" startedAtMs={stageResult!.endedAtMs} /> : (
+                <section
+                  className="game-over-panel"
+                  aria-labelledby="game-over-title"
+                >
+                  <div className="game-over-result">
+                    {stageResult?.stage === 5 && stageResult.outcome === "cleared" && <OfficeExitEnding variant="complete" />}
+                    <PixelIcon name="flag" className="game-over-icon" size={36} />
+                    <p className="game-over-kicker">이번 도전 결과</p>
+                    <h2 id="game-over-title">{gameState.score}점</h2>
+                    <p className="game-over-stage">기록 단계 {gameState.stage}단계</p>
+                    <p className="game-over-time">남은 시간 {formatRemainingTimeCs(stageResult!.remainingTimeCs)}</p>
+                    <p className="game-over-reason">{gameState.endReason === "cleared" ? "최종 클리어!" : gameState.endReason === "time-limit" ? "시간 초과" : gameState.endReason === "quit" ? "체크포인트에서 종료했어요" : "추격자에게 잡혔어요"}</p>
+                    <p>계단 {gameState.stepsClimbed}개를 내려왔어요.</p>
+                    {saveError && <p className="leaderboard-error" role="status">기록을 저장하지 못했습니다. 이 브라우저의 저장 공간을 확인해 주세요.</p>}
+                    {progressError && <p role="status">진행도를 저장하지 못했습니다. 이 브라우저의 저장 공간을 확인해 주세요.</p>}
+                    <button ref={restartButtonRef} className="start-button restart-button" type="button" onClick={handleShowStageSelection}>
+                      <PixelIcon name="restart" size={20} /> 다시 시작
+                    </button>
+                  </div>
+                  <LeaderboardPanel entries={leaderboard} currentAccountId={account.homeAccountId} />
+                </section>
+              )}
+              <p className="game-footer" aria-hidden={isEnding || undefined} inert={isEnding || undefined}>
+                <span className="desktop-control-hint"><kbd>D</kbd> 한 칸 내려가기 <span>·</span> <kbd>J</kbd> 방향 바꾸며 내려가기 <span>·</span> <kbd>Space</kbd> 장애물 점프</span>
+                <span className="mobile-control-hint">내려가기 · 방향 바꾸기 · 장애물은 점프!</span>
+              </p>
+            </>
           )}
-          <p className="game-footer" aria-hidden={isEnding || undefined} inert={isEnding || undefined}>
-            <span className="desktop-control-hint"><kbd>D</kbd> 한 칸 내려가기 <span>·</span> <kbd>J</kbd> 방향 바꾸며 내려가기 <span>·</span> <kbd>Space</kbd> 장애물 점프</span>
-            <span className="mobile-control-hint">내려가기 · 방향 바꾸기 · 장애물은 점프!</span>
-          </p>
           {isSettingsOpen && (
             <div
               className="settings-backdrop"

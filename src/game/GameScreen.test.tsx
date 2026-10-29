@@ -1,6 +1,6 @@
 import * as stairObstacles from "./stairObstacles";
 import { makeObstacleFixture, withObstacle } from "../test/obstacleFixtures";
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render as renderBase, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { StrictMode } from "react";
 import type { AccountInfo } from "@azure/msal-browser";
@@ -25,6 +25,12 @@ const account = {
   localAccountId: "player",
   name: "홍길동",
 } satisfies AccountInfo;
+
+function render(ui: Parameters<typeof renderBase>[0]) {
+  const view = renderBase(ui);
+  fireEvent.click(screen.getByRole("button", { name: "게임 시작" }));
+  return view;
+}
 
 function nextClimbKey(): "d" | "j" {
   return screen.getByTestId("route-direction").textContent === "지금 방향을 바꾸세요" ? "j" : "d";
@@ -163,6 +169,40 @@ describe("time-ranked result persistence", () => {
     expect(localStorage.getItem(DESCENT_PROGRESS_KEY)).toBe(progress);
     expect(localStorage.getItem("msal.owned")).toBe("auth bytes"); expect(localStorage.getItem("stair-climb:audio:v1")).toBe("audio bytes");
     expect(remove.mock.calls).toEqual([[LEGACY_DESCENT_LEADERBOARD_KEY]]);
+  });
+});
+
+describe("title screen entry", () => {
+  afterEach(() => { cleanup(); localStorage.clear(); vi.restoreAllMocks(); vi.useRealTimers(); });
+
+  it("shows the game title and two actions, then opens stage selection without starting play", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const start = vi.spyOn(gameEngine, "startGame");
+    renderBase(<GameScreen account={account} />);
+
+    expect(screen.getByRole("heading", { level: 1, name: "덱스 탈출 넘버원" })).toBeVisible();
+    expect(screen.getAllByRole("button")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "게임 시작" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "게임 설명" })).toBeVisible();
+    expect(screen.queryByRole("region", { name: "단계 선택" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "게임 설정" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "?" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "게임 시작" }));
+    expect(screen.getByRole("region", { name: "단계 선택" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "게임 설명" })).not.toBeInTheDocument();
+    expect(screen.getByTestId("stage-value")).toHaveTextContent("1단계");
+    expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "ready");
+    expect(start).not.toHaveBeenCalled();
+    await act(async () => { await vi.advanceTimersByTimeAsync(5_000); });
+    expect(screen.getByTestId("stage-time")).toHaveTextContent("01:30");
+
+    fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
+    expect(start).toHaveBeenCalledOnce();
+    expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "playing");
+    expect(screen.queryByRole("button", { name: "게임 설명" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "?" })).not.toBeInTheDocument();
   });
 });
 
@@ -397,7 +437,7 @@ describe("GameScreen controls", () => {
   it("opens the guide before starting without starting the timer and restores focus after Escape", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);
-    render(<GameScreen account={account} />);
+    renderBase(<GameScreen account={account} />);
     const trigger = screen.getByRole("button", { name: "게임 설명" });
     fireEvent.click(trigger);
 
@@ -412,11 +452,12 @@ describe("GameScreen controls", () => {
 
     await act(async () => { await vi.advanceTimersByTimeAsync(5_000); });
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "ready");
+    fireEvent.click(screen.getByRole("button", { name: "게임 시작" }));
     fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
     expect(screen.getByTestId("stage-time")).toHaveTextContent("01:30");
   });
 
-  it("pauses the stage and bonus clocks, pursuer, and inputs while the guide is open", async () => {
+  it("pauses the stage and bonus clocks, pursuer, and inputs while settings are open", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);
     seedReadyStage(1, { score: 0, eventSteps: 29 });
@@ -427,9 +468,9 @@ describe("GameScreen controls", () => {
     const eventStatus = screen.getByTestId("event-status").textContent;
     const pursuerIndex = screen.getByTestId("pursuer").getAttribute("data-route-index");
     const score = screen.getByTestId("score-value").textContent;
-    const trigger = screen.getByRole("button", { name: "게임 설명" });
+    const trigger = screen.getByRole("button", { name: "게임 설정" });
     fireEvent.click(trigger);
-    expect(screen.getByRole("button", { name: "게임 설명 닫기" })).toHaveFocus();
+    expect(screen.getByRole("button", { name: "설정 닫기" })).toHaveFocus();
 
     fireEvent.keyDown(window, { key: "d" });
     fireEvent.keyDown(window, { key: "j" });
@@ -439,7 +480,7 @@ describe("GameScreen controls", () => {
     expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", pursuerIndex);
     expect(screen.getByTestId("score-value")).toHaveTextContent(score!);
 
-    fireEvent.mouseDown(document.querySelector(".instructions-backdrop")!);
+    fireEvent.mouseDown(document.querySelector(".settings-backdrop")!);
     expect(trigger).toHaveFocus();
     await act(async () => { await vi.advanceTimersByTimeAsync(1_000); });
     expect(screen.getByTestId("stage-time")).toHaveTextContent("01:29");
@@ -554,7 +595,7 @@ describe("GameScreen controls", () => {
     const state = createGameState(() => 0);
     const random = vi.spyOn(Math, "random");
     const props = { state, climbAnimationKey: 0, isClimbing: false, pursuerAnimationKey: 0, isPursuerCaught: false, isPursuerMoving: false };
-    const { rerender } = render(<StairScene {...props} />);
+    const { rerender } = renderBase(<StairScene {...props} />);
     const backdrop = document.querySelector(".office-backdrop");
     const gameplay = screen.getByRole("img");
     expect(backdrop?.parentElement).toBe(gameplay.parentElement);
@@ -767,7 +808,7 @@ describe("GameScreen controls", () => {
   it("clips only the foot area and keeps SVG definition IDs unique between scenes", () => {
     const state = createGameState(() => 0);
     const props = { state, climbAnimationKey: 0, isClimbing: false, pursuerAnimationKey: 0, isPursuerCaught: false, isPursuerMoving: false };
-    render(<><StairScene {...props} /><StairScene {...props} /></>);
+    renderBase(<><StairScene {...props} /><StairScene {...props} /></>);
     const clipPaths = [...document.querySelectorAll("clipPath")];
     expect(clipPaths).toHaveLength(2);
     expect(new Set(clipPaths.map((clip) => clip.id)).size).toBe(2);
@@ -1601,9 +1642,11 @@ describe("unlocked stage selection", () => {
     fireEvent.click(screen.getByRole("button", { name: "1단계 선택" }));
     const other = { ...account, homeAccountId: "other-account" };
     view.rerender(<GameScreen key={other.homeAccountId} account={other} />);
+    fireEvent.click(screen.getByRole("button", { name: "게임 시작" }));
     expect(screen.getByRole("button", { name: "5단계 선택" })).toHaveFocus();
     expect(screen.getByRole("button", { name: "4단계 선택" })).toBeEnabled();
     view.rerender(<GameScreen key={account.homeAccountId} account={account} />);
+    fireEvent.click(screen.getByRole("button", { name: "게임 시작" }));
     expect(screen.getByRole("button", { name: "4단계 선택" })).toHaveFocus();
     expect(screen.getByRole("button", { name: "5단계 잠김" })).toBeDisabled();
     expect(localStorage.getItem(rankKey)).toBeNull();
