@@ -145,16 +145,34 @@ describe("main downward staircase scene", () => {
     expect(screen.getAllByTestId("runner")).toHaveLength(1);
   });
 
-  it("keeps a real extra historical stair and hides a distant NPC without fabricating stairs", () => {
+  it("merges real historical preview stairs once even while the NPC is offscreen", () => {
     const state = atIndex(10);
     const view = render(<StairScene {...props(withPursuitAt(state, 0, 5))} />);
-    expect(screen.getByTestId("pursuer").parentElement).toHaveClass("pursuer-history-stair");
-    expect(screen.getAllByTestId("stair-step")).toHaveLength(11);
+    expect(screen.getByTestId("pursuer").parentElement).toHaveAttribute("data-route-index", "5");
+    expect(screen.getAllByTestId("stair-step").map(step => Number(step.dataset.routeIndex))).toEqual([4, 5, ...Array.from({ length: 11 }, (_, i) => i + 6)]);
     view.rerender(<StairScene {...props(state)} />);
     expect(screen.queryByTestId("pursuer")).toBeNull();
     expect(screen.getByRole("img")).toHaveAttribute("data-pursuer-index", "-4");
     expect(screen.getByRole("img")).toHaveAttribute("data-pursuer-visible", "false");
-    expect(document.querySelector(".pursuer-history-stair")).toBeNull();
-    expect(screen.getAllByTestId("stair-step")).toHaveLength(11);
+    expect(screen.getAllByTestId("stair-step").map(step => Number(step.dataset.routeIndex))).toEqual([-4, -3, ...Array.from({ length: 11 }, (_, i) => i + 6)]);
+  });
+
+  it("keeps both real NPC movement endpoints rendered above the destination stair front", () => {
+    const far = withPursuitAt(atIndex(20), 0, 15);
+    const before = tickGame(far, 800);
+    const moved = tickGame(before, 900);
+    const model = buildDescentSceneModel(moved);
+    expect(model.pursuerVisible).toBe(true);
+    expect(model.pursuerMotion).not.toBeNull();
+    const view = render(<StairScene {...props(moved, false, true)} />);
+    const routeIndices = screen.getAllByTestId("stair-step").map(step => Number(step.dataset.routeIndex));
+    expect(routeIndices).toEqual([...model.pursuerPreviewSteps.map(step => step.index), ...model.steps.map(step => step.index)]);
+    expect(routeIndices.filter(index => index === moved.lastPursuerMove!.fromIndex)).toHaveLength(1);
+    expect(routeIndices.filter(index => index === model.pursuer.index)).toHaveLength(1);
+    expect(screen.getAllByTestId("pursuer")).toHaveLength(1);
+    expect(screen.getByTestId("pursuer").parentElement).toHaveClass("pursuer-move-overlay");
+    expect(document.querySelector(".pursuer-move-overlay")?.lastElementChild).toHaveClass("stair-front");
+    view.rerender(<StairScene {...props(before)} />);
+    expect(screen.getAllByTestId("stair-step").some(step => Number(step.dataset.routeIndex) === moved.lastPursuerMove!.fromIndex)).toBe(true);
   });
 });

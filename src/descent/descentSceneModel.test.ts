@@ -56,6 +56,16 @@ describe("downward staircase coordinates", () => {
     expect(buildStairSceneModel(state)).toEqual(original);
   });
 
+  it("reflects retained pursuer preview stairs without changing route indices", () => {
+    const state = geometryAt(0.999, 20);
+    const original = buildStairSceneModel(state);
+    const scene = buildDescentSceneModel(state);
+    expect(original.pursuerPreviewSteps.map(step => step.index)).toEqual([-4, -3]);
+    expect(scene.pursuerPreviewSteps).toEqual(original.pursuerPreviewSteps.map(step => ({
+      ...step, y: 432 - step.y,
+    })));
+  });
+
   it.each(["right", "left"] as const)("projects both vertical directions without flipping %s facing", direction => {
     const player = { index: 10, column: 3, direction };
     const sign = direction === "right" ? 1 : -1;

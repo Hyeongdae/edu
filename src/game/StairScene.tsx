@@ -48,7 +48,7 @@ export function StairScene({ state, climbAnimationKey, isClimbing, pursuerAnimat
   const moving = isPursuerMoving && model.pursuerMotion !== null && state.status === "playing" && !isPursuerCaught;
   const motionStyle = moving ? { ...travelStyle(model.pursuerMotion!.from, model.pursuerMotion!.to, "pursuer-move", 8),
     "--pursuer-step-duration": `${getPursuerMotionDurationMs(state)}ms` } as CSSProperties : undefined;
-  const extraPursuerStair = model.pursuerVisible && !model.steps.some((step) => step.index === model.pursuer.index);
+  const sceneSteps = [...model.steps, ...model.pursuerPreviewSteps].sort((left, right) => left.index - right.index);
   const catchStyle = { "--catch-base-facing": pursuerPoint.direction === "right" ? 1 : -1, ...Object.fromEntries(model.catchFrames.flatMap((frame, index) => [
     [`--catch-x-${index}`, `${frame.x - pursuerPoint.x}px`],
     [`--catch-y-${index}`, `${frame.y - pursuerPoint.y}px`],
@@ -130,7 +130,7 @@ export function StairScene({ state, climbAnimationKey, isClimbing, pursuerAnimat
               <rect x="-34" y="-88" width="68" height="84" />
             </clipPath>
           </defs>
-          {model.steps.map((step) => (
+          {sceneSteps.map((step) => (
             <g key={step.index} data-testid="stair-step" data-route-index={step.index} data-direction={step.direction}>
               <g className="stair-top" transform={`translate(${step.x} ${step.y})`}>
                 <PixelStair face="top" direction={step.direction} />
@@ -142,18 +142,9 @@ export function StairScene({ state, climbAnimationKey, isClimbing, pursuerAnimat
               )}
               {!isPursuerCaught && !climbing && step.index === model.player.index && runner}
               {!isPursuerCaught && !moving && model.pursuerVisible && step.index === model.pursuer.index && pursuer}
-              {stairFront(step)}
+              {(!moving || step.index !== model.pursuer.index) && stairFront(step)}
             </g>
           ))}
-          {!isPursuerCaught && extraPursuerStair && (
-            <g className="pursuer-history-stair" data-route-index={model.pursuer.index}>
-              <g className="stair-top" transform={`translate(${model.pursuer.x} ${model.pursuer.y})`}>
-                <PixelStair face="top" direction={model.pursuer.direction} />
-              </g>
-              {!moving && pursuer}
-              {stairFront(model.pursuer)}
-            </g>
-          )}
           {!isPursuerCaught && moving && model.pursuerVisible && (
             <g className="pursuer-move-overlay">{pursuer}{stairFront(model.pursuer)}</g>
           )}

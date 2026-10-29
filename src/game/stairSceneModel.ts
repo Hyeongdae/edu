@@ -9,6 +9,7 @@ export interface ScenePursuerMotion { from: ScenePoint; to: ScenePoint; atMs: nu
 export interface SceneJump { from: ScenePoint; to: ScenePoint; }
 export interface StairSceneModel {
   steps: readonly SceneStep[];
+  pursuerPreviewSteps: readonly SceneStep[];
   player: SceneActor;
   pursuer: SceneActor;
   catchFrames: readonly CatchFrame[];
@@ -68,8 +69,17 @@ export function buildStairSceneModel(state: GameState): StairSceneModel {
     playerJump = { from: projectRouteStep(from, playerStep), to: projectRouteStep(playerStep, playerStep) };
   }
 
+  const steps = Array.from({ length: 11 }, (_, offset) => actorAt(state.stepsClimbed - 4 + offset));
+  const stepIndices = new Set(steps.map((step) => step.index));
+  const firstRetainedIndex = state.route.steps[0].index;
+  const lastRetainedIndex = state.route.steps.at(-1)!.index;
+  const pursuerPreviewSteps = [state.pursuerIndex - 1, state.pursuerIndex, state.pursuerIndex + 1]
+    .filter((index) => index >= firstRetainedIndex && index <= lastRetainedIndex && !stepIndices.has(index))
+    .map(actorAt);
+
   return {
-    steps: Array.from({ length: 11 }, (_, offset) => actorAt(state.stepsClimbed - 4 + offset)),
+    steps,
+    pursuerPreviewSteps,
     player: actorAt(state.stepsClimbed),
     pursuer,
     pursuerMotion,

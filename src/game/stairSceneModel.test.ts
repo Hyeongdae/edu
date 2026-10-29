@@ -20,6 +20,33 @@ describe("stair scene projection", () => {
     expect(scene.pursuer).toEqual({ index: -4, direction: "right", x: 124, y: 328 });
     expect(scene.steps.map((step) => step.index)).toEqual([-4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6]);
     expect(scene.steps[10]).toMatchObject({ x: 464, y: 48 });
+    expect(scene.pursuerPreviewSteps).toEqual([]);
+  });
+
+  it("previews only retained real stairs around an offscreen and approaching pursuer", () => {
+    let state = startGame(createGameState(() => 0.999), 0);
+    while (state.stepsClimbed < 20) {
+      const next = getRouteStep(state.route, state.stepsClimbed + 1);
+      state = applyInput(state, next.direction === state.direction ? "forward" : "turn", 1);
+    }
+
+    const far = buildStairSceneModel(withPursuitAt(state, 0, 15));
+    expect(far.pursuerVisible).toBe(false);
+    expect(far.pursuerPreviewSteps.map(step => step.index)).toEqual([4, 5, 6]);
+    for (const step of far.pursuerPreviewSteps) {
+      expect(step).toMatchObject(projectRouteStep(
+        getRouteStep(state.route, step.index), getRouteStep(state.route, state.stepsClimbed),
+      ));
+    }
+    expect(new Set([...far.steps, ...far.pursuerPreviewSteps].map(step => step.index)).size).toBe(14);
+    expect(far.steps).toHaveLength(11);
+
+    const approaching = tickGame(withPursuitAt(state, 0, 15), 800);
+    const near = buildStairSceneModel(approaching);
+    expect(near.pursuerPreviewSteps.map(step => step.index)).toEqual([12, 13, 14]);
+    expect(near.pursuerMotion).toMatchObject({ from: projectRouteStep(
+      getRouteStep(approaching.route, 12), getRouteStep(approaching.route, approaching.stepsClimbed),
+    ), to: { x: near.pursuer.x, y: near.pursuer.y } });
   });
 
   it("uses each actor's own route direction on opposite sides of a corner", () => {

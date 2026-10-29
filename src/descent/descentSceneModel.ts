@@ -43,6 +43,7 @@ export function buildDescentSceneModel(state: GameState): DescentSceneModel {
 
   return {
     steps: original.steps.map(descendPoint),
+    pursuerPreviewSteps: original.pursuerPreviewSteps.map(descendPoint),
     player,
     pursuer,
     catchFrames: original.catchFrames.map(descendPoint),

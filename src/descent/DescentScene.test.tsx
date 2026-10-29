@@ -4,6 +4,7 @@ import { withObstacle } from "../test/obstacleFixtures";
 import { withPursuitAt } from "../test/gameFixtures";
 import { applyDescentInput, createDescentState, startDescent, tickDescent } from "./descentEngine";
 import { DescentScene } from "./DescentScene";
+import { buildDescentSceneModel } from "./descentSceneModel";
 import type { GameState } from "../game/types";
 import { getRouteStep } from "../game/stairRoute";
 import { hasObstacle } from "../game/stairObstacles";
@@ -81,6 +82,33 @@ describe("descent scene rendering", () => {
     expect(catchMotion.style.getPropertyValue("--descent-catch-y-6")).toBe("0px");
   });
 
+  it("previews both real pursuit movement endpoints before and during the step", () => {
+    let state = initial();
+    while (state.stepsClimbed < 20) {
+      const nextIndex = state.stepsClimbed + 1;
+      const input = hasObstacle(state.obstacles, nextIndex) ? "jump"
+        : getRouteStep(state.route, nextIndex).direction === state.direction ? "forward" : "turn";
+      state = applyDescentInput(state, input, 0);
+    }
+    const far = withPursuitAt(state, 0, 15);
+    const before = tickDescent(far, 800);
+    const moved = tickDescent(before, 900);
+    const model = buildDescentSceneModel(moved);
+    const view = draw(moved, false, true);
+    const routeIndices = screen.getAllByTestId("descent-stair-step").map(step => Number(step.dataset.routeIndex));
+
+    expect(model.pursuerVisible).toBe(true);
+    expect(routeIndices).toEqual([...model.pursuerPreviewSteps.map(step => step.index), ...model.steps.map(step => step.index)]);
+    expect(routeIndices.filter(index => index === moved.lastPursuerMove!.fromIndex)).toHaveLength(1);
+    expect(routeIndices.filter(index => index === model.pursuer.index)).toHaveLength(1);
+    expect(screen.getAllByTestId("descent-pursuer")).toHaveLength(1);
+    expect(screen.getByTestId("descent-pursuer").closest(".descent-npc-overlay")).not.toBeNull();
+    expect(document.querySelector(".descent-npc-overlay")?.lastElementChild).toHaveClass("descent-stair-front");
+
+    view.rerender(<DescentScene state={before} playerMotionKey={3} isPlayerMoving={false} isPursuerMoving={false} isCaught={false} />);
+    expect(screen.getAllByTestId("descent-stair-step").some(step => Number(step.dataset.routeIndex) === moved.lastPursuerMove!.fromIndex)).toBe(true);
+  });
+
   it("retains history and offscreen metadata without fabricating NPC stairs", () => {
     let state = initial();
     while (state.stepsClimbed < 40) {
@@ -89,12 +117,12 @@ describe("descent scene rendering", () => {
       state = applyDescentInput(state, input, 0);
     }
     const result = draw(withPursuitAt(state, 0, 5));
-    expect(document.querySelector(".descent-history-stair")).not.toBeNull();
-    expect(screen.getAllByTestId("descent-stair-step")).toHaveLength(11);
+    expect(screen.getAllByTestId("descent-stair-step")).toHaveLength(13);
     result.rerender(<DescentScene state={state} playerMotionKey={0} isPlayerMoving={false} isPursuerMoving={false} isCaught={false} />);
     expect(screen.queryByTestId("descent-pursuer")).toBeNull();
     expect(screen.getByRole("img")).toHaveAttribute("data-pursuer-index", "-4");
     expect(screen.getByRole("img")).toHaveAttribute("data-pursuer-visible", "false");
+    expect(screen.getAllByTestId("descent-stair-step")).toHaveLength(13);
   });
 
   it("exposes the real obstacle cue and cancels previous motion on a fall", () => {

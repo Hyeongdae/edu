@@ -1,5 +1,5 @@
 import { useId, type CSSProperties, type ReactElement } from "react";
-import type { SceneActor, ScenePoint } from "../game/stairSceneModel";
+import type { ScenePoint, SceneStep } from "../game/stairSceneModel";
 import { getRouteStep } from "../game/stairRoute";
 import { hasObstacle } from "../game/stairObstacles";
 import type { GameState } from "../game/types";
@@ -61,9 +61,9 @@ export function DescentScene({ state, playerMotionKey, isPlayerMoving, isPursuer
       </g>
     </g>
   );
-  const front = (step: SceneActor) => <g className="descent-stair-front" transform={`translate(${step.x} ${step.y})`}>
+  const front = (step: SceneStep) => <g className="descent-stair-front" transform={`translate(${step.x} ${step.y})`}>
     <PixelStair face="front" direction={step.direction} /></g>;
-  const extraNpcStair = model.pursuerVisible && !model.steps.some(step => step.index === model.pursuer.index);
+  const sceneSteps = [...model.steps, ...model.pursuerPreviewSteps].sort((left, right) => left.index - right.index);
   const cue = blocked ? "장애물! 점프하세요" : state.straightStepsRemaining === 0 ? "지금 방향을 바꾸세요" : `${state.straightStepsRemaining}칸 더 내려가세요`;
   return (
     <section className="descent-scene" aria-label="내려오는 계단 장면">
@@ -75,7 +75,7 @@ export function DescentScene({ state, playerMotionKey, isPlayerMoving, isPursuer
           role="img" shapeRendering="crispEdges" data-pursuer-index={model.pursuer.index} data-pursuer-visible={model.pursuerVisible}
           aria-label={`계단이 ${next.direction === "right" ? "오른쪽" : "왼쪽"} 아래로 이어집니다. 위쪽 추격자가 따라옵니다.${blocked ? " 다음 계단에 장애물이 있습니다." : ""}`}>
           <defs><clipPath id={clipId} clipPathUnits="userSpaceOnUse"><rect x="-34" y="-88" width="68" height="84" /></clipPath></defs>
-          {model.steps.map(step => (
+          {sceneSteps.map(step => (
             <g key={step.index} data-testid="descent-stair-step" data-route-index={step.index} data-direction={step.direction}>
               <g className="descent-stair-top" transform={`translate(${step.x} ${step.y})`}><PixelStair face="top" direction={step.direction} /></g>
               {hasObstacle(state.obstacles, step.index) && (step.index > state.stepsClimbed ||
@@ -84,13 +84,9 @@ export function DescentScene({ state, playerMotionKey, isPlayerMoving, isPursuer
               )}
               {!playerMoving && !isCaught && step.index === model.player.index && player}
               {!npcMoving && !isCaught && model.pursuerVisible && step.index === model.pursuer.index && npc}
-              {front(step)}
+              {(!npcMoving || step.index !== model.pursuer.index) && front(step)}
             </g>
           ))}
-          {extraNpcStair && <g className="descent-history-stair" data-route-index={model.pursuer.index}>
-            <g transform={`translate(${model.pursuer.x} ${model.pursuer.y})`}><PixelStair face="top" direction={model.pursuer.direction} /></g>
-            {!npcMoving && !isCaught && npc}{front(model.pursuer)}
-          </g>}
           {npcMoving && model.pursuerVisible && <g className="descent-npc-overlay">{npc}{front(model.pursuer)}</g>}
           {playerMoving && <g className={jumping ? "descent-jump-overlay" : "descent-step-overlay"}>{player}{front(model.player)}</g>}
           {isCaught && <g className="descent-catch-overlay">{npc}{player}{front(model.player)}</g>}
