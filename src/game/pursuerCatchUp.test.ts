@@ -24,7 +24,7 @@ function atGap(distance: number, stage: GameStage = 1): GameState {
 }
 
 describe("distance based catch-up", () => {
-  it.each([[1,600],[2,500],[3,400],[4,300],[5,250]] as const)("uses stage%s base%s and resets mode", (stage, interval) => {
+  it.each([[1,500],[2,400],[3,350],[4,300],[5,280]] as const)("uses stage%s base%s and resets mode", (stage, interval) => {
     expect(getStageRule(stage).pursuerStepIntervalMs).toBe(interval);
     const state = playing(stage);
     expect(state).toMatchObject({ isPursuerCatchingUp: false, nextPursuerStepAt: interval });
@@ -39,7 +39,7 @@ describe("distance based catch-up", () => {
 
   it("enters at exactly15 on a legal step, preserves position and does not postpone on repeated input", () => {
     const before = atGap(14), snapshot = structuredClone(before);
-    expect(before).toMatchObject({ isPursuerCatchingUp: false, nextPursuerStepAt: 600 });
+    expect(before).toMatchObject({ isPursuerCatchingUp: false, nextPursuerStepAt: 500 });
     const entered = applyInput(before, legalInput(before), 100);
     expect(entered).toMatchObject({ pursuerIndex: -4, pursuerDistance: 15, isPursuerCatchingUp: true, nextPursuerStepAt: 200 });
     expect(before).toEqual(snapshot);
@@ -98,8 +98,8 @@ describe("distance based catch-up", () => {
     const boundary = tickGame(fallen, 900);
     expect(boundary).toMatchObject({ pursuerDistance: 6, isPursuerCatchingUp: false, nextPursuerStepAt: 1150, recoveryEndsAt: 1300 });
     const after = tickGame(boundary, 1150);
-    expect(after).toMatchObject({ pursuerDistance: 5, nextPursuerStepAt: 1750, lastMistake: true });
-    expect(tickGame(after, 1300)).toMatchObject({ lastMistake: false, recoveryEndsAt: null, nextPursuerStepAt: 1750 });
+    expect(after).toMatchObject({ pursuerDistance: 5, nextPursuerStepAt: 1650, lastMistake: true });
+    expect(tickGame(after, 1300)).toMatchObject({ lastMistake: false, recoveryEndsAt: null, nextPursuerStepAt: 1650 });
     expect(tickGame(fallen, 1750)).toEqual(tickGame(after, 1750));
   });
 
@@ -126,19 +126,19 @@ describe("distance based catch-up", () => {
     expect(checkpoint).toMatchObject({ status: "checkpoint", isPursuerCatchingUp: false, nextPursuerStepAt: null });
     expect(tickGame(checkpoint, 90000)).toBe(checkpoint);
     expect(quitAtCheckpoint(checkpoint, 90000)).toMatchObject({ isPursuerCatchingUp: false, endReason: "quit" });
-    expect(continueGame(checkpoint, 90000)).toMatchObject({ stage: 2, score: 0, pursuerDistance: 4, isPursuerCatchingUp: false, nextPursuerStepAt: 90500 });
+    expect(continueGame(checkpoint, 90000)).toMatchObject({ stage: 2, score: 0, pursuerDistance: 4, isPursuerCatchingUp: false, nextPursuerStepAt: 90400 });
     const last = atGap(15, 5);
     expect(applyInput({ ...last, score: 349 }, legalInput(last), 0)).toMatchObject({ endReason: "cleared", isPursuerCatchingUp: false });
     const caught = tickGame(state, 10000);
     expect(caught).toMatchObject({ endReason: "caught", isPursuerCatchingUp: false, captureCount: 1 });
   });
 
-  it("gives the standalone experiment the same600ms base and100ms catch-up", () => {
+  it("gives the standalone experiment the same500ms base and100ms catch-up", () => {
     let state = startDescent(createDescentState(() => 0), 0);
-    expect(state.nextPursuerStepAt).toBe(600);
+    expect(state.nextPursuerStepAt).toBe(500);
     while (state.pursuerDistance < 15) state = applyDescentInput(state, legalInput(state), 0);
     expect(state).toMatchObject({ stage: 1, isPursuerCatchingUp: true, nextPursuerStepAt: 100 });
-    expect(tickDescent(state, 900)).toMatchObject({ pursuerDistance: 6, isPursuerCatchingUp: false, nextPursuerStepAt: 1500 });
+    expect(tickDescent(state, 900)).toMatchObject({ pursuerDistance: 6, isPursuerCatchingUp: false, nextPursuerStepAt: 1400 });
   });
 
   it("shares motion durations and rejects a missing or non-boolean mode", () => {

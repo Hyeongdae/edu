@@ -5,11 +5,11 @@ import type { ClearedStage, GameStage } from "./types";
 describe("stage rules", () => {
   it("shares the five agreed time, goal, obstacle and pursuit settings", () => {
     expect(STAGE_RULES).toEqual([
-      { stage: 1, durationMs: 90_000, scoreRequired: 150, obstacleProbability: 0.1, pursuerStepIntervalMs: 600 },
-      { stage: 2, durationMs: 75_000, scoreRequired: 200, obstacleProbability: 0.2, pursuerStepIntervalMs: 500 },
-      { stage: 3, durationMs: 65_000, scoreRequired: 250, obstacleProbability: 0.3, pursuerStepIntervalMs: 400 },
+      { stage: 1, durationMs: 90_000, scoreRequired: 150, obstacleProbability: 0.1, pursuerStepIntervalMs: 500 },
+      { stage: 2, durationMs: 75_000, scoreRequired: 200, obstacleProbability: 0.2, pursuerStepIntervalMs: 400 },
+      { stage: 3, durationMs: 65_000, scoreRequired: 250, obstacleProbability: 0.3, pursuerStepIntervalMs: 350 },
       { stage: 4, durationMs: 60_000, scoreRequired: 300, obstacleProbability: 0.4, pursuerStepIntervalMs: 300 },
-      { stage: 5, durationMs: 50_000, scoreRequired: 350, obstacleProbability: 0.5, pursuerStepIntervalMs: 250 },
+      { stage: 5, durationMs: 50_000, scoreRequired: 350, obstacleProbability: 0.5, pursuerStepIntervalMs: 280 },
     ]);
   });
 

@@ -38,7 +38,7 @@ describe("autonomous pursuit", () => {
       lastPursuerMove: null, captureCount: 0, captureEndsAt: null });
     expect(tickGame(ready, 1e6)).toBe(ready);
     const state = startGame(ready, 550);
-    expect(state.nextPursuerStepAt).toBe(1150);
+    expect(state.nextPursuerStepAt).toBe(1050);
     expect(startGame(state, 1000)).toBe(state);
     expect(resetGame(() => 0)).toEqual(ready);
   });
@@ -54,14 +54,14 @@ describe("autonomous pursuit", () => {
     expect(late).not.toHaveProperty("lives");
   });
 
-  it("captures at 2400ms and only expires the 500ms cosmetic gate afterward", () => {
+  it("captures at 2000ms and only expires the 500ms cosmetic gate afterward", () => {
     const state = playing();
-    const first = tickGame(state, 2400);
+    const first = tickGame(state, 2000);
     expect(first).toMatchObject({ status: "game-over", captureCount: 1, endReason: "caught",
-      pursuerIndex: -1, pursuerDistance: 1, nextPursuerStepAt: null, captureEndsAt: 2900,
+      pursuerIndex: -1, pursuerDistance: 1, nextPursuerStepAt: null, captureEndsAt: 2500,
       recoveryEndsAt: null, lastMistake: false, lastPursuerMove: null });
-    expect(tickGame(first, 2899)).toBe(first);
-    expect(tickGame(first, 2900)).toMatchObject({ captureEndsAt: null, captureCount: 1, pursuerIndex: -1 });
+    expect(tickGame(first, 2499)).toBe(first);
+    expect(tickGame(first, 2500)).toMatchObject({ captureEndsAt: null, captureCount: 1, pursuerIndex: -1 });
     const ended = tickGame(first, 1e6);
     expect(tickGame(ended, 2e6)).toBe(ended);
     expect(applyInput(ended, "forward", 2e6)).toBe(ended);
@@ -69,46 +69,46 @@ describe("autonomous pursuit", () => {
   });
 
   it("does not take another stage-five step during the terminal catch animation", () => {
-    const caught = tickGame(playing(5), 1000);
-    expect(caught).toMatchObject({ captureEndsAt: 1500, nextPursuerStepAt: null, pursuerIndex: -1 });
-    expect(tickGame(caught, 1499)).toBe(caught);
-    expect(tickGame(caught, 1500)).toMatchObject({ captureEndsAt: null, pursuerIndex: -1 });
+    const caught = tickGame(playing(5), 1120);
+    expect(caught).toMatchObject({ captureEndsAt: 1620, nextPursuerStepAt: null, pursuerIndex: -1 });
+    expect(tickGame(caught, 1619)).toBe(caught);
+    expect(tickGame(caught, 1620)).toMatchObject({ captureEndsAt: null, pursuerIndex: -1 });
   });
 
   it("preserves an earlier pending step and accelerates its successor only inside recovery", () => {
-    const fallen = applyInput(playing(), "turn", 500);
-    expect(fallen).toMatchObject({ lastMistake: true, recoveryEndsAt: 1000, pursuerIndex: -4, nextPursuerStepAt: 600 });
-    const blocked = applyInput(fallen, "turn", 600);
-    expect(blocked).toMatchObject({ recoveryEndsAt: 1000, pursuerIndex: -3, nextPursuerStepAt: 850 });
-    const second = applyInput(blocked, "forward", 999);
-    expect(second).toMatchObject({ recoveryEndsAt: 1000, pursuerIndex: -2, nextPursuerStepAt: 1450, score: 0 });
-    expect(applyInput(second, "forward", 1000)).toMatchObject({ stepsClimbed: 1, score: 1, pursuerIndex: -2,
-      pursuerDistance: 3, recoveryEndsAt: null, lastMistake: false, nextPursuerStepAt: 1450 });
+    const fallen = applyInput(playing(), "turn", 400);
+    expect(fallen).toMatchObject({ lastMistake: true, recoveryEndsAt: 900, pursuerIndex: -4, nextPursuerStepAt: 500 });
+    const blocked = applyInput(fallen, "turn", 500);
+    expect(blocked).toMatchObject({ recoveryEndsAt: 900, pursuerIndex: -3, nextPursuerStepAt: 750 });
+    const second = applyInput(blocked, "forward", 899);
+    expect(second).toMatchObject({ recoveryEndsAt: 900, pursuerIndex: -2, nextPursuerStepAt: 1250, score: 0 });
+    expect(applyInput(second, "forward", 900)).toMatchObject({ stepsClimbed: 1, score: 1, pursuerIndex: -2,
+      pursuerDistance: 3, recoveryEndsAt: null, lastMistake: false, nextPursuerStepAt: 1250 });
   });
 
   it("widens the gap without advancing the pursuer or resetting its clock", () => {
     const moved = applyInput(playing(), "forward", 100);
-    expect(moved).toMatchObject({ pursuerIndex: -4, pursuerDistance: 5, nextPursuerStepAt: 600, lastPursuerMove: null });
+    expect(moved).toMatchObject({ pursuerIndex: -4, pursuerDistance: 5, nextPursuerStepAt: 500, lastPursuerMove: null });
     expect(moved.route.steps[0].index).toBe(-4);
     expect(buildStairSceneModel(moved).pursuer.index).toBe(-4);
-    expect(tickGame(moved, 600)).toMatchObject({ pursuerIndex: -3, pursuerDistance: 4 });
+    expect(tickGame(moved, 500)).toMatchObject({ pursuerIndex: -3, pursuerDistance: 4 });
   });
 
   it("catches before a tied escaping input but allows the preceding millisecond", () => {
     const state = withPursuitAt(playing(), 0, 1);
-    expect(applyInput(state, "forward", 599)).toMatchObject({ score: 1, stepsClimbed: 1 });
-    expect(applyInput(state, "forward", 600)).toMatchObject({ status: "game-over", score: 0,
-      stepsClimbed: 0, captureCount: 1, captureEndsAt: 1100, recoveryEndsAt: null });
+    expect(applyInput(state, "forward", 499)).toMatchObject({ score: 1, stepsClimbed: 1 });
+    expect(applyInput(state, "forward", 500)).toMatchObject({ status: "game-over", score: 0,
+      stepsClimbed: 0, captureCount: 1, captureEndsAt: 1000, recoveryEndsAt: null });
   });
 
   it("prioritizes tied stage expiry and preserves an earlier capture over a later expiry", () => {
-    const state = withPursuitAt({ ...playing(), stageEndsAt: 600, score: 149 }, 0, 1);
-    expect(applyInput(state, "forward", 600)).toMatchObject({ endReason: "time-limit", score: 149, captureCount: 0, captureEndsAt: null });
+    const state = withPursuitAt({ ...playing(), stageEndsAt: 500, score: 149 }, 0, 1);
+    expect(applyInput(state, "forward", 500)).toMatchObject({ endReason: "time-limit", score: 149, captureCount: 0, captureEndsAt: null });
     expect(tickGame({ ...state, stageEndsAt: 1200 }, 2000)).toMatchObject({ endReason: "caught", captureCount: 1, captureEndsAt: null });
   });
 
   it("processes tied bonus expiry before capture and stops event clocks on true termination", () => {
-    expect(tickGame({ ...playing(), eventEndsAt: 2400, eventSteps: 9 }, 2400)).toMatchObject({ captureCount: 1,
+    expect(tickGame({ ...playing(), eventEndsAt: 2000, eventSteps: 9 }, 2000)).toMatchObject({ captureCount: 1,
       eventEndsAt: null, eventSteps: 0, score: 0, nextPursuerStepAt: null });
     expect(tickGame({ ...playing(), eventEndsAt: 6000, eventSteps: 9 }, 3200)).toMatchObject({ captureCount: 1, eventEndsAt: null, eventSteps: 9 });
   });
@@ -226,7 +226,7 @@ describe("fall pursuit scheduling", () => {
       expect(first.recoveryEndsAt).toBe(500); expect(first.nextPursuerStepAt).toBe(500);
     }
     expect(applyInput(first, "forward", 500)).toMatchObject({ score: 1, stepsClimbed: 1,
-      pursuerIndex: -2, pursuerDistance: 3, nextPursuerStepAt: 1100, recoveryEndsAt: null, lastMistake: false });
+      pursuerIndex: -2, pursuerDistance: 3, nextPursuerStepAt: 1000, recoveryEndsAt: null, lastMistake: false });
   });
 
   it.each([[1, 250], [2, 500]] as const)("ends once at fast contact with gap%s before an escaping input", (gap, at) => {
@@ -270,7 +270,7 @@ describe("fall pursuit scheduling", () => {
       pursuerIndex: -4, recoveryEndsAt: null, lastMistake: false });
     expect(resumeGameAfterPause(paused, 10_100, 10_100)).toBe(paused);
     expect(tickGame(paused, 10_249)).toBe(paused);
-    expect(tickGame(paused, 10_250)).toMatchObject({ pursuerIndex: -3, nextPursuerStepAt: 10_850,
+    expect(tickGame(paused, 10_250)).toMatchObject({ pursuerIndex: -3, nextPursuerStepAt: 10_750,
       lastPursuerMove: { fromIndex: -4, toIndex: -3, atMs: 10_250 } });
     expect(resumeGameAfterPause(fallen, 250, 10_250)).toMatchObject({ pursuerIndex: -3,
       nextPursuerStepAt: 10_500, recoveryEndsAt: null, lastMistake: false });
@@ -283,7 +283,7 @@ describe("fall pursuit scheduling", () => {
     expect(applyInput(checkpoint, "turn", 95_000)).toBe(checkpoint);
     expect(resumeGameAfterPause(checkpoint, 0, 95_000)).toBe(checkpoint);
     const resumed = continueGame(checkpoint, 95_000);
-    expect(resumed).toMatchObject({ lastMistake: false, recoveryEndsAt: null, nextPursuerStepAt: 95_500 });
+    expect(resumed).toMatchObject({ lastMistake: false, recoveryEndsAt: null, nextPursuerStepAt: 95_400 });
     const caught = tickGame(withPursuitAt(playing(), 0, 1), 800);
     expect(applyInput(caught, "turn", 800)).toBe(caught);
   });
@@ -297,7 +297,7 @@ describe("fall pursuit scheduling", () => {
       recoveryEndsAt: null, lastMistake: false, nextPursuerStepAt: null, lastPursuerMove: null });
     expect(tickGame(checkpoint, 95_000)).toBe(checkpoint);
     expect(continueGame(checkpoint, 95_000)).toMatchObject({ status: "playing", stage: 2,
-      pursuerDistance: 4, nextPursuerStepAt: 95_500, eventEndsAt: 124_500 });
+      pursuerDistance: 4, nextPursuerStepAt: 95_400, eventEndsAt: 124_500 });
   });
 
   it("is pure, reveals no obstacles and consumes no randomness on a mistake or fast tick", () => {

@@ -398,6 +398,7 @@ describe("GameScreen controls", () => {
     vi.useFakeTimers();
     vi.setSystemTime(1_000);
     vi.spyOn(Math, "random").mockReturnValue(0);
+    seedReadyStage(1, { score: 0, eventSteps: 29 });
     render(
       <GameScreen
         account={account}
@@ -408,18 +409,8 @@ describe("GameScreen controls", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
-    // Keep this pause test focused on the frozen clocks, with one render per legal input batch.
-    let preview = gameEngine.startGame(createGameState(() => 0), 1_000);
-    const climbBatch = (count: number) => {
-      const keys: string[] = [];
-      for (let step = 0; step < count; step++) {
-        const turn = getRouteStep(preview.route, preview.stepsClimbed + 1).direction !== preview.direction;
-        keys.push(turn ? "j" : "d");
-        preview = gameEngine.applyInput(preview, turn ? "turn" : "forward", 1_000);
-      }
-      act(() => { for (const key of keys) fireEvent.keyDown(window, { key }); });
-    };
-    climbBatch(30);
+    // Start the bonus one stair before its threshold so the test can focus on clock pausing.
+    climbOneStep();
     const eventStatus = screen.getByTestId("event-status");
     expect(eventStatus).toHaveTextContent("2배 점수");
     const remainingBefore = eventStatus.textContent;
@@ -436,12 +427,11 @@ describe("GameScreen controls", () => {
     expect(screen.getByTestId("stage-time")).toHaveTextContent(stageTimeBefore!);
     expect(screen.getByRole("img")).toHaveAttribute("data-pursuer-index", pursuerBefore);
 
-    // Keep playing while the real catch-up and base clocks run through bonus expiry.
-    climbBatch(5);
-    for (let elapsed = 3_000; elapsed <= 30_000; elapsed += 3_000) {
-      vi.setSystemTime(96_100 + elapsed);
+    // One player step per 500ms keeps pace with stage-one pursuit without entering catch-up mode.
+    for (let elapsed = 500; elapsed <= 30_500; elapsed += 500) {
+      vi.setSystemTime(96_000 + elapsed);
       fireEvent(document, new Event("visibilitychange"));
-      climbBatch(5);
+      climbOneStep();
     }
     expect(eventStatus).not.toHaveTextContent("2배 점수");
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "playing");
@@ -573,7 +563,7 @@ describe("GameScreen controls", () => {
     expect(screen.getByTestId("pursuer").parentElement).toHaveAttribute("data-testid", "stair-step");
     expect(screen.getByTestId("pursuer").parentElement).toHaveAttribute("data-route-index", "2");
     for (let index = 0; index < 3; index += 1) climbOneStep();
-    vi.setSystemTime(2_400);
+    vi.setSystemTime(2_200);
     fireEvent(document, new Event("visibilitychange"));
     expect(screen.getByTestId("runner")).toHaveAttribute("data-route-index", "10");
     expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "6");
@@ -607,7 +597,7 @@ describe("GameScreen controls", () => {
     vi.setSystemTime(3_700);
     fireEvent(document, new Event("visibilitychange"));
     expect(screen.getByText("추격자에게 잡혔어요")).toBeInTheDocument();
-    expect(document.querySelector(".game-frame")).toHaveAttribute("data-pursuer-catching", "true");
+    expect(document.querySelector(".game-frame")).toHaveAttribute("data-pursuer-catching", "false");
     expect(audio.playFall).toHaveBeenCalledTimes(4);
     expect(audio.playFootstep).toHaveBeenCalledTimes(6);
     expect(screen.queryByText("남은 기회")).not.toBeInTheDocument();
@@ -629,11 +619,14 @@ describe("GameScreen controls", () => {
     expect(screen.getByTestId("runner")).toHaveClass("is-climbing");
     expect(screen.getByTestId("runner")).toHaveAttribute("data-motion-key", playerKey);
     expect(screen.getByTestId("pursuer")).toHaveClass("is-following");
-    await act(async () => { await vi.advanceTimersByTimeAsync(200); });
-    expect(screen.getByTestId("runner")).not.toHaveClass("is-climbing");
+    await act(async () => { await vi.advanceTimersByTimeAsync(100); });
+    expect(screen.getByTestId("runner")).toHaveClass("is-climbing");
     expect(screen.getByTestId("pursuer")).toHaveClass("is-following");
     await act(async () => { await vi.advanceTimersByTimeAsync(40); });
     expect(screen.getByTestId("pursuer")).not.toHaveClass("is-following");
+    expect(screen.getByTestId("runner")).toHaveClass("is-climbing");
+    await act(async () => { await vi.advanceTimersByTimeAsync(60); });
+    expect(screen.getByTestId("runner")).not.toHaveClass("is-climbing");
     expect(audio.playFootstep).toHaveBeenCalledOnce();
     expect(audio.playFall).not.toHaveBeenCalled();
   });
@@ -643,10 +636,11 @@ describe("GameScreen controls", () => {
     vi.setSystemTime(0);
     render(<GameScreen account={account} />);
     fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
-    await act(async () => { await vi.advanceTimersByTimeAsync(800); });
-    const key = screen.getByTestId("pursuer").getAttribute("data-motion-key");
+    await act(async () => { await vi.advanceTimersByTimeAsync(400); });
     fireEvent.keyDown(window, { key: "j" });
     expect(screen.getByTestId("runner")).toHaveClass("is-falling");
+    await act(async () => { await vi.advanceTimersByTimeAsync(100); });
+    const key = screen.getByTestId("pursuer").getAttribute("data-motion-key");
     expect(screen.getByTestId("pursuer")).toHaveClass("is-following");
     expect(screen.getByTestId("pursuer")).toHaveAttribute("data-motion-key", key);
     expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "-3");
@@ -661,18 +655,18 @@ describe("GameScreen controls", () => {
     seedReadyStage(5, { score: 1_200 });
     render(<GameScreen account={account} />);
     fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
-    await act(async () => { await vi.advanceTimersByTimeAsync(1_000); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(1_400); });
     const catchNode = screen.getByTestId("pursuer");
     expect(catchNode).toHaveClass("is-caught");
     expect(catchNode).toHaveAttribute("data-route-index", "-1");
     expect(screen.queryByText("남은 기회")).not.toBeInTheDocument();
-    await act(async () => { await vi.advanceTimersByTimeAsync(400); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(200); });
     expect(screen.getByTestId("pursuer")).toBe(catchNode);
     expect(catchNode).toHaveAttribute("data-route-index", "-1");
     expect(screen.getByRole("img")).toHaveAccessibleName(/위쪽 추격자가 따라옵니다/);
     expect(screen.getByRole("img").getAttribute("aria-label")).not.toMatch(/\d+칸 거리/);
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-pursuer-catching", "true");
-    await act(async () => { await vi.advanceTimersByTimeAsync(100); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(300); });
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-pursuer-catching", "false");
     expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "-1");
     expect(screen.getByTestId("pursuer")).not.toHaveClass("is-following");
@@ -694,7 +688,7 @@ describe("GameScreen controls", () => {
     expect(input.mock.results.at(-1)?.value.route.steps[0].index).toBe(-4);
     expect(screen.getAllByTestId("stair-step")).toHaveLength(13);
     expect(screen.getByTestId("runner")).toHaveClass("is-climbing");
-    // A late callback must reconcile the first catch (24 stairs * 600ms) and stop permanently.
+    // A late callback must reconcile the first catch (24 stairs * 500ms) and stop permanently.
     vi.setSystemTime(32_000);
     fireEvent(document, new Event("visibilitychange"));
     expect(screen.getByText("추격자에게 잡혔어요")).toBeInTheDocument();
@@ -709,9 +703,9 @@ describe("GameScreen controls", () => {
     seedReadyStage(1, { score: 0 }, 900);
     render(<GameScreen account={account} />);
     fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
-    await act(async () => { await vi.advanceTimersByTimeAsync(800); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(600); });
     expect(screen.getByTestId("pursuer")).toHaveClass("is-following");
-    await act(async () => { await vi.advanceTimersByTimeAsync(100); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(300); });
     expect(screen.getByText("시간 초과")).toBeInTheDocument();
     expect(screen.getByTestId("pursuer")).not.toHaveClass("is-following");
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-pursuer-catching", "false");
@@ -989,10 +983,10 @@ describe("GameScreen controls", () => {
     fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
     expect(trigger).toHaveFocus();
     expect(screen.getByTestId("stage-time")).toHaveTextContent(remaining!);
-    vi.setSystemTime(101_599);
+    vi.setSystemTime(101_499);
     fireEvent(document, new Event("visibilitychange"));
     expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "-4");
-    vi.setSystemTime(101_600);
+    vi.setSystemTime(101_500);
     fireEvent(document, new Event("visibilitychange"));
     expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "-3");
     expect(screen.getByTestId("stage-time")).toHaveTextContent("01:30");
@@ -1294,7 +1288,7 @@ describe("checkpoint session integration", () => {
     fireEvent.click(screen.getByRole("button", { name: "계속하기" }));
     const resumed: GameState = continued.mock.results.at(-1)!.value;
     expect(resumed).toMatchObject({ status: "playing", stage: 2, score: 0, lastMove: null,
-      stageEndsAt: 171_000, nextPursuerStepAt: 96_500, pursuerDistance: 4, highestClearedStage: 1 });
+      stageEndsAt: 171_000, nextPursuerStepAt: 96_400, pursuerDistance: 4, highestClearedStage: 1 });
     expect(screen.getByTestId("score-value")).toHaveTextContent(/^0$/);
     expect(screen.queryByTestId("score-gain")).not.toBeInTheDocument();
     expect(document.querySelector(".jump-overlay")).toBeNull();
@@ -1310,7 +1304,7 @@ describe("checkpoint session integration", () => {
     fireEvent(document, new Event("visibilitychange"));
     await act(async () => { await vi.advanceTimersByTimeAsync(501); });
     const rows = JSON.parse(localStorage.getItem(rankKey)!);
-    expect(rows).toEqual([expect.objectContaining({ bestStage: 2, bestScore: 0, remainingTimeCs: 7300 })]);
+    expect(rows).toEqual([expect.objectContaining({ bestStage: 2, bestScore: 0, remainingTimeCs: 7340 })]);
     expect(writes.mock.calls.filter(([key]) => key === progressKey)).toHaveLength(1);
     expect(writes.mock.calls.filter(([key]) => key === rankKey)).toHaveLength(2);
     expect(audio.playFootstep).toHaveBeenCalledOnce(); expect(audio.stopBgm).toHaveBeenCalledOnce();
@@ -1699,7 +1693,7 @@ describe("fall pursuit presentation", () => {
     expect(screen.getByTestId("pursuer")).not.toHaveClass("is-following");
     await act(async () => { await vi.advanceTimersByTimeAsync(10); });
     expect(tick.mock.results.at(-1)!.value).toMatchObject({ recoveryEndsAt: null, lastMistake: false,
-      pursuerIndex: -2, nextPursuerStepAt: 1100, lastPursuerMove: { atMs: 500 } });
+      pursuerIndex: -2, nextPursuerStepAt: 1000, lastPursuerMove: { atMs: 500 } });
     expect(screen.getByTestId("pursuer")).toHaveAttribute("data-motion-key", "500");
     fireEvent.keyDown(window, { key: "d" });
     const playerKey = screen.getByTestId("runner").getAttribute("data-motion-key");
@@ -1712,7 +1706,7 @@ describe("fall pursuit presentation", () => {
     await act(async () => { await vi.advanceTimersByTimeAsync(50); });
     expect(screen.getByTestId("runner")).not.toHaveClass("is-climbing");
     await act(async () => { await vi.advanceTimersByTimeAsync(500); });
-    expect(screen.getByTestId("pursuer")).toHaveAttribute("data-motion-key", "1100");
+    expect(screen.getByTestId("pursuer")).toHaveAttribute("data-motion-key", "1000");
     expect(screen.getAllByTestId("runner")).toHaveLength(1); expect(screen.getAllByTestId("pursuer")).toHaveLength(1);
     expect(audio.playFall).toHaveBeenCalledOnce(); expect(audio.playFootstep).toHaveBeenCalledOnce();
     expect(audio.stopBgm).not.toHaveBeenCalled();
@@ -1760,7 +1754,7 @@ describe("fall pursuit presentation", () => {
     await act(async () => { await vi.advanceTimersByTimeAsync(149); });
     expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "-4");
     await act(async () => { await vi.advanceTimersByTimeAsync(51); });
-    expect(tick.mock.results.at(-1)!.value).toMatchObject({ pursuerIndex: -3, nextPursuerStepAt: 10_850,
+    expect(tick.mock.results.at(-1)!.value).toMatchObject({ pursuerIndex: -3, nextPursuerStepAt: 10_750,
       lastPursuerMove: { atMs: 10_250 } });
     expect(screen.getByTestId("pursuer")).toHaveAttribute("data-motion-key", "10250");
   });
@@ -1775,7 +1769,7 @@ describe("fall pursuit presentation", () => {
     vi.setSystemTime(1300); fireEvent(document, new Event("visibilitychange"));
     expect(tick.mock.results.at(-1)!.value).toEqual(gameEngine.tickGame(fallen, 1300));
     expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "-1");
-    expect(screen.getByTestId("pursuer")).toHaveAttribute("data-motion-key", "1100");
+    expect(screen.getByTestId("pursuer")).toHaveAttribute("data-motion-key", "1000");
     vi.setSystemTime(2100); fireEvent(document, new Event("visibilitychange"));
     expect(screen.getByText("추격자에게 잡혔어요")).toBeInTheDocument();
     expect(write.mock.calls.filter(([key]) => key === DESCENT_LEADERBOARD_KEY)).toHaveLength(1);
