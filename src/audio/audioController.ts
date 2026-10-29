@@ -13,6 +13,12 @@ export interface AudioController {
 const BGM_SOURCE = "/audio/stair-climb-bgm.mp3";
 const FOOTSTEP_SOURCE = "/audio/stone-step.ogg";
 const FALL_SOURCE = "/audio/fall-thud.mp3";
+const BGM_PLAYBACK_GAIN = 0.6;
+const FOOTSTEP_PLAYBACK_GAIN = 1.5;
+
+function scaledVolume(volume: number, gain: number): number {
+  return Math.min(1, Math.max(0, volume * gain));
+}
 
 export function createAudioController(): AudioController {
   let bgm: HTMLAudioElement | null = null;
@@ -33,17 +39,17 @@ export function createAudioController(): AudioController {
       bgm = new Audio(BGM_SOURCE);
       bgm.loop = true;
       bgm.playbackRate = eventActive ? 1.25 : 1;
-      bgm.volume = preferences.bgmVolume;
+      bgm.volume = scaledVolume(preferences.bgmVolume, BGM_PLAYBACK_GAIN);
       bgm.muted = preferences.bgmMuted;
     }
     return bgm;
   };
 
-  const playEffect = (source: string) => {
+  const playEffect = (source: string, gain: number) => {
     if (preferences.effectsMuted) return;
     try {
       const effect = new Audio(source);
-      effect.volume = preferences.effectsVolume;
+      effect.volume = scaledVolume(preferences.effectsVolume, gain);
       activeEffects.add(effect);
       effect.addEventListener("ended", () => activeEffects.delete(effect), { once: true });
       void effect.play().catch(() => activeEffects.delete(effect));
@@ -84,15 +90,15 @@ export function createAudioController(): AudioController {
     setPreferences(next) {
       preferences = { ...next };
       if (bgm) {
-        bgm.volume = preferences.bgmVolume;
+        bgm.volume = scaledVolume(preferences.bgmVolume, BGM_PLAYBACK_GAIN);
         bgm.muted = preferences.bgmMuted;
       }
     },
     playFootstep() {
-      playEffect(FOOTSTEP_SOURCE);
+      playEffect(FOOTSTEP_SOURCE, FOOTSTEP_PLAYBACK_GAIN);
     },
     playFall() {
-      playEffect(FALL_SOURCE);
+      playEffect(FALL_SOURCE, 1);
     },
     dispose() {
       disposed = true;

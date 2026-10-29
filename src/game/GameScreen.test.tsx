@@ -570,14 +570,15 @@ describe("GameScreen controls", () => {
     expect(screen.getByTestId("runner")).toHaveAttribute("data-route-index", "7");
     expect(screen.getByTestId("runner")).toHaveAttribute("data-direction", "right");
     expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "2");
-    expect(screen.getByTestId("pursuer").parentElement).toHaveClass("pursuer-history-stair");
+    expect(screen.getByTestId("pursuer").parentElement).toHaveAttribute("data-testid", "stair-step");
+    expect(screen.getByTestId("pursuer").parentElement).toHaveAttribute("data-route-index", "2");
     for (let index = 0; index < 3; index += 1) climbOneStep();
     vi.setSystemTime(2_400);
     fireEvent(document, new Event("visibilitychange"));
     expect(screen.getByTestId("runner")).toHaveAttribute("data-route-index", "10");
     expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "6");
     expect(screen.getByTestId("pursuer")).toHaveAttribute("data-direction", "left");
-    expect(screen.getAllByTestId("stair-step")).toHaveLength(11);
+    expect(screen.getAllByTestId("stair-step")).toHaveLength(12);
     expect(screen.getByTestId("pursuer")).toHaveClass("is-following");
   });
 
@@ -691,7 +692,7 @@ describe("GameScreen controls", () => {
     expect(screen.getByRole("img")).toHaveAccessibleName(/위쪽 추격자가 따라옵니다/);
     expect(screen.getByRole("img").getAttribute("aria-label")).not.toMatch(/\d+칸 거리/);
     expect(input.mock.results.at(-1)?.value.route.steps[0].index).toBe(-4);
-    expect(screen.getAllByTestId("stair-step")).toHaveLength(11);
+    expect(screen.getAllByTestId("stair-step")).toHaveLength(13);
     expect(screen.getByTestId("runner")).toHaveClass("is-climbing");
     // A late callback must reconcile the first catch (24 stairs * 600ms) and stop permanently.
     vi.setSystemTime(32_000);
