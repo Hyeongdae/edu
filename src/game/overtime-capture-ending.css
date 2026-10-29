@@ -1,0 +1,131 @@
+.stair-game.pixel-theme .overtime-capture-ending {
+  min-width: 0;
+  color: var(--pixel-text, #eef7ff);
+  background: #10182c;
+}
+
+.stair-game.pixel-theme .overtime-capture-ending[data-variant="animated"] {
+  position: absolute;
+  z-index: 20;
+  inset: 0;
+  display: grid;
+  grid-template-rows: max-content minmax(0, 1fr);
+  gap: 12px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+  text-align: center;
+}
+
+.stair-game.pixel-theme .overtime-capture-ending h2 {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--pixel-gold, #f3ca58);
+  font-size: clamp(1.2rem, 3vw, 2rem);
+}
+.stair-game.pixel-theme .overtime-capture-ending h2:focus {
+  outline: 2px solid var(--pixel-cyan, #61e8e1);
+  outline-offset: 4px;
+}
+.stair-game.pixel-theme .overtime-capture-ending .overtime-capture-scene {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 160px;
+  image-rendering: pixelated;
+}
+.stair-game.pixel-theme .overtime-capture-ending[data-variant="complete"] {
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: 320px;
+  margin: 0 0 12px;
+  padding: 8px;
+  border: 1px solid var(--pixel-edge, #536781);
+}
+.stair-game.pixel-theme .overtime-capture-ending[data-variant="complete"] .overtime-capture-scene {
+  height: 128px;
+  min-height: 0;
+}
+
+/* Final artwork is the default, including before animation CSS is applied. */
+.stair-game.pixel-theme .overtime-capture-ending .overtime-capture-pair { transform: translate(172px, 0); }
+.stair-game.pixel-theme .overtime-capture-ending .overtime-capture-young--dragged,
+.stair-game.pixel-theme .overtime-capture-ending .overtime-capture-older--grabbing { visibility: hidden; }
+.stair-game.pixel-theme .overtime-capture-ending .overtime-capture-young--seated { transform: translate(0, 8px); }
+
+.stair-game.pixel-theme .overtime-capture-ending[data-variant="animated"] .overtime-capture-timed {
+  animation-duration: 2s;
+  animation-fill-mode: both;
+  animation-timing-function: linear;
+  animation-delay: var(--overtime-capture-offset, 0ms);
+}
+.stair-game.pixel-theme .overtime-capture-ending[data-variant="animated"] .overtime-capture-pair {
+  animation-name: overtime-pair-travel;
+}
+.stair-game.pixel-theme .overtime-capture-ending[data-variant="animated"] .overtime-capture-bob {
+  animation-name: overtime-pair-bob;
+  animation-timing-function: steps(1, end);
+}
+.stair-game.pixel-theme .overtime-capture-ending[data-variant="animated"] .overtime-capture-young--dragged,
+.stair-game.pixel-theme .overtime-capture-ending[data-variant="animated"] .overtime-capture-older--grabbing {
+  animation-name: overtime-drag-window;
+}
+.stair-game.pixel-theme .overtime-capture-ending[data-variant="animated"] .overtime-capture-older--standing {
+  animation-name: overtime-seated-window;
+}
+.stair-game.pixel-theme .overtime-capture-ending[data-variant="animated"] .overtime-capture-young--seated {
+  animation-name: overtime-seated-window, overtime-chair-drop;
+}
+.stair-game.pixel-theme .overtime-capture-ending[data-variant="animated"] .overtime-capture-young--seated .overtime-officer-head {
+  animation: overtime-lowered-head 2s steps(2, end) var(--overtime-capture-offset, 0ms) both;
+}
+.stair-game.pixel-theme .overtime-capture-ending[data-variant="animated"] .overtime-capture-young--dragged .overtime-officer-leg-front,
+.stair-game.pixel-theme .overtime-capture-ending[data-variant="animated"] .overtime-capture-older--grabbing .overtime-officer-leg-front {
+  animation: overtime-stride-front 2s steps(1, end) var(--overtime-capture-offset, 0ms) both;
+}
+.stair-game.pixel-theme .overtime-capture-ending[data-variant="animated"] .overtime-capture-young--dragged .overtime-officer-leg-back,
+.stair-game.pixel-theme .overtime-capture-ending[data-variant="animated"] .overtime-capture-older--grabbing .overtime-officer-leg-back {
+  animation: overtime-stride-back 2s steps(1, end) var(--overtime-capture-offset, 0ms) both;
+}
+
+@keyframes overtime-pair-travel {
+  0% { transform: translate(0, 0); }
+  8% { transform: translate(-4px, 0); }
+  15% { transform: translate(0, 0); animation-timing-function: steps(43, end); }
+  65%, 100% { transform: translate(172px, 0); }
+}
+@keyframes overtime-pair-bob {
+  0%, 15%, 25%, 35%, 45%, 55%, 65%, 100% { transform: translate(0, 0); }
+  20%, 30%, 40%, 50%, 60% { transform: translate(0, -2px); }
+}
+@keyframes overtime-drag-window {
+  0%, 64.999% { visibility: visible; }
+  65%, 100% { visibility: hidden; }
+}
+@keyframes overtime-seated-window {
+  0%, 64.999% { visibility: hidden; }
+  65%, 100% { visibility: visible; }
+}
+@keyframes overtime-chair-drop {
+  0%, 65% { transform: translate(0, -4px); animation-timing-function: steps(6, end); }
+  85%, 100% { transform: translate(0, 8px); }
+}
+@keyframes overtime-lowered-head {
+  0%, 85% { transform: translate(1px, 0); }
+  100% { transform: translate(3px, 4px); }
+}
+@keyframes overtime-stride-front {
+  0%, 15%, 25%, 35%, 45%, 55%, 65%, 100% { transform: translate(0, 0); }
+  20%, 30%, 40%, 50%, 60% { transform: translate(2px, -1px); }
+}
+@keyframes overtime-stride-back {
+  0%, 15%, 25%, 35%, 45%, 55%, 65%, 100% { transform: translate(0, 0); }
+  20%, 30%, 40%, 50%, 60% { transform: translate(-2px, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stair-game.pixel-theme .overtime-capture-ending[data-variant="animated"] .overtime-capture-timed,
+  .stair-game.pixel-theme .overtime-capture-ending[data-variant="animated"] .overtime-officer .overtime-officer-head,
+  .stair-game.pixel-theme .overtime-capture-ending[data-variant="animated"] .overtime-officer .overtime-officer-leg-front,
+  .stair-game.pixel-theme .overtime-capture-ending[data-variant="animated"] .overtime-officer .overtime-officer-leg-back { animation: none; }
+}
