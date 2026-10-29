@@ -1,25 +1,24 @@
 # Current Context
 
 ## Active Plan
-None. [Title Screen Entry](./plans/2026-10-29-title-screen-entry.md) is complete.
+None. [Title Scene and Guide Copy](./plans/2026-10-29-title-scene-and-guide-copy.md) is complete.
 
 ## Active Phase
-None. [P01 Title Screen](./phases/2026-10-29-title-screen-entry/P01-title-screen/phase.md) is complete.
+None. [P01 Shared Title Scene](./phases/2026-10-29-title-scene-and-guide-copy/P01-title-scene/phase.md) is complete.
 
 ## Active Task
 None.
 
 ## Last Completed Task
-[T01 Title Screen Entry](./phases/2026-10-29-title-screen-entry/P01-title-screen/T01-title-screen-entry.md) — `69b039b` (2026-10-29).
+[T01 Title Scene and Guide Copy](./phases/2026-10-29-title-scene-and-guide-copy/P01-title-scene/T01-title-scene-and-guide-copy.md) — `1f9be29` (2026-10-29).
 
 ## Status
-- title-screen-entry: **completed, done1/1, Active Task none**.
-- Added the `덱스 탈출 넘버원` title screen, start-to-stage-selection transition, and title-only guide button; removed the in-game `?` button.
-- Existing settings content, Entra authentication, authentication-time audio startup, game logic, stage unlocks, and retry flow remain unchanged.
-- Validation: targeted 3 files, 118/118 tests passed; lint and production build passed.
+- title-scene-and-guide-copy: **completed, done 1/1, Active Task none**.
+- Kept the same stair scene behind the title and stage selector; added the 200 ms fade and the exact confirmed guide copy.
+- Validation: 3 targeted files, 119/119 tests passed; lint and production build passed.
 
 ## Source Decisions
-[Title Screen Entry](./decisions/2026-10-29-title-screen-entry.md)
+[Title Scene and Guide Copy](./decisions/2026-10-29-title-scene-and-guide-copy.md)
 
 ## Next Step (IMPORTANT)
 No active task. Continue when a new task is selected.

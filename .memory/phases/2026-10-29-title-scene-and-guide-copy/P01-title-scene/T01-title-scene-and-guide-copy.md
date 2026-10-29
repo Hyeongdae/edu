@@ -99,4 +99,4 @@ Task: T01-title-scene-and-guide-copy
 ## Progress
 - [x] Implementation complete
 - [x] Validation passed (119/119 targeted tests, lint, and production build)
-- commit: pending
+- commit: `1f9be29`
