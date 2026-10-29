@@ -1,6 +1,6 @@
 # Plan: Time Ranking and Office Ending
 
-## Status: in_progress
+## Status: completed
 
 ## Goal
 
@@ -14,7 +14,7 @@
 
 | Phase | Status | Summary | Blueprint |
 | :--- | :--- | :--- | :--- |
-| P01 | in_progress | 시간 성적·랭킹·퇴근 시각 연출과 회귀 검증 | [P01](../phases/2026-10-28-time-ranking-and-office-ending/P01-office-finish/phase.md) |
+| P01 | completed | 시간 성적·랭킹·퇴근 시각 연출과 회귀 검증 완료 | [P01](../phases/2026-10-28-time-ranking-and-office-ending/P01-office-finish/phase.md) |
 
 ## Tasks and Dependencies
 
@@ -60,8 +60,9 @@
 
 ## Progress
 
-- done: 3/4 (active: T04)
-- T03 `1fa30e6` (2026-10-29): clear 전용4초퇴근엔딩·모션감소/입력차단/focus/cleanup·공용 콘크리트/노란선 계단 완료. 지정31파일945/945tests/workers2/60.92초, lint/build/diff 통과. 실제 브라우저 SVG·모바일 검증은 다음 T04다. 증거와 중간 로그/제한은 T03 Validation Results에 기록했다.
+- done: 4/4 (active: none, completed)
+- T04 `da47a38` (2026-10-29): 주요 driver6/Chrome156 격리context, 네 화면 전체5단계·즉시 저장·시간tuple/보호된 초기화·4초엔딩/모션감소/focus/cleanup·큰 글자/단독 무저장 검증 완료. 실제 엔딩4085ms, 제어 경로각615행동/641계단/마지막352점. 지정31파일945/945tests/skip0/workers2/71.22초, lint/build/diff 통과. artifact114/PNG62 및 SHA256 index는2026-10-29/T04에 보존했다. 제품 source 추가 수정 없음. demo5175 PID14620 유지/소유Chrome 종료. 실제tenant·스피커 청취·기존 App전체suite/번들 개선은 범위 밖이다.
+- T03 `1fa30e6` (2026-10-29): clear 전용4초퇴근엔딩·모션감소/입력차단/focus/cleanup·공용 콘크리트/노란선 계단 완료. 지정31파일945/945tests/workers2/60.92초, lint/build/diff 통과. 실제 브라우저 SVG·모바일 검증은 T04에서 완료했다. 증거와 중간 로그/제한은 T03 Validation Results에 기록했다.
 - T02 `9082bcc` (2026-10-29): 시간 랭킹v2·구v1만 정리·해금 보존·클리어 즉시 저장·CP/결과/랭킹 시간 표시 완료. 지정29파일912/912tests/workers2/54.62초, lint/build/diff 통과.
 - T01 `cbc6c26`: 종료 성적 스냅샷·단위/표시/helper·엔진 전환·단독 fresh guard 완료. 지정29파일864/864tests/workers2/124.79초, lint/build/diff 통과. 증거/중간 실패와 제한은 T01 Validation Results에 기록했다.
 - Last completed plan: distance-based-pursuer-catch-up, implementation43db38c / memory15704d3.
