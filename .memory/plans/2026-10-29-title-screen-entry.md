@@ -6,4 +6,4 @@ After Entra authentication, show a pixel-art title screen for `덱스 탈출 넘
 ## Phases
 | Phase | Status | Summary | Blueprint |
 | :--- | :--- | :--- | :--- |
-| P01 | `in_progress` | Add a title entry view and connect the existing stage selection and guide dialog. | [P01](../phases/2026-10-29-title-screen-entry/P01-title-screen/phase.md) |
+| P01 | `completed` | Add a title entry view and connect the existing stage selection and guide dialog. | [P01](../phases/2026-10-29-title-screen-entry/P01-title-screen/phase.md) |

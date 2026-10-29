@@ -1,95 +1,28 @@
 # Current Context
 
 ## Active Plan
-
-[Time Ranking and Office Ending](./plans/2026-10-28-time-ranking-and-office-ending.md) — completed (4/4).
+None. [Title Screen Entry](./plans/2026-10-29-title-screen-entry.md) is complete.
 
 ## Active Phase
-
-없음 — [P01 Office Finish](./phases/2026-10-28-time-ranking-and-office-ending/P01-office-finish/phase.md) 완료.
+None. [P01 Title Screen](./phases/2026-10-29-title-screen-entry/P01-title-screen/phase.md) is complete.
 
 ## Active Task
-
-없음 — time-ranking-and-office-ending 완료 (4/4).
+None.
 
 ## Last Completed Task
-
-[T04 Office Finish Browser Validation](./phases/2026-10-28-time-ranking-and-office-ending/P01-office-finish/T04-office-finish-browser-validation.md) — `da47a38` (2026-10-29). T03 `1fa30e6`/동기화 `eaf1d41`; T02 `9082bcc`/동기화 `ae2bbcb`; T01 `cbc6c26`/동기화 `efda9c2`; 계획 문서 `b3c67aa`. 이전 추격 계획 T01 `43db38c`/완료 동기화 `15704d3`.
+[T01 Title Screen Entry](./phases/2026-10-29-title-screen-entry/P01-title-screen/T01-title-screen-entry.md) — `69b039b` (2026-10-29).
 
 ## Status
-
-- time-ranking-and-office-ending: **completed, done4/4, Active Task/Phase 없음**. 2026-10-29 T04 `da47a38` 완료. 제품 source/test/config/package는 T03 `1fa30e6` 그대로이며 추가 수정이 필요하지 않았다.
-- T04: 소유 격리 Chrome156/주요 driver6개에서 실제 키·터치와 읽기 전용 상태 관찰로 검증했다.320×667/390×844/768×1024/1440×900 각각1→5단계615행동/641물리계단/26보너스점프/150·200·250·300·352점, 각 clear 즉시 저장/엔딩 후 추가 쓰기0. 전체 경로·기한 경계는 제어 시계이고 실제 시간 엔딩은 별도 관측했다.
-- T04: 구v1 랭킹만 정리·여러 계정 해금/새v2/auth/audio/session byte 보존,1cs 개선/동점 무쓰기·단계→점수→시간→먼저 달성 tuple, CP95초Quit/재접속2해금·2단계80점 자체 시간, quota/getter 실패의 Continue/Quit, 설정95초 pause·늦은 caught87.60초·5단계340점 timeout0.00초 확인. 단독은 정상/차단 저장소 모두1단계150점/87행동/Storage getter·메서드 호출0/byte 불변이다.
-- T04 실제 시간: native5단계350점 clear/4301cs 저장→4085ms 결과(3990~4499ms 관측 허용),0/1/2.5/3.8초 문·걷기·퇴장 PNG/단일 pose/배경 숨김·focus 정상. 초기/중간 reduce/복귀 재생방지/새 도전 재생, 종료 후 입력·touch·visibility 무효,24/32px 결과·긴 이름 TOP10 scroll/32px active 엔딩4화면 통과. App timer0/media listener0; 문서의 Vite ping1은 /@vite/client stack으로 구분했다.
-- T04 검증: 지정31파일945/945tests/skip0/workers2/71.22초, lint 오류0/경고0, tsc/Vite build/diff 통과. JS564.20kB(gzip157.79)/CSS63.80kB(gzip11.77), 기존500kB 초과 크기 유지/이번 로그에 chunk경고 재출력 없음. source/timeout/skip/config 변경 없음.
-- T04 증거: %TEMP%/time-ranking-and-office-ending-2026-10-29/T04/evidence-index.json에 artifact114/PNG62/driver6·SHA256, audit/environment/process-identity/cleanup/scope-audit 및 중간 실패 로그를 기록했다. CP focus native Space/스크롤 정적 그림 경계/Vite ping/50ms CSS 관측 시점·seed와 점프·코너 순서에 따른 harness 기대만 보완했다. 상세와 정확한 실행 경로는 T04 Validation Results에 있다.
-- T04 종료: 소유권 확인한 Chrome15988/9228 종료, Vite5175 PID14620 유지. 메인 http://127.0.0.1:5175/ 와 단독 http://127.0.0.1:5175/descent-test.html HTTP200/DEV demo true 확인. 사용자 실제 프로필/기록/기존 untracked 파일 직접 변경 없음. 실제 Entra tenant/스피커 청취·알려진 App 전체suite/번들 성능은 미수행/범위 밖이다. 신규 범위 밖 결함: 특이사항 없음.
-- T03 `1fa30e6`: 5단계 clear 전용4초1층퇴근엔딩, 시각/JS 동일 절대기한·StrictMode/cleanup·모션감소 정적완료·배경 inert/입력차단·결과 restart focus, 공용 콘크리트/노란선 계단 아트 구현. 기록은 T02 clear 순간 저장이며 엔딩 후 추가 쓰기0. 엔진/랭킹·저장·진행도/auth/audio/단독 source/renderer geometry/config/package 변경 없음.
-- T03 검증: 지정31파일945/945tests/skip0/workers2/60.92초, 신규33개. 신규2파일25/25(2.63초), GameScreen104/104(35.38초). lint 오류0/경고0, tsc/Vite build/diff 통과. JS564.20kB(gzip157.79)/CSS63.80kB(gzip11.77), 기존500kB 초과 크기 유지/이번 로그에 chunk경고 재출력 없음.
-- T03 증거: %TEMP%/time-ranking-and-office-ending-2026-10-29/T03/의 focused-new.log, screen-initial.log(기존 즉시결과 기대4실패/92통과), screen-expanded.log(신규 timer기대2실패/102통과), screen-focused-final.log, regression-31.log, lint.log, build.log. 새 검사에서 기존700ms 점수 피드백/비동기UI 갱신·microtask를 기다리게 보완했고 timeout/skip/config를 바꾸지 않았다. 상세는 T03 Validation Results.
-- T03 당시 실제 브라우저는 실행하지 않았고 T04에서 SVG 문/걷기·320px/큰 글자·양쪽 화면 및 저장의 실제 진입점 검증을 완료했다. 사용자 프로필/실기록 직접 접근 없음. 신규 범위 밖 결함: 특이사항 없음.
-- T02 `9082bcc`: 단계→점수→남은 시간→먼저 달성 순서/동일 기준 개인 최고, descent v2 필수 remainingTimeCs, v1 랭킹만 정리하는 helper, stageResult 참조 기반 CP 즉시 저장·동일 성적 무쓰기, CP/결과/랭킹 시간 표시·별도 저장 오류·480px 이하 행 접기 구현.
-- T02 검증: 지정29파일912/912tests/skip0/workers2/54.62초, 집중4파일138/138. 신규48개(랭킹25/저장4/패널6/화면13). lint 오류0/경고0, tsc/Vite build/diff 통과. JS557.13kB(gzip155.82)/CSS57.91kB(gzip11.04), 기존500kB chunk경고 유지.
-- T02 증거: %TEMP%/time-ranking-and-office-ending-2026-10-29/T02/의 focused-initial.log/focused-expanded.log/regression-29.log/lint.log/build.log. 이전 2026-10-28/T02/regression-initial.log는 시간 없는 옛 fixture/기존 CP 미저장 기대값 등47실패/817통과의 중간 로그로 보존한다. 기존 ascent 무시간 fixture는 유지했다. timeout/skip/config/package 변경 없음.
-- T02에서 T01 engine/types/stageResult·진행도·단독·인증·오디오·추격/단계규칙 source는 efda9c2와 동일하다. 사용자 실제 프로필/브라우저를 검증 목적으로 직접 접근하지 않았다. 브라우저/320px·큰 글자 실제 배치는 T04에서 검증한다. 기존 번들/App 부채 외 새 범위 밖 결함: 특이사항 없음.
-- T01 `cbc6c26`: GameState.stageResult와 StageResult 순수 생성/검증/표시 API, 실제 clear/catch/timeout 시점 보관, CP/quit 동일 결과·Continue/reset null, 단독 fresh guard 연결. 기존 adapter는 spread로 결과를 보존해 수정이 불필요했다. 기존 검사/fixture 변경도 필요하지 않았다.
-- 검증: 지정29파일864/864tests/skip0/workers2/124.79초, 신규110개. lint 오류0/경고0, tsc/Vite build/diff 통과. JS555.79kB(gzip155.40)/CSS57.33kB(gzip10.97), 기존500kB초과 크기 유지/이번 build.log에 해당 경고 재출력 없음.
-- 중간29파일 실행은 build/lint를 함께 실행하던 중 기존 GameScreen bonus-pause 검사의5초 제한 초과(7.847초) 후79개연쇄실패/785개통과(101.98초)였다. 다른 검증 종료 후 동일 명령을 별도 실행해864/864 통과했다. 두 실행 사이 source/test/timeout/skip/config 변경 없음. 최종 근거는 %TEMP%/time-ranking-and-office-ending-2026-10-28/T01/regression-29-serial.log, lint.log, build.log. 실패/초기 로그도 보존한다.
-- T01에서 랭킹/recordStorage/진행도/auth/audio/설정/추격·단계규칙/계단 아트/실제 기록은 변경하지 않았다. 브라우저 검증은 T04 대상. 기존 화면 검사 자원 경쟁과 알려진 번들/App 부채 외 신규 범위 밖 결함: 특이사항 없음.
-- 사용자 확정: 단계→점수→남은 시간(0.01초) 랭킹, 각 단계 클리어 즉시 저장, 기존 랭킹만 초기화/해금 유지,5단계 후 약4초 자동1층퇴근엔딩,회색콘크리트·노란선 픽셀비상계단.
-- T01 결과 계약: GameState.stageResult:null|StageResult, StageResult={stage,score,remainingTimeCs,endedAtMs,outcome}. 종료전 시간을 고정하고 quit는클리어결과를보존한다. 늦은tick은실제접촉deadline기준이다.
-- T02 메인 랭킹은 stair-descent:leaderboard:v2, 시간 필수. v1 랭킹만 정리하며 progress:v1/기존 reset marker/새 랭킹은 보존. 기존 ascent v5 API의 시간 생략 호환은 별도로 둔다.
-- T03 엔딩은 UI 수명으로만관리하고 엔진은game-over. 즉시 저장후4초연출/모션감소정적결과/포커스·cleanup. 공용PixelStair 변경은메인과단독에반영되며 단독1단계·무저장경계를검증한다.
-- T01/T02는 지정29파일 검증 완료, T03/T04는지정31파일과workers2/lint/build/diff. 다른 무거운 검증을 동시에 실행하지 않는 것이 좋다.
-- 순서 T01시간스냅샷→T02랭킹·즉시저장→T03엔딩·계단아트→T04브라우저. 메모리 실행은현재Task1개씩진행한다. 알려진App전체suite/번들크기/실제Entra·배포는범위밖이다.
-- 증거: T01은 %TEMP%/time-ranking-and-office-ending-2026-10-28/T01/, T02는2026-10-29/T02/. 후속은 실행 날짜에 맞는 Task 폴더를 사용한다. 사용자 프로필/실기록과 기존 demo 서버를 검증 목적으로 변경하지 않는다. 이전 추격 계획 완료 이력은 아래에 보존했다.
+- title-screen-entry: **completed, done1/1, Active Task none**.
+- Added the `덱스 탈출 넘버원` title screen, start-to-stage-selection transition, and title-only guide button; removed the in-game `?` button.
+- Existing settings content, Entra authentication, authentication-time audio startup, game logic, stage unlocks, and retry flow remain unchanged.
+- Validation: targeted 3 files, 118/118 tests passed; lint and production build passed.
 
 ## Source Decisions
-
-[Time Ranking and Office Ending](./decisions/2026-10-28-time-ranking-and-office-ending.md)
+[Title Screen Entry](./decisions/2026-10-29-title-screen-entry.md)
 
 ## Next Step (IMPORTANT)
-
-계획 완료, 다음 Active Task/Phase 없음. T01~T04와 이전 완료 계획을 재실행하지 않는다. http://127.0.0.1:5175/ 에서 시간 랭킹·퇴근 엔딩·콘크리트 계단을 테스트하고, 단독 실험은 http://127.0.0.1:5175/descent-test.html 를 사용한다. 새 수정 요청은 결정→계획→Active Task 실행 순서로 진행한다. 공용 서버 랭킹/실제 Entra 설정·배포/번들 성능/App 전체suite 정리는 자동 시작하지 않는다. T04 증거와 제어/실제 시계 및 인증·청취 제한은 위 경로와 청사진에 보존했다.
-
----
-
-### Previous Context: Distance Based Pursuer Catch Up
-
-### Active Plan
-
-[Distance Based Pursuer Catch Up](./plans/2026-10-28-distance-based-pursuer-catch-up.md)
-
-### Active Phase
-
-없음 — [P01 Pursuit](./phases/2026-10-28-distance-based-pursuer-catch-up/P01-pursuit/phase.md) 완료.
-
-### Active Task
-
-없음 — distance-based-pursuer-catch-up 완료 (1/1).
-
-### Last Completed Task
-
-[T01 Distance Catch Up](./phases/2026-10-28-distance-based-pursuer-catch-up/P01-pursuit/T01-distance-catch-up.md) — `43db38c` (2026-10-28), 계획 `63a5773`.
-
-### Status
-
-- distance-based-pursuer-catch-up **completed, done1/1, Active Task none**. 사용자 선택3: 메인과 단독 실험 모두 적용. 기본600/500/400/300/250ms,30칸부터50ms,7칸이하 해제. 가속 중 넘어져도50ms 우선. 기존fall500ms/추격250ms 복귀 유지.
-- T01 `43db38c`: 공용 isPursuerCatchingUp boolean/30·7 hysteresis/절대기한 스케줄, 양쪽50ms polling/동기화 모션/CSS/help 구현. 새 게임·Continue·종료에서 modefalse. 기존 기록/auth/audio/목표·확률·경로는 보존했다.
-- 지정28파일754/754tests/skip0/workers2/63.48초, lint/build/diff 통과. 새 순수규칙25+화면통합2검사, 기존고정시간/수동far fixture 갱신. 테스트의 잘못된 화면밖 gap9 조회/배치 중 DOMcue 조회/잘못된runtime타입단언만 보완했고 timeout/skip/config는 변경하지 않았다.
-- 증거: `C:/Users/DEX/AppData/Local/Temp/distance-based-pursuer-catch-up-2026-10-28/`의 regression-verified.log/lint-verified.log/build-verified.log/browser-smoke-final.log/browser-smoke.json·PNG4. 격리Chrome156 두context 메인1440×900/단독390×844, native입력30칸·50ms21인접이동·gap8CSS0.05s·fall중가속·gap7에서250·설정10초pause후600복귀/예외0. 브라우저 시각은 제어했고 실제 interval은 가짜타이머 화면통합검사로 확인했다.
-- JS554.49kB(gzip155.08)/CSS57.33kB(gzip10.97), 기존500kB chunk경고 유지. 새 범위 밖 결함: 특이사항 없음. 소유Chrome20740은 profile identity확인 후 종료했다. 기존demo5175 PID21048과 사용자프로필/기록 유지. 두URL HTTP200. 기존App suite/실제Entra/스피커청취·성능개선은 미실행.
-- 이전 main-game-descent-conversion completed3/3; T03 8da80d6, 메타데이터5f739b3. 이전 기록 아래 보존.
-
-### Source Decisions
-
-[Distance Based Pursuer Catch Up](./decisions/2026-10-28-distance-based-pursuer-catch-up.md)
-
-### Next Step (IMPORTANT)
-
-계획 완료, 다음 Active Task 없음. `http://127.0.0.1:5175/`와 `http://127.0.0.1:5175/descent-test.html`에서 새로고침 후 테스트한다. T01/이전 계획을 재실행하지 않는다. 새 수정 요청은 해당 요구의 결정→계획→실행으로 진행한다.
-
+No active task. Continue when a new task is selected.
 ---
 
 ### Previous Context: Main Game Descent Conversion
