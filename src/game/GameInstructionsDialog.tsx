@@ -73,7 +73,7 @@ export function GameInstructionsDialog({ onClose, closeButtonRef, dialogRef, onK
             </div>
           </section>
 
-          <p className="instructions-encouragement">5단계를 모두 클리어하고 멋지게 퇴근해 봐요! 끝까지 파이팅!</p>
+          <p className="instructions-encouragement">5단계를 모두 클리어하고 멋지게 퇴근해봐요 화이팅! 잡히면 야근일지도..</p>
         </div>
       </section>
     </div>

@@ -88,6 +88,11 @@
   text-align: center;
 }
 
+.game-stage.is-title-background .scene-heading,
+.game-stage.is-title-background .scene-hint {
+  display: none;
+}
+
 .game-title-copy { width: min(100%, 850px); }
 .game-title-kicker { margin: 0 0 16px; }
 .game-title-screen h1 { margin: 0; overflow-wrap: anywhere; }

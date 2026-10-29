@@ -23,6 +23,8 @@ import type { AudioPreferences } from "../audio/audioPreferences";
 import "./game.css";
 import "./pixel-theme.css";
 
+const TITLE_SCENE_TRANSITION_MS = 200;
+
 interface GameScreenProps {
   account: AccountInfo;
   audioController?: AudioController;
@@ -61,6 +63,8 @@ export function GameScreen({
     stage: getHighestUnlockedStage(initialProfile.knownHighest), highestClearedStage: initialProfile.knownHighest,
   }));
   const [isTitleScreen, setIsTitleScreen] = useState(true);
+  const [isTitleLeaving, setIsTitleLeaving] = useState(false);
+  const titleTransitionTimeoutRef = useRef<number | undefined>(undefined);
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>(initialProfile.entries);
   const [progressError, setProgressError] = useState(!initialProfile.progressAvailable);
@@ -177,8 +181,18 @@ export function GameScreen({
   };
 
   const handleEnterStageSelection = () => {
-    if (activeDialogRef.current !== null || gameState.status !== "ready") return;
-    setIsTitleScreen(false);
+    if (activeDialogRef.current !== null || gameState.status !== "ready" || isTitleLeaving) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      setIsTitleScreen(false);
+      return;
+    }
+
+    setIsTitleLeaving(true);
+    titleTransitionTimeoutRef.current = window.setTimeout(() => {
+      setIsTitleScreen(false);
+      setIsTitleLeaving(false);
+      titleTransitionTimeoutRef.current = undefined;
+    }, TITLE_SCENE_TRANSITION_MS);
   };
 
   const handleStart = () => {
@@ -260,6 +274,7 @@ export function GameScreen({
   useEffect(() => () => {
     window.clearTimeout(climbTimeoutRef.current);
     window.clearTimeout(pursuerTimeoutRef.current);
+    window.clearTimeout(titleTransitionTimeoutRef.current);
   }, []);
 
   const lastMoveIsBonus = gameState.lastMove?.isBonus === true;
@@ -463,9 +478,16 @@ export function GameScreen({
           data-stage={gameState.stage}
           data-pursuer-catching={pursuerCatchVisible}
           data-office-ending={isEnding}
+          data-title-transitioning={isTitleLeaving || undefined}
+          data-title-screen={isTitleScreen || undefined}
         >
-          {isTitleScreen ? (
-            <section className="game-title-screen" aria-labelledby="game-title">
+          {isTitleScreen && (
+            <section
+              className={`game-title-screen${isTitleLeaving ? " is-leaving" : ""}`}
+              aria-labelledby="game-title"
+              aria-hidden={isTitleLeaving || undefined}
+              inert={isTitleLeaving || undefined}
+            >
               <div className="game-title-copy">
                 <p className="game-title-kicker">STAIRWAY CHALLENGE</p>
                 <h1 id="game-title">덱스 탈출 넘버원</h1>
@@ -488,7 +510,8 @@ export function GameScreen({
                 </button>
               </div>
             </section>
-          ) : (
+          )}
+          {(!isTitleScreen || isTitleLeaving) && (
             <>
               <button
                 ref={settingsTriggerRef}
@@ -503,29 +526,7 @@ export function GameScreen({
                 <PixelIcon name="settings" />
               </button>
 
-              <div className="game-stage" aria-hidden={isEnding || undefined} inert={isEnding || undefined}>
-                <GameHud
-                  state={gameState}
-                  eventSecondsLeft={eventSecondsLeft}
-                  scoreGain={scoreGain}
-                  scoreGainIsBonus={scoreGainIsBonus}
-                  scoreAnimationKey={scoreAnimationKey}
-                  stageSecondsLeft={getStageSecondsLeft(gameState, nowMs)}
-                />
-
-                <div className="game-layout" data-game-status={gameState.status}>
-                  <StairScene
-                    state={gameState}
-                    climbAnimationKey={climbAnimationKey}
-                    isClimbing={isClimbing && gameState.status === "playing" && !gameState.lastMistake && !pursuerCatchVisible}
-                    pursuerAnimationKey={pursuerAnimationKey}
-                    isPursuerMoving={isPursuerMoving}
-                    isPursuerCaught={pursuerCatchVisible}
-                  />
-                </div>
-              </div>
-
-              {gameState.status === "ready" ? (
+              {gameState.status === "ready" && (!isTitleScreen || isTitleLeaving) ? (
                 <StageSelectPanel selectedStage={gameState.stage} highestClearedStage={gameState.highestClearedStage}
                   onSelect={handleSelectStage} onStart={handleStart} disabled={false} progressUnavailable={progressUnavailable} />
               ) : gameState.status === "playing" ? (
@@ -568,6 +569,30 @@ export function GameScreen({
               </p>
             </>
           )}
+          <div
+            className={`game-stage${isTitleScreen ? " is-title-background" : ""}`}
+            aria-hidden={isTitleScreen || isEnding || undefined}
+            inert={isTitleScreen || isEnding || undefined}
+          >
+            {!isTitleScreen && <GameHud
+              state={gameState}
+              eventSecondsLeft={eventSecondsLeft}
+              scoreGain={scoreGain}
+              scoreGainIsBonus={scoreGainIsBonus}
+              scoreAnimationKey={scoreAnimationKey}
+              stageSecondsLeft={getStageSecondsLeft(gameState, nowMs)}
+            />}
+            <div className="game-layout" data-game-status={gameState.status}>
+              <StairScene
+                state={gameState}
+                climbAnimationKey={climbAnimationKey}
+                isClimbing={isClimbing && gameState.status === "playing" && !gameState.lastMistake && !pursuerCatchVisible}
+                pursuerAnimationKey={pursuerAnimationKey}
+                isPursuerMoving={isPursuerMoving}
+                isPursuerCaught={pursuerCatchVisible}
+              />
+            </div>
+          </div>
           {isSettingsOpen && (
             <div
               className="settings-backdrop"

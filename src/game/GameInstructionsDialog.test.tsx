@@ -17,7 +17,7 @@ describe("GameInstructionsDialog", () => {
     expect(controls[1]).toContain("J 모퉁이에서 방향을 바꾸며 한 칸 내려가기");
     expect(controls[2]).toContain("Space 장애물을 넘어 두 칸 이동하기");
     expect(screen.getByText(/모바일에서는 화면의 내려가기, 방향 바꾸기, 점프 버튼/)).toBeVisible();
-    expect(screen.getByText("5단계를 모두 클리어하고 멋지게 퇴근해 봐요! 끝까지 파이팅!")).toBeVisible();
+    expect(screen.getByText("5단계를 모두 클리어하고 멋지게 퇴근해봐요 화이팅! 잡히면 야근일지도..")).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "게임 설명 닫기" }));
     expect(onClose).toHaveBeenCalledOnce();
   });

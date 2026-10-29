@@ -28,7 +28,14 @@ const account = {
 
 function render(ui: Parameters<typeof renderBase>[0]) {
   const view = renderBase(ui);
+  const originalMatchMedia = Object.getOwnPropertyDescriptor(window, "matchMedia");
+  Object.defineProperty(window, "matchMedia", {
+    configurable: true,
+    value: () => ({ matches: true }),
+  });
   fireEvent.click(screen.getByRole("button", { name: "게임 시작" }));
+  if (originalMatchMedia) Object.defineProperty(window, "matchMedia", originalMatchMedia);
+  else Reflect.deleteProperty(window, "matchMedia");
   return view;
 }
 
@@ -173,7 +180,7 @@ describe("time-ranked result persistence", () => {
 });
 
 describe("title screen entry", () => {
-  afterEach(() => { cleanup(); localStorage.clear(); vi.restoreAllMocks(); vi.useRealTimers(); });
+  afterEach(() => { cleanup(); localStorage.clear(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 
   it("shows the game title and two actions, then opens stage selection without starting play", async () => {
     vi.useFakeTimers();
@@ -188,13 +195,27 @@ describe("title screen entry", () => {
     expect(screen.queryByRole("region", { name: "단계 선택" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "게임 설정" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "?" })).not.toBeInTheDocument();
+    const scene = document.querySelector(".stair-scene");
+    expect(scene).toBeInTheDocument();
+    expect(document.querySelector(".office-backdrop")).toBeInTheDocument();
+    expect(screen.getByTestId("runner")).toBeInTheDocument();
+    expect(screen.getByTestId("pursuer")).toBeInTheDocument();
+    expect(document.querySelector(".game-stage")).toHaveClass("is-title-background");
+    expect(document.querySelector(".game-stage .scene-heading")).toBeInTheDocument();
+    expect(document.querySelector(".game-stage .scene-hint")).toBeInTheDocument();
+    expect(screen.queryByTestId("stage-time")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "게임 시작" }));
     expect(screen.getByRole("region", { name: "단계 선택" })).toBeVisible();
+    expect(document.querySelector(".game-frame")).toHaveAttribute("data-title-transitioning", "true");
+    expect(document.querySelector(".stair-scene")).toBe(scene);
     expect(screen.queryByRole("button", { name: "게임 설명" })).not.toBeInTheDocument();
-    expect(screen.getByTestId("stage-value")).toHaveTextContent("1단계");
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "ready");
     expect(start).not.toHaveBeenCalled();
+    await act(async () => { await vi.advanceTimersByTimeAsync(200); });
+    expect(document.querySelector(".game-frame")).not.toHaveAttribute("data-title-transitioning");
+    expect(document.querySelector(".stair-scene")).toBe(scene);
+    expect(screen.getByTestId("stage-value")).toHaveTextContent("1단계");
     await act(async () => { await vi.advanceTimersByTimeAsync(5_000); });
     expect(screen.getByTestId("stage-time")).toHaveTextContent("01:30");
 
@@ -203,6 +224,21 @@ describe("title screen entry", () => {
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "playing");
     expect(screen.queryByRole("button", { name: "게임 설명" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "?" })).not.toBeInTheDocument();
+  });
+
+  it("skips the title transition when reduced motion is preferred", () => {
+    vi.stubGlobal("matchMedia", vi.fn().mockReturnValue({
+      matches: true,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
+    renderBase(<GameScreen account={account} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "게임 시작" }));
+
+    expect(screen.getByRole("region", { name: "단계 선택" })).toBeVisible();
+    expect(document.querySelector(".game-frame")).not.toHaveAttribute("data-title-transitioning");
+    expect(document.querySelector(".game-title-screen")).not.toBeInTheDocument();
   });
 });
 
@@ -453,6 +489,7 @@ describe("GameScreen controls", () => {
     await act(async () => { await vi.advanceTimersByTimeAsync(5_000); });
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "ready");
     fireEvent.click(screen.getByRole("button", { name: "게임 시작" }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(200); });
     fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
     expect(screen.getByTestId("stage-time")).toHaveTextContent("01:30");
   });
