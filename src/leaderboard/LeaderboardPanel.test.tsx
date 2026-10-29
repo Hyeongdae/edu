@@ -6,6 +6,26 @@ import type { LeaderboardEntry } from "./leaderboard";
 describe("LeaderboardPanel", () => {
   afterEach(cleanup);
 
+  it("displays the same centisecond value used for ranking including zero and missing legacy time", () => {
+    const base = { bestStage: 2 as const, bestScore: 80, achievedAt: "2026-10-29" };
+    const rows: LeaderboardEntry[] = [
+      { ...base, accountId: "slower", displayName: "느린 사람", remainingTimeCs: 1234 },
+      { ...base, accountId: "faster", displayName: "빠른 사람", remainingTimeCs: 1235 },
+      { ...base, accountId: "zero", displayName: "시간 소진", remainingTimeCs: 0 },
+      { ...base, accountId: "legacy", displayName: "옛 기록" },
+    ];
+    render(<LeaderboardPanel entries={rows} currentAccountId="faster" />);
+    const rendered = screen.getAllByRole("listitem");
+    expect(within(rendered[0]).getByText("빠른 사람")).toBeVisible();
+    expect(within(rendered[0]).getByText("남은 시간 12.35초")).toBeVisible();
+    expect(within(rendered[0]).getByText("2단계")).toBeVisible();
+    expect(within(rendered[0]).getByText("80점")).toBeVisible();
+    expect(rendered[0]).toHaveClass("is-current-player");
+    expect(within(rendered[1]).getByText("남은 시간 12.34초")).toBeVisible();
+    expect(within(rendered[2]).getByText("남은 시간 0.00초")).toBeVisible();
+    expect(within(rendered[3]).getByText("시간 미기록")).toBeVisible();
+  });
+
   it("shows the empty state", () => {
     render(<LeaderboardPanel entries={[]} currentAccountId="player" />);
     expect(screen.getByText(/아직 저장된 기록이 없어요/)).toBeVisible();

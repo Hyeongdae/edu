@@ -6,6 +6,7 @@ import { StageSelectPanel } from "./StageSelectPanel";
 import { readStageProgress, saveStageProgress } from "./stageProgress";
 import { getHighestUnlockedStage } from "./stageRules";
 import { getPursuerMotionDurationMs, PURSUER_POLL_INTERVAL_MS } from "./pursuitRules";
+import { formatRemainingTimeCs } from "./stageResult";
 import { ControlButtons } from "./ControlButtons";
 import { GameHud } from "./GameHud";
 import { StairScene } from "./StairScene";
@@ -69,7 +70,6 @@ export function GameScreen({
   const [scoreAnimationKey, setScoreAnimationKey] = useState(0);
   const [pursuerAnimationTime, setPursuerAnimationTime] = useState(0);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const scoreSavedRef = useRef(false);
   const runStartedRef = useRef(false);
   const settingsOpenedAtRef = useRef<number | null>(null);
   const isSettingsOpenRef = useRef(false);
@@ -145,7 +145,6 @@ export function GameScreen({
     const startedAt = Date.now();
     const nextState = startGame(gameState, startedAt);
     runStartedRef.current = true;
-    scoreSavedRef.current = false;
     progressSavedRef.current = { accountId: account.homeAccountId, clearedStage: 0 };
     setSaveError(false);
     setNowMs(startedAt);
@@ -276,23 +275,25 @@ export function GameScreen({
     if (gameState.status === "game-over") audioController?.stopBgm();
   }, [audioController, gameState.status]);
 
+  const stageResult = gameState.stageResult;
   useEffect(() => {
-    if (gameState.status !== "game-over" || scoreSavedRef.current) return;
-    scoreSavedRef.current = true;
+    if (stageResult === null) return;
 
     const result = account.homeAccountId
       ? saveBestScore({
           accountId: account.homeAccountId,
           displayName: account.name || "이름 없음",
-          bestStage: gameState.stage,
-          bestScore: gameState.score,
+          bestStage: stageResult.stage,
+          bestScore: stageResult.score,
+          remainingTimeCs: stageResult.remainingTimeCs,
         }, undefined, undefined, "descent")
-      : { entries: leaderboard, saved: false };
-    window.setTimeout(() => {
-      setLeaderboard(result.entries);
-      setSaveError(!result.saved);
+      : null;
+    const update = window.setTimeout(() => {
+      if (result !== null) setLeaderboard(result.entries);
+      setSaveError(result === null || !result.saved);
     }, 0);
-  }, [account.homeAccountId, account.name, gameState.stage, gameState.score, gameState.status, leaderboard]);
+    return () => window.clearTimeout(update);
+  }, [account.homeAccountId, account.name, stageResult]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -456,7 +457,8 @@ export function GameScreen({
             />
           ) : gameState.status === "checkpoint" ? (
             <CheckpointPanel stage={gameState.stage} score={gameState.score}
-              onContinue={handleContinue} onQuit={handleQuit} disabled={false} progressError={progressError} />
+              remainingTimeCs={stageResult!.remainingTimeCs}
+              onContinue={handleContinue} onQuit={handleQuit} disabled={false} progressError={progressError} rankingError={saveError} />
           ) : (
             <section
               className="game-over-panel"
@@ -467,6 +469,7 @@ export function GameScreen({
                 <p className="game-over-kicker">이번 도전 결과</p>
                 <h2 id="game-over-title">{gameState.score}점</h2>
                 <p className="game-over-stage">기록 단계 {gameState.stage}단계</p>
+                <p className="game-over-time">남은 시간 {formatRemainingTimeCs(stageResult!.remainingTimeCs)}</p>
                 <p className="game-over-reason">{gameState.endReason === "cleared" ? "최종 클리어!" : gameState.endReason === "time-limit" ? "시간 초과" : gameState.endReason === "quit" ? "체크포인트에서 종료했어요" : "추격자에게 잡혔어요"}</p>
                 <p>계단 {gameState.stepsClimbed}개를 내려왔어요.</p>
                 {saveError && <p className="leaderboard-error" role="status">기록을 저장하지 못했습니다. 이 브라우저의 저장 공간을 확인해 주세요.</p>}

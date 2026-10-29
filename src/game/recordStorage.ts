@@ -1,10 +1,21 @@
 export type GameRecordScope = "ascent" | "descent";
 
-export const DESCENT_LEADERBOARD_KEY = "stair-descent:leaderboard:v1";
+export const DESCENT_LEADERBOARD_KEY = "stair-descent:leaderboard:v2";
+export const LEGACY_DESCENT_LEADERBOARD_KEY = "stair-descent:leaderboard:v1";
 export const DESCENT_PROGRESS_KEY = "stair-descent:stage-progress:v1";
 export const DESCENT_RESET_KEY = "stair-descent:records-reset:v1";
 
 export interface DescentRecordPreparation { complete: boolean; }
+
+/** Retire only the untimed descent ranking; never touch new rankings or unlocks. */
+export function prepareDescentLeaderboard(storage: Storage): DescentRecordPreparation {
+  try {
+    if (storage.getItem(LEGACY_DESCENT_LEADERBOARD_KEY) !== null) storage.removeItem(LEGACY_DESCENT_LEADERBOARD_KEY);
+    return { complete: true };
+  } catch {
+    return { complete: false };
+  }
+}
 
 const LEGACY_RECORD_KEYS = Object.freeze([
   "stair-climb:leaderboard:v1",

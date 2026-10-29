@@ -9,12 +9,13 @@ import { StairScene } from "./StairScene";
 import { createGameState } from "./gameEngine";
 import * as gameEngine from "./gameEngine";
 import { getStageRule } from "./stageRules";
+import { formatRemainingTimeCs } from "./stageResult";
 import type { GameStage, GameState } from "./types";
 import { withPursuitAt } from "../test/gameFixtures";
 import { getRouteStep } from "./stairRoute";
 import type { AudioController } from "../audio/audioController";
 import { DEFAULT_AUDIO_PREFERENCES } from "../audio/audioPreferences";
-import { DESCENT_LEADERBOARD_KEY, DESCENT_PROGRESS_KEY, DESCENT_RESET_KEY } from "./recordStorage";
+import { DESCENT_LEADERBOARD_KEY, LEGACY_DESCENT_LEADERBOARD_KEY, DESCENT_PROGRESS_KEY, DESCENT_RESET_KEY } from "./recordStorage";
 
 const account = {
   homeAccountId: "local-account",
@@ -46,6 +47,120 @@ function seedReadyStage(stage: GameStage, overrides: Partial<GameState> = {}, du
       : started;
   });
 }
+
+describe("time-ranked result persistence", () => {
+  afterEach(() => { cleanup(); localStorage.clear(); vi.restoreAllMocks(); vi.useRealTimers(); });
+  const rankWrites = (write: { mock: { calls: unknown[][] } }) => write.mock.calls.filter(([key]) => key === DESCENT_LEADERBOARD_KEY);
+
+  it.each([1,2,3,4,5] as const)("saves stage%s immediately with its exact frozen time and no extra write on rerender", async stage => {
+    vi.useFakeTimers(); vi.setSystemTime(0); seedReadyStage(stage);
+    const write = vi.spyOn(Storage.prototype, "setItem"), rule = getStageRule(stage);
+    const view = render(<StrictMode><GameScreen account={account} /></StrictMode>);
+    fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
+    vi.setSystemTime(123); climbOneStep();
+    const remainingTimeCs = rule.durationMs / 10 - 13;
+    const saved = JSON.parse(localStorage.getItem(DESCENT_LEADERBOARD_KEY)!);
+    expect(saved).toEqual([expect.objectContaining({ accountId: account.homeAccountId, bestStage: stage,
+      bestScore: rule.scoreRequired, remainingTimeCs })]);
+    expect(rankWrites(write)).toHaveLength(1);
+    if (stage < 5) {
+      expect(within(screen.getByRole("dialog")).getByText(`남은 시간 ${formatRemainingTimeCs(remainingTimeCs)}`)).toBeVisible();
+    } else {
+      expect(document.querySelector(".game-over-time")).toHaveTextContent(`남은 시간 ${formatRemainingTimeCs(remainingTimeCs)}`);
+    }
+    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+    view.rerender(<StrictMode><GameScreen account={{ ...account, name: "표시 이름 변경" }} /></StrictMode>);
+    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+    expect(rankWrites(write)).toHaveLength(1);
+    expect(JSON.parse(localStorage.getItem(DESCENT_LEADERBOARD_KEY)!)).toEqual(saved);
+    if (stage === 5) {
+      expect(within(screen.getByRole("region", { name: "최고 기록 랭킹" })).getByText(`남은 시간 ${formatRemainingTimeCs(remainingTimeCs)}`)).toBeVisible();
+    }
+  });
+
+  it("keeps the checkpoint's centiseconds and achievement time through a95-second wait and Quit", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(0); seedReadyStage(1);
+    const write = vi.spyOn(Storage.prototype, "setItem");
+    render(<StrictMode><GameScreen account={account} /></StrictMode>);
+    fireEvent.click(screen.getByRole("button", { name: "시작하기" })); vi.setSystemTime(123); climbOneStep();
+    const storedBytes = localStorage.getItem(DESCENT_LEADERBOARD_KEY);
+    expect(JSON.parse(storedBytes!)[0].remainingTimeCs).toBe(8987);
+    await act(async () => { await vi.advanceTimersByTimeAsync(95000); });
+    expect(screen.getByText("남은 시간 89.87초")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "그만두기" }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+    expect(localStorage.getItem(DESCENT_LEADERBOARD_KEY)).toBe(storedBytes);
+    expect(rankWrites(write)).toHaveLength(1);
+    expect(document.querySelector(".game-over-time")).toHaveTextContent("남은 시간 89.87초");
+    expect(within(screen.getByRole("region", { name: "최고 기록 랭킹" })).getByText("남은 시간 89.87초")).toBeVisible();
+  });
+
+  it.each(["계속하기", "그만두기"])("reports a checkpoint ranking failure while unlocks persist and%s stays usable", async action => {
+    vi.useFakeTimers(); vi.setSystemTime(0); seedReadyStage(1);
+    const originalWrite = Storage.prototype.setItem;
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(function (this: Storage, key, value) {
+      if (key === DESCENT_LEADERBOARD_KEY) throw new DOMException("full", "QuotaExceededError");
+      originalWrite.call(this, key, value);
+    });
+    render(<GameScreen account={account} />);
+    fireEvent.click(screen.getByRole("button", { name: "시작하기" })); climbOneStep();
+    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+    expect(screen.getByRole("status")).toHaveTextContent("기록을 저장하지 못했습니다");
+    expect(JSON.parse(localStorage.getItem(DESCENT_PROGRESS_KEY)!)[0].highestClearedStage).toBe(1);
+    expect(localStorage.getItem(DESCENT_LEADERBOARD_KEY)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: action }));
+    expect(screen.getByTestId("stage-value")).toHaveTextContent(action === "계속하기" ? "2단계" : "1단계");
+    if (action === "계속하기") expect(screen.getByRole("button", { name: "한 칸 내려가기" })).toBeEnabled();
+    else expect(screen.getByRole("button", { name: /다시 시작/ })).toBeEnabled();
+  });
+
+  it.each([8986,8987,8988])("updates a same-stage same-score personal best only when it beats%s centiseconds", async previousTime => {
+    vi.useFakeTimers(); vi.setSystemTime(0); seedReadyStage(1);
+    const previous = { accountId: account.homeAccountId, displayName: "기존 이름", bestStage: 1, bestScore: 150,
+      remainingTimeCs: previousTime, achievedAt: "2026-01-01T00:00:00.000Z" };
+    localStorage.setItem(DESCENT_LEADERBOARD_KEY, JSON.stringify([previous]));
+    const write = vi.spyOn(Storage.prototype, "setItem");
+    render(<GameScreen account={account} />);
+    fireEvent.click(screen.getByRole("button", { name: "시작하기" })); vi.setSystemTime(123); climbOneStep();
+    const saved = JSON.parse(localStorage.getItem(DESCENT_LEADERBOARD_KEY)!)[0];
+    expect(saved.remainingTimeCs).toBe(Math.max(8987, previousTime));
+    expect(rankWrites(write)).toHaveLength(previousTime < 8987 ? 1 : 0);
+    if (previousTime >= 8987) expect(saved).toEqual(previous);
+    expect(within(screen.getByRole("dialog")).getByText("남은 시간 89.87초")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "그만두기" }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+    expect(within(screen.getByRole("region", { name: "최고 기록 랭킹" })).getByText(`남은 시간 ${formatRemainingTimeCs(saved.remainingTimeCs)}`)).toBeVisible();
+    expect(rankWrites(write)).toHaveLength(previousTime < 8987 ? 1 : 0);
+  });
+
+  it("stores and displays zero centiseconds for a time-limit result", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(0); seedReadyStage(1, { score: 0 }, 100);
+    render(<GameScreen account={account} />);
+    fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
+    vi.setSystemTime(100); fireEvent(document, new Event("visibilitychange"));
+    expect(JSON.parse(localStorage.getItem(DESCENT_LEADERBOARD_KEY)!)[0]).toMatchObject({ bestStage: 1, bestScore: 0, remainingTimeCs: 0 });
+    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+    expect(document.querySelector(".game-over-time")).toHaveTextContent("남은 시간 0.00초");
+    expect(within(screen.getByRole("region", { name: "최고 기록 랭킹" })).getByText("남은 시간 0.00초")).toBeVisible();
+  });
+
+  it("retires untimed rankings while preserving new rows and all unlocks across StrictMode remount", () => {
+    const progress = JSON.stringify([{ accountId: account.homeAccountId, highestClearedStage: 2 }, { accountId: "other", highestClearedStage: 4 }]);
+    const ranking = JSON.stringify([{ accountId: account.homeAccountId, displayName: "유효 기록", bestStage: 2, bestScore: 80, remainingTimeCs: 1234, achievedAt: "2026-01-01" }]);
+    localStorage.setItem(DESCENT_RESET_KEY, "1"); localStorage.setItem(DESCENT_PROGRESS_KEY, progress);
+    localStorage.setItem(DESCENT_LEADERBOARD_KEY, ranking); localStorage.setItem(LEGACY_DESCENT_LEADERBOARD_KEY, "old rows");
+    localStorage.setItem("msal.owned", "auth bytes"); localStorage.setItem("stair-climb:audio:v1", "audio bytes");
+    const remove = vi.spyOn(Storage.prototype, "removeItem");
+    const first = render(<StrictMode><GameScreen account={account} /></StrictMode>);
+    expect(screen.getByRole("button", { name: "3단계 선택" })).toHaveFocus();
+    first.unmount(); render(<StrictMode><GameScreen account={account} /></StrictMode>);
+    expect(screen.getByRole("button", { name: "3단계 선택" })).toHaveFocus();
+    expect(localStorage.getItem(DESCENT_LEADERBOARD_KEY)).toBe(ranking);
+    expect(localStorage.getItem(DESCENT_PROGRESS_KEY)).toBe(progress);
+    expect(localStorage.getItem("msal.owned")).toBe("auth bytes"); expect(localStorage.getItem("stair-climb:audio:v1")).toBe("audio bytes");
+    expect(remove.mock.calls).toEqual([[LEGACY_DESCENT_LEADERBOARD_KEY]]);
+  });
+});
 
 describe("GameScreen controls", () => {
   afterEach(() => {
@@ -814,7 +929,7 @@ describe("GameScreen controls", () => {
     expect(localStorage.getItem(DESCENT_PROGRESS_KEY)).toBeNull();
     first.unmount();
     const newProgress = [{ accountId: account.homeAccountId, highestClearedStage: 1 }];
-    const newRank = [{ ...records[0], bestStage: 1, bestScore: 150 }];
+    const newRank = [{ ...records[0], bestStage: 1, bestScore: 150, remainingTimeCs: 1234 }];
     originalWrite.call(localStorage, DESCENT_PROGRESS_KEY, JSON.stringify(newProgress));
     originalWrite.call(localStorage, DESCENT_LEADERBOARD_KEY, JSON.stringify(newRank));
     for (const key of oldKeys) originalWrite.call(localStorage, key, "reintroduced old record");
@@ -1029,7 +1144,7 @@ describe("checkpoint session integration", () => {
       setPreferences: vi.fn(), playFootstep: vi.fn(), playFall: vi.fn(), dispose: vi.fn() };
   }
 
-  it.each([false, true])("freezes checkpoints, persists progress immediately and ranks only after termination (bonus=%s)", async (bonus) => {
+  it.each([false, true])("freezes checkpoint results, saves immediately and replaces them after the next failure (bonus=%s)", async (bonus) => {
     vi.useFakeTimers(); vi.setSystemTime(1000);
     seedReadyStage(1, { eventEndsAt: bonus ? 31_000 : null, eventSteps: 12 });
     const audio = audioFixture();
@@ -1048,7 +1163,9 @@ describe("checkpoint session integration", () => {
     expect(screen.getByRole("button", { name: "계속하기" })).toHaveFocus();
     expect(audio.playFootstep).toHaveBeenCalledOnce();
     expect(audio.stopBgm).not.toHaveBeenCalled();
-    expect(localStorage.getItem(rankKey)).toBeNull();
+    const savedAtClear = localStorage.getItem(rankKey);
+    expect(JSON.parse(savedAtClear!)).toEqual([expect.objectContaining({ bestStage: 1, bestScore: bonus ? 151 : 150, remainingTimeCs: 9000 })]);
+    expect(within(screen.getByRole("dialog")).getByText("남은 시간 90.00초")).toBeVisible();
     expect(JSON.parse(localStorage.getItem(progressKey)!)).toEqual([{ accountId: account.homeAccountId, highestClearedStage: 1 }]);
     input.mockClear(); tick.mockClear();
     fireEvent.keyDown(window, { key: "d" });
@@ -1073,14 +1190,14 @@ describe("checkpoint session integration", () => {
     expect(resumed.route).toEqual(checkpoint.route);
     expect(screen.getByText("목표 200점")).toBeVisible();
     expect(screen.getByTestId("stage-time")).toHaveTextContent("01:15");
-    expect(localStorage.getItem(rankKey)).toBeNull();
+    expect(localStorage.getItem(rankKey)).toBe(savedAtClear);
     vi.setSystemTime(98_600);
     fireEvent(document, new Event("visibilitychange"));
     await act(async () => { await vi.advanceTimersByTimeAsync(501); });
     const rows = JSON.parse(localStorage.getItem(rankKey)!);
-    expect(rows).toEqual([expect.objectContaining({ bestStage: 2, bestScore: 0 })]);
+    expect(rows).toEqual([expect.objectContaining({ bestStage: 2, bestScore: 0, remainingTimeCs: 7300 })]);
     expect(writes.mock.calls.filter(([key]) => key === progressKey)).toHaveLength(1);
-    expect(writes.mock.calls.filter(([key]) => key === rankKey)).toHaveLength(1);
+    expect(writes.mock.calls.filter(([key]) => key === rankKey)).toHaveLength(2);
     expect(audio.playFootstep).toHaveBeenCalledOnce(); expect(audio.stopBgm).toHaveBeenCalledOnce();
     expect(screen.getByText("기록 단계 2단계")).toBeVisible();
   });
@@ -1129,7 +1246,7 @@ describe("checkpoint session integration", () => {
     expect(screen.getByTestId("score-value")).toHaveTextContent(bonus ? /^2$/ : /^1$/);
     expect(screen.getByTestId("score-gain")).toHaveTextContent(bonus ? "+2" : "+1");
     expect(audio.playFootstep).toHaveBeenCalledTimes(2);
-    expect(localStorage.getItem(rankKey)).toBeNull();
+    expect(JSON.parse(localStorage.getItem(rankKey)!)).toEqual([expect.objectContaining({ bestStage: 1, bestScore: bonus ? 151 : 150, remainingTimeCs: 9000 })]);
   });
 
   it.each([[2,80],[3,150]] as const)("ranks attempted stage %s and its own %s points without granting a new clear", async (stage, score) => {
@@ -1160,7 +1277,7 @@ describe("checkpoint session integration", () => {
   it("preserves a higher personal best when replaying a lower stage without inheriting its ranking stage", async () => {
     vi.useFakeTimers(); vi.setSystemTime(0);
     localStorage.setItem(progressKey, JSON.stringify([{ accountId: account.homeAccountId, highestClearedStage: 3 }]));
-    const previous = [{ accountId: account.homeAccountId, displayName: "기존 이름", bestStage: 3, bestScore: 150, achievedAt: "2026-01-01" }];
+    const previous = [{ accountId: account.homeAccountId, displayName: "기존 이름", bestStage: 3, bestScore: 150, remainingTimeCs: 1234, achievedAt: "2026-01-01" }];
     localStorage.setItem(rankKey, JSON.stringify(previous));
     render(<GameScreen account={account} />);
     fireEvent.click(screen.getByRole("button", { name: "1단계 선택" }));
@@ -1173,7 +1290,7 @@ describe("checkpoint session integration", () => {
   });
 
   it("never unlocks stages from a new ranking without a saved actual clear", () => {
-    localStorage.setItem(rankKey, JSON.stringify([{ accountId: account.homeAccountId, displayName: "도전자", bestStage: 5, bestScore: 10, achievedAt: "2026-10-01" }]));
+    localStorage.setItem(rankKey, JSON.stringify([{ accountId: account.homeAccountId, displayName: "도전자", bestStage: 5, bestScore: 10, remainingTimeCs: 1234, achievedAt: "2026-10-01" }]));
     render(<GameScreen account={account} />);
     expect(screen.getByRole("button", { name: "1단계 선택" })).toHaveFocus();
     expect(screen.getByRole("button", { name: "2단계 잠김" })).toBeDisabled();
@@ -1291,7 +1408,7 @@ describe("unlocked stage selection", () => {
     render(<StrictMode><GameScreen account={account} audioController={audio} /></StrictMode>);
     fireEvent.click(screen.getByRole("button", { name: "시작하기" })); climbOneStep();
     expect(screen.getByRole("dialog", { name: "2단계 클리어!" })).toBeVisible();
-    expect(localStorage.getItem(rankKey)).toBeNull();
+    expect(JSON.parse(localStorage.getItem(rankKey)!)[0]).toMatchObject({ bestStage: 2, bestScore: 200, remainingTimeCs: 7500 });
     expect(JSON.parse(localStorage.getItem(progressKey)!)[0].highestClearedStage).toBe(2);
     fireEvent.click(screen.getByRole("button", { name: "그만두기" }));
     await act(async () => { await vi.advanceTimersByTimeAsync(1); });
@@ -1351,7 +1468,7 @@ describe("unlocked stage selection", () => {
     act(() => { for (const key of keys) fireEvent.keyDown(window, { key }); });
     expect(screen.getByRole("dialog", { name: "4단계 클리어!" })).toBeVisible();
     expect(JSON.parse(localStorage.getItem(progressKey)!).find((entry: { accountId: string }) => entry.accountId === account.homeAccountId).highestClearedStage).toBe(4);
-    expect(localStorage.getItem(rankKey)).toBeNull();
+    expect(JSON.parse(localStorage.getItem(rankKey)!)[0]).toMatchObject({ bestStage: 4, remainingTimeCs: 6000 });
     fireEvent.click(screen.getByRole("button", { name: "그만두기" }));
     await act(async () => { await vi.advanceTimersByTimeAsync(1); });
     expect(JSON.parse(localStorage.getItem(rankKey)!)[0].bestStage).toBe(4);

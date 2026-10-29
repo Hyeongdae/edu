@@ -1,6 +1,6 @@
 # Task: T02 Time Ranking and Checkpoint Saves
 
-## Status: in_progress
+## Status: done
 
 ## Goal
 
@@ -135,10 +135,10 @@ rankingError?: boolean;
 
 ## Acceptance Criteria
 
-- [ ] main 시간 랭킹과 개인 최고가 같은 tuple 비교를 사용한다.
-- [ ] CP clear 시점에 v2 저장, quit/repaint/StrictMode의 같은 성적 추가 쓰기0회.
-- [ ] 구 랭킹만 초기화하고 해금/새 랭킹/auth/audio 보존.
-- [ ] 지정29파일·lint·build·diff 통과와 실제 결과/제한 기록.
+- [x] main 시간 랭킹과 개인 최고가 같은 tuple 비교를 사용한다.
+- [x] CP clear 시점에 v2 저장, quit/repaint/StrictMode의 같은 성적 추가 쓰기0회.
+- [x] 구 랭킹만 초기화하고 해금/새 랭킹/auth/audio 보존.
+- [x] 지정29파일·lint·build·diff 통과와 실제 결과/제한 기록.
 
 ## Validation
 
@@ -168,6 +168,17 @@ Task: T02-time-ranking-and-checkpoint-saves
 
 ## Progress
 
-- [ ] 구현 완료
-- [ ] 검증 통과
-- commit: pending
+- [x] 구현 완료
+- [x] 검증 통과
+- commit: implementation commit containing this Task; hash recorded in subsequent memory sync.
+
+## Validation Results — 2026-10-29
+
+- 지정29파일 **912/912tests**, skip0, workers2,54.62초 통과. T01까지864개에 T02 신규48개를 추가했다. 최종 근거 `regression-29.log`.
+- 집중4파일103/103(29.54초), 추가 검사 포함138/138(3.83초) 통과. 2026-10-28/T02/regression-initial.log의47실패/817통과는 새 필수시간 없는 fixture와 기존 CP 미저장 기대값 등이 남아 있던 중간 결과다. 기존 ascent 무시간 fixture는 유지하고 descent 시간 fixture와 CP 즉시 저장 기대를 보완했다. timeout/skip/config/package 변경 없음.
+- 새 검사: 단계/점수/1cs/먼저 달성 순서, 개인 최고1cs 개선·동점 무쓰기·도전 필드 혼합 방지, 전 단계 예산 상한·잘못된 시간의 저장소 접근 전 거절, v1만 정리·v2/다계정 해금 byte 보존·구키 get/remove 실패 후 재시도, CP/결과/랭킹 시간 표시와 별도 오류 상태.
+- GameScreen 신규13검사와 기존 갱신 검사에서 모든 단계 clear 즉시 저장,123ms 입력의0.01초 내림,StrictMode/이름 변경 rerender/95초 대기·Quit의 추가 쓰기0,stage2 실패의 해당 단계 시간,저장 실패에도 continue/quit,동점 개인 최고 시간 개선만 갱신,timeout0.00초,재마운트의 해금/v2 보존을 확인했다.
+- lint 오류0/경고0, TypeScript/Vite build 및 git diff --check 통과. JS557.13kB(gzip155.82)/CSS57.91kB(gzip11.04); 기존500kB chunk 경고 출력. 기본 build는 기존 index.html이며 엔트리/배포 설정은 바꾸지 않았다.
+- 증거 폴더 `C:/Users/DEX/AppData/Local/Temp/time-ranking-and-office-ending-2026-10-29/T02/`: focused-initial.log/focused-expanded.log/regression-29.log/lint.log/build.log. 테스트 종료 후 lint와 build를 순서대로 실행했다.
+- 제품6파일/검사5파일 변경. T01 engine/types/stageResult·진행도·단독·인증·오디오·단계/추격 규칙·패키지/설정 source는 baseline efda9c2와 동일하다. 브라우저/320px·큰 글자 실제 배치는 후속 T04에서 검증한다. CSS는480px 이하에서 랭킹 성적을 두 번째 행으로 접도록 했다.
+- 신규 범위 밖 결함: 특이사항 없음. 기존 번들 경고/App 전체 suite 부채는 이번 Task에서 수정하지 않았다.

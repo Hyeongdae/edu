@@ -414,10 +414,19 @@
 .stair-game.pixel-theme .leaderboard-rank { color: var(--pixel-muted); font-size: 0.8rem; }
 .stair-game.pixel-theme .leaderboard-you { color: var(--pixel-gold); font-size: 0.7rem; }
 .stair-game.pixel-theme .leaderboard-record { min-width: 0; display: grid; gap: 2px; justify-items: end; }
+.stair-game.pixel-theme .leaderboard-time { max-width: 100%; overflow-wrap: anywhere; color: var(--pixel-muted); font-size: 0.7rem; }
+.stair-game.pixel-theme .checkpoint-time,
+.stair-game.pixel-theme .game-over-time { max-width: 100%; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 .stair-game.pixel-theme .leaderboard-stage { color: var(--pixel-gold); font-size: 0.7rem; white-space: nowrap; }
 .stair-game.pixel-theme .leaderboard-score { max-width: 12ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--pixel-cyan); font-size: 0.85rem; }
 .stair-game.pixel-theme .leaderboard-empty { padding: 20px 12px; border: 1px dashed var(--pixel-edge); border-radius: 0; background: #152037; color: var(--pixel-muted); font-size: 0.85rem; line-height: 1.6; }
 .stair-game.pixel-theme .leaderboard-error { color: #ffb3c6 !important; font-size: 0.85rem !important; line-height: 1.5; }
+@media (max-width: 480px) {
+  .stair-game.pixel-theme .leaderboard-row { grid-template-columns: 26px minmax(0, 1fr); }
+  .stair-game.pixel-theme .leaderboard-rank { grid-row: 1 / span 2; }
+  .stair-game.pixel-theme .leaderboard-record { grid-column: 2; justify-items: start; }
+  .stair-game.pixel-theme .leaderboard-name { overflow-wrap: anywhere; }
+}
 .stair-game.pixel-theme .game-frame[data-pursuer-catching="true"] > .game-over-panel { visibility: hidden; pointer-events: none; }
 
 .stair-game.pixel-theme .settings-content,

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { getTopScores, readLeaderboard, saveBestScore, type LeaderboardEntry } from "./leaderboard";
+import { getTopScores, readLeaderboard, saveBestScore, type LeaderboardEntry, type TimedLeaderboardEntry } from "./leaderboard";
 import type { GameStage } from "../game/types";
+import { getStageRule } from "../game/stageRules";
 import { DESCENT_LEADERBOARD_KEY, DESCENT_PROGRESS_KEY, DESCENT_RESET_KEY } from "../game/recordStorage";
 
 const key = "stair-climb:leaderboard:v5";
@@ -355,6 +356,94 @@ describe("leaderboard storage", () => {
   });
 });
 
+const timedEntry = (...args: Parameters<typeof entry>) => ({ ...entry(...args), remainingTimeCs: 1234 });
+
+describe("centisecond ranking rules", () => {
+  const timed = (id: string, stage: GameStage = 2, score = 80, time = 1234, date = "2026-10-01T00:00:00.000Z"): TimedLeaderboardEntry =>
+    ({ accountId: id, displayName: id, bestStage: stage, bestScore: score, remainingTimeCs: time, achievedAt: date });
+  const prepared = () => {
+    const target = storage(); target.values.set(DESCENT_RESET_KEY, "1"); return target;
+  };
+
+  it("sorts stage, score, one-centisecond differences and then earlier achievement without mutation", () => {
+    const rows = [
+      timed("stage1", 1, 9999, 9000), timed("low-score", 2, 79, 7500),
+      timed("short-time", 2, 80, 1234), timed("later", 2, 80, 1235, "2026-10-02T00:00:00.000Z"),
+      timed("earlier", 2, 80, 1235), timed("high-score", 2, 81, 0), timed("stage3", 3, 0, 0),
+    ];
+    const snapshot = structuredClone(rows);
+    rows.forEach(Object.freeze); Object.freeze(rows);
+    expect(getTopScores(rows).map(row => row.accountId)).toEqual(["stage3", "high-score", "earlier", "later", "short-time", "low-score", "stage1"]);
+    expect(getTopScores(rows, 2).map(row => row.accountId)).toEqual(["stage3", "high-score"]);
+    expect(getTopScores(rows, 0)).toEqual([]);
+    expect(rows).toEqual(snapshot);
+  });
+
+  it("replaces a personal best for one extra centisecond but preserves the full previous row on ties or worse", () => {
+    const target = prepared(), previous = timed("a"), now = new Date("2026-10-29T01:00:00.000Z");
+    target.values.set(DESCENT_LEADERBOARD_KEY, JSON.stringify([previous]));
+    for (const remainingTimeCs of [0, 1233, 1234]) {
+      expect(saveBestScore({ ...previous, displayName: "Changed", remainingTimeCs }, target, now, "descent"))
+        .toEqual({ entries: [previous], saved: true });
+    }
+    expect(target.setItem).not.toHaveBeenCalled();
+    const improved = saveBestScore({ ...previous, displayName: "Improved", remainingTimeCs: 1235 }, target, now, "descent");
+    expect(improved.entries).toEqual([{ ...previous, displayName: "Improved", remainingTimeCs: 1235, achievedAt: now.toISOString() }]);
+    expect(target.setItem).toHaveBeenCalledOnce();
+    expect(saveBestScore({ ...previous, remainingTimeCs: 1235 }, target, new Date("2026-10-30"), "descent").entries).toEqual(improved.entries);
+    expect(target.setItem).toHaveBeenCalledOnce();
+  });
+
+  it("takes all performance fields from the winning run instead of merging separate maxima", () => {
+    const target = prepared();
+    const first = timed("a", 1, 999, 9000), second = timed("a", 2, 80, 50), third = timed("a", 2, 81, 0);
+    target.values.set(DESCENT_LEADERBOARD_KEY, JSON.stringify([first]));
+    const now = new Date("2026-10-29");
+    expect(saveBestScore(second, target, now, "descent").entries[0]).toEqual({ ...second, achievedAt: now.toISOString() });
+    expect(saveBestScore(third, target, now, "descent").entries[0]).toEqual({ ...third, achievedAt: now.toISOString() });
+    expect(saveBestScore({ ...first, remainingTimeCs: 9000 }, target, now, "descent").entries[0]).toEqual({ ...third, achievedAt: now.toISOString() });
+  });
+
+  it.each([1,2,3,4,5] as const)("saves the exact stage%s budget and rejects an extra centisecond before storage", stage => {
+    const target = prepared(), max = getStageRule(stage).durationMs / 10;
+    const row = timed("a", stage, 0, max);
+    expect(saveBestScore(row, target, new Date(row.achievedAt), "descent").entries).toEqual([row]);
+    expect(readLeaderboard(target, "descent")).toEqual([row]);
+    target.getItem.mockClear(); target.setItem.mockClear();
+    expect(() => saveBestScore({ ...row, remainingTimeCs: max + 1 }, target, undefined, "descent")).toThrow(RangeError);
+    expect(target.getItem).not.toHaveBeenCalled(); expect(target.setItem).not.toHaveBeenCalled();
+  });
+
+  it.each([undefined,null,"1234",-1,0.1,NaN,Infinity,-Infinity,Number.MAX_SAFE_INTEGER+1,7501])(
+    "rejects invalid descent time%j before any storage access", value => {
+      const target = prepared(), getter = vi.spyOn(window, "localStorage", "get");
+      const row = { ...timed("a"), remainingTimeCs: value } as unknown as TimedLeaderboardEntry;
+      expect(() => saveBestScore(row, target, undefined, "descent")).toThrow(RangeError);
+      expect(target.getItem).not.toHaveBeenCalled(); expect(target.setItem).not.toHaveBeenCalled(); expect(getter).not.toHaveBeenCalled();
+      getter.mockRestore();
+    },
+  );
+
+  it.each([undefined,null,"1234",-1,0.1,7501])("rejects serialized v2 rows with time%j without clearing progress", value => {
+    const target = prepared();
+    target.values.set(DESCENT_PROGRESS_KEY, "progress bytes");
+    target.values.set(DESCENT_LEADERBOARD_KEY, JSON.stringify([{ ...timed("a"), remainingTimeCs: value }]));
+    expect(readLeaderboard(target, "descent")).toEqual([]);
+    expect(target.removeItem.mock.calls).toEqual([[DESCENT_LEADERBOARD_KEY]]);
+    expect(target.values.get(DESCENT_PROGRESS_KEY)).toBe("progress bytes");
+  });
+
+  it("keeps legacy ascent records without time and validates time when explicitly supplied", () => {
+    const target = prepared(), old = entry("a", 80, "2026-10-01");
+    target.values.set(key, JSON.stringify([old]));
+    expect(readLeaderboard(target, "ascent")).toEqual([old]);
+    expect(saveBestScore({ ...old, bestScore: 81 }, target, undefined, "ascent").saved).toBe(true);
+    target.getItem.mockClear();
+    expect(() => saveBestScore({ ...old, remainingTimeCs: -1 }, target, undefined, "ascent")).toThrow(RangeError);
+    expect(target.getItem).not.toHaveBeenCalled();
+  });
+});
+
 describe("descent leaderboard storage", () => {
   let target: ReturnType<typeof storage>;
   beforeEach(() => {
@@ -364,18 +453,18 @@ describe("descent leaderboard storage", () => {
   afterEach(() => vi.restoreAllMocks());
 
   it("keeps separate accounts and replaces a stage/score pair only when strictly better", () => {
-    const initial = entry("a", 80, "2026-10-01T00:00:00.000Z", 2);
-    const other = entry("b", 150, "2026-10-02T00:00:00.000Z", 3);
+    const initial = timedEntry("a", 80, "2026-10-01T00:00:00.000Z", 2);
+    const other = timedEntry("b", 150, "2026-10-02T00:00:00.000Z", 3);
     target.values.set(DESCENT_LEADERBOARD_KEY, JSON.stringify([initial, other]));
     const now = new Date("2026-10-28T00:00:00.000Z");
     for (const [bestStage, bestScore] of [[1, 999], [2, 79], [2, 80]] as const) {
-      const result = saveBestScore({ accountId: "a", displayName: "new name", bestStage, bestScore }, target, now, "descent");
+      const result = saveBestScore({ accountId: "a", displayName: "new name", bestStage, bestScore, remainingTimeCs: 1234 }, target, now, "descent");
       expect(result).toEqual({ entries: [initial, other], saved: true });
     }
     expect(target.setItem).not.toHaveBeenCalled();
-    expect(saveBestScore({ accountId: "a", displayName: "A", bestStage: 2, bestScore: 81 }, target, now, "descent").entries)
+    expect(saveBestScore({ accountId: "a", displayName: "A", bestStage: 2, bestScore: 81, remainingTimeCs: 1234 }, target, now, "descent").entries)
       .toEqual([{ ...initial, displayName: "A", bestScore: 81, achievedAt: now.toISOString() }, other]);
-    const result = saveBestScore({ accountId: "a", displayName: "A3", bestStage: 3, bestScore: 0 }, target, now, "descent");
+    const result = saveBestScore({ accountId: "a", displayName: "A3", bestStage: 3, bestScore: 0, remainingTimeCs: 1234 }, target, now, "descent");
     expect(result.entries).toEqual([{ ...initial, displayName: "A3", bestStage: 3, bestScore: 0, achievedAt: now.toISOString() }, other]);
     expect(getTopScores(result.entries).map((row) => row.accountId)).toEqual(["b", "a"]);
     expect(target.setItem.mock.calls.every(([key]) => key === DESCENT_LEADERBOARD_KEY)).toBe(true);
@@ -383,9 +472,9 @@ describe("descent leaderboard storage", () => {
   });
 
   it("keeps last duplicate account rows, handles special IDs and sorts stage, score, time with a ten-row limit", () => {
-    const rows = [entry("a", 999, "2026-10-01", 1), entry("a", 80, "2026-10-02", 2),
-      entry("__proto__", 150, "2026-10-02", 3), entry("earlier", 150, "2026-10-01", 3),
-      ...Array.from({ length: 10 }, (_, index) => entry(`other-${index}`, index, "2026-10-01"))];
+    const rows = [timedEntry("a", 999, "2026-10-01", 1), timedEntry("a", 80, "2026-10-02", 2),
+      timedEntry("__proto__", 150, "2026-10-02", 3), timedEntry("earlier", 150, "2026-10-01", 3),
+      ...Array.from({ length: 10 }, (_, index) => timedEntry(`other-${index}`, index, "2026-10-01"))];
     target.values.set(DESCENT_LEADERBOARD_KEY, JSON.stringify(rows));
     const result = readLeaderboard(target, "descent");
     expect(result).toEqual(rows.slice(1));
@@ -401,14 +490,14 @@ describe("descent leaderboard storage", () => {
       { accountId: "" }, { accountId: 1 }, { displayName: null }, { bestStage: 0 }, { bestStage: 6 },
       { bestStage: 1.5 }, { bestScore: -1 }, { bestScore: 1.5 }, { bestScore: "1" },
       { achievedAt: "invalid date" }, { achievedAt: null },
-    ].map((overrides) => JSON.stringify([{ ...entry("a", 80, "2026-10-01", 2), ...overrides }])),
+    ].map((overrides) => JSON.stringify([{ ...timedEntry("a", 80, "2026-10-01", 2), ...overrides }])),
   ])("cleans only a malformed new ranking (%s) and remains writable", (serialized) => {
     target.values.set(DESCENT_LEADERBOARD_KEY, serialized);
     target.values.set(DESCENT_PROGRESS_KEY, "unchanged progress");
     target.values.set(key, "unchanged ascent rank");
     expect(readLeaderboard(target, "descent")).toEqual([]);
     expect(target.removeItem.mock.calls).toEqual([[DESCENT_LEADERBOARD_KEY]]);
-    expect(saveBestScore({ accountId: "a", displayName: "A", bestStage: 2, bestScore: 80 }, target, undefined, "descent").saved).toBe(true);
+    expect(saveBestScore({ accountId: "a", displayName: "A", bestStage: 2, bestScore: 80, remainingTimeCs: 1234 }, target, undefined, "descent").saved).toBe(true);
     expect(target.values.get(DESCENT_PROGRESS_KEY)).toBe("unchanged progress");
     expect(target.values.get(key)).toBe("unchanged ascent rank");
     expect(target.setItem.mock.calls.every(([name]) => name === DESCENT_LEADERBOARD_KEY)).toBe(true);
@@ -418,19 +507,19 @@ describe("descent leaderboard storage", () => {
     target.values.set(DESCENT_LEADERBOARD_KEY, "broken");
     target.removeItem.mockImplementation(() => { throw new Error("remove blocked"); });
     expect(readLeaderboard(target, "descent")).toEqual([]);
-    expect(saveBestScore({ accountId: "a", displayName: "A", bestStage: 2, bestScore: 80 }, target, undefined, "descent").saved).toBe(true);
-    expect(readLeaderboard(target, "descent")[0]).toMatchObject({ accountId: "a", bestStage: 2, bestScore: 80 });
+    expect(saveBestScore({ accountId: "a", displayName: "A", bestStage: 2, bestScore: 80, remainingTimeCs: 1234 }, target, undefined, "descent").saved).toBe(true);
+    expect(readLeaderboard(target, "descent")[0]).toMatchObject({ accountId: "a", bestStage: 2, bestScore: 80, remainingTimeCs: 1234 });
   });
 
   it("never overwrites an unreadable new ranking or removes it as malformed data", () => {
-    const serialized = JSON.stringify([entry("a", 80, "2026-10-01", 2)]);
+    const serialized = JSON.stringify([timedEntry("a", 80, "2026-10-01", 2)]);
     target.values.set(DESCENT_LEADERBOARD_KEY, serialized);
     target.getItem.mockImplementation((name) => {
       if (name === DESCENT_LEADERBOARD_KEY) throw new Error("new read blocked");
       return target.values.get(name) ?? null;
     });
     expect(readLeaderboard(target, "descent")).toEqual([]);
-    expect(saveBestScore({ accountId: "b", displayName: "B", bestStage: 3, bestScore: 150 }, target, undefined, "descent"))
+    expect(saveBestScore({ accountId: "b", displayName: "B", bestStage: 3, bestScore: 150, remainingTimeCs: 1234 }, target, undefined, "descent"))
       .toEqual({ entries: [], saved: false, error: "storage-unavailable" });
     expect(target.setItem).not.toHaveBeenCalled();
     expect(target.removeItem).not.toHaveBeenCalled();
@@ -438,17 +527,17 @@ describe("descent leaderboard storage", () => {
   });
 
   it("returns existing records on write failure without changing saved stage/score pairs", () => {
-    const existing = entry("a", 80, "2026-10-01", 2);
+    const existing = timedEntry("a", 80, "2026-10-01", 2);
     target.values.set(DESCENT_LEADERBOARD_KEY, JSON.stringify([existing]));
     target.setItem.mockImplementation(() => { throw new Error("full"); });
-    expect(saveBestScore({ accountId: "a", displayName: "A", bestStage: 3, bestScore: 0 }, target, undefined, "descent"))
+    expect(saveBestScore({ accountId: "a", displayName: "A", bestStage: 3, bestScore: 0, remainingTimeCs: 1234 }, target, undefined, "descent"))
       .toEqual({ entries: [existing], saved: false, error: "storage-unavailable" });
     expect(readLeaderboard(target, "descent")).toEqual([existing]);
   });
 
   it("guards blocked localStorage and uses supplied fake storage without accessing the browser", () => {
     const getter = vi.spyOn(window, "localStorage", "get").mockImplementation(() => { throw new Error("blocked"); });
-    const input = { accountId: "a", displayName: "A", bestStage: 2 as const, bestScore: 80 };
+    const input = { accountId: "a", displayName: "A", bestStage: 2 as const, bestScore: 80, remainingTimeCs: 1234 };
     expect(readLeaderboard(undefined, "descent")).toEqual([]);
     expect(saveBestScore(input, undefined, undefined, "descent"))
       .toEqual({ entries: [], saved: false, error: "storage-unavailable" });
@@ -460,7 +549,7 @@ describe("descent leaderboard storage", () => {
 
   it("validates descent input before storage access", () => {
     const getter = vi.spyOn(window, "localStorage", "get");
-    const input = { accountId: "a", displayName: "A", bestStage: 2 as const, bestScore: 80 };
+    const input = { accountId: "a", displayName: "A", bestStage: 2 as const, bestScore: 80, remainingTimeCs: 1234 };
     for (const bestStage of [0, 6, 1.5, NaN, "1", null]) {
       expect(() => saveBestScore({ ...input, bestStage: bestStage as GameStage }, target, undefined, "descent")).toThrow(RangeError);
     }

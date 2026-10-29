@@ -1,7 +1,7 @@
 import type { GameStage } from "../game/types";
-import { isGameStage } from "../game/stageRules";
+import { getStageRule, isGameStage } from "../game/stageRules";
 import { migrateLegacyStageProgress } from "../game/stageProgress";
-import { DESCENT_LEADERBOARD_KEY, prepareDescentRecords } from "../game/recordStorage";
+import { DESCENT_LEADERBOARD_KEY, prepareDescentLeaderboard, prepareDescentRecords } from "../game/recordStorage";
 import type { GameRecordScope } from "../game/recordStorage";
 
 export interface LeaderboardEntry {
@@ -9,7 +9,12 @@ export interface LeaderboardEntry {
   displayName: string;
   bestStage: GameStage;
   bestScore: number;
+  remainingTimeCs?: number;
   achievedAt: string;
+}
+
+export interface TimedLeaderboardEntry extends LeaderboardEntry {
+  remainingTimeCs: number;
 }
 
 export interface SaveBestScoreResult {
@@ -22,10 +27,10 @@ const STORAGE_KEY = "stair-climb:leaderboard:v5";
 const LEGACY_STORAGE_KEYS = ["stair-climb:leaderboard:v1", "stair-climb:leaderboard:v2", "stair-climb:leaderboard:v3"];
 
 function comparePerformance(
-  a: Pick<LeaderboardEntry, "bestStage" | "bestScore">,
-  b: Pick<LeaderboardEntry, "bestStage" | "bestScore">,
+  a: Pick<LeaderboardEntry, "bestStage" | "bestScore" | "remainingTimeCs">,
+  b: Pick<LeaderboardEntry, "bestStage" | "bestScore" | "remainingTimeCs">,
 ): number {
-  return b.bestStage - a.bestStage || b.bestScore - a.bestScore;
+  return b.bestStage - a.bestStage || b.bestScore - a.bestScore || (b.remainingTimeCs ?? 0) - (a.remainingTimeCs ?? 0);
 }
 
 function clearLegacyScores(storage: Storage): void {
@@ -40,7 +45,12 @@ function clearLegacyScores(storage: Storage): void {
   }
 }
 
-function isLeaderboardEntry(value: unknown): value is LeaderboardEntry {
+function isRemainingTimeValid(value: unknown, stage: GameStage, scope: GameRecordScope): boolean {
+  if (value === undefined) return scope === "ascent";
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0 && value <= getStageRule(stage).durationMs / 10;
+}
+
+function isLeaderboardEntry(value: unknown, scope: GameRecordScope): value is LeaderboardEntry {
   if (typeof value !== "object" || value === null) return false;
   const entry = value as Record<string, unknown>;
   return (
@@ -48,6 +58,7 @@ function isLeaderboardEntry(value: unknown): value is LeaderboardEntry {
     typeof entry.displayName === "string" &&
     isGameStage(entry.bestStage) &&
     Number.isInteger(entry.bestScore) && (entry.bestScore as number) >= 0 &&
+    isRemainingTimeValid(entry.remainingTimeCs, entry.bestStage, scope) &&
     typeof entry.achievedAt === "string" && !Number.isNaN(Date.parse(entry.achievedAt))
   );
 }
@@ -61,7 +72,10 @@ function browserStorage(): Storage | undefined {
 }
 
 function readFromStorage(storage: Storage, scope: GameRecordScope): LeaderboardEntry[] {
-  if (scope === "descent") prepareDescentRecords(storage);
+  if (scope === "descent") {
+    prepareDescentRecords(storage);
+    prepareDescentLeaderboard(storage);
+  }
   else clearLegacyScores(storage);
   const key = scope === "descent" ? DESCENT_LEADERBOARD_KEY : STORAGE_KEY;
   const serialized = storage.getItem(key);
@@ -69,7 +83,7 @@ function readFromStorage(storage: Storage, scope: GameRecordScope): LeaderboardE
 
   try {
     const parsed: unknown = JSON.parse(serialized);
-    if (!Array.isArray(parsed) || !parsed.every(isLeaderboardEntry)) {
+    if (!Array.isArray(parsed) || !parsed.every((row) => isLeaderboardEntry(row, scope))) {
       throw new Error("Invalid leaderboard data");
     }
     const unique = new Map<string, LeaderboardEntry>();
@@ -112,6 +126,9 @@ export function saveBestScore(
   }
   if (!Number.isInteger(entry.bestScore) || entry.bestScore < 0) {
     throw new RangeError("bestScore must be a non-negative integer.");
+  }
+  if (!isRemainingTimeValid(entry.remainingTimeCs, entry.bestStage, scope)) {
+    throw new RangeError("remainingTimeCs must be a safe integer within the stage time limit; descent rankings require it.");
   }
   if (typeof entry.accountId !== "string" || !entry.accountId) {
     throw new RangeError("accountId must be a non-empty string.");

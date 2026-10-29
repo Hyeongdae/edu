@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
-  DESCENT_LEADERBOARD_KEY, DESCENT_PROGRESS_KEY, DESCENT_RESET_KEY, prepareDescentRecords,
+  DESCENT_LEADERBOARD_KEY, LEGACY_DESCENT_LEADERBOARD_KEY, DESCENT_PROGRESS_KEY, DESCENT_RESET_KEY, prepareDescentLeaderboard, prepareDescentRecords,
 } from "./recordStorage";
 import { readStageProgress, saveStageProgress } from "./stageProgress";
 import { readLeaderboard, saveBestScore } from "../leaderboard/leaderboard";
@@ -10,8 +10,73 @@ const legacyKeys = [
   "stair-climb:stage-progress:v1",
 ];
 const newRank = { accountId: "a", displayName: "A", bestStage: 2 as const, bestScore: 80,
+  remainingTimeCs: 1234,
   achievedAt: "2026-10-28T00:00:00.000Z" };
 const newProgress = [{ accountId: "a", highestClearedStage: 1 }];
+
+describe("untimed descent ranking retirement", () => {
+  it("removes v1 rankings only, preserving all accounts' unlocks and unrelated storage bytes", () => {
+    const target = storage();
+    target.values.set(DESCENT_RESET_KEY, "1");
+    target.values.set(LEGACY_DESCENT_LEADERBOARD_KEY, JSON.stringify([{ ...newRank, remainingTimeCs: undefined }]));
+    const sentinels = new Map([
+      [DESCENT_PROGRESS_KEY, '[{"accountId":"a","highestClearedStage":4},{"accountId":"b","highestClearedStage":2}]'],
+      [DESCENT_RESET_KEY, "1"], ["msal.owned", "auth bytes"], ["stair-climb:audio:v1", "audio bytes"],
+      ["session.owned", "session bytes"], ["unrelated", "exact\nbytes"], ["stair-descent:leaderboard:v3", "future"],
+    ]);
+    for (const [key, value] of sentinels) target.values.set(key, value);
+    expect(prepareDescentLeaderboard(target)).toEqual({ complete: true });
+    expect(target.getItem.mock.calls).toEqual([[LEGACY_DESCENT_LEADERBOARD_KEY]]);
+    expect(target.removeItem.mock.calls).toEqual([[LEGACY_DESCENT_LEADERBOARD_KEY]]);
+    expect(target.setItem).not.toHaveBeenCalled();
+    expect(target.values).toEqual(sentinels);
+    expect(readLeaderboard(target, "descent")).toEqual([]);
+    expect(readStageProgress("a", target, "descent").highestClearedStage).toBe(4);
+    expect(readStageProgress("b", target, "descent").highestClearedStage).toBe(2);
+    expect(target.clear).not.toHaveBeenCalled(); expect(target.key).not.toHaveBeenCalled();
+  });
+
+  it("preserves v2 records across old-key retirement, repeated calls and later writes", () => {
+    const target = storage(); seedNewRecords(target); target.values.set(DESCENT_RESET_KEY, "1");
+    target.values.set(LEGACY_DESCENT_LEADERBOARD_KEY, "old untimed ranking");
+    const rankBytes = target.values.get(DESCENT_LEADERBOARD_KEY), progressBytes = target.values.get(DESCENT_PROGRESS_KEY);
+    for (let call = 0; call < 3; call++) expect(readLeaderboard(target, "descent")).toEqual([newRank]);
+    expect(target.removeItem.mock.calls).toEqual([[LEGACY_DESCENT_LEADERBOARD_KEY]]);
+    expect(target.values.get(DESCENT_LEADERBOARD_KEY)).toBe(rankBytes);
+    expect(target.values.get(DESCENT_PROGRESS_KEY)).toBe(progressBytes);
+    const improved = { ...newRank, remainingTimeCs: 1235 };
+    expect(saveBestScore(improved, target, new Date(newRank.achievedAt), "descent").saved).toBe(true);
+    expect(readLeaderboard(target, "descent")).toEqual([improved]);
+    expect(target.removeItem).not.toHaveBeenCalledWith(DESCENT_LEADERBOARD_KEY);
+  });
+
+  it.each(["get", "remove"] as const)("retries a failed v1 %s while keeping valid v2 available and writable", operation => {
+    const target = storage(); seedNewRecords(target); target.values.set(DESCENT_RESET_KEY, "1");
+    target.values.set(LEGACY_DESCENT_LEADERBOARD_KEY, "old bytes");
+    let blocked = true;
+    target.getItem.mockImplementation(key => {
+      if (blocked && operation === "get" && key === LEGACY_DESCENT_LEADERBOARD_KEY) throw Error("blocked old read");
+      return target.values.get(key) ?? null;
+    });
+    target.removeItem.mockImplementation(key => {
+      if (blocked && operation === "remove" && key === LEGACY_DESCENT_LEADERBOARD_KEY) throw Error("blocked old remove");
+      target.values.delete(key);
+    });
+    expect(prepareDescentLeaderboard(target)).toEqual({ complete: false });
+    expect(readLeaderboard(target, "descent")).toEqual([newRank]);
+    const improved = { ...newRank, remainingTimeCs: 1235 };
+    expect(saveBestScore(improved, target, new Date(newRank.achievedAt), "descent").saved).toBe(true);
+    expect(target.values.get(LEGACY_DESCENT_LEADERBOARD_KEY)).toBe("old bytes");
+    const savedBytes = target.values.get(DESCENT_LEADERBOARD_KEY);
+    blocked = false;
+    expect(readLeaderboard(target, "descent")).toEqual([improved]);
+    expect(target.values.has(LEGACY_DESCENT_LEADERBOARD_KEY)).toBe(false);
+    expect(target.values.get(DESCENT_LEADERBOARD_KEY)).toBe(savedBytes);
+    expect(target.values.get(DESCENT_PROGRESS_KEY)).toBe(JSON.stringify(newProgress));
+    expect(target.values.get(DESCENT_RESET_KEY)).toBe("1");
+    expect(target.clear).not.toHaveBeenCalled(); expect(target.key).not.toHaveBeenCalled();
+  });
+});
 
 function storage() {
   const values = new Map<string, string>();

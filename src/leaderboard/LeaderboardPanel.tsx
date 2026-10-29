@@ -1,4 +1,5 @@
 import { getTopScores, type LeaderboardEntry } from "./leaderboard";
+import { formatRemainingTimeCs } from "../game/stageResult";
 
 interface LeaderboardPanelProps {
   entries: LeaderboardEntry[];
@@ -34,6 +35,7 @@ export function LeaderboardPanel({ entries, currentAccountId }: LeaderboardPanel
               <span className="leaderboard-record">
                 <span className="leaderboard-stage">{entry.bestStage}단계</span>
                 <strong className="leaderboard-score">{entry.bestScore}점</strong>
+                <span className="leaderboard-time">{entry.remainingTimeCs === undefined ? "시간 미기록" : `남은 시간 ${formatRemainingTimeCs(entry.remainingTimeCs)}`}</span>
               </span>
             </li>
           ))}
