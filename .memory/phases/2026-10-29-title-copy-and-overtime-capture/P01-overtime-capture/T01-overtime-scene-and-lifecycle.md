@@ -158,7 +158,7 @@ Task: T01-overtime-scene-and-lifecycle
 ## Progress
 - [x] Implementation complete
 - [x] Validation passed
-- commit: pending
+- commit: `4e41af6`
 
 ## Validation Results (2026-10-29)
 - Required standalone command: 33/33 tests passed (final run 3.57 s). Exact 500/2,500 ms boundaries, batched callbacks, delayed updates, all five caught stages, reset/new result, reduced motion, StrictMode cleanup, and accessible scene behavior are covered.

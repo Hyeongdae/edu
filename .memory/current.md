@@ -1,27 +1,28 @@
 # Current Context
 
 ## Active Plan
-None. [Title Scene and Guide Copy](./plans/2026-10-29-title-scene-and-guide-copy.md) is complete.
+[Title Copy and Overtime Capture](./plans/2026-10-29-title-copy-and-overtime-capture.md)
 
 ## Active Phase
-None. [P01 Shared Title Scene](./phases/2026-10-29-title-scene-and-guide-copy/P01-title-scene/phase.md) is complete.
+[P01 Overtime Capture](./phases/2026-10-29-title-copy-and-overtime-capture/P01-overtime-capture/phase.md)
 
 ## Active Task
-None.
+[T02 Title Copy and Capture Integration](./phases/2026-10-29-title-copy-and-overtime-capture/P01-overtime-capture/T02-title-copy-and-capture-integration.md)
 
 ## Last Completed Task
-[T01 Title Scene and Guide Copy](./phases/2026-10-29-title-scene-and-guide-copy/P01-title-scene/T01-title-scene-and-guide-copy.md) — `1f9be29` (2026-10-29).
+[T01 Overtime Scene and Lifecycle](./phases/2026-10-29-title-copy-and-overtime-capture/P01-overtime-capture/T01-overtime-scene-and-lifecycle.md) — `4e41af6` (2026-10-29).
 
 ## Status
-- title-scene-and-guide-copy: **completed, done 1/1, Active Task none**.
-- Kept the same stair scene behind the title and stage selector; added the 200 ms fade and the exact confirmed guide copy.
-- Validation: 3 targeted files, 119/119 tests passed; lint and production build passed.
+- title-copy-and-overtime-capture: done 1/2; T01 complete, T02 ready to execute.
+- T01 added the standalone office scene, dedicated grab/drag/seated poses, and the capture/overtime/complete lifecycle hook. Validation: 33/33 tests, lint, build, and standalone desktop/mobile visual inspection passed. Evidence: `%TEMP%\overtime-t01-2026-10-29\preview-evidence.json` and six PNGs.
+- T02 will connect the scene to GameScreen and change the title subtitle. Main gameplay/auth/audio/records and shared sprites have not been modified by T01.
+- Previous title-scene-and-guide-copy plan completed 1/1 with 119/119 targeted tests, lint, and build passing.
 
 ## Source Decisions
-[Title Scene and Guide Copy](./decisions/2026-10-29-title-scene-and-guide-copy.md)
+[Title Copy and Overtime Capture](./decisions/2026-10-29-title-copy-and-overtime-capture.md)
 
 ## Next Step (IMPORTANT)
-No active task. Continue when a new task is selected.
+Read the T02 blueprint and integrate the completed scene into `src/game/GameScreen.tsx`, update its exact title subtitle and capture/result/focus branches, add the active-frame CSS selectors, and update `src/game/GameScreen.test.tsx`. Preserve immediate captured-result saving and the existing successful office-exit ending. Run T02 validation and main-game browser checks; do not rerun T01 as a new task.
 ---
 
 ### Previous Context: Main Game Descent Conversion
