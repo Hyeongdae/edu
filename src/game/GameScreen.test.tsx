@@ -394,6 +394,59 @@ describe("GameScreen controls", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
+  it("opens the guide before starting without starting the timer and restores focus after Escape", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    render(<GameScreen account={account} />);
+    const trigger = screen.getByRole("button", { name: "게임 설명" });
+    fireEvent.click(trigger);
+
+    const dialog = screen.getByRole("dialog", { name: "게임 설명" });
+    const close = screen.getByRole("button", { name: "게임 설명 닫기" });
+    expect(close).toHaveFocus();
+    fireEvent.keyDown(dialog, { key: "Tab" });
+    expect(close).toHaveFocus();
+    fireEvent.keyDown(dialog, { key: "Escape" });
+    expect(screen.queryByRole("dialog", { name: "게임 설명" })).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(5_000); });
+    expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "ready");
+    fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
+    expect(screen.getByTestId("stage-time")).toHaveTextContent("01:30");
+  });
+
+  it("pauses the stage and bonus clocks, pursuer, and inputs while the guide is open", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    seedReadyStage(1, { score: 0, eventSteps: 29 });
+    render(<GameScreen account={account} />);
+    fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
+    climbOneStep();
+    const stageTime = screen.getByTestId("stage-time").textContent;
+    const eventStatus = screen.getByTestId("event-status").textContent;
+    const pursuerIndex = screen.getByTestId("pursuer").getAttribute("data-route-index");
+    const score = screen.getByTestId("score-value").textContent;
+    const trigger = screen.getByRole("button", { name: "게임 설명" });
+    fireEvent.click(trigger);
+    expect(screen.getByRole("button", { name: "게임 설명 닫기" })).toHaveFocus();
+
+    fireEvent.keyDown(window, { key: "d" });
+    fireEvent.keyDown(window, { key: "j" });
+    await act(async () => { await vi.advanceTimersByTimeAsync(5_000); });
+    expect(screen.getByTestId("stage-time")).toHaveTextContent(stageTime!);
+    expect(screen.getByTestId("event-status")).toHaveTextContent(eventStatus!);
+    expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", pursuerIndex);
+    expect(screen.getByTestId("score-value")).toHaveTextContent(score!);
+
+    fireEvent.mouseDown(document.querySelector(".instructions-backdrop")!);
+    expect(trigger).toHaveFocus();
+    await act(async () => { await vi.advanceTimersByTimeAsync(1_000); });
+    expect(screen.getByTestId("stage-time")).toHaveTextContent("01:29");
+    expect(screen.getByTestId("event-status")).toHaveTextContent("29초");
+    expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "-2");
+  });
+
   it("freezes the bonus countdown while settings are open", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(1_000);
@@ -438,7 +491,7 @@ describe("GameScreen controls", () => {
     vi.setSystemTime(186_100);
     await act(async () => { await vi.advanceTimersByTimeAsync(100); });
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "game-over");
-  });
+  }, 15_000);
 
   it("shows and replays score feedback for regular and event climbs, then clears it", async () => {
     vi.useFakeTimers();

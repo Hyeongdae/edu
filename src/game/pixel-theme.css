@@ -63,7 +63,9 @@
 }
 
 .stair-game.pixel-theme .game-settings-button,
-.stair-game.pixel-theme .settings-close-button {
+.stair-game.pixel-theme .game-instructions-button,
+.stair-game.pixel-theme .settings-close-button,
+.stair-game.pixel-theme .instructions-close-button {
   display: grid;
   width: 44px;
   height: 44px;
@@ -77,9 +79,11 @@
   color: var(--pixel-cyan);
 }
 
-.stair-game.pixel-theme .game-settings-button { z-index: 4; top: 12px; right: 12px; }
+.stair-game.pixel-theme .game-settings-button { z-index: 6; top: 12px; right: 12px; }
+.stair-game.pixel-theme .game-instructions-button { z-index: 6; top: 12px; right: 64px; font: 900 1.25rem ui-monospace, Consolas, monospace; }
 .stair-game.pixel-theme .game-settings-button:hover { background: #263d50; }
-.stair-game.pixel-theme .game-settings-button:disabled { opacity: 0.5; cursor: default; }
+.stair-game.pixel-theme .game-settings-button:disabled,
+.stair-game.pixel-theme .game-instructions-button:disabled { opacity: 0.5; cursor: default; }
 
 .stair-game.pixel-theme .stage-select-panel {
   position: absolute;
@@ -352,6 +356,22 @@
 .stair-game.pixel-theme[data-game-status="game-over"] .game-footer { display: none; }
 
 .stair-game.pixel-theme .settings-backdrop { z-index: 8; padding: 20px; overflow: hidden; background: rgb(3 8 20 / 82%); backdrop-filter: none; }
+.stair-game.pixel-theme .instructions-backdrop { z-index: 8; padding: 20px; overflow: hidden; background: rgb(3 8 20 / 82%); }
+.stair-game.pixel-theme .instructions-dialog { width: min(100%, 860px); max-height: 100%; border: 2px solid var(--pixel-edge); border-radius: 0; background: var(--pixel-panel); box-shadow: 6px 6px 0 #030815; }
+.stair-game.pixel-theme .instructions-dialog-header { flex: 0 0 auto; padding: 14px; border-bottom: 2px solid var(--pixel-edge); background: #151f37; color: var(--pixel-text); }
+.stair-game.pixel-theme .instructions-dialog-header h2 { color: var(--pixel-text); font-size: 1.1rem; }
+.stair-game.pixel-theme .instructions-eyebrow { color: var(--pixel-cyan); font: 700 0.65rem ui-monospace, Consolas, monospace; }
+.stair-game.pixel-theme .instructions-close-button { border: 1px solid var(--pixel-cyan); border-radius: 0; background: #213c4c; color: var(--pixel-text); font-size: 0.75rem; }
+.stair-game.pixel-theme .instructions-content { gap: 12px; padding: 16px; }
+.stair-game.pixel-theme .instructions-card { border: 1px solid var(--pixel-edge); background: #152037; color: var(--pixel-muted); }
+.stair-game.pixel-theme .instructions-card h3 { color: var(--pixel-text); font-size: 0.9rem; }
+.stair-game.pixel-theme .instructions-card kbd { margin-right: 4px; }
+.stair-game.pixel-theme .instructions-table-scroll table { min-width: 620px; color: var(--pixel-text); font-size: 0.78rem; }
+.stair-game.pixel-theme .instructions-table-scroll th,
+.stair-game.pixel-theme .instructions-table-scroll td { border-color: var(--pixel-edge); }
+.stair-game.pixel-theme .instructions-table-scroll thead { background: #202e49; }
+.stair-game.pixel-theme .instructions-table-scroll tbody th { color: var(--pixel-cyan); }
+.stair-game.pixel-theme .instructions-encouragement { border: 1px solid var(--pixel-gold); background: #302b27; color: var(--pixel-gold); }
 .stair-game.pixel-theme .settings-dialog { display: flex; width: min(100%, 680px); max-height: 100%; flex-direction: column; min-width: 0; min-height: 0; padding: 0; overflow: hidden; border: 2px solid var(--pixel-edge); border-radius: 0; background: var(--pixel-panel); box-shadow: 6px 6px 0 #030815; }
 .stair-game.pixel-theme .settings-dialog-header { flex: 0 0 auto; min-width: 0; gap: 10px; margin: 0; padding: 14px; border-bottom: 2px solid var(--pixel-edge); background: #151f37; }
 .stair-game.pixel-theme .game-brand { min-width: 0; gap: 10px; }
@@ -451,6 +471,7 @@
   .stair-game.pixel-theme .pixel-scene-stage { overflow: visible; }
   .stair-game.pixel-theme .office-backdrop { top: auto; bottom: 0; height: 100dvh; }
   .stair-game.pixel-theme .game-settings-button { top: 8px; right: 8px; }
+  .stair-game.pixel-theme .game-instructions-button { top: 8px; right: 60px; }
   .stair-game.pixel-theme .game-hud { position: relative; top: auto; left: auto; right: auto; width: calc(100% - 68px); margin-left: 8px; grid-template-columns: minmax(0, 1fr); gap: 4px; }
   .stair-game.pixel-theme .hud-card { min-height: 64px; padding: 7px 6px; }
   .stair-game.pixel-theme .score-card { grid-column: 1 / -1; min-height: 80px; gap: 8px; }
@@ -480,6 +501,9 @@
   .stair-game.pixel-theme .desktop-control-hint { display: none; }
   .stair-game.pixel-theme .mobile-control-hint { display: inline; }
   .stair-game.pixel-theme .settings-backdrop { padding: 12px; }
+  .stair-game.pixel-theme .instructions-backdrop { padding: 12px; }
+  .stair-game.pixel-theme .instructions-dialog-header { padding: 10px; }
+  .stair-game.pixel-theme .instructions-content { padding: 10px; }
   .stair-game.pixel-theme .settings-dialog-header { padding: 10px; }
   .stair-game.pixel-theme .settings-content { padding: 12px; }
   .stair-game.pixel-theme .settings-help-grid { grid-template-columns: minmax(0, 1fr); }

@@ -11,6 +11,7 @@ import { useOfficeExitEnding } from "./useOfficeExitEnding";
 import { OfficeExitEnding } from "./OfficeExitEnding";
 import { ControlButtons } from "./ControlButtons";
 import { GameHud } from "./GameHud";
+import { GameInstructionsDialog } from "./GameInstructionsDialog";
 import { StairScene } from "./StairScene";
 import { PixelIcon } from "./pixel/PixelIcon";
 import type { ClearedStage, GameInput, GameStage } from "./types";
@@ -71,15 +72,20 @@ export function GameScreen({
   const [scoreGainIsBonus, setScoreGainIsBonus] = useState(false);
   const [scoreAnimationKey, setScoreAnimationKey] = useState(0);
   const [pursuerAnimationTime, setPursuerAnimationTime] = useState(0);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [activeDialog, setActiveDialog] = useState<"settings" | "instructions" | null>(null);
+  const isSettingsOpen = activeDialog === "settings";
+  const isInstructionsOpen = activeDialog === "instructions";
   const runStartedRef = useRef(false);
-  const settingsOpenedAtRef = useRef<number | null>(null);
-  const isSettingsOpenRef = useRef(false);
+  const pausedDialogOpenedAtRef = useRef<number | null>(null);
+  const activeDialogRef = useRef<"settings" | "instructions" | null>(null);
   const settingsTriggerRef = useRef<HTMLButtonElement | null>(null);
   const settingsCloseRef = useRef<HTMLButtonElement | null>(null);
+  const instructionsTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const instructionsCloseRef = useRef<HTMLButtonElement | null>(null);
   const restartButtonRef = useRef<HTMLButtonElement | null>(null);
   const settingsDialogRef = useRef<HTMLElement | null>(null);
-  const previousSettingsOpenRef = useRef(false);
+  const instructionsDialogRef = useRef<HTMLElement | null>(null);
+  const previousDialogRef = useRef<"settings" | "instructions" | null>(null);
   const previousStepsRef = useRef(gameState.stepsClimbed);
   const climbTimeoutRef = useRef<number | undefined>(undefined);
   const previousScoreRef = useRef({ stage: gameState.stage, score: gameState.score });
@@ -89,31 +95,57 @@ export function GameScreen({
   const pursuerTimeoutRef = useRef<number | undefined>(undefined);
   const previousEventActiveRef = useRef(gameState.eventEndsAt !== null);
 
-  const openSettings = useCallback(() => {
-    if (settingsOpenedAtRef.current !== null || gameState.status !== "playing") return;
+  const openGameDialog = useCallback((dialog: "settings" | "instructions") => {
+    if (activeDialogRef.current !== null) return;
+    if (dialog === "settings" && gameState.status !== "playing") return;
+    if (dialog === "instructions" && gameState.status !== "playing" && gameState.status !== "ready" && gameState.status !== "game-over") return;
+
     const openedAt = Date.now();
-    const reconciled = tickGame(gameState, openedAt);
-    setNowMs(openedAt);
-    setGameState(reconciled);
-    if (reconciled.status !== "playing") return;
-    settingsOpenedAtRef.current = openedAt;
-    isSettingsOpenRef.current = true;
-    setIsSettingsOpen(true);
+    if (gameState.status === "playing") {
+      const reconciled = tickGame(gameState, openedAt);
+      setNowMs(openedAt);
+      setGameState(reconciled);
+      if (reconciled.status !== "playing") return;
+      pausedDialogOpenedAtRef.current = openedAt;
+    } else {
+      pausedDialogOpenedAtRef.current = null;
+    }
+
+    activeDialogRef.current = dialog;
+    setActiveDialog(dialog);
   }, [gameState]);
 
-  const closeSettings = useCallback(() => {
-    const openedAt = settingsOpenedAtRef.current;
-    if (openedAt === null) return;
+  const closeGameDialog = useCallback((dialog: "settings" | "instructions") => {
+    if (activeDialogRef.current !== dialog) return;
+    const openedAt = pausedDialogOpenedAtRef.current;
     const closedAt = Date.now();
-    settingsOpenedAtRef.current = null;
-    isSettingsOpenRef.current = false;
-    setIsSettingsOpen(false);
-    setNowMs(closedAt);
-    setGameState((state) => resumeGameAfterPause(state, openedAt, closedAt));
+    pausedDialogOpenedAtRef.current = null;
+    activeDialogRef.current = null;
+    setActiveDialog(null);
+    if (openedAt !== null) {
+      setNowMs(closedAt);
+      setGameState((state) => resumeGameAfterPause(state, openedAt, closedAt));
+    }
   }, []);
 
+  const openSettings = useCallback(() => {
+    openGameDialog("settings");
+  }, [openGameDialog]);
+
+  const closeSettings = useCallback(() => {
+    closeGameDialog("settings");
+  }, [closeGameDialog]);
+
+  const openInstructions = useCallback(() => {
+    openGameDialog("instructions");
+  }, [openGameDialog]);
+
+  const closeInstructions = useCallback(() => {
+    closeGameDialog("instructions");
+  }, [closeGameDialog]);
+
   const handleInput = useCallback((input: GameInput) => {
-    if (isSettingsOpenRef.current) return;
+    if (activeDialogRef.current !== null) return;
     const inputTime = Date.now();
     setNowMs(inputTime);
     setGameState((state) => applyInput(state, input, inputTime));
@@ -126,7 +158,7 @@ export function GameScreen({
   };
 
   const handleSelectStage = (stage: GameStage) => {
-    if (isSettingsOpenRef.current || gameState.status !== "ready" || runStartedRef.current || stage === gameState.stage) return;
+    if (activeDialogRef.current !== null || gameState.status !== "ready" || runStartedRef.current || stage === gameState.stage) return;
     const knownHighest = readKnownHighest();
     if (stage > getHighestUnlockedStage(knownHighest)) return;
     const preview = resetGame(undefined, { stage, highestClearedStage: knownHighest });
@@ -135,7 +167,7 @@ export function GameScreen({
   };
 
   const handleShowStageSelection = () => {
-    if (isSettingsOpenRef.current || gameState.status !== "game-over" || !runStartedRef.current) return;
+    if (activeDialogRef.current !== null || gameState.status !== "game-over" || !runStartedRef.current) return;
     const knownHighest = readKnownHighest();
     const preview = resetGame(undefined, { stage: getHighestUnlockedStage(knownHighest), highestClearedStage: knownHighest });
     runStartedRef.current = false;
@@ -144,7 +176,7 @@ export function GameScreen({
   };
 
   const handleStart = () => {
-    if (isSettingsOpenRef.current || gameState.status !== "ready" || runStartedRef.current) return;
+    if (activeDialogRef.current !== null || gameState.status !== "ready" || runStartedRef.current) return;
     const startedAt = Date.now();
     const nextState = startGame(gameState, startedAt);
     runStartedRef.current = true;
@@ -205,19 +237,19 @@ export function GameScreen({
   const pursuerMotionDuration = getPursuerMotionDurationMs(gameState);
   const pursuerAnimationKey = pursuerMoveAt ?? 0;
   const isPursuerMoving = pursuerMoveAt !== null && gameState.status === "playing" &&
-    gameState.captureEndsAt === null && !isSettingsOpen &&
+    gameState.captureEndsAt === null && activeDialog === null &&
     Math.max(nowMs, pursuerAnimationTime) < pursuerMoveAt + pursuerMotionDuration;
 
   useEffect(() => {
     if (pursuerMoveAt === null) return;
     const endsAt = pursuerMoveAt + pursuerMotionDuration;
-    const suppressed = gameState.status !== "playing" || gameState.captureEndsAt !== null || isSettingsOpen;
+    const suppressed = gameState.status !== "playing" || gameState.captureEndsAt !== null || activeDialog !== null;
     pursuerTimeoutRef.current = window.setTimeout(() => {
       setPursuerAnimationTime(endsAt);
       pursuerTimeoutRef.current = undefined;
     }, suppressed ? 0 : Math.max(0, endsAt - Date.now()));
     return () => window.clearTimeout(pursuerTimeoutRef.current);
-  }, [pursuerMoveAt, pursuerMotionDuration, gameState.status, gameState.captureEndsAt, isSettingsOpen]);
+  }, [pursuerMoveAt, pursuerMotionDuration, gameState.status, gameState.captureEndsAt, activeDialog]);
 
   useEffect(() => () => {
     window.clearTimeout(climbTimeoutRef.current);
@@ -301,7 +333,7 @@ export function GameScreen({
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (gameState.status !== "playing" || event.defaultPrevented || isSettingsOpenRef.current || isTextEntryTarget(event.target)) {
+      if (gameState.status !== "playing" || event.defaultPrevented || activeDialogRef.current !== null || isTextEntryTarget(event.target)) {
         return;
       }
 
@@ -327,14 +359,14 @@ export function GameScreen({
   }, [handleInput, gameState.status]);
 
   useEffect(() => {
-    if (isSettingsOpen) return undefined;
+    if (activeDialog !== null) return undefined;
     const timersActive = gameState.status === "playing" || gameState.recoveryEndsAt !== null || gameState.captureEndsAt !== null;
     if (!timersActive) {
       return undefined;
     }
 
     const intervalId = window.setInterval(() => {
-      if (isSettingsOpenRef.current) return;
+      if (activeDialogRef.current !== null) return;
       const tickTime = Date.now();
       setNowMs((previousTime) => {
         const stageChanged = getStageSecondsLeft(gameState, previousTime) !== getStageSecondsLeft(gameState, tickTime);
@@ -348,11 +380,11 @@ export function GameScreen({
     }, PURSUER_POLL_INTERVAL_MS);
 
     return () => window.clearInterval(intervalId);
-  }, [gameState, isSettingsOpen]);
+  }, [gameState, activeDialog]);
 
   useEffect(() => {
     const onVisibilityChange = () => {
-      if (document.visibilityState !== "visible" || isSettingsOpenRef.current) {
+      if (document.visibilityState !== "visible" || activeDialogRef.current !== null) {
         return;
       }
 
@@ -370,7 +402,7 @@ export function GameScreen({
       ? 0
       : Math.max(0, Math.ceil((gameState.eventEndsAt - (gameState.checkpointEnteredAt ?? nowMs)) / 1000));
   const controlsDisabled =
-    gameState.status !== "playing" || gameState.recoveryEndsAt !== null || isSettingsOpen;
+    gameState.status !== "playing" || gameState.recoveryEndsAt !== null || activeDialog !== null;
   const pursuerCatchVisible = gameState.captureEndsAt !== null &&
     (gameState.status === "playing" || gameState.endReason === "caught");
 
@@ -379,18 +411,22 @@ export function GameScreen({
   }, [gameState.status, isEnding, pursuerCatchVisible, stageResult]);
 
   useEffect(() => {
-    if (isSettingsOpen) {
+    if (activeDialog === "settings") {
       if (!settingsDialogRef.current?.contains(document.activeElement)) settingsCloseRef.current?.focus();
-    } else if (previousSettingsOpenRef.current) {
+    } else if (activeDialog === "instructions") {
+      if (!instructionsDialogRef.current?.contains(document.activeElement)) instructionsCloseRef.current?.focus();
+    } else if (previousDialogRef.current === "settings") {
       settingsTriggerRef.current?.focus();
+    } else if (previousDialogRef.current === "instructions") {
+      instructionsTriggerRef.current?.focus();
     }
-    previousSettingsOpenRef.current = isSettingsOpen;
-  }, [isSettingsOpen, autoplayBlocked]);
+    previousDialogRef.current = activeDialog;
+  }, [activeDialog, autoplayBlocked]);
 
-  const onSettingsDialogKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
+  const onDialogKeyDown = (event: ReactKeyboardEvent<HTMLElement>, onClose: () => void) => {
     if (event.key === "Escape") {
       event.preventDefault();
-      closeSettings();
+      onClose();
       return;
     }
     if (event.key !== "Tab") return;
@@ -408,6 +444,9 @@ export function GameScreen({
       first.focus();
     }
   };
+
+  const onSettingsDialogKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => onDialogKeyDown(event, closeSettings);
+  const onInstructionsDialogKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => onDialogKeyDown(event, closeInstructions);
 
   return (
     <main className="stair-game pixel-theme" data-game-status={gameState.status}>
@@ -430,6 +469,19 @@ export function GameScreen({
             onClick={openSettings}
           >
             <PixelIcon name="settings" />
+          </button>
+          <button
+            ref={instructionsTriggerRef}
+            className="game-instructions-button"
+            type="button"
+            aria-label="게임 설명"
+            aria-haspopup="dialog"
+            aria-expanded={isInstructionsOpen}
+            aria-controls="game-instructions-dialog"
+            disabled={gameState.status === "checkpoint" || isEnding}
+            onClick={openInstructions}
+          >
+            ?
           </button>
 
           <div className="game-stage" aria-hidden={isEnding || undefined} inert={isEnding || undefined}>
@@ -567,6 +619,14 @@ export function GameScreen({
                 </div>
               </section>
             </div>
+          )}
+          {isInstructionsOpen && (
+            <GameInstructionsDialog
+              onClose={closeInstructions}
+              closeButtonRef={instructionsCloseRef}
+              dialogRef={instructionsDialogRef}
+              onKeyDown={onInstructionsDialogKeyDown}
+            />
           )}
         </div>
       </div>
