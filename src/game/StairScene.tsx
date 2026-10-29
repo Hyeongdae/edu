@@ -113,7 +113,6 @@ export function StairScene({ state, climbAnimationKey, isClimbing, pursuerAnimat
             {nextIsBlocked ? "장애물! 점프하세요" : atCorner ? "지금 방향을 바꾸세요" : `${state.straightStepsRemaining}칸 더 내려가세요`}
           </strong>
         </div>
-        <span className="scene-distance-note">추격자 {state.pursuerDistance}칸</span>
         <span className={`direction-pill is-${nextDirection}`}>
           <PixelIcon name="stair" size={16} />
           {nextDirection === "right" ? "오른쪽 길" : "왼쪽 길"}
@@ -124,7 +123,7 @@ export function StairScene({ state, climbAnimationKey, isClimbing, pursuerAnimat
         <svg
           className="stair-scene" viewBox="0 0 520 400" preserveAspectRatio="xMidYMid meet" role="img" shapeRendering="crispEdges"
           data-pursuer-index={model.pursuer.index} data-pursuer-visible={model.pursuerVisible}
-          aria-label={`계단이 ${nextDirection === "right" ? "오른쪽" : "왼쪽"} 아래로 이어집니다. 위쪽 추격자와 ${state.pursuerDistance}칸 거리입니다.${nextIsBlocked ? " 다음 계단에 장애물이 있습니다. Space 또는 점프 버튼을 누르세요." : ""}`}
+          aria-label={`계단이 ${nextDirection === "right" ? "오른쪽" : "왼쪽"} 아래로 이어집니다. 위쪽 추격자가 따라옵니다.${nextIsBlocked ? " 다음 계단에 장애물이 있습니다. Space 또는 점프 버튼을 누르세요." : ""}`}
         >
           <defs>
             <clipPath id={feetClipId} clipPathUnits="userSpaceOnUse">

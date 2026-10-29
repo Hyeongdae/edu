@@ -278,7 +278,7 @@ describe("GameScreen controls", () => {
     vi.restoreAllMocks();
   });
 
-  it("polls catch-up every50ms, matches the animation and restores fall pursuit at gap7", async () => {
+  it("polls every50ms, animates100ms catch-up and releases at gap6", async () => {
     vi.useFakeTimers(); vi.setSystemTime(0);
     vi.spyOn(Math, "random").mockReturnValue(0);
     const tick = vi.spyOn(gameEngine, "tickGame"), input = vi.spyOn(gameEngine, "applyInput");
@@ -286,23 +286,23 @@ describe("GameScreen controls", () => {
     fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
     let preview = gameEngine.startGame(createGameState(() => 0), 0);
     const keys: string[] = [];
-    for (let step = 0; step < 26; step++) {
+    for (let step = 0; step < 11; step++) {
       const turn = getRouteStep(preview.route, preview.stepsClimbed + 1).direction !== preview.direction;
       keys.push(turn ? "j" : "d");
       preview = gameEngine.applyInput(preview, turn ? "turn" : "forward", 0);
     }
     act(() => { for (const key of keys) fireEvent.keyDown(window, { key }); });
-    expect(input.mock.results.at(-1)!.value).toMatchObject({ pursuerDistance: 30, isPursuerCatchingUp: true, nextPursuerStepAt: 50 });
+    expect(input.mock.results.at(-1)!.value).toMatchObject({ pursuerDistance: 15, isPursuerCatchingUp: true, nextPursuerStepAt: 100 });
     await act(async () => { await vi.advanceTimersByTimeAsync(50); });
-    expect(screen.getByRole("img")).toHaveAttribute("data-pursuer-index", "-3");
-    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
-    expect(tick.mock.results.at(-1)!.value.pursuerDistance).toBe(9);
-    fireEvent.keyDown(window, { key: nextClimbKey() === "d" ? "j" : "d" });
+    expect(screen.getByRole("img")).toHaveAttribute("data-pursuer-index", "-4");
     await act(async () => { await vi.advanceTimersByTimeAsync(50); });
-    expect(tick.mock.results.at(-1)!.value).toMatchObject({ pursuerDistance: 8, isPursuerCatchingUp: true, nextPursuerStepAt: 1150 });
-    expect(screen.getByTestId("pursuer-motion").style.getPropertyValue("--pursuer-step-duration")).toBe("50ms");
-    await act(async () => { await vi.advanceTimersByTimeAsync(50); });
-    expect(tick.mock.results.at(-1)!.value).toMatchObject({ pursuerDistance: 7, isPursuerCatchingUp: false, nextPursuerStepAt: 1400 });
+    expect(tick.mock.results.at(-1)!.value).toMatchObject({ pursuerDistance: 14, isPursuerCatchingUp: true });
+    await act(async () => { await vi.advanceTimersByTimeAsync(700); });
+    expect(tick.mock.results.at(-1)!.value).toMatchObject({ pursuerDistance: 7, isPursuerCatchingUp: true });
+    expect(screen.getByTestId("pursuer-motion").style.getPropertyValue("--pursuer-step-duration")).toBe("100ms");
+    await act(async () => { await vi.advanceTimersByTimeAsync(100); });
+    expect(tick.mock.results.at(-1)!.value).toMatchObject({ pursuerDistance: 6, isPursuerCatchingUp: false });
+    expect(tick.mock.results.at(-1)!.value).toMatchObject({ pursuerDistance: 6, isPursuerCatchingUp: false });
     expect(screen.getByTestId("pursuer-motion").style.getPropertyValue("--pursuer-step-duration")).toBe("240ms");
   });
 
@@ -668,7 +668,8 @@ describe("GameScreen controls", () => {
     await act(async () => { await vi.advanceTimersByTimeAsync(400); });
     expect(screen.getByTestId("pursuer")).toBe(catchNode);
     expect(catchNode).toHaveAttribute("data-route-index", "-1");
-    expect(screen.getByRole("img")).toHaveAccessibleName(/추격자와 1칸 거리/);
+    expect(screen.getByRole("img")).toHaveAccessibleName(/위쪽 추격자가 따라옵니다/);
+    expect(screen.getByRole("img").getAttribute("aria-label")).not.toMatch(/\d+칸 거리/);
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-pursuer-catching", "true");
     await act(async () => { await vi.advanceTimersByTimeAsync(100); });
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-pursuer-catching", "false");
@@ -687,7 +688,8 @@ describe("GameScreen controls", () => {
     for (let step = 0; step < 20; step += 1) climbOneStep();
     expect(screen.queryByTestId("pursuer")).not.toBeInTheDocument();
     expect(screen.getByRole("img")).toHaveAttribute("data-pursuer-index", "-4");
-    expect(screen.getByRole("img")).toHaveAccessibleName(/추격자와 24칸 거리/);
+    expect(screen.getByRole("img")).toHaveAccessibleName(/위쪽 추격자가 따라옵니다/);
+    expect(screen.getByRole("img").getAttribute("aria-label")).not.toMatch(/\d+칸 거리/);
     expect(input.mock.results.at(-1)?.value.route.steps[0].index).toBe(-4);
     expect(screen.getAllByTestId("stair-step")).toHaveLength(11);
     expect(screen.getByTestId("runner")).toHaveClass("is-climbing");
@@ -1745,7 +1747,7 @@ describe("fall pursuit presentation", () => {
     fireEvent.click(screen.getByRole("button", { name: "시작하기" })); fireEvent.keyDown(window, { key: "j" });
     await act(async () => { await vi.advanceTimersByTimeAsync(100); });
     fireEvent.click(screen.getByRole("button", { name: "게임 설정" }));
-    expect(screen.getByText(/넘어진 동안 추격 간격은 0.25초지만, 가속 추격 중에는 0.05초/)).toBeVisible();
+    expect(screen.getByText(/15칸 이상 멀어지면 0.1초마다 추격하고, 6칸까지 좁혀지면/)).toBeVisible();
     await act(async () => { await vi.advanceTimersByTimeAsync(10_000); });
     expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "-4");
     expect(screen.getByTestId("event-status")).toHaveTextContent("2배 점수 · 30초");

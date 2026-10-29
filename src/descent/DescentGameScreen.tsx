@@ -189,7 +189,7 @@ export function DescentGameScreen({ audioController, audioPreferences, autoplayB
           <header><h2 id="descent-settings-title">게임 설정</h2><button ref={closeButton} type="button" aria-label="설정 닫기" onClick={closeSettings}><PixelIcon name="close" /></button></header>
           <AudioControls preferences={audioPreferences} onChange={onAudioPreferencesChange} autoplayBlocked={autoplayBlocked} onEnableAudio={onEnableAudio} />
           <section className="descent-help"><h3>내려오는 방법</h3><p>D로 한 칸, J로 방향을 바꾸며 한 칸 내려가세요. Space로 상자를 넘어 두 칸 이동해요.</p>
-            <p>추격자는 0.6초마다 내려와요. 30칸 이상 멀어지면 0.05초마다 추격하고, 7칸까지 좁혀지면 원래 속도로 돌아와요. 잘못 입력하면 0.5초 동안 멈춰요. 그 동안 추격 간격은 0.25초지만, 가속 추격 중에는 0.05초를 유지해요. 한 번 잡히면 도전이 끝납니다.</p>
+            <p>추격자는 0.6초마다 내려와요. 15칸 이상 멀어지면 0.1초마다 추격하고, 6칸까지 좁혀지면 원래 속도로 돌아와요. 잘못 입력하면 0.5초 동안 멈춰요. 그 동안 추격 간격은 0.25초지만, 가속 추격 중에는 0.1초를 유지해요. 한 번 잡히면 도전이 끝납니다.</p>
             <p>긴 계단 구간마다 10% 확률로 상자가 나와요. 30칸을 내려오면 30초 동안 2배 점수예요.</p>
             <p>설정을 보는 동안 게임은 멈춰 있어요. 오디오 설정과 게임 기록은 저장하지 않아요.</p></section>
         </section>

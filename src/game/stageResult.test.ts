@@ -143,14 +143,14 @@ describe("actual stage result boundaries", () => {
     expect(applyInput(tied, "forward", at).stageResult).toEqual({ stage: 1, score: 0, remainingTimeCs: 0, endedAtMs: at, outcome: "time-limit" });
   });
 
-  it("keeps catch-up transient until gap7 and records the later base-speed contact", () => {
+  it("keeps catch-up transient until gap6 and records the later base-speed contact", () => {
     let state = playing();
-    while (state.pursuerDistance < 30) state = applyInput(state, nextInput(state), 0);
+    while (state.pursuerDistance < 15) state = applyInput(state, nextInput(state), 0);
     expect(state.stageResult).toBeNull();
-    const exited = tickGame(state, 1150);
-    expect(exited).toMatchObject({ isPursuerCatchingUp: false, pursuerDistance: 7, stageResult: null, nextPursuerStepAt: 1750 });
+    const exited = tickGame(state, 900);
+    expect(exited).toMatchObject({ isPursuerCatchingUp: false, pursuerDistance: 6, stageResult: null, nextPursuerStepAt: 1500 });
     const after = tickGame(exited, 100000);
-    expect(after.stageResult).toEqual({ stage: 1, score: state.score, remainingTimeCs: 8465, endedAtMs: 5350, outcome: "caught" });
+    expect(after.stageResult).toEqual({ stage: 1, score: state.score, remainingTimeCs: 8550, endedAtMs: 4500, outcome: "caught" });
     expect(tickGame(state, 100000)).toEqual(after);
   });
 

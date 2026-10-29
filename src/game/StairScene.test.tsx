@@ -39,7 +39,8 @@ describe("main downward staircase scene", () => {
     expect(screen.getByRole("img")).toHaveAccessibleName(/아래로.*위쪽 추격자/);
     expect(document.querySelector('[transform*="scale(1 -1)"]')).toBeNull();
     expect(document.querySelector(".scene-distance-tag")).toBeNull();
-    expect(document.querySelector(".scene-heading .scene-distance-note")).toHaveTextContent("추격자 4칸");
+    expect(document.querySelector(".scene-heading .scene-distance-note")).toBeNull();
+    expect(screen.getByRole("img").getAttribute("aria-label")).not.toMatch(/\d+칸 거리/);
     expect(document.querySelector(".office-backdrop")).toHaveAttribute("aria-hidden", "true");
     expect(screen.getByTestId("route-direction")).toHaveTextContent("내려가세요");
     expect(random).not.toHaveBeenCalled();

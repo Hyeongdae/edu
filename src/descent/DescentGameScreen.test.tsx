@@ -41,18 +41,18 @@ beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(0); vi.spyOn(Math, "rand
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.useRealTimers(); });
 
 describe("dedicated descending screen", () => {
-  it("updates catch-up at50ms and keeps the motion duration in sync until gap7", () => {
+  it("keeps 50ms polling and animates catch-up at100ms until gap6", () => {
     const tick = vi.spyOn(engine, "tickDescent");
     draw(true); start();
-    act(() => { for (const value of legalKeys(26)) key(value); });
-    act(() => { vi.advanceTimersByTime(50); });
+    act(() => { for (const value of legalKeys(11)) key(value); });
+    act(() => { vi.advanceTimersByTime(100); });
     expect(screen.getByRole("img")).toHaveAttribute("data-pursuer-index", "-3");
-    act(() => { vi.advanceTimersByTime(1000); });
-    expect(tick.mock.results.at(-1)!.value).toMatchObject({ pursuerDistance: 9, isPursuerCatchingUp: true });
-    act(() => { vi.advanceTimersByTime(50); });
-    expect(screen.getByTestId("descent-pursuer-motion").style.getPropertyValue("--pursuer-step-duration")).toBe("50ms");
-    act(() => { vi.advanceTimersByTime(50); });
-    expect(tick.mock.results.at(-1)!.value).toMatchObject({ pursuerDistance: 7, isPursuerCatchingUp: false, nextPursuerStepAt: 1750 });
+    expect(tick.mock.results.at(-1)!.value).toMatchObject({ pursuerDistance: 14, isPursuerCatchingUp: true });
+    act(() => { vi.advanceTimersByTime(700); });
+    expect(tick.mock.results.at(-1)!.value).toMatchObject({ pursuerDistance: 7, isPursuerCatchingUp: true });
+    expect(screen.getByTestId("descent-pursuer-motion").style.getPropertyValue("--pursuer-step-duration")).toBe("100ms");
+    act(() => { vi.advanceTimersByTime(100); });
+    expect(tick.mock.results.at(-1)!.value).toMatchObject({ pursuerDistance: 6, isPursuerCatchingUp: false, nextPursuerStepAt: 1500 });
     expect(screen.getByTestId("descent-pursuer-motion").style.getPropertyValue("--pursuer-step-duration")).toBe("240ms");
   });
   it("starts stopped, shows only the one-stage experiment, and arms once", () => {

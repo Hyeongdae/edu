@@ -68,12 +68,12 @@ export function DescentScene({ state, playerMotionKey, isPlayerMoving, isPursuer
   return (
     <section className="descent-scene" aria-label="내려오는 계단 장면">
       <header className="descent-scene-heading"><strong data-testid="descent-route-direction">{cue}</strong>
-        <span>{next.direction === "right" ? "오른쪽 길" : "왼쪽 길"} · 추격자 {state.pursuerDistance}칸</span></header>
+        <span>{next.direction === "right" ? "오른쪽 길" : "왼쪽 길"}</span></header>
       <div className="descent-scene-stage">
         <PixelOfficeBackdrop />
         <svg className="descent-stair-scene" viewBox="0 0 520 400" preserveAspectRatio="xMidYMid meet"
           role="img" shapeRendering="crispEdges" data-pursuer-index={model.pursuer.index} data-pursuer-visible={model.pursuerVisible}
-          aria-label={`계단이 ${next.direction === "right" ? "오른쪽" : "왼쪽"} 아래로 이어집니다. 위쪽 추격자와 ${state.pursuerDistance}칸 거리입니다.${blocked ? " 다음 계단에 장애물이 있습니다." : ""}`}>
+          aria-label={`계단이 ${next.direction === "right" ? "오른쪽" : "왼쪽"} 아래로 이어집니다. 위쪽 추격자가 따라옵니다.${blocked ? " 다음 계단에 장애물이 있습니다." : ""}`}>
           <defs><clipPath id={clipId} clipPathUnits="userSpaceOnUse"><rect x="-34" y="-88" width="68" height="84" /></clipPath></defs>
           {model.steps.map(step => (
             <g key={step.index} data-testid="descent-stair-step" data-route-index={step.index} data-direction={step.direction}>

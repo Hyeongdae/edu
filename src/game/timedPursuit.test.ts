@@ -16,7 +16,7 @@ function farAhead(): GameState {
   for (let index = 1; index <= 120; index++) state = { ...state, route: advanceStairRoute(state.route, index, -4) };
   const direction = getRouteStep(state.route, 120).direction;
   return { ...state, stepsClimbed: 120, score: 149, pursuerDistance: 124, direction,
-    isPursuerCatchingUp: true, nextPursuerStepAt: 50,
+    isPursuerCatchingUp: true, nextPursuerStepAt: 100,
     straightStepsRemaining: countStraightSteps(state.route, 120, direction) };
 }
 
@@ -124,11 +124,11 @@ describe("autonomous pursuit", () => {
   });
 
   it("retains real adjacent motion endpoints while trimming history", () => {
-    const after = tickGame(farAhead(), 1600);
+    const after = tickGame(farAhead(), 3200);
     expect(after).toMatchObject({ pursuerIndex: 28, pursuerDistance: 92,
-      lastPursuerMove: { fromIndex: 27, toIndex: 28, atMs: 1600 } });
+      lastPursuerMove: { fromIndex: 27, toIndex: 28, atMs: 3200 } });
     expect(after.route.steps[0].index).toBe(27);
-    expect(buildStairSceneModel(after).pursuerMotion).toMatchObject({ atMs: 1600 });
+    expect(buildStairSceneModel(after).pursuerMotion).toMatchObject({ atMs: 3200 });
   });
 
   it.each(STAGE_RULES.slice(0,4))("freezes at stage $stage completion and rearms only on Continue", rule => {

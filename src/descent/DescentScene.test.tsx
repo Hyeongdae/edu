@@ -24,6 +24,9 @@ describe("descent scene rendering", () => {
     expect(steps[5].querySelector(".descent-stair-top")).toHaveAttribute("transform", "translate(294 244)");
     expect(document.querySelector('[transform*="scale(1 -1)"]')).toBeNull();
     expect(screen.getByRole("img")).toHaveAccessibleName(/아래로.*위쪽 추격자/);
+    expect(screen.getByRole("img").getAttribute("aria-label")).not.toMatch(/\d+칸 거리/);
+    expect(screen.getByText("오른쪽 길")).toBeInTheDocument();
+    expect(screen.queryByText(/추격자\s*\d+칸/)).toBeNull();
     expect(screen.getByTestId("descent-route-direction")).toHaveTextContent("내려가세요");
   });
 
