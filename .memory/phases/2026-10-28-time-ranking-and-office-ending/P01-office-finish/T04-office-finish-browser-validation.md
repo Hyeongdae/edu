@@ -1,6 +1,6 @@
 # Task: T04 Office Finish Browser Validation
 
-## Status: in_progress
+## Status: done
 
 ## Goal
 
@@ -92,10 +92,10 @@ interface BrowserEvidence {
 
 ## Acceptance Criteria
 
-- [ ] 시간 tuple·구 랭킹 초기화/해금 보호·각 클리어 즉시 저장을 브라우저에서 확인.
-- [ ] 전체5단계·약4초 엔딩·모션 감소·저장 순서·focus·cleanup 확인.
-- [ ] 두 진입점 계단 아트와 단독 무저장/1단계 경계 확인.
-- [ ] 지정31파일/lint/build/diff 통과, 실제 count·증거·제한 기록, 데모 링크 제공.
+- [x] 시간 tuple·구 랭킹 초기화/해금 보호·각 클리어 즉시 저장을 브라우저에서 확인.
+- [x] 전체5단계·약4초 엔딩·모션 감소·저장 순서·focus·cleanup 확인.
+- [x] 두 진입점 계단 아트와 단독 무저장/1단계 경계 확인.
+- [x] 지정31파일/lint/build/diff 통과, 실제 count·증거·제한 기록, 데모 링크 제공.
 
 ## Validation
 
@@ -127,6 +127,26 @@ Task: T04-office-finish-browser-validation
 
 ## Progress
 
-- [ ] 구현/브라우저 검증 완료
-- [ ] 지정 검증 통과
-- commit: pending
+- [x] 구현/브라우저 검증 완료
+- [x] 지정 검증 통과
+- commit: 지정 구현 커밋에 포함 (hash는 phase/current의 완료 동기화에서 기록)
+
+## Validation Results — 2026-10-29
+
+- T04 브라우저 검증만 완료했다. 제품 source/test/config/package는 T03 `1fa30e6`과 동일하며 추가 수정이 필요하지 않았다. 진행은 native D/J/Space와 실제 CDP touch/클릭/Continue/Quit/Restart를 사용했다. React 상태는 읽기 전용으로만 관찰했고 fiber dispatch/내부 상태 대입은 사용하지 않았다. public 저장 API/LeaderboardPanel fixture는 실제 게임 진행과 구분해 기록했다.
+- 환경: Windows/Node24.21.0/Chrome156.0.8078.49, DEV local demo true. 기존5175가 미실행이어서 프로세스 환경 VITE_LOCAL_DEMO_MODE=true로 숨김 Vite PID14620을 시작했다. .env/tenant 설정 변경 없음. 전용9228/Task 임시 프로필 Chrome PID15988과 격리 context만 사용했다.
+- 성공 driver6개: full-flow.mjs, storage-ranking.mjs, ending-real-layout.mjs, mechanics-boundaries.mjs, standalone-boundaries.mjs, ending-interaction.mjs. 각각 `node "C:/Users/DEX/AppData/Local/Temp/time-ranking-and-office-ending-2026-10-29/T04/<driver>.mjs"`로 실행해 exit0/PASS/Runtime 예외0. 상세 시계·전후값·PNG는 동명 JSON/log에 있다. audit.mjs는 경로 길이/패턴·cleanup·단독 저장 경계와 검증 결과를 추가 확인했다.
+- 네 화면320×667/390×844/768×1024/1440×900에서1→5 전체 진행: 각615행동/641물리계단,26보너스점프, 단계별150/200/250/300/352점. 각 단계0점 시작, 목표/예산90·75·65·60·50초, NPC600·500·400·300·250ms, 긴5~9/짧은1~3·긴짧긴/긴짧짧긴을 확인했다. 전체 진행은 Date.now 제어 시나리오다. 단계별 clear snapshot과 동일한 랭킹이 그 순간 한 번씩 저장되고, 마지막 보너스 jump 초과 점수352도 보존됐다.
+- 시간/저장: 구 descent v1만 삭제, 여러 계정 progress v1/새v2/auth/audio/session/기타 sentinel byte 보존. StrictMode 실제 진입/재접속에서도 새 기록 유지. public API의 구키 get/remove 실패·재시도도 비파괴다. 같은 단계·점수1235cs가1234cs보다 우선하며1cs 개선만 갱신, 악화/동점은 achievedAt/byte/쓰기 수 보존. 단계·점수가 시간보다 우선하고 완전 동점은 먼저 달성 순서다. TOP10/현재 사용자/긴 이름과12.35·12.34 표시를 확인했다.
+- 실제1단계 UI clear CP 즉시 저장→제어95초 대기→Quit에서 추가 쓰기0/90.00초 유지, 재접속2단계 기본 해금 확인. Continue/새 선택 후2단계80점 caught는 자체 snapshot/시간으로 저장된다. quota 실패에도 해금 저장/오류 안내/Quit, getter 차단에도 메모리 플레이/Continue/caught가 가능했다.
+- 시간 경계: 설정95초 pause는 예산/추격 deadline을 그대로 늦춘다. 늦은 visibility caught는 실제 접촉 기한으로87.60초를 보존한다. 합법5단계 생성 경로를250ms/물리계단 속도로 진행해190행동·340점에서50초 timeout, 결과0.00초/엔딩 없음. caught/quit/CP도 엔딩이 없다.30칸부터50ms 인접추격, 넘어져도50ms 유지,7칸에서 해제를 확인했다.
+- 실제 시간 엔딩은 Date.now/타이머를 제어하지 않았다. 해금 fixture 뒤 native 키로5단계350점 clear, 즉시4301cs 저장→4085ms에 결과/재시작 focus 관측. 허용 범위3990~4499ms,25ms polling/스크린샷 관측 오차를 포함한다.0/1000/2500/3800ms와 결과 PNG/CSS를 확인했고1F→문 열림→젊은 회사원 걷기→야경 문밖 퇴장→퇴근 완료 순서와 단일 pose/정립 상태/배경 HUD·설정 숨김이 정상이다. 이 사진은 모션을 수동 이동하지 않았다.
+- 초기 모션 감소는 정적 final/결과/focus 즉시 제공, 재생 중 감소도 즉시 완료, 일반 모션 복귀는 같은 결과를 다시 재생하지 않으며 새 도전은 재생한다. 엔딩 중 D/J/Space/실제 touch/visibility가 점수·NPC·저장을 바꾸지 않는다. Tab은 엔딩 heading에 머무르고 결과의 native Space 재시작은 단계 선택으로 이동한다.
+- 종료 후 App timer0/media listener0을 확인했다. 문서에 Vite HMR ping interval1은 남지만 callback source와 /@vite/client stack으로 식별한 개발 서버 인프라다. 게임 타이머로 오인하지 않도록 원본 before/after를 보존했다.
+- 네 화면 글자24px·32px 결과/긴 이름 TOP10에서 root 가로 overflow0, 내부 스크롤로 재시작과 마지막 행 접근 가능.32px active 엔딩도 네 화면에서 확인했다. 메인/단독의 회색 윗면·진한 앞면·노란선, top→runner→front 순서와 원래 발 clip(-34,-88,68,84), 좌우 코너/일반 이동/상자·두 칸 점프가 정상이다. 별도 seed0.19의 일반 점프는3→5/2점, seed0.5 전체 경로는 보너스 점프4점을 검증했다.
+- 단독 DEV 화면은 정상/차단 저장소 양쪽에서 각87행동으로1단계150점 종료, 메인 엔딩 없음. getter/local/session/Storage 메서드 호출 모두0, main ranking/progress/auth/audio sentinel byte 불변. DEV gate/메인 인증 경계는 지정 단위 검사와 production build로도 확인했다. 실제 Entra tenant 로그인과 스피커 청취 품질은 수행하지 않았다.
+- 중간 driver 실패도 보존: storage-ranking-initial은 CP 버튼 focus 상태의 native Space가 Continue를 활성화한 검사 구성 오류였다. 비게임 입력 검사는 heading에 focus하고 버튼 Space 활성화 검사는 별도로 유지했다. ending-real-layout-initial은 스크롤 내부 정적 그림까지 viewport 안에 있어야 한다는 잘못된 기대였으며 실제 root/패널 경계·스크롤 접근을 검사했다. cleanup-initial은 Vite HMR interval을 App timer로 센 경우다. mechanics 초기에는50ms 애니메이션을65ms 뒤 읽은 시점/seed0.5의 첫60행동에 장애물이 없는 경우/seed0.19의 점프가 첫 코너보다 먼저 나오는 순서에 맞게 harness만 보완했다. 제품 source/규칙/timeout/skip/config 수정 없음. 실패 JSON/log도 index에 보존했다.
+- 지정31파일945/945tests/skip0/workers2/71.22초, lint 오류0/경고0, tsc/Vite build/diff 통과. JS564.20kB(gzip157.79)/CSS63.80kB(gzip11.77),218modules/393ms. 기존500kB 초과 크기는 유지되며 이번 build.log에 chunk경고 재출력 없음. 알려진 App 전체suite 부채 정리는 범위 밖이다.
+- 증거: %TEMP%/time-ranking-and-office-ending-2026-10-29/T04/evidence-index.json — artifact114개/PNG62개/주요 driver6개와 전체 파일 SHA256, 중간 실패 로그 포함. 브라우저 임시 profile은 index 대상에서 제외했다. full-flow.log의 PowerShell UTF16 BOM은 읽을 때 판별하며 원본은 유지했다. environment.json/process-identity.json/cleanup.json/scope-audit.log에 경계/소유권/서버/소스 불변을 기록했다.
+- Win32_Process CommandLine에서 exact Task profile/9228 소유권을 확인한 뒤 Browser.close로 Chrome15988을 종료했다.9228 listener 없음.5175 PID14620은 유지하며 `/`와 `/descent-test.html` HTTP200/타이틀 확인. 사용자 실제 브라우저/프로필/기록과 기존 untracked 파일을 직접 변경하지 않았다. 새 범위 밖 결함: 특이사항 없음.
+- 완료 테스트 링크: http://127.0.0.1:5175/ (메인), http://127.0.0.1:5175/descent-test.html (단독 로컬 실험).
