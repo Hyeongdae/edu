@@ -170,7 +170,7 @@ Task: T02-time-ranking-and-checkpoint-saves
 
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: implementation commit containing this Task; hash recorded in subsequent memory sync.
+- commit: `9082bcc` (2026-10-29).
 
 ## Validation Results — 2026-10-29
 

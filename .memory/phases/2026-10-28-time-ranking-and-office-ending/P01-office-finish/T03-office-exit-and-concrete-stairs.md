@@ -1,6 +1,6 @@
 # Task: T03 Office Exit and Concrete Stairs
 
-## Status: pending
+## Status: in_progress
 
 ## Goal
 
