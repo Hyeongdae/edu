@@ -9,6 +9,8 @@ import { getPursuerMotionDurationMs, PURSUER_POLL_INTERVAL_MS } from "./pursuitR
 import { formatRemainingTimeCs } from "./stageResult";
 import { useOfficeExitEnding } from "./useOfficeExitEnding";
 import { OfficeExitEnding } from "./OfficeExitEnding";
+import { useOvertimeCaptureEnding } from "./useOvertimeCaptureEnding";
+import { OvertimeCaptureEnding } from "./OvertimeCaptureEnding";
 import { ControlButtons } from "./ControlButtons";
 import { GameHud } from "./GameHud";
 import { GameInstructionsDialog } from "./GameInstructionsDialog";
@@ -172,7 +174,7 @@ export function GameScreen({
   };
 
   const handleShowStageSelection = () => {
-    if (activeDialogRef.current !== null || gameState.status !== "game-over" || !runStartedRef.current) return;
+    if (activeDialogRef.current !== null || gameState.status !== "game-over" || !runStartedRef.current || isCaughtPresentationPending) return;
     const knownHighest = readKnownHighest();
     const preview = resetGame(undefined, { stage: getHighestUnlockedStage(knownHighest), highestClearedStage: knownHighest });
     runStartedRef.current = false;
@@ -333,6 +335,10 @@ export function GameScreen({
 
   const stageResult = gameState.stageResult;
   const { isEnding } = useOfficeExitEnding(stageResult);
+  const overtime = useOvertimeCaptureEnding(stageResult, nowMs);
+  const isOvertimeEnding = overtime.phase === "overtime";
+  const isCaughtPresentationPending = overtime.phase === "capture" || isOvertimeEnding;
+  const isForegroundEnding = isEnding || isOvertimeEnding;
   useEffect(() => {
     if (stageResult === null) return;
 
@@ -428,8 +434,8 @@ export function GameScreen({
     (gameState.status === "playing" || gameState.endReason === "caught");
 
   useEffect(() => {
-    if (gameState.status === "game-over" && !isEnding && !pursuerCatchVisible) restartButtonRef.current?.focus();
-  }, [gameState.status, isEnding, pursuerCatchVisible, stageResult]);
+    if (gameState.status === "game-over" && !isEnding && !isCaughtPresentationPending) restartButtonRef.current?.focus();
+  }, [gameState.status, isEnding, isCaughtPresentationPending, stageResult]);
 
   useEffect(() => {
     if (activeDialog === "settings") {
@@ -476,8 +482,9 @@ export function GameScreen({
           className="game-frame"
           data-game-status={gameState.status}
           data-stage={gameState.stage}
-          data-pursuer-catching={pursuerCatchVisible}
+          data-pursuer-catching={pursuerCatchVisible && overtime.phase !== "complete"}
           data-office-ending={isEnding}
+          data-overtime-ending={isOvertimeEnding}
           data-title-transitioning={isTitleLeaving || undefined}
           data-title-screen={isTitleScreen || undefined}
         >
@@ -491,7 +498,7 @@ export function GameScreen({
               <div className="game-title-copy">
                 <p className="game-title-kicker">STAIRWAY CHALLENGE</p>
                 <h1 id="game-title">덱스 탈출 넘버원</h1>
-                <p className="game-title-tagline">계단을 내려가 추격자를 따돌리고 퇴근하세요!</p>
+                <p className="game-title-tagline">계단을 내려가 1층까지 도착해 퇴근하세요!</p>
               </div>
               <div className="game-title-actions">
                 <button className="game-title-start" type="button" onClick={handleEnterStageSelection}>
@@ -520,7 +527,7 @@ export function GameScreen({
                 aria-label="게임 설정"
                 aria-expanded={isSettingsOpen}
                 aria-controls="game-settings-dialog"
-                disabled={gameState.status === "ready" || gameState.status === "checkpoint" || isEnding}
+                disabled={gameState.status === "ready" || gameState.status === "checkpoint" || isEnding || isCaughtPresentationPending}
                 onClick={openSettings}
               >
                 <PixelIcon name="settings" />
@@ -540,13 +547,16 @@ export function GameScreen({
                 <CheckpointPanel stage={gameState.stage} score={gameState.score}
                   remainingTimeCs={stageResult!.remainingTimeCs}
                   onContinue={handleContinue} onQuit={handleQuit} disabled={false} progressError={progressError} rankingError={saveError} />
-              ) : isEnding ? <OfficeExitEnding key={stageResult!.endedAtMs} variant="animated" startedAtMs={stageResult!.endedAtMs} /> : (
+              ) : isEnding ? <OfficeExitEnding key={stageResult!.endedAtMs} variant="animated" startedAtMs={stageResult!.endedAtMs} />
+                : overtime.phase === "capture" ? null
+                : isOvertimeEnding ? <OvertimeCaptureEnding key={stageResult!.endedAtMs} variant="animated" startedAtMs={overtime.sceneStartedAtMs!} /> : (
                 <section
                   className="game-over-panel"
                   aria-labelledby="game-over-title"
                 >
                   <div className="game-over-result">
                     {stageResult?.stage === 5 && stageResult.outcome === "cleared" && <OfficeExitEnding variant="complete" />}
+                    {stageResult?.outcome === "caught" && overtime.prefersReducedMotion && <OvertimeCaptureEnding variant="complete" />}
                     <PixelIcon name="flag" className="game-over-icon" size={36} />
                     <p className="game-over-kicker">이번 도전 결과</p>
                     <h2 id="game-over-title">{gameState.score}점</h2>
@@ -563,7 +573,7 @@ export function GameScreen({
                   <LeaderboardPanel entries={leaderboard} currentAccountId={account.homeAccountId} />
                 </section>
               )}
-              <p className="game-footer" aria-hidden={isEnding || undefined} inert={isEnding || undefined}>
+              <p className="game-footer" aria-hidden={isForegroundEnding || undefined} inert={isForegroundEnding || undefined}>
                 <span className="desktop-control-hint"><kbd>D</kbd> 한 칸 내려가기 <span>·</span> <kbd>J</kbd> 방향 바꾸며 내려가기 <span>·</span> <kbd>Space</kbd> 장애물 점프</span>
                 <span className="mobile-control-hint">내려가기 · 방향 바꾸기 · 장애물은 점프!</span>
               </p>
@@ -571,8 +581,8 @@ export function GameScreen({
           )}
           <div
             className={`game-stage${isTitleScreen ? " is-title-background" : ""}`}
-            aria-hidden={isTitleScreen || isEnding || undefined}
-            inert={isTitleScreen || isEnding || undefined}
+            aria-hidden={isTitleScreen || isForegroundEnding || undefined}
+            inert={isTitleScreen || isForegroundEnding || undefined}
           >
             {!isTitleScreen && <GameHud
               state={gameState}

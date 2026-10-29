@@ -47,6 +47,13 @@
   min-height: 0;
 }
 
+.stair-game.pixel-theme .game-frame[data-overtime-ending="true"] > .game-stage,
+.stair-game.pixel-theme .game-frame[data-overtime-ending="true"] > .game-footer,
+.stair-game.pixel-theme .game-frame[data-overtime-ending="true"] > .game-settings-button {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 /* Final artwork is the default, including before animation CSS is applied. */
 .stair-game.pixel-theme .overtime-capture-ending .overtime-capture-pair { transform: translate(172px, 0); }
 .stair-game.pixel-theme .overtime-capture-ending .overtime-capture-young--dragged,
