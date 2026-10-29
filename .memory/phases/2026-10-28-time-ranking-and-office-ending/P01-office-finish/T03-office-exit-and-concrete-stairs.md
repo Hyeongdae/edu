@@ -1,6 +1,6 @@
 # Task: T03 Office Exit and Concrete Stairs
 
-## Status: in_progress
+## Status: done
 
 ## Goal
 
@@ -57,6 +57,7 @@ export function useOfficeExitEnding(result: StageResult | null): OfficeExitEndin
 ```typescript
 export interface OfficeExitEndingProps {
   variant: "animated" | "complete";
+  startedAtMs?: number; // 종료 시각. 지연 mount의 CSS 진행도를 hook 기한과 맞춘다.
 }
 export function OfficeExitEnding(props: OfficeExitEndingProps): ReactElement;
 ```
@@ -67,6 +68,7 @@ export function OfficeExitEnding(props: OfficeExitEndingProps): ReactElement;
 - SVG viewBox=0 0 520 400, shapeRendering=crispEdges, 픽셀 로비·바닥·유리 출입문·바깥 네온 야경을 그린다. 1F/EXIT 표식과 퇴근 완료 안내를 사용한다. 기존 배경의02F 간판을 그대로 가져오지 않는다.
 - 기하 예시를 구현 기준으로 사용: 바닥y320, 출입문x334/y100/width140/height220, 양문은 각각70너비. PixelOfficer의 발 기준점은0, 외부 group translate(145 320)에서시작해 문밖 translate(405 320)까지 오른쪽으로 이동한다.
 - 타임라인:0~800ms 1층도착/잠깐정지,800~1400ms 문열림,1400~3400ms 캐릭터걸어나감,3400~4000ms 퇴근완료/바깥으로퇴장. 기본 CSS translate/opacity 또는 SVG group의 CSS transform을 사용하며 원본 캐릭터를 수직으로 뒤집지 않는다.
+- 구현 보완: optional startedAtMs를 추가해 mount 당시 경과시간을 한 번 계산하고 CSS animation-delay에 음수 offset을 준다. hook만 남은 시간을 기다리면 늦은 mount에서 문/걷기는 처음부터 시작해 중간에 잘리므로 양쪽 시간을 일치시킨다. parent rerender는 이 offset을 재설정하지 않는다.
 - 문 유리 너머 밤도시는 문 frame/clipPath에 맞게 보인다. 필요한 clip ID는 useId. 지나간 캐릭터가 닫힌 문 위로 겹치지 않도록 문열림과 이동 시점을 맞춘다.
 - 새 CSS는 .stair-game .office-exit-ending 범위. PixelOfficer의 모든 pose frame이 동시에 보이지 않도록 기존 idle/run-a/run-b 노출 규칙을 더 구체적인 selector로 재사용/정의한다. 걷기 frame은300ms 두 포즈 교대, 정적 complete는idle 한 포즈만 표시한다.
 - complete는 최종위치/문열림/퇴근완료의 정지 그림과 결과를 즉시 보여준다. prefers-reduced-motion CSS에서도 모든 새 모션을 끄고 최종 상태로 고정한다.
@@ -100,10 +102,10 @@ export function OfficeExitEnding(props: OfficeExitEndingProps): ReactElement;
 
 ## Acceptance Criteria
 
-- [ ] 5단계clear만 자동4초퇴근장면,마지막에결과·랭킹·focus.
-- [ ] 기록은clear순간값이고연출이저장/점수/추격을변경하지않음.
-- [ ] 회색콘크리트/노란선과기존발점·가림순서를두화면에서확인.
-- [ ] 모션감소즉시결과/타이머·listener정리,지정31파일과lint/build/diff통과.
+- [x] 5단계clear만 자동4초퇴근장면,마지막에결과·랭킹·focus.
+- [x] 기록은clear순간값이고연출이저장/점수/추격을변경하지않음.
+- [x] 회색콘크리트/노란선과기존발점·가림순서를두화면에서확인.
+- [x] 모션감소즉시결과/타이머·listener정리,지정31파일과lint/build/diff통과.
 
 ## Validation
 
@@ -133,6 +135,17 @@ Task: T03-office-exit-and-concrete-stairs
 
 ## Progress
 
-- [ ] 구현 완료
-- [ ] 검증 통과
-- commit: pending
+- [x] 구현 완료
+- [x] 검증 통과
+- commit: 아래 지정 구현 커밋에 포함 (hash는 phase/current 동기화에서 기록)
+
+## Validation Results — 2026-10-29
+
+- T03 범위만 구현: useOfficeExitEnding/OfficeExitEnding/CSS 신규, GameScreen 연결·결과 focus, 공용 PixelStair 아트와 신규/기존 통합 검사. 엔진/스키마/랭킹·저장·해금/auth/audio/단독 source/renderer 좌표/config/package 변경 없음.
+- 종료 스냅샷 참조와 종료 시각+4000ms 기준으로 엔딩을 관리한다. CSS도 optional startedAtMs의 최초 경과시간 offset으로 기한을 맞췄다. StrictMode/리렌더는 연출을 연장하지 않으며 reset/unmount는 timer/listener를 정리한다. 모션 감소는 즉시 정적 완료, 같은 결과는 재생하지 않는다.
+- 기록은 clear 즉시 저장되고 엔딩 종료 시 추가 쓰기0. 엔딩 중 배경 inert/aria-hidden·설정 비활성·입력 차단, 끝나면 결과/재시작 focus. 기존 catch gate도 끝난 뒤 focus. 공용 계단은 외곽과 착지점·가림 순서를 보존하며 콘크리트/노란선만 변경했다.
+- 신규2파일25/25 검사 통과(2.63초), GameScreen 최종104/104 통과(35.38초). 신규33개(장면/hook20+계단5+화면8), 기존 최종 결과 기대4개를4초 엔딩에 맞췄다.
+- 지정31파일945/945 tests, skip0, workers2,60.92초 통과. lint 오류0/경고0. tsc --noEmit/Vite production build 통과: JS564.20kB(gzip157.79), CSS63.80kB(gzip11.77),218modules/448ms. 기존500kB 초과 번들 크기는 유지되며 이번 로그에는 chunk경고 재출력 없음. git diff --check 통과.
+- 중간 screen-initial.log는 기존 즉시 결과 기대4실패/92통과, screen-expanded.log는 신규 타이머 검사2실패/102통과였다. 기존 점수 피드백700ms와 재시작의 비동기 UI 갱신/microtask를 기다리도록 새 검사만 조정했다. 제품 시간/테스트 timeout/skip/config는 변경하지 않았다. 최종 근거는 screen-focused-final.log/regression-31.log다.
+- 증거: %TEMP%/time-ranking-and-office-ending-2026-10-29/T03/의 focused-new.log, screen-initial.log, screen-expanded.log, screen-focused-final.log, regression-31.log, lint.log, build.log. 중간 로그도 보존한다.
+- 실제 브라우저 SVG 모션/문/걷기·320px/큰 글자 및 양쪽 화면 육안 확인은 다음 T04 대상이다. 이 Task는 DOM/순수 규칙/기존 양쪽 renderer 회귀로 확인했다. 사용자 실제 프로필/기록/기존 demo 서버에 직접 접근하지 않았다. 알려진 App 전체suite/번들 부채 외 신규 범위 밖 결함: 특이사항 없음.

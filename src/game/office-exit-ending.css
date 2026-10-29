@@ -1,0 +1,70 @@
+.stair-game.pixel-theme .office-exit-ending {
+  min-width: 0;
+  color: var(--pixel-text);
+  background: #11192e;
+  text-align: center;
+}
+.stair-game.pixel-theme .office-exit-ending[data-variant="animated"] {
+  position: absolute;
+  z-index: 20;
+  inset: 0;
+  display: grid;
+  grid-template-rows: max-content minmax(0, 1fr) max-content;
+  gap: 12px;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.stair-game.pixel-theme .office-exit-heading { min-width: 0; }
+.stair-game.pixel-theme .office-exit-heading h2,
+.stair-game.pixel-theme .office-exit-heading h3 { margin: 0 0 8px; overflow-wrap: anywhere; color: var(--pixel-gold); font-size: clamp(1.2rem, 3vw, 2rem); }
+.stair-game.pixel-theme .office-exit-heading h2:focus { outline: 2px solid var(--pixel-cyan); outline-offset: 4px; }
+.stair-game.pixel-theme .office-exit-heading p { margin: 0; overflow-wrap: anywhere; font-size: 0.9rem; }
+.stair-game.pixel-theme .office-exit-scene { display: block; width: 100%; height: 100%; min-height: 0; image-rendering: pixelated; }
+.stair-game.pixel-theme .office-exit-messages { display: grid; margin: 0; min-height: 1.5em; color: var(--pixel-cyan); }
+.stair-game.pixel-theme .office-exit-messages > span { grid-area: 1 / 1; overflow-wrap: anywhere; }
+.stair-game.pixel-theme .office-exit-ending[data-variant="complete"] { flex: 0 0 auto; width: 100%; max-width: 320px; margin: 0 0 12px; border: 1px solid var(--pixel-edge); padding: 8px; }
+.stair-game.pixel-theme .office-exit-ending[data-variant="complete"] .office-exit-heading h3 { font-size: 1.1rem; }
+.stair-game.pixel-theme .office-exit-ending[data-variant="complete"] .office-exit-heading p { font-size: 0.8rem; }
+.stair-game.pixel-theme .office-exit-ending[data-variant="complete"] .office-exit-scene { height: 128px; }
+.stair-game.pixel-theme .office-exit-ending .office-exit-door--left { transform: translateX(-70px); }
+.stair-game.pixel-theme .office-exit-ending .office-exit-door--right { transform: translateX(70px); }
+.stair-game.pixel-theme .office-exit-ending .office-exit-runner-travel { transform: translateX(260px); }
+.stair-game.pixel-theme .office-exit-ending .pixel-officer[data-officer-pose] .officer-frame { display: none; animation: none; }
+.stair-game.pixel-theme .office-exit-ending[data-variant="complete"] .pixel-officer .officer-frame--idle { display: inline; }
+.stair-game.pixel-theme .office-exit-ending[data-variant="animated"] .office-exit-door--left { animation: office-door-left 4s linear both; }
+.stair-game.pixel-theme .office-exit-ending[data-variant="animated"] .office-exit-door--right { animation: office-door-right 4s linear both; }
+.stair-game.pixel-theme .office-exit-ending[data-variant="animated"] .office-exit-runner-travel { animation: office-walk-out 4s linear both; }
+.stair-game.pixel-theme .office-exit-ending[data-variant="animated"] .pixel-officer .officer-frame--idle { display: inline; animation: office-arrival-window 4s steps(1, end) both; }
+.stair-game.pixel-theme .office-exit-ending[data-variant="animated"] .pixel-officer .officer-frame--run-a { display: inline; animation: office-walk-window 4s steps(1, end) both, office-stride-a 300ms steps(1, end) 1400ms infinite; }
+.stair-game.pixel-theme .office-exit-ending[data-variant="animated"] .pixel-officer .officer-frame--run-b { display: inline; animation: office-walk-window 4s steps(1, end) both, office-stride-b 300ms steps(1, end) 1400ms infinite; }
+.stair-game.pixel-theme .office-exit-message--arrival { animation: office-arrival-window 4s steps(1, end) both; }
+.stair-game.pixel-theme .office-exit-message--walk { animation: office-walk-window 4s steps(1, end) both; }
+.stair-game.pixel-theme .office-exit-message--complete { animation: office-complete-window 4s steps(1, end) both; }
+.stair-game.pixel-theme .office-exit-ending[data-variant="animated"] .office-exit-door,
+.stair-game.pixel-theme .office-exit-ending[data-variant="animated"] .office-exit-runner-travel,
+.stair-game.pixel-theme .office-exit-ending[data-variant="animated"] .pixel-officer .officer-frame--idle,
+.stair-game.pixel-theme .office-exit-ending[data-variant="animated"] .office-exit-messages > span { animation-delay: var(--office-exit-offset, 0ms); }
+.stair-game.pixel-theme .office-exit-ending[data-variant="animated"] .pixel-officer .officer-frame--run-a,
+.stair-game.pixel-theme .office-exit-ending[data-variant="animated"] .pixel-officer .officer-frame--run-b { animation-delay: var(--office-exit-offset, 0ms), calc(1400ms + var(--office-exit-offset, 0ms)); }
+.stair-game.pixel-theme .game-frame[data-office-ending="true"] > .game-stage,
+.stair-game.pixel-theme .game-frame[data-office-ending="true"] > .game-footer,
+.stair-game.pixel-theme .game-frame[data-office-ending="true"] > .game-settings-button { visibility: hidden; pointer-events: none; }
+@keyframes office-door-left { 0%, 20% { transform: translateX(0); } 35%, 100% { transform: translateX(-70px); } }
+@keyframes office-door-right { 0%, 20% { transform: translateX(0); } 35%, 100% { transform: translateX(70px); } }
+@keyframes office-walk-out { 0%, 35% { transform: translateX(0); opacity: 1; } 80% { opacity: 1; } 85%, 100% { transform: translateX(260px); opacity: 0; } }
+@keyframes office-arrival-window { 0%, 34.999% { visibility: visible; } 35%, 100% { visibility: hidden; } }
+@keyframes office-walk-window { 0%, 34.999% { visibility: hidden; } 35%, 84.999% { visibility: visible; } 85%, 100% { visibility: hidden; } }
+@keyframes office-complete-window { 0%, 84.999% { visibility: hidden; } 85%, 100% { visibility: visible; } }
+@keyframes office-stride-a { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+@keyframes office-stride-b { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .stair-game.pixel-theme .office-exit-ending .office-exit-door,
+  .stair-game.pixel-theme .office-exit-ending .office-exit-runner-travel,
+  .stair-game.pixel-theme .office-exit-ending .pixel-officer[data-officer-pose] .officer-frame,
+  .stair-game.pixel-theme .office-exit-ending .office-exit-messages > span { animation: none; }
+  .stair-game.pixel-theme .office-exit-ending[data-variant] .pixel-officer .officer-frame { display: none; }
+  .stair-game.pixel-theme .office-exit-ending[data-variant] .pixel-officer .officer-frame--idle { display: inline; }
+  .stair-game.pixel-theme .office-exit-message--arrival,
+  .stair-game.pixel-theme .office-exit-message--walk { visibility: hidden; }
+}

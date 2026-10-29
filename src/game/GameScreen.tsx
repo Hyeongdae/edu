@@ -7,6 +7,8 @@ import { readStageProgress, saveStageProgress } from "./stageProgress";
 import { getHighestUnlockedStage } from "./stageRules";
 import { getPursuerMotionDurationMs, PURSUER_POLL_INTERVAL_MS } from "./pursuitRules";
 import { formatRemainingTimeCs } from "./stageResult";
+import { useOfficeExitEnding } from "./useOfficeExitEnding";
+import { OfficeExitEnding } from "./OfficeExitEnding";
 import { ControlButtons } from "./ControlButtons";
 import { GameHud } from "./GameHud";
 import { StairScene } from "./StairScene";
@@ -75,6 +77,7 @@ export function GameScreen({
   const isSettingsOpenRef = useRef(false);
   const settingsTriggerRef = useRef<HTMLButtonElement | null>(null);
   const settingsCloseRef = useRef<HTMLButtonElement | null>(null);
+  const restartButtonRef = useRef<HTMLButtonElement | null>(null);
   const settingsDialogRef = useRef<HTMLElement | null>(null);
   const previousSettingsOpenRef = useRef(false);
   const previousStepsRef = useRef(gameState.stepsClimbed);
@@ -276,6 +279,7 @@ export function GameScreen({
   }, [audioController, gameState.status]);
 
   const stageResult = gameState.stageResult;
+  const { isEnding } = useOfficeExitEnding(stageResult);
   useEffect(() => {
     if (stageResult === null) return;
 
@@ -371,6 +375,10 @@ export function GameScreen({
     (gameState.status === "playing" || gameState.endReason === "caught");
 
   useEffect(() => {
+    if (gameState.status === "game-over" && !isEnding && !pursuerCatchVisible) restartButtonRef.current?.focus();
+  }, [gameState.status, isEnding, pursuerCatchVisible, stageResult]);
+
+  useEffect(() => {
     if (isSettingsOpen) {
       if (!settingsDialogRef.current?.contains(document.activeElement)) settingsCloseRef.current?.focus();
     } else if (previousSettingsOpenRef.current) {
@@ -409,6 +417,7 @@ export function GameScreen({
           data-game-status={gameState.status}
           data-stage={gameState.stage}
           data-pursuer-catching={pursuerCatchVisible}
+          data-office-ending={isEnding}
         >
           <button
             ref={settingsTriggerRef}
@@ -417,13 +426,13 @@ export function GameScreen({
             aria-label="게임 설정"
             aria-expanded={isSettingsOpen}
             aria-controls="game-settings-dialog"
-            disabled={gameState.status === "ready" || gameState.status === "checkpoint"}
+            disabled={gameState.status === "ready" || gameState.status === "checkpoint" || isEnding}
             onClick={openSettings}
           >
             <PixelIcon name="settings" />
           </button>
 
-          <div className="game-stage">
+          <div className="game-stage" aria-hidden={isEnding || undefined} inert={isEnding || undefined}>
             <GameHud
               state={gameState}
               eventSecondsLeft={eventSecondsLeft}
@@ -459,12 +468,13 @@ export function GameScreen({
             <CheckpointPanel stage={gameState.stage} score={gameState.score}
               remainingTimeCs={stageResult!.remainingTimeCs}
               onContinue={handleContinue} onQuit={handleQuit} disabled={false} progressError={progressError} rankingError={saveError} />
-          ) : (
+          ) : isEnding ? <OfficeExitEnding key={stageResult!.endedAtMs} variant="animated" startedAtMs={stageResult!.endedAtMs} /> : (
             <section
               className="game-over-panel"
               aria-labelledby="game-over-title"
             >
               <div className="game-over-result">
+                {stageResult?.stage === 5 && stageResult.outcome === "cleared" && <OfficeExitEnding variant="complete" />}
                 <PixelIcon name="flag" className="game-over-icon" size={36} />
                 <p className="game-over-kicker">이번 도전 결과</p>
                 <h2 id="game-over-title">{gameState.score}점</h2>
@@ -474,14 +484,14 @@ export function GameScreen({
                 <p>계단 {gameState.stepsClimbed}개를 내려왔어요.</p>
                 {saveError && <p className="leaderboard-error" role="status">기록을 저장하지 못했습니다. 이 브라우저의 저장 공간을 확인해 주세요.</p>}
                 {progressError && <p role="status">진행도를 저장하지 못했습니다. 이 브라우저의 저장 공간을 확인해 주세요.</p>}
-                <button className="start-button restart-button" type="button" onClick={handleShowStageSelection}>
+                <button ref={restartButtonRef} className="start-button restart-button" type="button" onClick={handleShowStageSelection}>
                   <PixelIcon name="restart" size={20} /> 다시 시작
                 </button>
               </div>
               <LeaderboardPanel entries={leaderboard} currentAccountId={account.homeAccountId} />
             </section>
           )}
-          <p className="game-footer">
+          <p className="game-footer" aria-hidden={isEnding || undefined} inert={isEnding || undefined}>
             <span className="desktop-control-hint"><kbd>D</kbd> 한 칸 내려가기 <span>·</span> <kbd>J</kbd> 방향 바꾸며 내려가기 <span>·</span> <kbd>Space</kbd> 장애물 점프</span>
             <span className="mobile-control-hint">내려가기 · 방향 바꾸기 · 장애물은 점프!</span>
           </p>
