@@ -60,7 +60,8 @@
 
 ## Progress
 
-- done: 2/4 (active: T03)
-- T02 `9082bcc` (2026-10-29): 시간 랭킹v2·구v1만 정리·해금 보존·클리어 즉시 저장·CP/결과/랭킹 시간 표시 완료. 지정29파일912/912tests/workers2/54.62초, lint/build/diff 통과. 다음 실행은 T03 퇴근 엔딩·콘크리트 계단이다.
+- done: 3/4 (active: T04)
+- T03 `1fa30e6` (2026-10-29): clear 전용4초퇴근엔딩·모션감소/입력차단/focus/cleanup·공용 콘크리트/노란선 계단 완료. 지정31파일945/945tests/workers2/60.92초, lint/build/diff 통과. 실제 브라우저 SVG·모바일 검증은 다음 T04다. 증거와 중간 로그/제한은 T03 Validation Results에 기록했다.
+- T02 `9082bcc` (2026-10-29): 시간 랭킹v2·구v1만 정리·해금 보존·클리어 즉시 저장·CP/결과/랭킹 시간 표시 완료. 지정29파일912/912tests/workers2/54.62초, lint/build/diff 통과.
 - T01 `cbc6c26`: 종료 성적 스냅샷·단위/표시/helper·엔진 전환·단독 fresh guard 완료. 지정29파일864/864tests/workers2/124.79초, lint/build/diff 통과. 증거/중간 실패와 제한은 T01 Validation Results에 기록했다.
 - Last completed plan: distance-based-pursuer-catch-up, implementation43db38c / memory15704d3.

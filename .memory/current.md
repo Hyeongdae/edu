@@ -10,15 +10,19 @@
 
 ## Active Task
 
-[T03 Office Exit and Concrete Stairs](./phases/2026-10-28-time-ranking-and-office-ending/P01-office-finish/T03-office-exit-and-concrete-stairs.md)
+[T04 Office Finish Browser Validation](./phases/2026-10-28-time-ranking-and-office-ending/P01-office-finish/T04-office-finish-browser-validation.md)
 
 ## Last Completed Task
 
-[T02 Time Ranking and Checkpoint Saves](./phases/2026-10-28-time-ranking-and-office-ending/P01-office-finish/T02-time-ranking-and-checkpoint-saves.md) — `9082bcc` (2026-10-29). T01 `cbc6c26`/동기화 `efda9c2`; 계획 문서 `b3c67aa`. 이전 추격 계획 T01 `43db38c`/완료 동기화 `15704d3`.
+[T03 Office Exit and Concrete Stairs](./phases/2026-10-28-time-ranking-and-office-ending/P01-office-finish/T03-office-exit-and-concrete-stairs.md) — `1fa30e6` (2026-10-29). T02 `9082bcc`/동기화 `ae2bbcb`; T01 `cbc6c26`/동기화 `efda9c2`; 계획 문서 `b3c67aa`. 이전 추격 계획 T01 `43db38c`/완료 동기화 `15704d3`.
 
 ## Status
 
-- time-ranking-and-office-ending: in_progress, done2/4, Active Task T03 in_progress. 2026-10-29 T02만 완료했고 T03 구현은 다음 실행 대상이다.
+- time-ranking-and-office-ending: in_progress, done3/4, Active Task T04 in_progress. 2026-10-29 T03만 완료했고 T04 브라우저 검증은 다음 실행 대상이다.
+- T03 `1fa30e6`: 5단계 clear 전용4초1층퇴근엔딩, 시각/JS 동일 절대기한·StrictMode/cleanup·모션감소 정적완료·배경 inert/입력차단·결과 restart focus, 공용 콘크리트/노란선 계단 아트 구현. 기록은 T02 clear 순간 저장이며 엔딩 후 추가 쓰기0. 엔진/랭킹·저장·진행도/auth/audio/단독 source/renderer geometry/config/package 변경 없음.
+- T03 검증: 지정31파일945/945tests/skip0/workers2/60.92초, 신규33개. 신규2파일25/25(2.63초), GameScreen104/104(35.38초). lint 오류0/경고0, tsc/Vite build/diff 통과. JS564.20kB(gzip157.79)/CSS63.80kB(gzip11.77), 기존500kB 초과 크기 유지/이번 로그에 chunk경고 재출력 없음.
+- T03 증거: %TEMP%/time-ranking-and-office-ending-2026-10-29/T03/의 focused-new.log, screen-initial.log(기존 즉시결과 기대4실패/92통과), screen-expanded.log(신규 timer기대2실패/102통과), screen-focused-final.log, regression-31.log, lint.log, build.log. 새 검사에서 기존700ms 점수 피드백/비동기UI 갱신·microtask를 기다리게 보완했고 timeout/skip/config를 바꾸지 않았다. 상세는 T03 Validation Results.
+- T03은 실제 브라우저를 실행하지 않았다. SVG 문/걷기·320px/큰 글자·양쪽 화면 육안 및 저장의 실제 진입점 검증은 T04에서 수행한다. 사용자 프로필/실기록/기존 demo 서버 직접 접근 없음. 신규 범위 밖 결함: 특이사항 없음.
 - T02 `9082bcc`: 단계→점수→남은 시간→먼저 달성 순서/동일 기준 개인 최고, descent v2 필수 remainingTimeCs, v1 랭킹만 정리하는 helper, stageResult 참조 기반 CP 즉시 저장·동일 성적 무쓰기, CP/결과/랭킹 시간 표시·별도 저장 오류·480px 이하 행 접기 구현.
 - T02 검증: 지정29파일912/912tests/skip0/workers2/54.62초, 집중4파일138/138. 신규48개(랭킹25/저장4/패널6/화면13). lint 오류0/경고0, tsc/Vite build/diff 통과. JS557.13kB(gzip155.82)/CSS57.91kB(gzip11.04), 기존500kB chunk경고 유지.
 - T02 증거: %TEMP%/time-ranking-and-office-ending-2026-10-29/T02/의 focused-initial.log/focused-expanded.log/regression-29.log/lint.log/build.log. 이전 2026-10-28/T02/regression-initial.log는 시간 없는 옛 fixture/기존 CP 미저장 기대값 등47실패/817통과의 중간 로그로 보존한다. 기존 ascent 무시간 fixture는 유지했다. timeout/skip/config/package 변경 없음.
@@ -41,7 +45,7 @@
 
 ## Next Step (IMPORTANT)
 
-/memory-execute 또는 이어서 해줘 요청 시 T03-office-exit-and-concrete-stairs.md만 읽고 구현한다. T02에서5단계 clear 성적은 즉시 저장되므로 이를 기다리게 바꾸지 않는다. core는game-over 그대로, UI4초 엔딩·모션감소 정적결과·focus/cleanup과 공용 콘크리트/노란선 PixelStair를 연결한다. T01/T02를 재실행하지 않는다. T03 지정 검증·커밋 후 T04로 전진하고 다음 Task는 명령 없이 연속 실행하지 않는다.
+/memory-execute 또는 이어서 해줘 요청 시 T04-office-finish-browser-validation.md만 읽고 브라우저 검증을 수행한다. T01/T02/T03을 재실행하지 않는다. T02 clear 즉시 저장·T03 절대기한4초엔딩을 유지하며 실제 진입점/저장·SVG 모션/모바일·큰 글자/모션감소/단독 경계를 소유 격리 브라우저에서 확인한다. 기존 demo 서버와 사용자 프로필/실기록을 검증 대상으로 변경하지 않는다. 증거는 실행 날짜별 T04 폴더에 저장하고 지정 검증·커밋 후 계획 완료를 동기화한다. 명령 없이 다음 Task를 연속 실행하지 않는다.
 
 ---
 
