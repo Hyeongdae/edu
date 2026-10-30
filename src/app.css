@@ -56,6 +56,12 @@
   background: #2555c5;
 }
 
+.auth-card a.primary-button {
+  display: grid;
+  place-items: center;
+  text-decoration: none;
+}
+
 .primary-button:focus-visible {
   outline: 3px solid #9db6ff;
   outline-offset: 3px;

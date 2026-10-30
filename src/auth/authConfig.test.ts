@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getAuthConfigurationError } from "./authConfig";
+import { getAuthConfigurationError, getAuthMode } from "./authConfig";
 
 describe("getAuthConfigurationError", () => {
   it("lists missing Entra environment variables without exposing values", () => {
@@ -22,5 +22,21 @@ describe("getAuthConfigurationError", () => {
     expect(getAuthConfigurationError({ VITE_ENTRA_CLIENT_ID: "  " })).toContain(
       "VITE_ENTRA_CLIENT_ID",
     );
+  });
+});
+
+describe("hosted auth mode", () => {
+  it.each([undefined, "", "  ", "entra-spa"])("preserves local SPA mode for %s", (VITE_AUTH_MODE) => {
+    expect(getAuthMode({ VITE_AUTH_MODE })).toBe("entra-spa");
+  });
+
+  it("recognizes hosted mode without requiring local SPA registration values", () => {
+    expect(getAuthMode({ VITE_AUTH_MODE: " azure-static-web-apps " })).toBe("azure-static-web-apps");
+    expect(getAuthConfigurationError({ VITE_AUTH_MODE: "azure-static-web-apps" })).toBeNull();
+  });
+
+  it.each(["invalid", "Azure-Static-Web-Apps", "demo"])("fails closed for unsupported mode %s", (VITE_AUTH_MODE) => {
+    expect(() => getAuthMode({ VITE_AUTH_MODE })).toThrow("VITE_AUTH_MODE");
+    expect(getAuthConfigurationError({ VITE_AUTH_MODE })).toContain("VITE_AUTH_MODE");
   });
 });

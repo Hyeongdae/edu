@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { useMsal } from "@azure/msal-react";
 import type { AccountInfo } from "@azure/msal-browser";
 import { AuthGate } from "./auth/AuthGate";
+import { HostedAuthGate } from "./auth/HostedAuthGate";
+import type { AuthMode } from "./auth/authConfig";
+import type { GameAccount } from "./auth/gameAccount";
 import { GameScreen } from "./game/GameScreen";
 import { createAudioController } from "./audio/audioController";
 import { loadAudioPreferences, saveAudioPreferences, type AudioPreferences } from "./audio/audioPreferences";
@@ -10,6 +13,7 @@ import "./app.css";
 interface AppProps {
   configurationError: string | null;
   localDemoMode?: boolean;
+  authMode?: AuthMode;
 }
 
 function AuthConfigurationMessage({ message }: { message: string }) {
@@ -28,7 +32,7 @@ function AuthConfigurationMessage({ message }: { message: string }) {
   );
 }
 
-function GameAppShell({ account }: { account: AccountInfo }) {
+function GameAppShell({ account }: { account: GameAccount }) {
   const [audioController] = useState(() => createAudioController());
   const [audioPreferences, setAudioPreferences] = useState(() => loadAudioPreferences());
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
@@ -88,7 +92,7 @@ function ProtectedAppShell() {
     );
   }
 
-  return <GameAppShell account={account as AccountInfo} />;
+  return <GameAppShell key={account.homeAccountId} account={account} />;
 }
 
 const localDemoAccount: AccountInfo = {
@@ -100,9 +104,13 @@ const localDemoAccount: AccountInfo = {
   name: "로컬 테스트 사용자",
 };
 
-export default function App({ configurationError, localDemoMode = false }: AppProps) {
-  if (localDemoMode) {
-    return <GameAppShell account={localDemoAccount} />;
+export default function App({ configurationError, localDemoMode = false, authMode = "entra-spa" }: AppProps) {
+  if (authMode === "azure-static-web-apps") {
+    return <HostedAuthGate>{(account) => <GameAppShell key={account.homeAccountId} account={account} />}</HostedAuthGate>;
+  }
+
+  if (localDemoMode && import.meta.env.DEV) {
+    return <GameAppShell key={localDemoAccount.homeAccountId} account={localDemoAccount} />;
   }
 
   if (configurationError) {

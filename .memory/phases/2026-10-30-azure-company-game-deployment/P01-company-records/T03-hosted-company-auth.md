@@ -1,6 +1,6 @@
 # Task: T03 Hosted Company Auth
 
-## Status: pending
+## Status: done
 
 ## Goal
 배포본은 SWA 회사 세션을 한 번 사용하고 로컬은 기존 MSAL/DEV 데모로 동작하도록 인증 진입을 분리한다. 회사 principal 확인에 실패하면 게임을 보여주지 않는다.
@@ -81,9 +81,9 @@ interface HostedAuthGateProps {
 - Test one audio owner and cleanup under auth/account changes; do not rewrite game flow or skip obsolete tests to get green.
 
 ## Acceptance Criteria
-- [ ] Hosted authentication uses one SWA identity and no extra MSAL login.
-- [ ] Loading/failure never mounts game; retries and account switch dispose stale work.
-- [ ] Existing local MSAL and DEV-only demo remain valid; current title/audio tests pass.
+- [x] Hosted authentication uses one SWA identity and no extra MSAL login.
+- [x] Loading/failure never mounts game; retries and account switch dispose stale work.
+- [x] Existing local MSAL and DEV-only demo remain valid; current title/audio tests pass.
 
 ## Validation
 - `npm run test -- --run src/auth/authConfig.test.ts src/auth/hostedAuth.test.ts src/auth/HostedAuthGate.test.tsx src/App.test.tsx --maxWorkers=2`.
@@ -104,9 +104,21 @@ Task: T03-hosted-company-auth
 ```
 
 ## Progress
-- [ ] 구현 완료
-- [ ] 검증 통과
+- [x] 구현 완료
+- [x] 검증 통과
 - commit: pending
+
+## Execution Evidence (2026-10-30)
+- Added minimal GameAccount, strict getAuthMode selection and typed VITE_AUTH_MODE. Missing/blank mode keeps local SPA; unsupported mode displays a configuration error and cannot fall back to demo. Hosted entry does not construct a PublicClientApplication or MsalProvider and does not require local SPA environment IDs.
+- Added hostedAuth.ts: same-origin GET /.auth/me with credentials/include, no-store, explicit JSON response validation and safe relative login return URL. Provider must be aad, ID nonempty and authenticated role present; unsupported/malformed principal fails closed, null is explicit signed-out. Direct-endpoint custom claims do not override verified platform details.
+- Added HostedAuthGate: separate loading/signed-out/error/success states, explicit company login link, retry, effect-scoped generation/AbortSignal guard and unmount cleanup. Stale StrictMode responses cannot replace the newer identity; no automatic login loop or background polling that resets an active run.
+- App hosted branch wins over local demo/SPA configuration. Local demo additionally checks DEV. GameAppShell is keyed by actual account ID so an identity change disposes old audio/game and creates a new owner; ordinary same-account renders do not duplicate audio. GameScreen changes are account type only.
+- Supporting scoped files: src/main.test.tsx verifies actual entry initialization and MSAL-constructor precedence; src/app.css adds button layout for the native login navigation link. No visual redesign or new game/audio rule.
+- Corrected the three existing App tests to navigate current title -> game start -> stage start -> settings. The previous volume assertion was stale after the existing 0.6 BGM gain; expected playback0.18 for stored volume0.3 without changing audioController source or preferences.
+- Auth validation command including the blueprint's four files plus src/main.test.tsx passed78/78 across5 files, zero skipped. Covers hosted/guest/null/error identities, malformed JSON/status/provider, encoded external/control-character redirects, retry/abort/stale responses, DEV/PROD mode precedence, existing title/subtitle, audio fallback/preferences/account cleanup.
+- npm run lint and normal npm run build passed; local JS587.13kB/CSS76.01kB. A second hosted build with process-only VITE_AUTH_MODE=azure-static-web-apps, all three local SPA IDs blank and VITE_LOCAL_DEMO_MODE=true passed (JS587.08kB/CSS76.01kB). Environment restored in finally; .env.local unchanged, no IDs/secrets printed.
+- Existing >500kB bundle warning remains as explicitly deferred. Diff/whitespace checks passed. No product test skips, dependency upgrades, legacy record migration/deletion or game-engine changes.
+- This is bootstrap/UI verification, not a live Entra session or route-security proof. SWA tenant enforcement and protected assets/API require P02. Hosted GameScreen still uses the interim local records until T04; this intermediate build was not published. No Azure resource/callback/credential changes or Git push.
 
 ## Next
 P01-T04-cloud-records-game-integration. 아직 회사 공유 저장 연결 전이므로 URL 릴리스를 하지 않는다.

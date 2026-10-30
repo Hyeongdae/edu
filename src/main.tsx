@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import { MsalProvider } from "@azure/msal-react";
 import { PublicClientApplication } from "@azure/msal-browser";
 import App from "./App";
-import { authConfigurationError, isLocalDemoMode, msalConfig } from "./auth/authConfig";
+import { authConfigurationError, authMode, isLocalDemoMode, msalConfig } from "./auth/authConfig";
 import "./global.css";
 
 const container = document.getElementById("root");
@@ -14,7 +14,13 @@ if (!container) {
 
 const root = createRoot(container);
 
-if (isLocalDemoMode) {
+if (authMode === "azure-static-web-apps") {
+  root.render(
+    <StrictMode>
+      <App configurationError={null} authMode={authMode} />
+    </StrictMode>,
+  );
+} else if (isLocalDemoMode) {
   root.render(
     <StrictMode>
       <App configurationError={null} localDemoMode />

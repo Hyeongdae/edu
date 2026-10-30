@@ -1,5 +1,5 @@
 import { type KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
-import type { AccountInfo } from "@azure/msal-browser";
+import type { GameAccount } from "../auth/gameAccount";
 import { applyInput, continueGame, createGameState, getStageSecondsLeft, quitAtCheckpoint, resetGame, resumeGameAfterPause, startGame, tickGame } from "./gameEngine";
 import { CheckpointPanel } from "./CheckpointPanel";
 import { StageSelectPanel } from "./StageSelectPanel";
@@ -28,7 +28,7 @@ import "./pixel-theme.css";
 const TITLE_SCENE_TRANSITION_MS = 200;
 
 interface GameScreenProps {
-  account: AccountInfo;
+  account: GameAccount;
   audioController?: AudioController;
   audioPreferences?: AudioPreferences;
   autoplayBlocked?: boolean;
