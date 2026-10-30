@@ -66,11 +66,11 @@
 - Mark T03 done and P02done3/3/plan7/7 only after essential checks. memory-execute should use normal scoped commit/sync and clear Active Task; preserve historical current context. Final user response gives clickable actual URL and company-login note, plus any material verification limitation.
 
 ## Acceptance Criteria
-- [ ] Latest reviewed game and API are live at actual HTTPS Azure URL; exact main SHA and passing deploy run recorded.
-- [ ] Anonymous/forged-principal requests cannot read/write official records; company login succeeds.
-- [ ] Real result is stored server-side and another independent-storage session restores cleared-stage unlocks.
-- [ ] No local legacy import, unrelated resource modification or secret exposure; CI auto deploy enabled.
-- [ ] Evidence differentiates actual browser/account tests from automated/config checks, and user receives working link.
+- [x] Reviewed game and API are live at actual HTTPS Azure URL; deployed SHA and passing deploy run are recorded in `deploy/RELEASE.md`.
+- [ ] Anonymous/forged-principal requests redirect to Entra; actual company login and successful API access remain to be confirmed.
+- [ ] Real result storage and independent-session stage restore remain to be confirmed after company login.
+- [x] No local legacy import, unrelated resource modification or secret exposure; main push triggered CI and deployment.
+- [x] Evidence separates automated/anonymous HTTP checks from browser/account checks; user has the live URL.
 
 ## Validation
 - Full/appropriate source gates above and actual successful GitHub run for recorded SHA.
@@ -92,9 +92,11 @@ Task: T03-release-and-verify-url
 ```
 
 ## Progress
-- [ ] 구현 완료
-- [ ] 검증 통과
-- commit: pending
+- [x] Production build and release completed for SHA `8c01fed3e00d90ed4d8f1df1d485098506306460`; Actions run [40998761290](https://github.com/Hyeongdae/edu/actions/runs/40998761290) succeeded.
+- [x] Root 1269, API 95, API integration 10, deployment 25 tests; lint, API build, hosted frontend build, artifact verification passed.
+- [x] Anonymous root/profile/leaderboard and untrusted-principal profile requests redirect to Entra.
+- [ ] Real employee login, score write and independent-storage unlock restore need the user's authenticated browser session.
+- commit: initial release `8c01fed`; release notes pending
 
 ## Next
-No active task after verified7/7 completion. Deliver the actual production link. Performance optimization remains deferred by user choice.
+Open the production URL in the user's company browser, sign in, play/save one result, then verify the account's profile and cleared-stage unlock from a fresh browser or device. Only then mark T03 done and advance `.memory/current.md`. Performance optimization remains deferred by user choice.

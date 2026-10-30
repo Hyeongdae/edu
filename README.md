@@ -209,3 +209,7 @@ node scripts/verify-release.mjs
 ### 오디오 출처와 라이선스
 
 BGM과 효과음은 `public/audio/`에 포함되어 있습니다. 원본 출처, 저작자, 사용 권한, 변경 여부는 [오디오 라이선스 기록](./public/audio/LICENSES.md)을 확인하세요. 특히 계단 발소리는 CC BY-SA 3.0 자료라 재배포할 때 출처와 라이선스 표기를 유지해야 합니다.
+
+## Azure 회사 배포
+
+게임은 [덱스 탈출 넘버원](https://ashy-cliff-0e5e4b600.1.azurestaticapps.net/)에서 실행할 수 있습니다. 회사 Microsoft Entra 계정으로 로그인해야 플레이할 수 있습니다. 배포 및 확인 내역은 [deploy/RELEASE.md](./deploy/RELEASE.md)에 있습니다.
