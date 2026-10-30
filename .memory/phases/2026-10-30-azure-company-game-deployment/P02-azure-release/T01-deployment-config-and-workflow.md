@@ -115,7 +115,7 @@ Task: T01-deployment-config-and-workflow
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: pending
+- commit: `b2d2172`
 
 ## Execution Evidence (2026-10-30)
 - Config generator validates a nonzero tenant UUID, exact protected route/provider schema and writes only after the frontend build. A fixture UUID was supplied explicitly for local artifact verification; production has no fixture/default tenant fallback.

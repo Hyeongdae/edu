@@ -59,9 +59,10 @@
 문서는 계획 근거이며 실제 런타임·권한·리전 지원은 해당 실행 Task에서도 확인한다.
 
 ## Progress
-- done: 4/7
-- Active: P02-T01.
+- done: 5/7
+- Active: P02-T02.
 - P01-T01 `e880da2`: shared contracts, 137/137 tests, lint/build/diff checks passed on 2026-10-30. Deployment is not yet performed.
 - P01-T02 `be54a6b`: authenticated-principal API and private Table adapter; Node22 unit94/94, actual isolated integration10/10, shared137/137, ci/lint/build/diff checks passed. Actual hosting authentication and cloud release remain pending.
 - P01-T03 `f56b4fe`: SWA session bootstrap, mode precedence, minimal game identity and account-owned audio; targeted78/78, lint, normal/hosted builds/diff passed. No live Azure/Entra changes or deployment.
 - P01-T04 `42466f6`: cloud bootstrap/FIFO/game integration; full root1269/1269, API95/95, isolated Azurite10/10, lint/API/normal/hosted builds/diff passed. P01 complete4/4. Production resources/login/URL and CI remain P02 work.
+- P02-T01 `b2d2172`: tenant-bound protected config, main-only verified exact-SHA artifacts, allowlisted production API dependencies and PlanOnly/scoped provisioning tools. Helpers22/22, root1269/1269, API95/95, isolated Azurite10/10, lint/build/artifact verification/actionlint passed. Real Apply, GitHub Actions and company login have not run; actual provisioning is T02 and release/URL validation T03.

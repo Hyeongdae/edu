@@ -7,13 +7,16 @@
 [P02 Azure Release](./phases/2026-10-30-azure-company-game-deployment/P02-azure-release/phase.md)
 
 ## Active Task
-[T01 Deployment Config and Workflow](./phases/2026-10-30-azure-company-game-deployment/P02-azure-release/T01-deployment-config-and-workflow.md)
+[T02 Provision Company Resources](./phases/2026-10-30-azure-company-game-deployment/P02-azure-release/T02-provision-company-resources.md)
 
 ## Last Completed Task
-[T04 Cloud Records Game Integration](./phases/2026-10-30-azure-company-game-deployment/P01-company-records/T04-cloud-records-game-integration.md) — `42466f6` (2026-10-30). Previous T03 `f56b4fe`/sync `b0f691c`, T02 `be54a6b`/sync `9b49244`, T01 `e880da2`/sync `d4f1d02`.
+[T01 Deployment Config and Workflow](./phases/2026-10-30-azure-company-game-deployment/P02-azure-release/T01-deployment-config-and-workflow.md) — `b2d2172` (2026-10-30). Previous P01-T04 `42466f6`/sync `75f13e3`, T03 `f56b4fe`/sync `b0f691c`, T02 `be54a6b`/sync `9b49244`, T01 `e880da2`/sync `d4f1d02`.
 
 ## Status
-- azure-company-game-deployment: done4/7, P01 complete4/4, P02 done0/3; Active P02-T01. T04 `42466f6` gates hosted GameScreen/audio on confirmed server profile/rankings, isolates local/demo records and queues immutable results by account with serial retry/ACK handling.
+- azure-company-game-deployment: done5/7, P01 complete4/4, P02 done1/3; Active P02-T02. P02-T01 `b2d2172` prepares protected hosted config, exact-SHA production artifacts/main Actions and default-PlanOnly scoped provisioning tooling.
+- P02-T01 validation: deployment helpers22/22, full root1269/1269 across42 files, API95/95, isolated actual Azurite10/10, lint/API build17.9kB/hosted frontend600.13kB/CSS76.01kB, real production API staging/config/release verification and official actionlint1.7.12 passed. Full-root evidence %TEMP%/dex-deployment-config-full-root-2026-10-30.json. No skipped tests, dependency/lock changes or game-rule changes. Existing bundle warning deferred.
+- Default provisioning command actually ran PlanOnly/cloudWrites=false. Two fake-runner Apply runs verified one owned RG/site/storage/table creation, one additive credential, callback/settings preservation and repeatability without actual cloud calls. Strict public manifest/recovery journal omit secrets; tenantFingerprint binds tenant/subscription/client context. Private body files and gh stdin protect credentials. Actual CLI permissions/live Apply/Actions/company session remain unverified.
+- P01-T04 `42466f6` gates hosted GameScreen/audio on confirmed server profile/rankings, isolates local/demo records and queues immutable results by account with serial retry/ACK handling.
 - T04 final validation: full root1269/1269 across42 files/0 failed/0 skipped; API95/95; isolated real Azurite10/10; lint/API build17.9kB/normal frontend600.18kB/hosted600.13kB/CSS76.01kB/diff checks passed. Full-root evidence %TEMP%/dex-company-full-root-2026-10-30.json. Existing bundle warning deferred, no dependency changes.
 - T04 found18 pre-existing stale600ms pursuit expectations in6 suites;12 relevant files hash-matched HEAD and isolated baseline reproduced18/276 failures. Test-only time/fixture corrections restored276/276; runtime engine/stage/pursuit/descent code unchanged. Baseline evidence %TEMP%/dex-existing-tests-44c53fe6a4624447bb05c35f4d895162.json.
 - New X-Game-Account request precondition compares to trusted platform actor before repository access, preventing a queued A result from being applied after cookies switch to B. It never selects identity; POST body remains UUID/result only. Account-switch, ACK loss, FIFO, quota/error/expiry, StrictMode, stale profile, initial unlocks and unchanged scene clocks tested.
@@ -27,7 +30,7 @@
 - API production dependency audit0 vulnerabilities; development-only Azurite uuid/ms-rest-js/sequelize chain reports4 moderate advisories. Do not force an incompatible emulator downgrade or ship Azurite dev dependencies in production.
 - T01 `e880da2` exports shared DTOs, strict request validation, whole-tuple rankings and immutable monotonic cleared-stage merging.
 - T01 validation: 137/137 Node-environment contract tests, lint, TypeScript/Vite build and diff checks passed. Existing JS583.75kB/CSS75.93kB output and bundle-size warning remain. No frontend runtime integration, game-rule changes, local-record writes or Azure/GitHub mutations.
-- Follow one Active Task per memory-execute. P02-T01 prepares protected production config/artifacts, main Actions and PlanOnly provisioning tools; actual cloud writes and release are P02-T02/T03. Preserve P01 account isolation, auth-mode precedence and audio ownership.
+- Follow one Active Task per memory-execute. P02-T01 is complete; actual cloud writes and release are P02-T02/T03. Preserve P01 account isolation, auth-mode precedence and audio ownership. README stale local ranking key/Node minimum corrected; root Vitest excludes node:test deployment helpers, which CI runs separately.
 - Verified paths: StageResult is exported by src/game/types.ts, leaderboard lives at src/leaderboard/leaderboard.ts, engine is src/game/gameEngine.ts. Later blueprint references must use actual paths; unrelated source was not changed during T01.
 - Previous title-copy-and-overtime-capture completed 2/2: T02 `10e1ac4`, T01 `4e41af6`, memory syncs `2d73945` and `2786222`.
 - Previous overtime T02 connected the 500 ms staircase catch → 2,000 ms office scene → recorded result flow in GameScreen, with reduced-motion static results and restart focus, and changed the exact title subtitle. Captured-result storage, engine rules, auth/config files, and audio ownership were unchanged.
@@ -39,7 +42,7 @@
 [Azure Company Game Deployment](./decisions/2026-10-30-azure-company-game-deployment.md)
 
 ## Next Step (IMPORTANT)
-Read only P02-T01-deployment-config-and-workflow blueprint. Prepare tenant-bound staticwebapp config generation into dist after hosted build, verified prebuilt frontend/API artifacts and main-branch GitHub Actions gates, plus default-PlanOnly scoped provisioning tooling and tests. Do not create Azure resources/credentials, mutate GitHub secrets or push in T01. Keep production-only dependencies in the API artifact (no Azurite), protect assets/API and preserve the local DEV-only demo. Retain X-Game-Account preconditions, FIFO/ACK semantics and server profile gate. Validate and commit, then advance to P02-T02 actual provisioning. Preserve unrelated untracked data; bundle optimization remains deferred.
+Read only P02-T02-provision-company-resources blueprint. Verify actual Azure subscription/tenant/app ownership/region and GitHub push/Secrets permissions; prepare official gh if needed, authenticate interactively only when required (never request passwords/MFA). Execute the already-approved dedicated Standard site/storage/Entra/GitHub settings using the scoped tool after reviewing its actual PlanOnly target. Preserve existing callbacks/credentials/settings, use private secret bodies/stdin, save only the public manifest and reuse owned recovery state on rerun. No release URL claim until T03 live verification; do not silently push in T02. Keep production-only API dependencies, protected hosted auth, local DEV demo, account preconditions/FIFO/ACK and server-profile gate. Validate and commit then advance to P02-T03. Preserve unrelated untracked data; bundle optimization remains deferred.
 ---
 
 ### Previous Context: Main Game Descent Conversion
