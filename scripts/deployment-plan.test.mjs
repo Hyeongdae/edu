@@ -77,7 +77,7 @@ test("defaults to PlanOnly with zero native/cloud calls even when identifiers ar
 });
 
 test("pre-created resource group mode keeps planning read-only and reports the scoped path", () => {
-  const result = powershell(`$output=& ${literal(scriptPath)} -UseExistingResourceGroup -SubscriptionId '${ids.subscription}' -TenantId '${ids.tenant}' -ClientId '${ids.client}' -ToolRunner { throw 'Plan invoked a tool' }; $output|ConvertFrom-Json|ConvertTo-Json`);
+  const result = powershell(`$temporary=Join-Path ([IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString()+'.json'); $output=& ${literal(scriptPath)} -UseExistingResourceGroup -SubscriptionId '${ids.subscription}' -TenantId '${ids.tenant}' -ClientId '${ids.client}' -ManifestPath $temporary -StatePath ($temporary+'.state') -ToolRunner { throw 'Plan invoked a tool' }; $output|ConvertFrom-Json|ConvertTo-Json`);
   assert.equal(result.mode, "PlanOnly"); assert.equal(result.cloudWrites, false); assert.equal(result.useExistingResourceGroup, true);
 });
 

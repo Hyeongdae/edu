@@ -1,0 +1,18 @@
+{
+    "schemaVersion":  1,
+    "repository":  "Hyeongdae/edu",
+    "branch":  "main",
+    "resourceGroup":  "grill-me-edu",
+    "location":  "eastasia",
+    "staticSiteName":  "swa-dex-escape-prod-384874bc",
+    "storageAccountName":  "stdexescape384874bc",
+    "tableName":  "DexEscapePlayers",
+    "sku":  "Standard",
+    "defaultHostName":  "ashy-cliff-0e5e4b600.1.azurestaticapps.net",
+    "url":  "https://ashy-cliff-0e5e4b600.1.azurestaticapps.net",
+    "tenantFingerprint":  "2ed74cbca8f5",
+    "credential":  {
+                       "expiresAt":  "2027-04-28T03:21:32.6732879Z",
+                       "keyId":  "1abca5ed-1044-4f5f-9d9f-61e7c819def7"
+                   }
+}
