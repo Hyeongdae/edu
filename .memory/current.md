@@ -7,10 +7,10 @@
 [P01 Gameplay Polish](./phases/2026-10-30-score-cap-stage-countdown-bgm/P01-gameplay-polish/phase.md)
 
 ## Active Task
-[T02 Stage Countdown](./phases/2026-10-30-score-cap-stage-countdown-bgm/P01-gameplay-polish/T02-stage-countdown.md)
+[T03 Default BGM Volume](./phases/2026-10-30-score-cap-stage-countdown-bgm/P01-gameplay-polish/T03-default-bgm-volume.md)
 
 ## Last Completed Task
-[T03 Disable Local Record Persistence](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P02-cosmos-application/T03-disable-local-record-persistence.md) - `be80818`, 128 tests, lint, and build passed (2026-10-30).
+[T02 Stage Countdown](./phases/2026-10-30-score-cap-stage-countdown-bgm/P01-gameplay-polish/T02-stage-countdown.md) - `1e59190`, 102 focused tests, lint, and build passed (2026-10-30).
 
 ## Status
 - P01-T01 score cap is implemented and validated: new in-game scores and result/API/Cosmos validation stop at the per-stage target. Existing Cosmos records were not changed; the user will edit previous over-target data. Web/API unit tests, lint, and both builds pass; emulator integration was skipped because its connection string is not configured.
@@ -26,7 +26,7 @@
 - [Cosmos ranking storage migration](./decisions/2026-10-30-cosmos-ranking-storage-migration.md)
 
 ## Next Step (IMPORTANT)
-Read the active P01-T02 blueprint. Add the three-second Continue countdown over the stair scene; keep stage time and pursuer stopped until it ends.
+Read the active P01-T03 blueprint. Set the default BGM preference to 30% while preserving existing saved volume settings.
 ---
 
 ### Previous Context: Main Game Descent Conversion
