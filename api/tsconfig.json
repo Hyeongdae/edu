@@ -13,5 +13,5 @@
     "noFallthroughCasesInSwitch": true,
     "types": ["node"]
   },
-  "include": ["src", "test/fixtures.ts", "vitest*.ts", "../shared/companyRecords.ts", "../src/game/stageRules.ts", "../src/game/types.ts"]
+  "include": ["src", "test", "vitest*.ts", "../shared/companyRecords.ts", "../src/game/stageRules.ts", "../src/game/types.ts"]
 }

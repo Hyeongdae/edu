@@ -13,18 +13,18 @@
 [T01 Cosmos Player Repository](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P02-cosmos-application/T01-cosmos-player-repository.md) - `cd7a914` (2026-10-30).
 
 ## Status
-- P01 pursuer art is complete (`5fb2b95`). P02-T01 Cosmos player repository is complete; P02-T02 Cosmos emulator integration coverage is active.
-- No source implementation, Cosmos resource creation, deployment setting change, or Storage deletion occurred while planning.
+- P02-T02 implementation is in progress. API unit tests/build, lint, and deployment-plan checks pass; the emulator integration test still requires Docker.
+- Azure target is provisioned at `stair-climb/players` with `/accountId` and its own shared 400 RU/s database throughput. The initial container under `maze-rescue` was deleted. The deployed SWA has Cosmos server settings added while legacy Table settings remain; Cosmos-backed code has not yet been deployed or company-account verified.
 - Parked prior pointer: [Azure Company Game Deployment P02-T03](./phases/2026-10-30-azure-company-game-deployment/P02-azure-release/T03-release-and-verify-url.md). Its real Entra login/save verification is superseded by the Cosmos-backed verification in P03-T02. Do not delete the legacy Storage account before that verification passes.
 - Confirmed boundaries: Cosmos `auth`/`game` containers remain untouched; local game runs save no ranking/progress records but retain in-memory unlocks for the current session; production records keep the current rank ordering; the old table history is not migrated.
-- Shared database throughput is the existing 400 RU/s pool. The new container receives no dedicated allocation, so its request capacity is not isolated from other containers.
+- Existing `maze-rescue` containers and throughput are untouched. The new `stair-climb` database has a separate shared 400 RU/s pool; `players` has no dedicated throughput.
 
 ## Source Decisions
 - [Pursuer straw-hat design](./decisions/2026-10-30-pursuer-straw-hat-design.md)
 - [Cosmos ranking storage migration](./decisions/2026-10-30-cosmos-ranking-storage-migration.md)
 
 ## Next Step (IMPORTANT)
-Read only P02-T02 Cosmos integration coverage blueprint and replace the old Azurite/Table integration tests with isolated Cosmos emulator coverage. Do not start local-game persistence or Azure resource tasks until the pointer advances.
+Run the pull-request `verify` workflow, which starts the Cosmos emulator service on GitHub's Linux runner and runs `npm --prefix api run test:integration`. Do not advance to P02-T03 until the emulator-backed job succeeds.
 ---
 
 ### Previous Context: Main Game Descent Conversion
