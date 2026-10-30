@@ -10,10 +10,10 @@
 [T01 Cosmos Player Repository](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P02-cosmos-application/T01-cosmos-player-repository.md)
 
 ## Last Completed Task
-[T01 Consistent Pursuer Pixel Art](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P01-pursuer-pixel-art/T01-consistent-pursuer-art.md) (2026-10-30).
+[T01 Consistent Pursuer Pixel Art](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P01-pursuer-pixel-art/T01-consistent-pursuer-art.md) - `5fb2b95` (2026-10-30).
 
 ## Status
-- The new combined plan has 3 phases and 7 sequential tasks. P01 pursuer artwork is complete; P02 Cosmos API/integration/local behavior is active; P03 Azure container, release verification, then legacy Storage deletion follows.
+- The new combined plan has 3 phases and 7 sequential tasks. P01 pursuer artwork is complete (1/1, `5fb2b95`); P02 Cosmos API/integration/local behavior is active; P03 Azure container, release verification, then legacy Storage deletion follows.
 - No source implementation, Cosmos resource creation, deployment setting change, or Storage deletion occurred while planning.
 - Parked prior pointer: [Azure Company Game Deployment P02-T03](./phases/2026-10-30-azure-company-game-deployment/P02-azure-release/T03-release-and-verify-url.md). Its real Entra login/save verification is superseded by the Cosmos-backed verification in P03-T02. Do not delete the legacy Storage account before that verification passes.
 - Confirmed boundaries: Cosmos `auth`/`game` containers remain untouched; local game runs save no ranking/progress records but retain in-memory unlocks for the current session; production records keep the current rank ordering; the old table history is not migrated.

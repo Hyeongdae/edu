@@ -68,4 +68,4 @@ Task: T01-consistent-pursuer-art
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: pending
+- commit: `5fb2b95`
