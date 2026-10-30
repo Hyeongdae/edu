@@ -63,6 +63,7 @@ describe("authenticated audio setup", () => {
     fireEvent.click(screen.getByRole("button", { name: "게임 시작" }));
     await waitFor(() => expect(screen.queryByRole("heading", { name: "덱스 탈출 넘버원" })).not.toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
+    await waitFor(() => expect(document.querySelector(".stage-transition-countdown")).not.toBeInTheDocument(), { timeout: 5_000 });
     fireEvent.click(screen.getByRole("button", { name: "게임 설정" }));
     expect(screen.getByRole("region", { name: "오디오 설정" })).toBeVisible();
   }
