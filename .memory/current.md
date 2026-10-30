@@ -1,19 +1,20 @@
 # Current Context
 
 ## Active Plan
-[Pursuer Design and Cosmos Migration](./plans/2026-10-30-pursuer-design-and-cosmos-migration.md)
+없음 — [Start Game Countdown](./plans/2026-10-30-start-game-countdown.md) 완료.
 
 ## Active Phase
-[P03 Azure Cutover](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P03-azure-cutover/phase.md)
+없음 — [P01 Start Flow](./phases/2026-10-30-start-game-countdown/P01-start-flow/phase.md) 완료.
 
 ## Active Task
-None - plan complete (P03 Azure Cutover, 3/3 tasks).
+없음 — Start Game Countdown 완료 (1/1).
 
 ## Last Completed Task
-[T03 Delete Legacy Storage](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P03-azure-cutover/T03-delete-legacy-storage.md) - `e8e335d`; deployment tests 26/26, lint/build passed; old Table settings and dedicated account removed; Cosmos/SWA remain and user confirmed records remain available.
+[T01 Initial Countdown](./phases/2026-10-30-start-game-countdown/P01-start-flow/T01-initial-countdown.md) — 945d567; 101 GameScreen tests, 3 countdown component tests, lint, and production build passed.
 
 ## Status
 - P01 Gameplay Polish is complete (3/3): score cap, the three-second stage transition countdown, and the 30% default BGM preference are implemented and validated.
+- Start Game Countdown is complete: Start shows 3-2-1 over the selected stage; the clock and pursuer begin when it ends.
 - P01-T01 score cap is implemented and validated: new in-game scores and result/API/Cosmos validation stop at the per-stage target. Existing Cosmos records were not changed; the user will edit previous over-target data. Web/API unit tests, lint, and both builds pass; emulator integration was skipped because its connection string is not configured.
 - P03 Azure cutover is complete: company-account Cosmos persistence was verified before deleting the legacy Storage account; after cleanup the user confirmed the ranking records remained.
 - P02-T02 is complete. GitHub Actions verified the Cosmos emulator integration suite and the production artifact staging; local Docker was not required.
@@ -27,7 +28,7 @@ None - plan complete (P03 Azure Cutover, 3/3 tasks).
 - [Cosmos ranking storage migration](./decisions/2026-10-30-cosmos-ranking-storage-migration.md)
 
 ## Next Step (IMPORTANT)
-This plan is complete. Follow the user's next requested task.
+No active task. The Start Game Countdown plan is complete.
 ---
 
 ### Previous Context: Main Game Descent Conversion
