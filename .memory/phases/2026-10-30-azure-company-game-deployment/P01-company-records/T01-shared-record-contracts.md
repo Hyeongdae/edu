@@ -98,7 +98,7 @@ Task: T01-shared-record-contracts
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: pending
+- commit: `e880da2`
 
 ## Execution Evidence (2026-10-30)
 - Added shared/companyRecords.ts: exported DTOs, strict own-key request guard, stage/unlock validation using existing stageRules, deterministic top-ten ordering, and immutable monotonic personal-best/clear merging.

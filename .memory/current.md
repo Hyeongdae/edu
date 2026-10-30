@@ -1,29 +1,33 @@
 # Current Context
 
 ## Active Plan
-None. [Title Copy and Overtime Capture](./plans/2026-10-29-title-copy-and-overtime-capture.md) is complete.
+[Azure Company Game Deployment](./plans/2026-10-30-azure-company-game-deployment.md)
 
 ## Active Phase
-None. [P01 Overtime Capture](./phases/2026-10-29-title-copy-and-overtime-capture/P01-overtime-capture/phase.md) is complete.
+[P01 Company Records](./phases/2026-10-30-azure-company-game-deployment/P01-company-records/phase.md)
 
 ## Active Task
-None.
+[T02 Functions Table API](./phases/2026-10-30-azure-company-game-deployment/P01-company-records/T02-functions-table-api.md)
 
 ## Last Completed Task
-[T02 Title Copy and Capture Integration](./phases/2026-10-29-title-copy-and-overtime-capture/P01-overtime-capture/T02-title-copy-and-capture-integration.md) — `10e1ac4` (2026-10-30). T01: `4e41af6`, memory sync `2d73945`.
+[T01 Shared Record Contracts](./phases/2026-10-30-azure-company-game-deployment/P01-company-records/T01-shared-record-contracts.md) — `e880da2` (2026-10-30).
 
 ## Status
-- title-copy-and-overtime-capture: completed 2/2; Active Task none.
+- azure-company-game-deployment: done 1/7, P01 done 1/4; Active P01-T02. T01 `e880da2` exports shared DTOs, strict request validation, whole-tuple rankings and immutable monotonic cleared-stage merging.
+- T01 validation: 137/137 Node-environment contract tests, lint, TypeScript/Vite build and diff checks passed. Existing JS583.75kB/CSS75.93kB output and bundle-size warning remain. No frontend runtime integration, game-rule changes, local-record writes or Azure/GitHub mutations.
+- Follow one Active Task per memory-execute. P01-T02 implements the Functions/Table API and isolated emulator tests only; no actual Azure creation or Git push.
+- Verified paths: StageResult is exported by src/game/types.ts, leaderboard lives at src/leaderboard/leaderboard.ts, engine is src/game/gameEngine.ts. Later blueprint references must use actual paths; unrelated source was not changed during T01.
+- Previous title-copy-and-overtime-capture completed 2/2: T02 `10e1ac4`, T01 `4e41af6`, memory syncs `2d73945` and `2786222`.
 - T02 connected the 500 ms staircase catch → 2,000 ms office scene → recorded result flow in GameScreen, with reduced-motion static results and restart focus, and changed the exact title subtitle. Captured-result storage, engine rules, auth/config files, and audio ownership are unchanged.
 - Final T02 validation: 182/182 tests across four targeted files, lint, and build passed. HTTP 200 and connected module/development-demo flag verified at `http://127.0.0.1:5176/`; process-only demo server retained for the user. Existing protected port 5175 retained.
 - T02 real-browser inspection was blocked by automatic approval review (`blocked by policy`); no main-game visual acceptance claimed. Evidence and logs: `%TEMP%\overtime-t02-2026-10-30\`. T01 standalone artwork inspection remains at `%TEMP%\overtime-t01-2026-10-29\preview-evidence.json` with six PNGs.
 - Previous title-scene-and-guide-copy plan completed 1/1 with 119/119 targeted tests, lint, and build passing.
 
 ## Source Decisions
-[Title Copy and Overtime Capture](./decisions/2026-10-29-title-copy-and-overtime-capture.md)
+[Azure Company Game Deployment](./decisions/2026-10-30-azure-company-game-deployment.md)
 
 ## Next Step (IMPORTANT)
-No active task. The user can test the integrated game at `http://127.0.0.1:5176/`: 게임 시작 → 시작하기 → let the pursuer catch the player. Reduced motion shows a static office illustration with results. Future changes need a new selected task; do not rerun T01/T02 or expand the already recorded App.test.tsx cleanup without a new request.
+Read only P01-T02-functions-table-api blueprint. Build the Node22 managed Functions API using shared/companyRecords.ts; authenticate the platform principal, validate each result against the latest stored profile, and conditionally merge Table entities with exact ETags. Add isolated Azurite concurrency/idempotency tests without touching existing emulator data or creating Azure resources. Run the specified validations, commit, then advance to P01-T03. mergeSharedResult assumes prior validation; it does not authenticate a caller itself. The full root UI regression gate follows relevant App auth/test correction in T03/T04. Separate bundle-loading optimization remains deferred. Preserve local records and unrelated untracked files; actual company login/shared records/deployment URL are P02 gates.
 ---
 
 ### Previous Context: Main Game Descent Conversion
