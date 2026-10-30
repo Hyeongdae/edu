@@ -5,7 +5,6 @@ import { CompanyRecordsNotice } from "../company/CompanyRecordsNotice";
 import { applyInput, continueGame, createGameState, getStageSecondsLeft, quitAtCheckpoint, resetGame, resumeGameAfterPause, startGame, tickGame } from "./gameEngine";
 import { CheckpointPanel } from "./CheckpointPanel";
 import { StageSelectPanel } from "./StageSelectPanel";
-import { readStageProgress, saveStageProgress } from "./stageProgress";
 import { getHighestUnlockedStage } from "./stageRules";
 import { getPursuerMotionDurationMs, PURSUER_POLL_INTERVAL_MS } from "./pursuitRules";
 import { formatRemainingTimeCs } from "./stageResult";
@@ -21,7 +20,6 @@ import { StairScene } from "./StairScene";
 import { PixelIcon } from "./pixel/PixelIcon";
 import type { ClearedStage, GameInput, GameStage } from "./types";
 import { LeaderboardPanel } from "../leaderboard/LeaderboardPanel";
-import { readLeaderboard, saveBestScore, type LeaderboardEntry } from "../leaderboard/leaderboard";
 import { AudioControls } from "../audio/AudioControls";
 import type { AudioController } from "../audio/audioController";
 import type { AudioPreferences } from "../audio/audioPreferences";
@@ -66,11 +64,8 @@ export function GameScreen({
   const submitCompanyResult = companyRecords?.submitResult;
   const submittedCompanyResults = useRef(new WeakSet<object>());
   const [initialProfile] = useState(() => {
-    if (companyRecords) return { entries: companyRecords.entries, knownHighest: companyRecords.profile.highestClearedStage, progressAvailable: true };
-    const entries = readLeaderboard(undefined, "descent");
-    const progress = readStageProgress(account.homeAccountId, undefined, "descent");
-    const knownHighest = progress.highestClearedStage;
-    return { entries, knownHighest, progressAvailable: progress.available };
+    if (companyRecords) return { entries: companyRecords.entries, knownHighest: companyRecords.profile.highestClearedStage };
+    return { entries: [], knownHighest: 0 as ClearedStage };
   });
   const [gameState, setGameState] = useState(() => createGameState(undefined, {
     stage: getHighestUnlockedStage(initialProfile.knownHighest), highestClearedStage: initialProfile.knownHighest,
@@ -79,11 +74,8 @@ export function GameScreen({
   const [isTitleLeaving, setIsTitleLeaving] = useState(false);
   const titleTransitionTimeoutRef = useRef<number | undefined>(undefined);
   const [nowMs, setNowMs] = useState(() => Date.now());
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>(initialProfile.entries);
-  const [progressError, setProgressError] = useState(!initialProfile.progressAvailable);
-  const [progressUnavailable, setProgressUnavailable] = useState(!initialProfile.progressAvailable);
-  const progressSavedRef = useRef({ accountId: account.homeAccountId, clearedStage: 0 });
-  const [saveError, setSaveError] = useState(false);
+  const leaderboard = initialProfile.entries;
+  const progressUnavailable = false;
   const [climbAnimationKey, setClimbAnimationKey] = useState(0);
   const [isClimbing, setIsClimbing] = useState(false);
   const [scoreGain, setScoreGain] = useState<number | null>(null);
@@ -186,9 +178,7 @@ export function GameScreen({
   const readKnownHighest = (): ClearedStage => {
     if (companyRecords) return Math.max(gameState.highestClearedStage, initialProfile.knownHighest,
       companyRecords.profile.highestClearedStage) as ClearedStage;
-    const progress = readStageProgress(account.homeAccountId, undefined, "descent");
-    setProgressUnavailable(!progress.available);
-    return Math.max(gameState.highestClearedStage, initialProfile.knownHighest, progress.highestClearedStage) as ClearedStage;
+    return Math.max(gameState.highestClearedStage, initialProfile.knownHighest) as ClearedStage;
   };
 
   const handleSelectStage = (stage: GameStage) => {
@@ -229,8 +219,6 @@ export function GameScreen({
     const startedAt = Date.now();
     const nextState = startGame(gameState, startedAt);
     runStartedRef.current = true;
-    progressSavedRef.current = { accountId: account.homeAccountId, clearedStage: 0 };
-    setSaveError(false);
     setNowMs(startedAt);
     setGameState(nextState);
     void audioController?.startBgm();
@@ -246,16 +234,6 @@ export function GameScreen({
     setNowMs(quitAt);
     setGameState((state) => quitAtCheckpoint(state, quitAt));
   };
-
-  useEffect(() => {
-    if (usesCompanyRecords) return;
-    const clearedStage = gameState.clearedStageThisRun;
-    const previous = progressSavedRef.current;
-    if (clearedStage === 0 || (previous.accountId === account.homeAccountId && previous.clearedStage >= clearedStage)) return;
-    progressSavedRef.current = { accountId: account.homeAccountId, clearedStage };
-    const result = saveStageProgress(account.homeAccountId, gameState.highestClearedStage, undefined, "descent");
-    window.setTimeout(() => setProgressError(!result.saved), 0);
-  }, [account.homeAccountId, gameState.clearedStageThisRun, gameState.highestClearedStage, usesCompanyRecords]);
 
   useEffect(() => {
     const climbedSuccessfully = gameState.stepsClimbed > previousStepsRef.current;
@@ -368,30 +346,10 @@ export function GameScreen({
   const isCaughtPresentationPending = overtime.phase === "capture" || isOvertimeEnding;
   const isForegroundEnding = isEnding || isOvertimeEnding;
   useEffect(() => {
-    if (stageResult === null) return;
-    if (submitCompanyResult) {
-      if (!submittedCompanyResults.current.has(stageResult)) {
-        submittedCompanyResults.current.add(stageResult);
-        submitCompanyResult(stageResult);
-      }
-      return;
-    }
-
-    const result = account.homeAccountId
-      ? saveBestScore({
-          accountId: account.homeAccountId,
-          displayName: account.name || "이름 없음",
-          bestStage: stageResult.stage,
-          bestScore: stageResult.score,
-          remainingTimeCs: stageResult.remainingTimeCs,
-        }, undefined, undefined, "descent")
-      : null;
-    const update = window.setTimeout(() => {
-      if (result !== null) setLeaderboard(result.entries);
-      setSaveError(result === null || !result.saved);
-    }, 0);
-    return () => window.clearTimeout(update);
-  }, [account.homeAccountId, account.name, stageResult, submitCompanyResult]);
+    if (stageResult === null || !submitCompanyResult || submittedCompanyResults.current.has(stageResult)) return;
+    submittedCompanyResults.current.add(stageResult);
+    submitCompanyResult(stageResult);
+  }, [stageResult, submitCompanyResult]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -594,7 +552,7 @@ export function GameScreen({
               ) : gameState.status === "checkpoint" ? (
                 <CheckpointPanel stage={gameState.stage} score={gameState.score}
                   remainingTimeCs={stageResult!.remainingTimeCs}
-                  onContinue={handleContinue} onQuit={handleQuit} disabled={false} progressError={progressError} rankingError={saveError}
+                  onContinue={handleContinue} onQuit={handleQuit} disabled={false}
                   recordsNotice={companyRecords && <CompanyRecordsNotice records={companyRecords} />} />
               ) : isEnding ? <OfficeExitEnding key={stageResult!.endedAtMs} variant="animated" startedAtMs={stageResult!.endedAtMs} />
                 : overtime.phase === "capture" ? null
@@ -613,8 +571,6 @@ export function GameScreen({
                     <p className="game-over-time">남은 시간 {formatRemainingTimeCs(stageResult!.remainingTimeCs)}</p>
                     <p className="game-over-reason">{gameState.endReason === "cleared" ? "최종 클리어!" : gameState.endReason === "time-limit" ? "시간 초과" : gameState.endReason === "quit" ? "체크포인트에서 종료했어요" : "추격자에게 잡혔어요"}</p>
                     <p>계단 {gameState.stepsClimbed}개를 내려왔어요.</p>
-                    {saveError && <p className="leaderboard-error" role="status">기록을 저장하지 못했습니다. 이 브라우저의 저장 공간을 확인해 주세요.</p>}
-                    {progressError && <p role="status">진행도를 저장하지 못했습니다. 이 브라우저의 저장 공간을 확인해 주세요.</p>}
                     {companyRecords && <CompanyRecordsNotice records={companyRecords} />}
                     <button ref={restartButtonRef} className="start-button restart-button" type="button" onClick={handleShowStageSelection}>
                       <PixelIcon name="restart" size={20} /> 다시 시작

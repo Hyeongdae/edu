@@ -8,7 +8,6 @@ param(
     [string]$ResourceGroup = 'rg-dex-escape-prod',
     [string]$Location = 'eastasia',
     [string]$StaticSiteName = '',
-    [string]$StorageName = '',
     [string]$AzureCliPath = 'az',
     [string]$GhPath = 'gh',
     [string]$ManifestPath = '',
@@ -35,12 +34,14 @@ $saved = $null
 foreach ($path in @($ManifestPath, $StatePath)) {
     if (Test-Path -LiteralPath $path) { $saved = ConvertFrom-Json ([IO.File]::ReadAllText($path)); Assert-DexManifest $saved -AllowIncomplete; break }
 }
-$plan = Get-DeploymentPlan -SubscriptionId $SubscriptionId -TenantId $TenantId -ClientId $ClientId -ResourceGroup $ResourceGroup -Location $Location -StaticSiteName $StaticSiteName -StorageName $StorageName -SavedManifest $saved
+$plan = Get-DeploymentPlan -SubscriptionId $SubscriptionId -TenantId $TenantId -ClientId $ClientId -ResourceGroup $ResourceGroup -Location $Location -StaticSiteName $StaticSiteName -SavedManifest $saved
 $target = $plan.Target
 if (-not $Apply) {
     [pscustomobject]@{ mode = 'PlanOnly'; identityConfigured = $plan.IdentityConfigured; repository = $target.repository; branch = $target.branch;
         resourceGroup = $target.resourceGroup; location = $target.location; staticSiteName = $target.staticSiteName;
-        storageAccountName = $target.storageAccountName; tableName = $target.tableName; sku = $target.sku;
+        cosmosAccountName = $target.cosmosAccountName; cosmosDatabaseName = $target.cosmosDatabaseName;
+        cosmosContainerName = $target.cosmosContainerName; cosmosDatabaseThroughput = $target.cosmosDatabaseThroughput;
+        legacyStorageAccountName = $target.legacyStorageAccountName; tableName = $target.tableName; sku = $target.sku;
         useExistingResourceGroup = [bool]$UseExistingResourceGroup;
         savedTarget = ($null -ne $saved); cloudWrites = $false } | ConvertTo-Json
     return
@@ -83,7 +84,7 @@ $operator = Call-Az @('ad','signed-in-user','show')
 $owners = @(Call-Az @('ad','app','owner','list','--id',$plan.ClientId))
 if (-not @($owners | Where-Object { $_.id -ieq $operator.id }).Count) { throw 'Use an authenticated owner of the existing app registration for this deployment.' }
 if (-not $UseExistingResourceGroup) {
-foreach ($entry in @(@('Microsoft.Web','staticSites'), @('Microsoft.Storage','storageAccounts'))) {
+foreach ($entry in @(@('Microsoft.Web','staticSites'), @('Microsoft.DocumentDB','databaseAccounts'))) {
     $provider = Call-Az @('provider','show','--namespace',$entry[0])
     $resourceType = @($provider.resourceTypes | Where-Object { $_.resourceType -ceq $entry[1] })
     if ($provider.registrationState -ine 'Registered' -or -not $resourceType.Count -or
@@ -105,13 +106,6 @@ if ($exists -and $UseExistingResourceGroup) {
     if ($null -eq $saved) { throw 'Existing resources require an owned saved manifest or recovery journal.' }
     Assert-DexOwnedResource -Resource $group -ExpectedName $target.resourceGroup -Tags $plan.Tags
 }
-$existingStorage = @()
-if ($exists) {
-    $existingStorage = @(Call-Az @('storage','account','list','--resource-group',$target.resourceGroup) | Where-Object { $_.name -ceq $target.storageAccountName })
-    if ($existingStorage.Count) { Assert-DexOwnedResource -Resource $existingStorage[0] -ExpectedName $target.storageAccountName -Tags $plan.Tags }
-}
-$storageNameStatus = Call-Az @('storage','account','check-name','--name',$target.storageAccountName)
-if (-not $storageNameStatus.nameAvailable -and -not $existingStorage.Count) { throw 'Storage name is unavailable and is not part of this owned deployment.' }
 $tagArguments = @('project=dex-escape','repository=Hyeongdae/edu','environment=production')
 if ($saved) { $target = ConvertTo-DexMap $saved }
 Write-DexManifest -Manifest $target -Path $StatePath -AllowIncomplete
@@ -127,15 +121,22 @@ if ($site.Count) {
 $target.defaultHostName = $site.defaultHostname; $target.url = 'https://' + $site.defaultHostname
 Assert-DexManifest $target -AllowIncomplete
 Write-DexManifest -Manifest $target -Path $StatePath -AllowIncomplete
-$storageAccounts = @(Call-Az @('storage','account','list','--resource-group',$target.resourceGroup))
-$storage = @($storageAccounts | Where-Object { $_.name -ceq $target.storageAccountName })
-if ($storage.Count) {
-    $storage = $storage[0]; Assert-DexOwnedResource -Resource $storage -ExpectedName $target.storageAccountName -Tags $plan.Tags
-    if ($storage.allowBlobPublicAccess -ne $false -or $storage.enableHttpsTrafficOnly -ne $true -or $storage.minimumTlsVersion -cne 'TLS1_2' -or
-        $storage.kind -cne 'StorageV2' -or $storage.sku.name -cne 'Standard_LRS') { throw 'Existing storage does not match the required private HTTPS configuration.' }
+$cosmos = Call-Az @('cosmosdb','show','--resource-group',$target.resourceGroup,'--name',$target.cosmosAccountName)
+if ($cosmos.name -cne $target.cosmosAccountName -or $cosmos.kind -cne 'GlobalDocumentDB') { throw 'Cosmos account does not match the intended NoSQL account.' }
+$database = Call-Az @('cosmosdb','sql','database','show','--resource-group',$target.resourceGroup,'--account-name',$target.cosmosAccountName,'--name',$target.cosmosDatabaseName)
+if ($database.name -cne $target.cosmosDatabaseName) { throw 'Cosmos database does not match the intended game database.' }
+$databaseThroughput = Call-Az @('cosmosdb','sql','database','throughput','show','--resource-group',$target.resourceGroup,'--account-name',$target.cosmosAccountName,'--name',$target.cosmosDatabaseName)
+if ($databaseThroughput.resource.throughput -ne $target.cosmosDatabaseThroughput) { throw 'Cosmos database shared throughput does not match the approved target.' }
+$containers = @(Call-Az @('cosmosdb','sql','container','list','--resource-group',$target.resourceGroup,'--account-name',$target.cosmosAccountName,'--database-name',$target.cosmosDatabaseName))
+$container = @($containers | Where-Object { $_.name -ceq $target.cosmosContainerName })
+if ($container.Count) {
+    $container = Call-Az @('cosmosdb','sql','container','show','--resource-group',$target.resourceGroup,'--account-name',$target.cosmosAccountName,'--database-name',$target.cosmosDatabaseName,'--name',$target.cosmosContainerName)
+    $containerOptions = ConvertTo-DexMap $container.options
+    if (@($container.resource.partitionKey.paths) -notcontains '/accountId' -or ($containerOptions.ContainsKey('throughput') -and $containerOptions.throughput)) { throw 'Existing Cosmos container partitioning or dedicated throughput conflicts with the approved target.' }
 } else {
-    $storage = Call-Az (@('storage','account','create','--name',$target.storageAccountName,'--resource-group',$target.resourceGroup,
-        '--location',$target.location,'--kind','StorageV2','--sku','Standard_LRS','--https-only','true','--min-tls-version','TLS1_2','--allow-blob-public-access','false','--tags') + $tagArguments)
+    $container = Call-Az @('cosmosdb','sql','container','create','--resource-group',$target.resourceGroup,'--account-name',$target.cosmosAccountName,
+        '--database-name',$target.cosmosDatabaseName,'--name',$target.cosmosContainerName,'--partition-key-path','/accountId')
+    if ($container.resource.partitionKey.paths -notcontains '/accountId') { throw 'Created Cosmos container did not return the expected partition key.' }
 }
 
 $privateDirectory = New-DexPrivateDirectory
@@ -149,13 +150,6 @@ function Private-Json {
 }
 try {
     $siteId = '/subscriptions/' + $plan.SubscriptionId + '/resourceGroups/' + $target.resourceGroup + '/providers/Microsoft.Web/staticSites/' + $target.staticSiteName
-    $storageId = '/subscriptions/' + $plan.SubscriptionId + '/resourceGroups/' + $target.resourceGroup + '/providers/Microsoft.Storage/storageAccounts/' + $target.storageAccountName
-    $tableRoot = 'https://management.azure.com' + $storageId + '/tableServices/default/tables'
-    $tables = Call-Az @('rest','--method','get','--url',($tableRoot + '?api-version=2023-05-01'))
-    if (-not @($tables.value | Where-Object { $_.name -ceq $target.tableName }).Count) {
-        $body = Private-Json @{ properties = @{} }
-        $null = Call-Az @('rest','--method','put','--url',($tableRoot + '/' + $target.tableName + '?api-version=2023-05-01'),'--body',$body)
-    }
     $web = ConvertTo-DexMap $application.web
     $existingUris = @(if ($web.ContainsKey('redirectUris')) { $web.redirectUris })
     $callback = $target.url + '/.auth/login/aad/callback'
@@ -180,10 +174,13 @@ try {
         $target.credential = @{ keyId = $password.keyId; expiresAt = $password.endDateTime }
         Write-DexManifest -Manifest $target -Path $StatePath -AllowIncomplete
     }
-    $connection = Call-Az @('storage','account','show-connection-string','--name',$target.storageAccountName,'--resource-group',$target.resourceGroup)
+    $cosmosKeys = Call-Az @('cosmosdb','keys','list','--resource-group',$target.resourceGroup,'--name',$target.cosmosAccountName)
+    if (-not $cosmos.documentEndpoint -or -not $cosmosKeys.primaryMasterKey) { throw 'Cosmos endpoint or key was not returned.' }
+    $cosmosConnectionString = 'AccountEndpoint=' + $cosmos.documentEndpoint + ';AccountKey=' + $cosmosKeys.primaryMasterKey + ';'
     $settings['AZURE_CLIENT_ID'] = $plan.ClientId
-    $settings['GAME_RECORDS_CONNECTION_STRING'] = $connection.connectionString
-    $settings['GAME_RECORDS_TABLE'] = $target.tableName
+    $settings['GAME_RECORDS_COSMOS_CONNECTION_STRING'] = $cosmosConnectionString
+    $settings['GAME_RECORDS_COSMOS_DATABASE'] = $target.cosmosDatabaseName
+    $settings['GAME_RECORDS_COSMOS_CONTAINER'] = $target.cosmosContainerName
     $body = Private-Json @{ properties = $settings }
     $null = Call-Az @('rest','--method','put','--url',('https://management.azure.com' + $siteId + '/config/appsettings?api-version=2025-05-01'),'--body',$body)
     $token = Call-Az @('staticwebapp','secrets','list','--name',$target.staticSiteName,'--resource-group',$target.resourceGroup)
@@ -192,8 +189,13 @@ try {
     $null = Call-Gh @('variable','set','ENTRA_TENANT_ID','--repo','Hyeongdae/edu','--body',$plan.TenantId)
     $null = Call-Gh @('variable','set','AZURE_DEPLOY_ENABLED','--repo','Hyeongdae/edu','--body','true')
     Write-DexManifest -Manifest $target -Path $ManifestPath
+    $confirmedSettings = Call-Az @('rest','--method','post','--url',('https://management.azure.com' + $siteId + '/listAppSettings?api-version=2025-05-01'))
+    foreach ($requiredName in @('GAME_RECORDS_COSMOS_CONNECTION_STRING','GAME_RECORDS_COSMOS_DATABASE','GAME_RECORDS_COSMOS_CONTAINER')) {
+        if (-not (ConvertTo-DexMap $confirmedSettings.properties).ContainsKey($requiredName)) { throw 'A required Cosmos server setting is missing after deployment.' }
+    }
     [pscustomobject]@{ mode = 'Applied'; url = $target.url; resourceGroup = $target.resourceGroup; sku = $target.sku;
-        tableName = $target.tableName; expiresAt = $target.credential.expiresAt; deploymentPending = $true } | ConvertTo-Json
+        cosmosDatabaseName = $target.cosmosDatabaseName; cosmosContainerName = $target.cosmosContainerName;
+        expiresAt = $target.credential.expiresAt; deploymentPending = $true } | ConvertTo-Json
 } finally {
     foreach ($file in $privateFiles) {
         $actual = [IO.Path]::GetFullPath($file)

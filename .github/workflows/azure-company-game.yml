@@ -16,6 +16,17 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    services:
+      cosmos-emulator:
+        image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-latest
+        ports:
+          - 8081:8081
+          - 8080:8080
+        options: >-
+          --health-cmd "curl --fail --silent http://localhost:8080/ready || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 30
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -32,7 +43,19 @@ jobs:
       - run: npm run lint
       - run: npm run test -- --run --maxWorkers=2
       - run: npm --prefix api test
+      - name: Wait for Cosmos emulator readiness
+        run: |
+          for attempt in {1..60}; do
+            if curl --fail --silent http://127.0.0.1:8080/ready; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Cosmos emulator did not become ready." >&2
+          exit 1
       - run: npm --prefix api run test:integration
+        env:
+          COSMOS_EMULATOR_ENDPOINT: http://127.0.0.1:8081/
       - run: npm run test:deployment
       - run: npm --prefix api run build
       - run: npm run build

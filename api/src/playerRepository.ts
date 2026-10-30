@@ -1,9 +1,9 @@
+import { CosmosClient, type ItemDefinition, type SqlQuerySpec } from "@azure/cosmos";
 import { createHash } from "node:crypto";
-import { TableClient } from "@azure/data-tables";
-import type { TableEntity } from "@azure/data-tables";
 import { getSharedTopScores, mergeSharedResult, validateResultForProfile } from "../../shared/companyRecords";
 import type { AuthenticatedActor, SharedBest, SharedProfile, SubmitResultRequest } from "../../shared/companyRecords";
 import { getHighestUnlockedStage, getStageRule, isClearedStage, isGameStage } from "../../src/game/stageRules";
+import type { ClearedStage, GameStage } from "../../src/game/types";
 import { RecordServiceError } from "./errors";
 
 export interface PlayerRepository {
@@ -12,65 +12,123 @@ export interface PlayerRepository {
   submit(actor: AuthenticatedActor, input: SubmitResultRequest): Promise<SharedProfile>;
 }
 
-export type PlayerTable = Pick<TableClient, "getEntity" | "createEntity" | "updateEntity" | "listEntities">;
-const PARTITION = "descent-v1";
-const BEST_FIELDS = ["bestStage", "bestScore", "remainingTimeCs", "achievedAt"];
+export interface PlayerDocument extends ItemDefinition {
+  id: string;
+  accountId: string;
+  schemaVersion: 1;
+  displayName: string;
+  highestClearedStage: ClearedStage;
+  bestStage?: GameStage;
+  bestScore?: number;
+  remainingTimeCs?: number;
+  achievedAt?: string;
+}
+
+interface ItemRead<T> {
+  resource?: T;
+  etag?: string;
+  statusCode?: number;
+}
+
+interface PlayerItem {
+  read<T extends PlayerDocument>(): Promise<ItemRead<T>>;
+  replace<T extends PlayerDocument>(
+    document: T,
+    options: { accessCondition: { type: "IfMatch"; condition: string } },
+  ): Promise<unknown>;
+}
+
+export interface PlayerContainer {
+  read(): Promise<{ resource?: { id?: string; partitionKey?: { paths?: string[] } } }>;
+  item(id: string, partitionKey: string): PlayerItem;
+  items: {
+    create<T extends PlayerDocument>(document: T): Promise<unknown>;
+    query<T extends PlayerDocument>(
+      query: SqlQuerySpec,
+      options: { maxItemCount: number },
+    ): { fetchAll(): Promise<{ resources?: T[] }> };
+  };
+}
+
+const BEST_FIELDS = ["bestStage", "bestScore", "remainingTimeCs", "achievedAt"] as const;
+const TOP_SCORES_QUERY: SqlQuerySpec = {
+  query: "SELECT TOP 10 * FROM c WHERE IS_DEFINED(c.bestStage) ORDER BY c.bestStage DESC, c.bestScore DESC, c.remainingTimeCs DESC, c.achievedAt ASC, c.accountId ASC",
+};
+const TOP_SCORES_OPTIONS = { maxItemCount: 10 };
 
 export function getPlayerRowKey(accountId: string): string {
   return "p_" + createHash("sha256").update(accountId).digest("hex");
 }
 
 function statusCode(error: unknown): number | undefined {
-  return typeof error === "object" && error !== null && "statusCode" in error &&
-    typeof error.statusCode === "number" ? error.statusCode : undefined;
+  if (typeof error !== "object" || error === null) return undefined;
+  if ("statusCode" in error && typeof error.statusCode === "number") return error.statusCode;
+  return "code" in error && typeof error.code === "number" ? error.code : undefined;
 }
 
-function isMissingEntity(error: unknown): boolean {
-  if (statusCode(error) !== 404 || typeof error !== "object" || error === null) return false;
-  // data-tables decodes OData service codes into details; RestError.code may be absent.
-  if ("details" in error && typeof error.details === "object" && error.details !== null &&
-    "odataError" in error.details && typeof error.details.odataError === "object" && error.details.odataError !== null &&
-    "code" in error.details.odataError) return error.details.odataError.code === "ResourceNotFound";
-  return "code" in error && error.code === "ResourceNotFound";
+function isMissingItem(error: unknown): boolean {
+  if (statusCode(error) !== 404 || typeof error !== "object" || error === null || !("code" in error)) return false;
+  // Container existence is checked once before item operations, so only an item NotFound is a new profile.
+  return error.code === "NotFound" || error.code === 404;
 }
 
-function decodeEntity(entity: Record<string, unknown>): SharedProfile {
-  const fail = () => { throw new RecordServiceError("storage-unavailable"); };
-  if (entity.partitionKey !== PARTITION || entity.schemaVersion !== 1 ||
-    typeof entity.accountId !== "string" || !entity.accountId.trim() ||
-    entity.rowKey !== getPlayerRowKey(entity.accountId) ||
-    typeof entity.displayName !== "string" || entity.displayName.length > 200 ||
-    !isClearedStage(entity.highestClearedStage)) return fail();
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function decodeDocument(document: unknown): SharedProfile {
+  const fail = (): never => { throw new RecordServiceError("storage-unavailable"); };
+  if (!isRecord(document) || typeof document.accountId !== "string" || !document.accountId.trim() ||
+    document.id !== getPlayerRowKey(document.accountId) || document.schemaVersion !== 1 ||
+    typeof document.displayName !== "string" || !document.displayName.trim() || document.displayName.length > 200 ||
+    !isClearedStage(document.highestClearedStage) || Object.hasOwn(document, "best")) return fail();
+
+  const hasBest = BEST_FIELDS.some((field) => Object.hasOwn(document, field));
+  if (hasBest && !BEST_FIELDS.every((field) => Object.hasOwn(document, field))) return fail();
 
   let best: SharedBest | null = null;
-  if (BEST_FIELDS.some((field) => entity[field] !== undefined)) {
-    if (!isGameStage(entity.bestStage) ||
-      typeof entity.bestScore !== "number" || !Number.isSafeInteger(entity.bestScore) || entity.bestScore < 0 ||
-      entity.bestScore > getStageRule(entity.bestStage).scoreRequired + 3 ||
-      typeof entity.remainingTimeCs !== "number" || !Number.isSafeInteger(entity.remainingTimeCs) || entity.remainingTimeCs < 0 ||
-      entity.remainingTimeCs > getStageRule(entity.bestStage).durationMs / 10 ||
-      typeof entity.achievedAt !== "string" || !Number.isFinite(Date.parse(entity.achievedAt)) ||
-      new Date(entity.achievedAt).toISOString() !== entity.achievedAt ||
-      entity.bestStage > getHighestUnlockedStage(entity.highestClearedStage) ||
-      (entity.bestScore >= getStageRule(entity.bestStage).scoreRequired && entity.highestClearedStage < entity.bestStage)) return fail();
+  if (hasBest) {
+    if (!isGameStage(document.bestStage) ||
+      typeof document.bestScore !== "number" || !Number.isSafeInteger(document.bestScore) || document.bestScore < 0 ||
+      document.bestScore > getStageRule(document.bestStage).scoreRequired + 3 ||
+      typeof document.remainingTimeCs !== "number" || !Number.isSafeInteger(document.remainingTimeCs) || document.remainingTimeCs < 0 ||
+      document.remainingTimeCs > getStageRule(document.bestStage).durationMs / 10 ||
+      typeof document.achievedAt !== "string" || !Number.isFinite(Date.parse(document.achievedAt)) ||
+      new Date(document.achievedAt).toISOString() !== document.achievedAt ||
+      document.bestStage > getHighestUnlockedStage(document.highestClearedStage) ||
+      (document.bestScore >= getStageRule(document.bestStage).scoreRequired && document.highestClearedStage < document.bestStage)) {
+      return fail();
+    }
     best = {
-      accountId: entity.accountId, displayName: entity.displayName, bestStage: entity.bestStage,
-      bestScore: entity.bestScore, remainingTimeCs: entity.remainingTimeCs, achievedAt: entity.achievedAt,
+      accountId: document.accountId,
+      displayName: document.displayName,
+      bestStage: document.bestStage,
+      bestScore: document.bestScore,
+      remainingTimeCs: document.remainingTimeCs,
+      achievedAt: document.achievedAt,
     };
   }
+
   return {
-    accountId: entity.accountId, displayName: entity.displayName,
-    highestClearedStage: entity.highestClearedStage, best,
+    accountId: document.accountId,
+    displayName: document.displayName,
+    highestClearedStage: document.highestClearedStage,
+    best,
   };
 }
 
-function encodeEntity(profile: SharedProfile): TableEntity<Record<string, unknown>> {
+function encodeDocument(profile: SharedProfile): PlayerDocument {
   return {
-    partitionKey: PARTITION, rowKey: getPlayerRowKey(profile.accountId), schemaVersion: 1,
-    accountId: profile.accountId, displayName: profile.displayName, highestClearedStage: profile.highestClearedStage,
+    id: getPlayerRowKey(profile.accountId),
+    accountId: profile.accountId,
+    schemaVersion: 1,
+    displayName: profile.displayName,
+    highestClearedStage: profile.highestClearedStage,
     ...(profile.best ? {
-      bestStage: profile.best.bestStage, bestScore: profile.best.bestScore,
-      remainingTimeCs: profile.best.remainingTimeCs, achievedAt: profile.best.achievedAt,
+      bestStage: profile.best.bestStage,
+      bestScore: profile.best.bestScore,
+      remainingTimeCs: profile.best.remainingTimeCs,
+      achievedAt: profile.best.achievedAt,
     } : {}),
   };
 }
@@ -85,28 +143,43 @@ async function storageBoundary<T>(operation: () => Promise<T>): Promise<T> {
 }
 
 export function createPlayerRepository(
-  table: PlayerTable,
-  options: { now?: () => Date; pageSize?: number } = {},
+  container: PlayerContainer,
+  options: { now?: () => Date; containerId?: string } = {},
 ): PlayerRepository {
   const now = options.now ?? (() => new Date());
-  const pageSize = options.pageSize ?? 100;
-  if (!Number.isSafeInteger(pageSize) || pageSize < 1 || pageSize > 1000) throw new RangeError("Invalid page size.");
+  let containerReadiness: Promise<void> | undefined;
+
+  function ensureContainer(): Promise<void> {
+    containerReadiness ??= container.read().then(({ resource }) => {
+      if (!resource?.id || (options.containerId && resource.id !== options.containerId) ||
+        resource.partitionKey?.paths?.length !== 1 || resource.partitionKey.paths[0] !== "/accountId") {
+        throw new RecordServiceError("storage-unavailable");
+      }
+    }).catch((error: unknown) => {
+      containerReadiness = undefined;
+      throw error;
+    });
+    return containerReadiness;
+  }
 
   async function readStored(actor: AuthenticatedActor): Promise<{ profile: SharedProfile; etag: string } | null> {
-    let entity;
+    await ensureContainer();
+    const id = getPlayerRowKey(actor.accountId);
+    let response: ItemRead<PlayerDocument>;
     try {
-      entity = await table.getEntity<Record<string, unknown>>(PARTITION, getPlayerRowKey(actor.accountId));
+      response = await container.item(id, actor.accountId).read<PlayerDocument>();
     } catch (error) {
-      // A missing table is an outage, not an empty official profile.
-      if (isMissingEntity(error)) return null;
+      if (isMissingItem(error)) return null;
       throw error;
     }
-    const profile = decodeEntity(entity);
-    if (profile.accountId !== actor.accountId || typeof entity.etag !== "string" ||
-      !entity.etag || entity.etag.trim() !== entity.etag || entity.etag === "*") {
+    if (!response.resource && response.statusCode === 404) return null;
+    if (!response.resource) throw new RecordServiceError("storage-unavailable");
+    const profile = decodeDocument(response.resource);
+    if (profile.accountId !== actor.accountId || typeof response.etag !== "string" ||
+      !response.etag || response.etag.trim() !== response.etag || response.etag === "*") {
       throw new RecordServiceError("storage-unavailable");
     }
-    return { profile, etag: entity.etag };
+    return { profile, etag: response.etag };
   }
 
   return {
@@ -116,17 +189,14 @@ export function createPlayerRepository(
     }),
 
     listTopScores: () => storageBoundary(async () => {
-      let top: SharedBest[] = [];
-      const pages = table.listEntities<Record<string, unknown>>({ queryOptions: {
-        filter: "PartitionKey eq 'descent-v1' and RowKey ge 'p_' and RowKey lt 'p`'",
-      } }).byPage({ maxPageSize: pageSize });
-      for await (const page of pages) {
-        for (const entity of page) {
-          const profile = decodeEntity(entity);
-          if (profile.best) top = getSharedTopScores([...top, profile.best]);
-        }
+      await ensureContainer();
+      const { resources = [] } = await container.items.query<PlayerDocument>(TOP_SCORES_QUERY, TOP_SCORES_OPTIONS).fetchAll();
+      const bests: SharedBest[] = [];
+      for (const document of resources) {
+        const profile = decodeDocument(document);
+        if (profile.best) bests.push(profile.best);
       }
-      return top;
+      return getSharedTopScores(bests);
     }),
 
     submit: (actor, input) => storageBoundary(async () => {
@@ -136,10 +206,16 @@ export function createPlayerRepository(
         if (!validation.ok) throw new RecordServiceError(validation.code);
         const merged = mergeSharedResult(stored?.profile ?? null, actor, input.result, now().toISOString());
         if (!merged.changed) return merged.profile;
-        const entity = encodeEntity(merged.profile);
+        const document = encodeDocument(merged.profile);
         try {
-          if (stored) await table.updateEntity(entity, "Replace", { etag: stored.etag });
-          else await table.createEntity(entity);
+          if (stored) {
+            const id = getPlayerRowKey(actor.accountId);
+            await container.item(id, actor.accountId).replace(document, {
+              accessCondition: { type: "IfMatch", condition: stored.etag },
+            });
+          } else {
+            await container.items.create(document);
+          }
           return merged.profile;
         } catch (error) {
           if ((!stored && statusCode(error) === 409) || (stored && statusCode(error) === 412)) continue;
@@ -154,15 +230,16 @@ export function createPlayerRepository(
 export function createPlayerRepositoryFromEnvironment(
   env: Record<string, string | undefined> = process.env,
 ): PlayerRepository {
-  const connectionString = env.GAME_RECORDS_CONNECTION_STRING;
-  const tableName = env.GAME_RECORDS_TABLE;
-  if (!connectionString?.trim() || !tableName || !/^[A-Za-z][A-Za-z0-9]{2,62}$/.test(tableName)) {
+  const connectionString = env.GAME_RECORDS_COSMOS_CONNECTION_STRING?.trim();
+  const databaseName = env.GAME_RECORDS_COSMOS_DATABASE?.trim();
+  const containerName = env.GAME_RECORDS_COSMOS_CONTAINER?.trim();
+  if (!connectionString || !databaseName || databaseName.length > 255 || !containerName || containerName.length > 255) {
     throw new RecordServiceError("storage-unavailable");
   }
   try {
-    return createPlayerRepository(TableClient.fromConnectionString(connectionString, tableName, {
-      retryOptions: { maxRetries: 2 },
-    }));
+    const client = new CosmosClient(connectionString);
+    const container = client.database(databaseName).container(containerName);
+    return createPlayerRepository(container, { containerId: containerName });
   } catch {
     throw new RecordServiceError("storage-unavailable");
   }

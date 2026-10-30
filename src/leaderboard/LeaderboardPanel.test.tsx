@@ -37,7 +37,12 @@ describe("LeaderboardPanel", () => {
 
   it("shows the empty state", () => {
     render(<LeaderboardPanel entries={[]} currentAccountId="player" />);
-    expect(screen.getByText(/아직 저장된 기록이 없어요/)).toBeVisible();
+    expect(screen.getByText(/로컬 플레이 기록은 저장되지 않아요/)).toBeVisible();
+  });
+
+  it("keeps the company invitation for an empty shared ranking", () => {
+    render(<LeaderboardPanel entries={[]} currentAccountId="player" scope="company" />);
+    expect(screen.getByText(/첫 기록을 만들어 보세요/)).toBeVisible();
   });
 
   it("shows the attempted stage and zero points and prioritizes a higher stage", () => {
