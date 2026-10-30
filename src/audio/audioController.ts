@@ -1,4 +1,4 @@
-import type { AudioPreferences } from "./audioPreferences";
+import { DEFAULT_AUDIO_PREFERENCES, type AudioPreferences } from "./audioPreferences";
 
 export interface AudioController {
   startBgm(): Promise<boolean>;
@@ -22,12 +22,7 @@ function scaledVolume(volume: number, gain: number): number {
 
 export function createAudioController(): AudioController {
   let bgm: HTMLAudioElement | null = null;
-  let preferences: AudioPreferences = {
-    bgmVolume: 0.5,
-    bgmMuted: false,
-    effectsVolume: 0.5,
-    effectsMuted: false,
-  };
+  let preferences: AudioPreferences = { ...DEFAULT_AUDIO_PREFERENCES };
   let eventActive = false;
   let disposed = false;
   let startPromise: Promise<boolean> | null = null;

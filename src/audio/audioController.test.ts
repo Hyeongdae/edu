@@ -34,6 +34,7 @@ describe("audio controller", () => {
     const bgm = FakeAudio.instances[0];
     expect(bgm.src).toBe("/audio/stair-climb-bgm.mp3");
     expect(bgm.loop).toBe(true);
+    expect(bgm.volume).toBeCloseTo(0.18);
     bgm.currentTime = 6;
     controller.stopBgm();
     expect(bgm.pause).toHaveBeenCalledOnce();
@@ -44,7 +45,7 @@ describe("audio controller", () => {
     const controller = createAudioController();
     await controller.startBgm();
     const bgm = FakeAudio.instances[0];
-    expect(bgm.volume).toBe(0.3);
+    expect(bgm.volume).toBeCloseTo(0.18);
     controller.setPreferences({ ...DEFAULT_AUDIO_PREFERENCES, bgmMuted: true, bgmVolume: 0.2 });
     expect(bgm.muted).toBe(true);
     expect(bgm.volume).toBe(0.12);

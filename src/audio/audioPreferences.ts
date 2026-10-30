@@ -6,7 +6,7 @@ export interface AudioPreferences {
 }
 
 export const DEFAULT_AUDIO_PREFERENCES: AudioPreferences = {
-  bgmVolume: 0.5,
+  bgmVolume: 0.3,
   bgmMuted: false,
   effectsVolume: 0.5,
   effectsMuted: false,

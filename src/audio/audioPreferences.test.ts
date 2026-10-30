@@ -27,6 +27,7 @@ describe("audio preferences", () => {
 
   it("loads the documented defaults when no preference exists", () => {
     expect(loadAudioPreferences(storage)).toEqual(DEFAULT_AUDIO_PREFERENCES);
+    expect(loadAudioPreferences(storage).bgmVolume).toBe(0.3);
   });
 
   it("saves and reloads separate channel volume and mute values", () => {
@@ -39,6 +40,16 @@ describe("audio preferences", () => {
     expect(saveAudioPreferences(preferences, storage)).toBe(true);
     expect(storage.getItem(key)).toBe(JSON.stringify(preferences));
     expect(loadAudioPreferences(storage)).toEqual(preferences);
+  });
+
+  it("preserves a previously saved BGM volume instead of replacing it with the new default", () => {
+    storage.setItem(key, JSON.stringify({ bgmVolume: 0.5, bgmMuted: true, effectsVolume: 0.8, effectsMuted: true }));
+    expect(loadAudioPreferences(storage)).toEqual({
+      bgmVolume: 0.5,
+      bgmMuted: true,
+      effectsVolume: 0.8,
+      effectsMuted: true,
+    });
   });
 
   it("replaces invalid fields with that field's default and handles bad JSON", () => {

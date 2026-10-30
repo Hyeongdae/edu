@@ -102,6 +102,18 @@ describe("authenticated audio setup", () => {
     expect(JSON.parse(window.localStorage.getItem("stair-climb:audio:v1") ?? "{}")).toMatchObject({ bgmMuted: false });
   });
 
+  it("uses 30 percent BGM volume for a player without saved preferences", async () => {
+    AppAudio.instances = [];
+    AppAudio.outcomes = [true];
+    vi.stubGlobal("Audio", AppAudio);
+
+    render(<App configurationError={null} />);
+    await openAudioSettings();
+
+    expect(document.querySelector<HTMLInputElement>("#bgm-volume")?.value).toBe("30");
+    expect(AppAudio.instances[0].volume).toBeCloseTo(0.18);
+  });
+
   it("opens the game with the local demo account without showing Entra setup", async () => {
     AppAudio.instances = [];
     AppAudio.outcomes = [true];
