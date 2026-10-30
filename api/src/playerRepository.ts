@@ -27,6 +27,7 @@ export interface PlayerDocument extends ItemDefinition {
 interface ItemRead<T> {
   resource?: T;
   etag?: string;
+  statusCode?: number;
 }
 
 interface PlayerItem {
@@ -171,6 +172,7 @@ export function createPlayerRepository(
       if (isMissingItem(error)) return null;
       throw error;
     }
+    if (!response.resource && response.statusCode === 404) return null;
     if (!response.resource) throw new RecordServiceError("storage-unavailable");
     const profile = decodeDocument(response.resource);
     if (profile.accountId !== actor.accountId || typeof response.etag !== "string" ||

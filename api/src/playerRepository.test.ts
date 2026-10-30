@@ -66,6 +66,12 @@ describe("Cosmos player repository", () => {
     },
   );
 
+  it("treats the SDK's resolved 404 response with no resource as a missing item", async () => {
+    item.read.mockResolvedValueOnce({ statusCode: 404 });
+    expect(await repository().getProfile(ACTOR)).toEqual({ ...ACTOR, highestClearedStage: 0, best: null });
+    expect(container.items.create).not.toHaveBeenCalled();
+  });
+
   it("checks the configured container once and fails closed when it is missing", async () => {
     container.read.mockRejectedValueOnce({ statusCode: 404, code: "NotFound" });
     await expect(repository().getProfile(ACTOR)).rejects.toMatchObject({ code: "storage-unavailable", status: 503 });
