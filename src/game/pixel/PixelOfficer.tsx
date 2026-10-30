@@ -68,13 +68,21 @@ function OfficerFrameArt({ variant, frame }: { variant: OfficerVariant; frame: O
           <rect x="23" y="9" width="4" height="1" />
         </g>
       )}
+      {older && (
+        <g className="officer-straw-hat">
+          <path d="M10 7V5H12V3H15V1H21V3H24V5H26V7H29V8H31V10H5V8H8V7Z" fill="#b9772d" />
+          <path d="M11 6V4H14V2H22V4H25V7H11Z" fill="#f0c451" />
+          <rect x="13" y="4" width="10" height="2" fill="#a85f2a" />
+          <rect x="7" y="8" width="22" height="1" fill="#ffe18a" />
+        </g>
+      )}
       <rect x="12" y="16" width="3" height="2" fill="#df9487" />
       <rect x="24" y="16" width="2" height="1" fill="#df9487" />
       <rect x="19" y="18" width={stumble ? 3 : 5} height={stumble ? 2 : 1} fill="#874e56" />
       {!stumble && <rect x="23" y="17" width="2" height="1" fill="#874e56" />}
-      <rect x="10" y="23" width="16" height="9" fill={sleeve} />
-      <rect x="10" y="24" width="3" height="8" fill={sleeveShade} />
-      <rect x="16" y="23" width="8" height="9" fill="#e6f2ed" />
+      <rect x={older ? 11 : 10} y="23" width={older ? 14 : 16} height="9" fill={sleeve} />
+      <rect x={older ? 11 : 10} y="24" width={older ? 2 : 3} height="8" fill={sleeveShade} />
+      <rect x="16" y="23" width={older ? 7 : 8} height="9" fill="#e6f2ed" />
       <rect x="16" y="23" width="2" height="2" fill="#b7cad1" />
       <rect x="22" y="23" width="2" height="2" fill="#b7cad1" />
       <rect x="19" y="24" width="3" height="2" fill={older ? "#61e8e1" : "#f07c9f"} />
@@ -83,61 +91,61 @@ function OfficerFrameArt({ variant, frame }: { variant: OfficerVariant; frame: O
       <rect x="12" y="27" width="4" height="5" fill={ink} />
       <rect x="13" y="28" width="2" height="3" fill="#eef7ff" />
       <rect x="13" y="28" width="2" height="1" fill="#61e8e1" />
-      <rect x="11" y="32" width="15" height="2" fill={ink} />
+      <rect x={older ? 12 : 11} y="32" width={older ? 13 : 15} height="2" fill={ink} />
       <rect x="19" y="32" width="2" height="1" fill="#b8c8d3" />
       {frame === "idle" && (
         <g>
-          <rect x="6" y="24" width="4" height="8" fill={sleeveShade} />
-          <rect x="6" y="31" width="4" height="4" fill={skin} />
-          <rect x="26" y="24" width="4" height="8" fill={sleeve} />
-          <rect x="26" y="31" width="4" height="4" fill={skin} />
-          <rect x="12" y="34" width="5" height="5" fill="#2c3b59" />
-          <rect x="21" y="34" width="5" height="5" fill="#354766" />
-          <rect x="10" y="38" width="8" height="2" fill={ink} />
-          <rect x="20" y="38" width="9" height="2" fill={ink} />
+          <rect x={older ? 7 : 6} y="24" width={older ? 3 : 4} height="8" fill={sleeveShade} />
+          <rect x={older ? 7 : 6} y="31" width={older ? 3 : 4} height="4" fill={skin} />
+          <rect x={older ? 25 : 26} y="24" width={older ? 3 : 4} height="8" fill={sleeve} />
+          <rect x={older ? 25 : 26} y="31" width={older ? 3 : 4} height="4" fill={skin} />
+          <rect x={older ? 13 : 12} y="34" width={older ? 4 : 5} height="5" fill="#2c3b59" />
+          <rect x="21" y="34" width={older ? 4 : 5} height="5" fill="#354766" />
+          <rect x={older ? 11 : 10} y="38" width={older ? 7 : 8} height="2" fill={ink} />
+          <rect x="20" y="38" width={older ? 8 : 9} height="2" fill={ink} />
         </g>
       )}
       {frame === "run-a" && (
         <g>
-          <rect x="6" y="23" width="4" height="6" fill={sleeveShade} />
-          <rect x="3" y="27" width="6" height="3" fill={sleeveShade} />
-          <rect x="1" y="28" width="4" height="4" fill={skin} />
-          <rect x="26" y="24" width="4" height="6" fill={sleeve} />
-          <rect x="27" y="22" width="4" height="5" fill={skin} />
-          <rect x="11" y="33" width="6" height="4" fill="#2c3b59" />
-          <rect x="7" y="35" width="6" height="4" fill="#2c3b59" />
-          <rect x="21" y="33" width="5" height="4" fill="#354766" />
-          <rect x="24" y="36" width="5" height="3" fill="#354766" />
+          <rect x={older ? 7 : 6} y="23" width={older ? 3 : 4} height="6" fill={sleeveShade} />
+          <rect x={older ? 4 : 3} y="27" width={older ? 5 : 6} height="3" fill={sleeveShade} />
+          <rect x={older ? 2 : 1} y="28" width={older ? 3 : 4} height="4" fill={skin} />
+          <rect x={older ? 25 : 26} y="24" width={older ? 3 : 4} height="6" fill={sleeve} />
+          <rect x="27" y="22" width={older ? 3 : 4} height="5" fill={skin} />
+          <rect x="11" y="33" width={older ? 5 : 6} height="4" fill="#2c3b59" />
+          <rect x="7" y="35" width={older ? 5 : 6} height="4" fill="#2c3b59" />
+          <rect x="21" y="33" width={older ? 4 : 5} height="4" fill="#354766" />
+          <rect x="24" y="36" width={older ? 4 : 5} height="3" fill="#354766" />
           <rect x="5" y="38" width="9" height="2" fill={ink} />
           <rect x="24" y="38" width="8" height="2" fill={ink} />
         </g>
       )}
       {frame === "run-b" && (
         <g>
-          <rect x="6" y="23" width="4" height="6" fill={sleeveShade} />
-          <rect x="3" y="21" width="4" height="5" fill={skin} />
-          <rect x="26" y="24" width="4" height="7" fill={sleeve} />
-          <rect x="28" y="29" width="4" height="4" fill={skin} />
-          <rect x="12" y="33" width="5" height="4" fill="#2c3b59" />
-          <rect x="10" y="36" width="5" height="3" fill="#2c3b59" />
-          <rect x="20" y="33" width="6" height="4" fill="#354766" />
-          <rect x="24" y="35" width="6" height="4" fill="#354766" />
+          <rect x={older ? 7 : 6} y="23" width={older ? 3 : 4} height="6" fill={sleeveShade} />
+          <rect x="3" y="21" width={older ? 3 : 4} height="5" fill={skin} />
+          <rect x={older ? 25 : 26} y="24" width={older ? 3 : 4} height="7" fill={sleeve} />
+          <rect x="28" y="29" width={older ? 3 : 4} height="4" fill={skin} />
+          <rect x="12" y="33" width={older ? 4 : 5} height="4" fill="#2c3b59" />
+          <rect x="10" y="36" width={older ? 4 : 5} height="3" fill="#2c3b59" />
+          <rect x="20" y="33" width={older ? 5 : 6} height="4" fill="#354766" />
+          <rect x="24" y="35" width={older ? 5 : 6} height="4" fill="#354766" />
           <rect x="8" y="38" width="8" height="2" fill={ink} />
           <rect x="24" y="38" width="8" height="2" fill={ink} />
         </g>
       )}
       {stumble && (
         <g>
-          <rect x="3" y="22" width="7" height="4" fill={sleeveShade} />
+          <rect x={older ? 4 : 3} y="22" width={older ? 6 : 7} height="4" fill={sleeveShade} />
           <rect x="0" y="20" width="4" height="5" fill={skin} />
-          <rect x="26" y="22" width="4" height="4" fill={sleeve} />
+          <rect x={older ? 25 : 26} y="22" width={older ? 3 : 4} height="4" fill={sleeve} />
           <rect x="28" y="19" width="4" height="5" fill={skin} />
-          <rect x="8" y="33" width="9" height="4" fill="#2c3b59" />
-          <rect x="6" y="36" width="6" height="3" fill="#2c3b59" />
-          <rect x="21" y="33" width="7" height="4" fill="#354766" />
-          <rect x="25" y="36" width="5" height="3" fill="#354766" />
-          <rect x="3" y="38" width="10" height="2" fill={ink} />
-          <rect x="24" y="38" width="8" height="2" fill={ink} />
+          <rect x={older ? 9 : 8} y="33" width={older ? 8 : 9} height="4" fill="#2c3b59" />
+          <rect x={older ? 7 : 6} y="36" width={older ? 5 : 6} height="3" fill="#2c3b59" />
+          <rect x="21" y="33" width={older ? 6 : 7} height="4" fill="#354766" />
+          <rect x="25" y="36" width={older ? 4 : 5} height="3" fill="#354766" />
+          <rect x={older ? 4 : 3} y="38" width={older ? 9 : 10} height="2" fill={ink} />
+          <rect x="24" y="38" width={older ? 7 : 8} height="2" fill={ink} />
           <rect x="1" y="5" width="2" height="6" fill="#ffd27a" />
           <rect x="1" y="13" width="2" height="2" fill="#ffd27a" />
         </g>

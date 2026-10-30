@@ -1,54 +1,30 @@
 # Current Context
 
 ## Active Plan
-[Azure Company Game Deployment](./plans/2026-10-30-azure-company-game-deployment.md)
+[Pursuer Design and Cosmos Migration](./plans/2026-10-30-pursuer-design-and-cosmos-migration.md)
 
 ## Active Phase
-[P02 Azure Release](./phases/2026-10-30-azure-company-game-deployment/P02-azure-release/phase.md)
+[P02 Cosmos Application](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P02-cosmos-application/phase.md)
 
 ## Active Task
-[T03 Release and Verify URL](./phases/2026-10-30-azure-company-game-deployment/P02-azure-release/T03-release-and-verify-url.md)
+[T01 Cosmos Player Repository](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P02-cosmos-application/T01-cosmos-player-repository.md)
 
 ## Last Completed Task
-[T02 Provision Company Resources](./phases/2026-10-30-azure-company-game-deployment/P02-azure-release/T02-provision-company-resources.md) — `df5a933` (2026-10-30); interim preflight fixes `f1ddac4`/`87336ca`. Previous P02-T01 `b2d2172`, P01-T04 `42466f6`/sync `75f13e3`, T03 `f56b4fe`/sync `b0f691c`, T02 `be54a6b`/sync `9b49244`, T01 `e880da2`/sync `d4f1d02`.
+[T01 Consistent Pursuer Pixel Art](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P01-pursuer-pixel-art/T01-consistent-pursuer-art.md) (2026-10-30).
 
 ## Status
-- Pre-game leaderboard P01-T01 completed in commit `6548e3b`; overall TOP 10 now opens from title and stage selection.
-- Active again, not complete: Azure company game deployment P02-T03. Production URL is live at `https://ashy-cliff-0e5e4b600.1.azurestaticapps.net`; Entra ID-token issuance was enabled after AADSTS700054. User still needs to confirm company login, save a result, and restore the account's unlocked stage in a fresh browser/device. Release evidence is in `deploy/RELEASE.md` and the T03 blueprint.
-- P02-T02 completed2026-10-30 at user direction using existing `grill-me-edu` group Contributor. Created tagged Standard site `swa-dex-escape-prod-384874bc`, private storage `stdexescape384874bc` and table `DexEscapePlayers`; manifest target `https://ashy-cliff-0e5e4b600.1.azurestaticapps.net`. Added Entra Web callback/180-day app credential, verified server settings, new-site repo secret and deployment variables. Original 20 resource names remain present. Site is deployed; release Actions runs 40998761290 and 40999234997 succeeded. Anonymous profile/leaderboard requests redirect to Entra. Entra ID-token issuance was enabled after AADSTS700054; user retry and real score/save/restore checks remain for T03.
-- GitHub CLI v2.103.3 amd64 installed outside repo at %LOCALAPPDATA%/dex-tools/gh-v2.103.3/bin/gh.exe; official asset SHA25698d0cfa794721665d7973dd728c78aff7bd836d58f10f6d7a03568eccb0a22e0 verified. Device login Hyeongdae complete; Hyeongdae/edu push/admin=true and Secrets public-key/variables-read access verified. No GitHub login needed again unless session expires.
-- T02 final validation: deployment25/25, lint/diff and live checks passed: Standard site/host, private HTTPS/TLS storage, table, Entra callback/audience/assignment, original SPA redirects, credential metadata, server settings, GitHub secret/variables and stable rerun PlanOnly. No game/API source changes.
-- T02 recorded a concurrent Automation runbook publish by another principal; this task did not change it. First Apply attempt stopped before resource writes on an unsupported `az ad --subscription` argument; CLI handling was corrected and retry passed.
-- azure-company-game-deployment: done6/7, P01 complete4/4, P02 done2/3; Active P02-T03. P02-T01 `b2d2172` prepares protected hosted config, exact-SHA production artifacts/main Actions and default-PlanOnly scoped provisioning tooling.
-- P02-T01 validation: deployment helpers22/22, full root1269/1269 across42 files, API95/95, isolated actual Azurite10/10, lint/API build17.9kB/hosted frontend600.13kB/CSS76.01kB, real production API staging/config/release verification and official actionlint1.7.12 passed. Full-root evidence %TEMP%/dex-deployment-config-full-root-2026-10-30.json. No skipped tests, dependency/lock changes or game-rule changes. Existing bundle warning deferred.
-- Default provisioning command actually ran PlanOnly/cloudWrites=false. Two fake-runner Apply runs verified one owned RG/site/storage/table creation, one additive credential, callback/settings preservation and repeatability without actual cloud calls. Strict public manifest/recovery journal omit secrets; tenantFingerprint binds tenant/subscription/client context. Private body files and gh stdin protect credentials. Actual CLI permissions/live Apply/Actions/company session remain unverified.
-- P01-T04 `42466f6` gates hosted GameScreen/audio on confirmed server profile/rankings, isolates local/demo records and queues immutable results by account with serial retry/ACK handling.
-- T04 final validation: full root1269/1269 across42 files/0 failed/0 skipped; API95/95; isolated real Azurite10/10; lint/API build17.9kB/normal frontend600.18kB/hosted600.13kB/CSS76.01kB/diff checks passed. Full-root evidence %TEMP%/dex-company-full-root-2026-10-30.json. Existing bundle warning deferred, no dependency changes.
-- T04 found18 pre-existing stale600ms pursuit expectations in6 suites;12 relevant files hash-matched HEAD and isolated baseline reproduced18/276 failures. Test-only time/fixture corrections restored276/276; runtime engine/stage/pursuit/descent code unchanged. Baseline evidence %TEMP%/dex-existing-tests-44c53fe6a4624447bb05c35f4d895162.json.
-- New X-Game-Account request precondition compares to trusted platform actor before repository access, preventing a queued A result from being applied after cookies switch to B. It never selects identity; POST body remains UUID/result only. Account-switch, ACK loss, FIFO, quota/error/expiry, StrictMode, stale profile, initial unlocks and unchanged scene clocks tested.
-- No actual Azure resources/settings/credentials, company session or deployment URL created/verified. All P01 checks are mocked UI/HTTP or isolated storage emulation. P02 must protect hosting/API and verify real company login/cross-device saves before claiming release.
-- T03 `f56b4fe` connects hosted /.auth/me bootstrap before game/audio, skips MSAL/provider/local-ID requirements in hosted mode, preserves local MSAL and DEV-only demo.
-- T03 validation: 78/78 targeted auth configuration/parser/gate/App/main-entry tests, lint, normal build (JS587.13kB/CSS76.01kB), hosted build without local SPA IDs (JS587.08kB/CSS76.01kB), diff checks passed. Existing bundle warning remains. StrictMode/abort/stale responses, safe return paths, PROD demo disabled and account-owned audio cleanup verified.
-- T03 corrected stale App title/settings selectors and existing gain-adjusted playback expectation without changing audio rules. Its interim hosted local-record path was replaced by T04 server records. No actual Entra session, Azure setting/credential/resource change or Git push.
-- T02 `be54a6b` adds GET profile/leaderboard, POST results, trusted-platform-principal parsing, safe HTTP errors and conditional Table storage.
-- T02 validation: clean api ci; API unit94/94 and isolated actual Azurite integration10/10 passed additionally on Node22.23.4; shared137/137, lint, API17.7kB build and unchanged frontend build/diff checks passed. No test skips in final runs. One parallel cold-start test exceeded the unchanged12s emulator startup budget; final sequential Node22 run passed.
-- API deployment requires SWA tenant/route protection and no direct exposed backend; header parsing alone is not cryptographic authentication. No actual Azure resource creation, company login, GitHub mutation or production record writes performed. Full root UI suite now passes after T04 validation maintenance.
-- API production dependency audit0 vulnerabilities; development-only Azurite uuid/ms-rest-js/sequelize chain reports4 moderate advisories. Do not force an incompatible emulator downgrade or ship Azurite dev dependencies in production.
-- T01 `e880da2` exports shared DTOs, strict request validation, whole-tuple rankings and immutable monotonic cleared-stage merging.
-- T01 validation: 137/137 Node-environment contract tests, lint, TypeScript/Vite build and diff checks passed. Existing JS583.75kB/CSS75.93kB output and bundle-size warning remain. No frontend runtime integration, game-rule changes, local-record writes or Azure/GitHub mutations.
-- Follow one Active Task per memory-execute. P02-T01/T02 are complete; only P02-T03 remains. Preserve P01 account isolation, auth-mode precedence and audio ownership. README documents the selected existing group; root Vitest excludes node:test deployment helpers, which CI runs separately.
-- Verified paths: StageResult is exported by src/game/types.ts, leaderboard lives at src/leaderboard/leaderboard.ts, engine is src/game/gameEngine.ts. Later blueprint references must use actual paths; unrelated source was not changed during T01.
-- Previous title-copy-and-overtime-capture completed 2/2: T02 `10e1ac4`, T01 `4e41af6`, memory syncs `2d73945` and `2786222`.
-- Previous overtime T02 connected the 500 ms staircase catch → 2,000 ms office scene → recorded result flow in GameScreen, with reduced-motion static results and restart focus, and changed the exact title subtitle. Captured-result storage, engine rules, auth/config files, and audio ownership were unchanged.
-- Previous overtime T02 validation: 182/182 tests across four targeted files, lint, and build passed. HTTP 200 and connected module/development-demo flag verified at `http://127.0.0.1:5176/`; process-only demo server retained for the user. Existing protected port 5175 retained.
-- Previous overtime T02 real-browser inspection was blocked by automatic approval review (`blocked by policy`); no main-game visual acceptance claimed. Evidence and logs: `%TEMP%\overtime-t02-2026-10-30\`. Standalone artwork inspection remains at `%TEMP%\overtime-t01-2026-10-29\preview-evidence.json` with six PNGs.
-- Previous title-scene-and-guide-copy plan completed 1/1 with 119/119 targeted tests, lint, and build passing.
+- The new combined plan has 3 phases and 7 sequential tasks. P01 pursuer artwork is complete; P02 Cosmos API/integration/local behavior is active; P03 Azure container, release verification, then legacy Storage deletion follows.
+- No source implementation, Cosmos resource creation, deployment setting change, or Storage deletion occurred while planning.
+- Parked prior pointer: [Azure Company Game Deployment P02-T03](./phases/2026-10-30-azure-company-game-deployment/P02-azure-release/T03-release-and-verify-url.md). Its real Entra login/save verification is superseded by the Cosmos-backed verification in P03-T02. Do not delete the legacy Storage account before that verification passes.
+- Confirmed boundaries: Cosmos `auth`/`game` containers remain untouched; local game runs save no ranking/progress records but retain in-memory unlocks for the current session; production records keep the current rank ordering; the old table history is not migrated.
+- Shared database throughput is the existing 400 RU/s pool. The new container receives no dedicated allocation, so its request capacity is not isolated from other containers.
 
 ## Source Decisions
-[Azure Company Game Deployment](./decisions/2026-10-30-azure-company-game-deployment.md)
+- [Pursuer straw-hat design](./decisions/2026-10-30-pursuer-straw-hat-design.md)
+- [Cosmos ranking storage migration](./decisions/2026-10-30-cosmos-ranking-storage-migration.md)
 
 ## Next Step (IMPORTANT)
-Read only P02-T03-release-and-verify-url blueprint. Review origin/main against local commits, run required CI for the exact SHA, then use the authenticated Hyeongdae push/admin and Actions secret access already verified to push the intended main history; no force-push or remote history rewrite. Capture Actions run/SHA and verify anonymous access denial, company Entra login, API records/leaderboard and cross-device profile/unlocks before calling the hostname live. No passwords or MFA codes in chat. Preserve existing resource group games, local DEV demo and account FIFO/ACK rules. Keep unrelated untracked files and deferred bundle work untouched.
+Read only P02-T01 Cosmos player repository blueprint and implement its API repository changes. Do not start frontend Cosmos integration or Azure resource tasks until the current pointer advances.
 ---
 
 ### Previous Context: Main Game Descent Conversion
