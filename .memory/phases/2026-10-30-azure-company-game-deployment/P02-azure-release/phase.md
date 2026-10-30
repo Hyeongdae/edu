@@ -6,12 +6,13 @@
 ## Tasks
 | Task | Status | Summary | Blueprint |
 | :--- | :--- | :--- | :--- |
-| T01 | `pending` | auth/config 산출물, main Actions, 기본 PlanOnly 배포 도구 | [T01](./T01-deployment-config-and-workflow.md) |
+| T01 | `in_progress 🔵` | auth/config 산출물, main Actions, 기본 PlanOnly 배포 도구 | [T01](./T01-deployment-config-and-workflow.md) |
 | T02 | `pending` | 실제 권한 확인, 전용 Azure/Entra/GitHub 설정 | [T02](./T02-provision-company-resources.md) |
 | T03 | `pending` | main release, 실제 로그인/공유 기록 검증 및 URL | [T03](./T03-release-and-verify-url.md) |
 
 ## Progress
-- done: 0/3 (active: none; awaiting P01)
+- done: 0/3 (active: T01; P01 complete4/4)
+- P01 final implementation `42466f6`, root1269/API95/Azurite10 passing. No production site has been provisioned/released by this plan yet.
 - Dependencies: P01 complete → T01 → T02 → T03.
 - T01: 클라우드/원격 변경 없음. T02: 승인된 전용 리소스와 설정만 실제 변경. T03: Git push/Actions 배포.
 - Exit gate: 실사이트 URL, 정확한 배포 SHA와 run URL, 익명 접근 차단, 회사 로그인, 서버 기록과 기기 간 해금 복원 증거.

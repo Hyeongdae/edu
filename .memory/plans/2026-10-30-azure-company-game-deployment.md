@@ -9,8 +9,8 @@
 ## Phases
 | Phase | Status | Summary | Blueprint |
 | :--- | :--- | :--- | :--- |
-| P01 | `in_progress` | 결과 계약, 서버 저장, 호스팅 인증, 게임의 공유 기록 연결 | [P01](../phases/2026-10-30-azure-company-game-deployment/P01-company-records/phase.md) |
-| P02 | `pending` | 검증된 배포 구성, 전용 Azure/Entra 연결, 실제 배포와 URL 검증 | [P02](../phases/2026-10-30-azure-company-game-deployment/P02-azure-release/phase.md) |
+| P01 | `done` | 결과 계약, 서버 저장, 호스팅 인증, 게임의 공유 기록 연결 | [P01](../phases/2026-10-30-azure-company-game-deployment/P01-company-records/phase.md) |
+| P02 | `in_progress` | 검증된 배포 구성, 전용 Azure/Entra 연결, 실제 배포와 URL 검증 | [P02](../phases/2026-10-30-azure-company-game-deployment/P02-azure-release/phase.md) |
 
 ## Scope and Architecture
 - Azure 기본 `azurestaticapps.net` HTTPS 주소, 새 전용 리소스 그룹/Standard 사이트/비공개 Table Storage. 기존 다른 게임의 리소스는 수정하지 않는다. Standard 및 저장소 비용은 인터뷰에서 승인한 범위다.
@@ -59,8 +59,9 @@
 문서는 계획 근거이며 실제 런타임·권한·리전 지원은 해당 실행 Task에서도 확인한다.
 
 ## Progress
-- done: 3/7
-- Active: P01-T04.
+- done: 4/7
+- Active: P02-T01.
 - P01-T01 `e880da2`: shared contracts, 137/137 tests, lint/build/diff checks passed on 2026-10-30. Deployment is not yet performed.
 - P01-T02 `be54a6b`: authenticated-principal API and private Table adapter; Node22 unit94/94, actual isolated integration10/10, shared137/137, ci/lint/build/diff checks passed. Actual hosting authentication and cloud release remain pending.
 - P01-T03 `f56b4fe`: SWA session bootstrap, mode precedence, minimal game identity and account-owned audio; targeted78/78, lint, normal/hosted builds/diff passed. No live Azure/Entra changes or deployment.
+- P01-T04 `42466f6`: cloud bootstrap/FIFO/game integration; full root1269/1269, API95/95, isolated Azurite10/10, lint/API/normal/hosted builds/diff passed. P01 complete4/4. Production resources/login/URL and CI remain P02 work.

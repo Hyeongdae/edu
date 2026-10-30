@@ -108,7 +108,7 @@ Task: T04-cloud-records-game-integration
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: pending
+- commit: `42466f6`
 
 ## Execution Evidence (2026-10-30)
 - Added src/company/types.ts, recordApi.ts, CompanyRecordStore.ts and CompanyRecordsGate.tsx. Hosted App now gates GameAppShell/audio/GameScreen on both the current server profile and shared top10; failed initial reads remain retry/login states, not empty official profiles. Local MSAL/demo behavior and records remain browser-local.
