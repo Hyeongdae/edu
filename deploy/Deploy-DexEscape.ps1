@@ -45,6 +45,7 @@ if (-not $Apply) {
         savedTarget = ($null -ne $saved); cloudWrites = $false } | ConvertTo-Json
     return
 }
+if ($UseExistingResourceGroup -and -not $PSBoundParameters.ContainsKey('ResourceGroup')) { throw 'UseExistingResourceGroup requires an explicit resource group name.' }
 if (-not $plan.IdentityConfigured) { throw 'Apply requires explicit subscription, tenant and app client identifiers.' }
 if (-not $PSBoundParameters.ContainsKey('ToolRunner')) {
     if ($AzureCliPath -eq 'az' -and -not (Get-Command az -ErrorAction SilentlyContinue)) {
@@ -55,7 +56,9 @@ if (-not $PSBoundParameters.ContainsKey('ToolRunner')) {
 }
 function Call-Az {
     param([string[]]$Arguments)
-    return & $ToolRunner -Tool $AzureCliPath -Arguments (@($Arguments) + @('--subscription', $plan.SubscriptionId, '--output', 'json', '--only-show-errors')) -InputText $null
+    $common = @('--output', 'json', '--only-show-errors')
+    if ($Arguments[0] -cne 'ad') { $common = @('--subscription', $plan.SubscriptionId) + $common }
+    return & $ToolRunner -Tool $AzureCliPath -Arguments (@($Arguments) + $common) -InputText $null
 }
 function Call-Gh {
     param([string[]]$Arguments, [AllowNull()][string]$InputText = $null)
@@ -89,14 +92,15 @@ foreach ($entry in @(@('Microsoft.Web','staticSites'), @('Microsoft.Storage','st
 }
 if ($UseExistingResourceGroup -and -not $saved) {
     $group = Call-Az @('group','show','--name',$target.resourceGroup)
-    Assert-DexOwnedResource -Resource $group -ExpectedName $target.resourceGroup -Tags $plan.Tags
-    $groupContents = @(Call-Az @('resource','list','--resource-group',$target.resourceGroup))
-    if ($groupContents.Count) { throw 'The pre-created deployment resource group must be dedicated and empty.' }
+    if ($group.name -cne $target.resourceGroup) { throw 'The selected shared resource group did not match the requested target.' }
     $exists = $true
 } else {
     $exists = Call-Az @('group','exists','--name',$target.resourceGroup)
 }
-if ($exists -and -not ($UseExistingResourceGroup -and -not $saved)) {
+if ($exists -and $UseExistingResourceGroup) {
+    $group = Call-Az @('group','show','--name',$target.resourceGroup)
+    if ($group.name -cne $target.resourceGroup) { throw 'The saved deployment resource group did not match the intended target.' }
+} elseif ($exists) {
     $group = Call-Az @('group','show','--name',$target.resourceGroup)
     if ($null -eq $saved) { throw 'Existing resources require an owned saved manifest or recovery journal.' }
     Assert-DexOwnedResource -Resource $group -ExpectedName $target.resourceGroup -Tags $plan.Tags

@@ -151,13 +151,13 @@ powershell.exe -NoProfile -File deploy/Deploy-DexEscape.ps1
 
 실제 생성 단계에서는 인증된 Azure CLI와 GitHub CLI가 필요합니다. 회사 구독·테넌트가 일치하고 기존 앱 등록을 수정할 수 있는 앱 소유자 계정이어야 합니다. GitHub 계정에는 해당 저장소 push와 Actions secrets 설정 권한이 필요합니다. CLI가 PATH에 없으면 `-AzureCliPath` / `-GhPath`로 지정합니다. 필요한 회사 로그인은 CLI의 정상 브라우저/디바이스 인증으로 완료하며 비밀번호나 MFA 코드를 파일·채팅에 저장하지 않습니다.
 
-Entra 앱 소유권은 Azure 리소스 생성 권한을 부여하지 않습니다. 기본 실행은 새 전용 리소스 그룹도 만들기 때문에 구독 범위 그룹 생성 권한이 필요합니다. 권한 범위를 줄이려면 먼저 PlanOnly에 표시된 이름으로 **비어 있는 새 전용 RG**를 만들고 소유 태그 `project=dex-escape`, `repository=Hyeongdae/edu`, `environment=production`을 붙여 달라고 관리자에게 요청하세요. 그런 다음 사용자에게 이 RG 범위의 Contributor를 부여하면 다음처럼 RG 안의 게임 리소스만 생성할 수 있습니다:
+Entra 앱 소유권은 Azure 리소스 생성 권한을 부여하지 않습니다. 기본 실행은 새 전용 리소스 그룹도 만들기 때문에 구독 범위 그룹 생성 권한이 필요합니다. 이미 접근 권한이 있는 회사 리소스 그룹을 쓰려면 이름을 명시하고 `-UseExistingResourceGroup`을 지정하세요. 도구는 해당 그룹에만 게임용 리소스를 추가하며 이름이 충돌하는 기존 사이트·저장소는 수정하지 않습니다. 이 방법은 새 전용 RG보다 비용 귀속과 정리가 덜 분리됩니다.
 
 ```powershell
-.\deploy\Deploy-DexEscape.ps1 -UseExistingResourceGroup -Apply -SubscriptionId <구독-ID> -TenantId <테넌트-ID> -ClientId <기존-앱-Client-ID>
+.\deploy\Deploy-DexEscape.ps1 -UseExistingResourceGroup -ResourceGroup <기존-그룹명> -Apply -SubscriptionId <구독-ID> -TenantId <테넌트-ID> -ClientId <기존-앱-Client-ID>
 ```
 
-PlanOnly가 `-SubscriptionId`/`-TenantId`/`-ClientId` 입력 후 보여주는 실제 대상 이름을 먼저 확인하세요. 이 모드는 그 이름과 정확히 일치하는 태그가 달린 빈 RG만 받아들이고 그 RG에서 RBAC 권한을 확인합니다. 역할 할당이나 구독 전환은 하지 않습니다. `Forbidden` 또는 빈 권한 목록이면 회사 관리자에게 전용 RG 생성과 해당 범위의 접근을 요청하거나, 이미 권한이 있는 회사 계정으로 로그인하세요.
+PlanOnly가 `-SubscriptionId`/`-TenantId`/`-ClientId` 입력 후 보여주는 실제 리소스 이름을 먼저 확인하세요. 명시한 그룹에서 RBAC 권한을 확인합니다. 역할 할당이나 구독 전환은 하지 않습니다. `Forbidden` 또는 빈 권한 목록이면 회사 관리자에게 해당 범위의 접근을 요청하거나, 이미 권한이 있는 회사 계정으로 로그인하세요.
 
 ```powershell
 # 실제 리소스 생성 Task에서만 실행. 식별자는 실제 회사 값으로 지정.

@@ -1,6 +1,6 @@
 # Task: T02 Provision Company Resources
 
-## Status: pending
+## Status: done
 
 ## Goal
 정확한 회사 구독과 저장소 권한을 확인한 뒤 전용 Azure 리소스와 Entra/SWA/GitHub 설정을 실제로 준비한다. 아직 Git push나 사이트 릴리스는 하지 않는다.
@@ -76,10 +76,10 @@ MergeServerSettings(existingProperties, gameProperties) -> mergedProperties
 - Do not run production score-seeding/legacy import/clear as a verification shortcut.
 
 ## Acceptance Criteria
-- [ ] Actual owned Standard site/private table exist in verified company subscription.
-- [ ] Existing Entra registration gains only needed web callback and game credential; old callbacks/credentials preserved.
-- [ ] GitHub credentials target correct repository/site and app settings contain no public secret.
-- [ ] Sanitized manifest supports stable rerun; no game deployment claim before T03.
+- [x] Actual owned Standard site/private table exist in verified company subscription.
+- [x] Existing Entra registration gains only needed web callback and game credential; old callbacks/credentials preserved.
+- [x] GitHub credentials target correct repository/site and app settings contain no public secret.
+- [x] Sanitized manifest supports stable rerun; no game deployment claim before T03.
 
 ## References
 [SWA application settings](https://learn.microsoft.com/en-us/azure/static-web-apps/application-settings), [appsettings REST 2025-05-01](https://learn.microsoft.com/en-us/rest/api/appservice/static-sites/create-or-update-static-site-app-settings?view=rest-appservice-2025-05-01), [official CLI settings implementation](https://github.com/Azure/azure-cli/blob/dev/src/azure-cli/azure/cli/command_modules/appservice/static_sites.py).
@@ -105,23 +105,23 @@ Task: T02-provision-company-resources
 ```
 
 ## Progress
-- [ ] 구현 완료
-- [ ] 검증 통과
+- [x] 구현 완료
+- [x] 검증 통과
 - commit: pending
 
-## Execution Attempt (2026-10-30; awaiting Azure access)
-- Task remains pending. No successful provisioning, manifest, recovery journal, resource, credential, callback, server setting, GitHub secret/variable or release was created. Do not advance to T03.
-- Actual Azure CLI account is enabled CR-Project-01 and tenant matches ignored .env.local. Existing configured app resolves to Stair-Climb-Game-Local, AzureADMyOrg; operator is an app owner. Snapshot: SPA callbacks2, Web callbacks0, credentials0. Identifiers/tokens were captured privately, not copied into tracked files.
-- Microsoft.Web and Microsoft.Storage are registered and both advertise East Asia support; SWA provider exposes API2025-05-01. This proves region/schema availability, not actual deployment permission or a created Standard SKU.
-- PlanOnly concrete target: rg-dex-escape-prod / swa-dex-escape-prod-384874bc / stdexescape384874bc / DexEscapePlayers / eastasia / Standard; cloudWrites=false. These are planned names only, not a deployed URL.
-- Azure management GET subscription effective permissions returned value=[]; actual group-exists check returned Forbidden. App ownership does not confer Azure resource RBAC. No create attempt is an appropriate substitute for the missing permissions.
-- Added deployment permission preflight before GitHub operations/state creation/cloud writes. Initial creation checks subscription scope (including group creation); owned saved reruns check dedicated group scope. Checks required read/write/list-secret operations, supports wildcard or narrower custom roles and respects notActions. Actual Apply now stops with a sanitized missing-permissions error; manifestCreated=false/recoveryStateCreated=false/cloudWrites=false verified.
-- Official GitHub CLI v2.103.3 amd64 installed outside repo at %LOCALAPPDATA%/dex-tools/gh-v2.103.3/bin/gh.exe; SHA25698d0cfa794721665d7973dd728c78aff7bd836d58f10f6d7a03568eccb0a22e0 matched GitHub release asset digest. Normal device login completed as Hyeongdae. Actual repo Hyeongdae/edu push/admin=true, Actions secrets public-key and variables-read checks passed; no remote setting changes or push.
-- Local validation after preflight change: deployment24/24, zero skipped; lint and diff checks passed. Tests cover empty permissions stopping after two read operations with no state file, scoped/narrow roles and exclusions, plus repeat fake Apply preserving resources/callbacks/settings/credentials.
-- Access dependency: ask company administrator for the necessary deployment rights in CR-Project-01, or authenticate a company account that has those rights and the existing app edit capability. Never switch subscriptions/billing owner or grant roles automatically. Recheck permissions on resume, then run PlanOnly/Apply and all I05 actual configuration checks.
-- Lower-scope alternative added after user asked for another route: administrator can first create an empty dedicated `rg-dex-escape-prod` resource group in the existing company subscription, tag it exactly with the three ownership tags above, and assign the signed-in operator Contributor scoped only to that RG. Run PlanOnly then `-UseExistingResourceGroup -Apply`; preflight checks permission at RG scope and checks tags/emptiness before recording recovery state. This avoids subscription-scope group-create rights; it does not avoid Azure RBAC or change hosting products.
-- Official service clarification: current deployment target already is Azure Static Web Apps Standard, with its managed Azure Functions API and integrated auth/routing. Azure App Service is a different hosting product; choosing it does not grant current account Azure resource access, and switching the standalone backend/auth adapter would require a separate planned migration. Azure's own docs list App Service as a bring-your-own API option for SWA Standard.
-- Public references: [GitHub CLI v2.103.3](https://github.com/cli/cli/releases/tag/v2.103.3), [Azure Web RBAC operations](https://learn.microsoft.com/en-us/azure/role-based-access-control/permissions/web-and-mobile). No broader app/game changes; existing bundle warning remains deferred.
+## Execution Evidence (2026-10-30)
+- Completed with the user's direction to use the existing `grill-me-edu` resource group. Its Contributor role was verified at that group scope; the new game resources were independently tagged. No new group was created.
+- Azure account is enabled CR-Project-01 and its tenant matches ignored `.env.local`. Existing `Stair-Climb-Game-Local` is single-tenant and operator is an owner. Before changes: SPA callbacks2, Web callbacks0, password credentials0. Subscription permissions were empty and new-group lookup Forbidden; group-level permissions allowed the selected operations.
+- Actual target: `grill-me-edu` / `swa-dex-escape-prod-384874bc` / `stdexescape384874bc` / `DexEscapePlayers` / East Asia / Standard. Site URL: `https://ashy-cliff-0e5e4b600.1.azurestaticapps.net`. Ignored `deploy/azure.resources.json` contains only allowlisted names, URL, SKU, identity fingerprint and Entra credential keyId/expiry (2027-04-28), never credential text.
+- Azure created a Standard Static Web Apps site, a StorageV2 Standard_LRS account with public blob disabled, HTTPS-only and TLS1.2 minimum, plus its fresh `DexEscapePlayers` table. No local scores were imported. Site and storage carry Dex Escape ownership tags.
+- Added the exact HTTPS `/.auth/login/aad/callback` to the existing Web URI list. Both original SPA redirects remain; app stays single-tenant with assignment-required false. Added one 180-day Entra credential; its keyId and expiry match manifest metadata.
+- Server-only SWA settings were fetched privately and verified: client ID matches, app secret and Storage connection string exist, table name is correct. GitHub device login as Hyeongdae succeeded; repository push/admin and Actions secret/variable access verified. The new site's token was sent through stdin; tenant and deploy variables are correct. T02 made no push or workflow run.
+- Live checks passed: manifest schema, Standard SKU/hostname, storage safeguards, table, Entra callback/audience/assignment, SPA preservation, credential metadata, four server settings, GitHub secret/variables. Rerun PlanOnly selects the saved target and reports `cloudWrites=false`.
+- The original 20 resource names in the shared group are still present. An Azure Automation staging cleanup runbook was published by another operator during this minute; Azure activity logs attribute it to another principal. This task did not alter it or any existing game resource.
+- Added `-UseExistingResourceGroup -ResourceGroup <explicit-name>` for deployment into an already-authorized group. It checks the exact group name and scoped RBAC before side effects. Also stopped passing the unsupported subscription argument to `az ad` commands. First real preflight stopped before resource writes on that CLI argument; the fixed retry completed successfully.
+- Validation: deployment helpers25/25 (zero skips), lint, diff check, real Apply, live configuration and stable rerun checks passed. No root/game/API code changed. Bundle-size work remains deferred.
+- Current hosting target is Azure Static Web Apps Standard with managed Azure Functions API/auth routing. Azure App Service is separate; switching would not remove Azure RBAC and needs a separate planned API/auth migration. [SWA API options](https://learn.microsoft.com/en-us/azure/static-web-apps/apis-overview/), [App Service docs](https://learn.microsoft.com/en-us/azure/app-service/).
+- The hostname is provisioned but awaits the T03 workflow push/release. No live game deployment or company login test is claimed.
 
 ## Next
 P02-T03-release-and-verify-url. Do not stop the overall deployment objective at this empty-resource milestone.

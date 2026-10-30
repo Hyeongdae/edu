@@ -136,7 +136,7 @@ test("mock Apply is additive, secret-safe and reuses resources and credentials o
         'ad app owner' {return @(@{id='operator'})}
         'provider show*' {return @{registrationState='Registered';resourceTypes=@(@{resourceType='staticSites';locations=@('East Asia')},@{resourceType='storageAccounts';locations=@('East Asia')})}}
         'group exists*' {return $state.group}
-        'group show*' {$state.group=$true; return @{name=$plan.Target.resourceGroup;tags=$plan.Tags}}
+        'group show*' {$state.group=$true; return @{name='grill-me-edu';tags=$plan.Tags}}
         'resource list*' {return @()}
         'group create*' {$state.group=$true; $state.creates++; return @{name=$plan.Target.resourceGroup}}
         'staticwebapp list*' {if(-not $state.site){return}; return @{name=$plan.Target.staticSiteName;tags=$plan.Tags;sku=@{name='Standard'};defaultHostname='fixture.azurestaticapps.net'}}
@@ -162,7 +162,7 @@ test("mock Apply is additive, secret-safe and reuses resources and credentials o
       }
     }.GetNewClosure();
     $parameters=@{Apply=$true;SubscriptionId='${ids.subscription}';TenantId='${ids.tenant}';ClientId='${ids.client}';
-      AzureCliPath='fake-az';GhPath='fake-gh';ToolRunner=$fake;ManifestPath=${literal(manifestPath)};StatePath=${literal(statePath)};UseExistingResourceGroup=$true};
+      AzureCliPath='fake-az';GhPath='fake-gh';ToolRunner=$fake;ManifestPath=${literal(manifestPath)};StatePath=${literal(statePath)};UseExistingResourceGroup=$true;ResourceGroup='grill-me-edu'};
     $null=& ${literal(scriptPath)} @parameters; $count=$state.creates; $null=& ${literal(scriptPath)} @parameters;
     if($state.settings.UNRELATED -cne 'keep' -or $state.web.homePageUrl -cne 'https://other.example/'){throw 'Unrelated configuration lost'};
     @{creates=$state.creates;firstCreates=$count;group=$state.group;site=$state.site;storage=$state.storage;table=$state.table;credentials=$state.passwords.Count;stdinOnly=$state.stdinOnly;patchSafe=$state.patchSafe;callbacks=@($state.web.redirectUris)}|ConvertTo-Json -Depth 5`);
