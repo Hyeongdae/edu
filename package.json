@@ -8,7 +8,10 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "lint": "eslint .",
-    "test": "vitest"
+    "test": "vitest",
+    "build:swa-config": "node scripts/build-staticwebapp-config.mjs",
+    "stage:api": "node scripts/stage-api.mjs",
+    "test:deployment": "node --test scripts/build-staticwebapp-config.test.mjs scripts/deployment-plan.test.mjs"
   },
   "dependencies": {
     "@azure/msal-browser": "^5.25.1",

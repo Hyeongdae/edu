@@ -8,3 +8,5 @@ pnpm-debug.log*
 *.tsbuildinfo
 api/local.settings.json
 api/.azurite/
+release/
+deploy/*.local.json

@@ -1,0 +1,23 @@
+{
+  "routes": [
+    { "route": "/descent-test*", "statusCode": 404 },
+    { "route": "/preview*", "statusCode": 404 },
+    { "route": "/.auth/*", "allowedRoles": ["anonymous"] },
+    { "route": "/api/*", "allowedRoles": ["authenticated"], "headers": { "Cache-Control": "no-store" } },
+    { "route": "/*", "allowedRoles": ["authenticated"] }
+  ],
+  "responseOverrides": { "401": { "statusCode": 302, "redirect": "/.auth/login/aad" } },
+  "auth": {
+    "identityProviders": {
+      "azureActiveDirectory": {
+        "userDetailsClaim": "name",
+        "registration": {
+          "openIdIssuer": "https://login.microsoftonline.com/__TENANT_ID__/v2.0",
+          "clientIdSettingName": "AZURE_CLIENT_ID",
+          "clientSecretSettingName": "GAME_ENTRA_CLIENT_SECRET"
+        }
+      }
+    }
+  },
+  "platform": { "apiRuntime": "node:22" }
+}

@@ -1,0 +1,86 @@
+name: Azure company game
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: azure-company-game-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '22.x'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            api/package-lock.json
+      - run: npm ci
+      - run: npm --prefix api ci
+      - run: npm run lint
+      - run: npm run test -- --run --maxWorkers=2
+      - run: npm --prefix api test
+      - run: npm --prefix api run test:integration
+      - run: npm run test:deployment
+      - run: npm --prefix api run build
+      - run: npm run build
+        env:
+          VITE_AUTH_MODE: azure-static-web-apps
+          VITE_LOCAL_DEMO_MODE: 'false'
+      - run: npm run stage:api
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: company-game-${{ github.sha }}
+          path: |
+            dist
+            release/api
+            release/build-manifest.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+
+  deploy:
+    needs: verify
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.AZURE_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '22.x'
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: company-game-${{ github.sha }}
+          path: .
+      - run: npm run build:swa-config
+        env:
+          ENTRA_TENANT_ID: ${{ vars.ENTRA_TENANT_ID }}
+      - run: node scripts/verify-release.mjs
+        env:
+          ENTRA_TENANT_ID: ${{ vars.ENTRA_TENANT_ID }}
+      - name: Publish verified production artifacts
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          action: upload
+          app_location: dist
+          api_location: release/api
+          output_location: ''
+          skip_app_build: true
+          skip_api_build: true
+          production_branch: main

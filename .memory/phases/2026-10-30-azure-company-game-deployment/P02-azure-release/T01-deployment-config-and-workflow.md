@@ -1,6 +1,6 @@
 # Task: T01 Deployment Config and Workflow
 
-## Status: pending
+## Status: done
 
 ## Goal
 실제 배포에 필요한 보호 설정·CI 산출물·재실행 가능한 배포 도구를 만들고, 클라우드 변경 없이 검증한다.
@@ -84,10 +84,10 @@ interface DeploymentManifest {
 - README explains local behavior, company audience including guests, fresh shared data, exact release steps, same-origin session, credential expiry and account-specific pending queue, cost scope. No custom DNS or performance refactor.
 
 ## Acceptance Criteria
-- [ ] Production config exists in final dist, tenant specific and all game/API access protected.
-- [ ] main deploy consumes the exact successfully tested frontend/API artifacts, PR cannot publish.
-- [ ] Provision command defaults to harmless plan and preserves foreign resources/credentials.
-- [ ] Tests run with no production secrets or cloud writes.
+- [x] Production config exists in final dist, tenant specific and all game/API access protected by generated configuration; live access proof remains T03.
+- [x] main deploy consumes the exact successfully tested frontend/API artifacts, PR cannot publish.
+- [x] Provision command defaults to harmless plan and preserves foreign resources/credentials.
+- [x] Tests run with no production secrets or cloud writes.
 
 ## Validation
 - `npm run test:deployment` — node --test scripts/build-staticwebapp-config.test.mjs scripts/deployment-plan.test.mjs.
@@ -113,9 +113,19 @@ Task: T01-deployment-config-and-workflow
 ```
 
 ## Progress
-- [ ] 구현 완료
-- [ ] 검증 통과
+- [x] 구현 완료
+- [x] 검증 통과
 - commit: pending
+
+## Execution Evidence (2026-10-30)
+- Config generator validates a nonzero tenant UUID, exact protected route/provider schema and writes only after the frontend build. A fixture UUID was supplied explicitly for local artifact verification; production has no fixture/default tenant fallback.
+- Actions gates push-main deployment on successful verification and AZURE_DEPLOY_ENABLED. PR builds cannot deploy or access deployment credentials. Exact github.sha artifacts are checked again before uploading prebuilt dist/release/api; no second frontend build. Official release tags and actionlint v1.7.12 verified workflow syntax/expressions.
+- Added supporting scripts/stage-api.mjs and scripts/verify-release.mjs to enforce runtime allowlists, same-revision manifest and production dependency resolution. Real staged npm ci --omit=dev contains only @azure/data-tables and @azure/functions as direct runtime dependencies; Azurite/tests/source/local settings are absent from the upload package.
+- Provisioning defaults to PlanOnly; actual default invocation reported cloudWrites=false and created no manifest/journal or cloud changes. Two fake-runner Apply runs prove four creates total (RG/site/storage/table), one additive credential, preserved existing Web/SPA redirects and unrelated settings, owned-resource reuse and token transmission through stdin. No real Azure/GitHub Apply operation was executed.
+- Public manifest is strictly allowlisted; recovery journal contains no secret. Historical tenantFingerprint field now hashes tenant/subscription/client context together to reject cross-context reruns. Private temporary bodies have restricted ACLs and exact-path cleanup; no raw credential/CLI output is logged.
+- Validation: deployment helpers22/22 (zero skips); full root1269/1269 across42 files, zero failures/skips; API95/95; isolated real Azurite10/10; final lint, API build17.9kB, hosted frontend build600.13kB/CSS76.01kB and actual stage/config/release verification passed. Root JSON evidence: %TEMP%/dex-deployment-config-full-root-2026-10-30.json. Official actionlint Windows binary digest was verified outside the repository.
+- Separate node:test helpers from jsdom root Vitest discovery via scripts/** exclusion; no game/API runtime rules changed. README additionally corrects the existing local ranking key to v2 and documents Node22.12 minimum. No dependency/lockfile changes.
+- Existing frontend bundle-size warning remains deferred by user decision. Actual cloud permissions, provisioning, live company login and GitHub Actions execution remain T02/T03 verification; no deployment URL or successful remote release is claimed.
 
 ## Next
 P02-T02-provision-company-resources. Do not push the workflow until its target/secrets are ready.
