@@ -70,10 +70,10 @@ test("writes config only into an existing completed frontend output", async (t) 
 test("stages only runtime API files and resolves dependencies from that artifact", async (t) => {
   const root = await directory(t), sourceDirectory = join(root, "source"), outputDirectory = join(root, "output");
   await mkdir(join(sourceDirectory, "dist"), { recursive: true });
-  await writeFile(join(sourceDirectory, "package.json"), JSON.stringify({ main: "dist/index.cjs", dependencies: { "@azure/functions": "fixture", "@azure/data-tables": "fixture" } }));
+  await writeFile(join(sourceDirectory, "package.json"), JSON.stringify({ main: "dist/index.cjs", dependencies: { "@azure/functions": "fixture", "@azure/cosmos": "fixture" } }));
   for (const path of ["package-lock.json", "host.json", "dist/index.cjs", "local.settings.json", "secret.txt"]) await writeFile(join(sourceDirectory, path), "{}");
   const install = async (output) => {
-    for (const name of ["@azure/functions", "@azure/data-tables"]) {
+    for (const name of ["@azure/functions", "@azure/cosmos"]) {
       await mkdir(join(output, "node_modules", name), { recursive: true });
       await writeFile(join(output, "node_modules", name, "package.json"), '{"main":"index.js"}');
       await writeFile(join(output, "node_modules", name, "index.js"), "module.exports = {};");

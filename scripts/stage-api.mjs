@@ -10,7 +10,7 @@ const runtimeFiles = ["package.json", "package-lock.json", "host.json", "dist/in
 export async function verifyApiPackage(directory) {
   const root = resolve(directory);
   const pkg = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
-  if (pkg.main !== "dist/index.cjs" || !pkg.dependencies?.["@azure/functions"] || !pkg.dependencies?.["@azure/data-tables"]) {
+  if (pkg.main !== "dist/index.cjs" || !pkg.dependencies?.["@azure/functions"] || !pkg.dependencies?.["@azure/cosmos"]) {
     throw new Error("Invalid API runtime package.");
   }
   for (const file of runtimeFiles) if (!(await stat(join(root, file))).isFile()) throw new Error("Missing API runtime file.");
@@ -19,7 +19,7 @@ export async function verifyApiPackage(directory) {
   }
   if (JSON.stringify(await readdir(join(root, "dist"))) !== '["index.cjs"]') throw new Error("Unexpected API build content.");
   const require = createRequire(join(root, "package.json"));
-  for (const dependency of ["@azure/functions", "@azure/data-tables"]) {
+  for (const dependency of ["@azure/functions", "@azure/cosmos"]) {
     const located = require.resolve(dependency);
     const inside = relative(join(root, "node_modules"), located);
     if (inside.startsWith("..") || isAbsolute(inside)) throw new Error("Runtime dependency resolved outside the artifact.");
