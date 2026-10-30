@@ -6,3 +6,5 @@ npm-debug.log*
 yarn-debug.log*
 pnpm-debug.log*
 *.tsbuildinfo
+api/local.settings.json
+api/.azurite/

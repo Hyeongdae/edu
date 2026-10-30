@@ -1,6 +1,6 @@
 # Task: T02 Functions Table API
 
-## Status: pending
+## Status: done
 
 ## Goal
 인증된 개인 profile, 공유 상위10위, 결과 제출 API를 만들고 Azure Table의 실제 조건부 쓰기로 동시 기기/재전송을 검증한다. 실제 클라우드는 만들지 않는다.
@@ -79,10 +79,10 @@ function createRecordHandlers(deps: {
 - Clean up only owned emulator process/table/temp path; verify resolved directory before recursive cleanup. Required integration cannot be skipped when emulator unavailable.
 
 ## Acceptance Criteria
-- [ ] All three routes verify trusted identity and cannot select another actor from payload.
-- [ ] Actual Table concurrency tests prove monotonic clear and idempotent strongest tuple.
-- [ ] API production build runs Node22 and source contract code is bundled without frontend.
-- [ ] No Azure creation, credentials committed/logged, unrelated DB modifications, or frontend behavior changes.
+- [x] All three routes verify trusted identity and cannot select another actor from payload.
+- [x] Actual Table concurrency tests prove monotonic clear and idempotent strongest tuple.
+- [x] API production build runs Node22 and source contract code is bundled without frontend.
+- [x] No Azure creation, credentials committed/logged, unrelated DB modifications, or frontend behavior changes.
 
 ## Validation
 From root:
@@ -107,9 +107,23 @@ Task: T02-functions-table-api
 ```
 
 ## Progress
-- [ ] 구현 완료
-- [ ] 검증 통과
+- [x] 구현 완료
+- [x] 검증 통과
 - commit: pending
+
+## Execution Evidence (2026-10-30)
+- Added independent api package/lock, Functions v4 GET profile/GET leaderboard/POST results registrations, lazy server-only environment loading, principal parser, fixed public errors, bounded JSON reader and Table repository. Package main is dist/index.cjs; build targets Node22 with external Azure runtime packages and bundled pure shared contracts.
+- Supporting files beyond the primary list: api/src/errors.ts (safe fixed status/message mapping) and api/test/fixtures.ts (synthetic local test fixtures). No real employee credentials/data are fixtures.
+- The API accepts only platform aad/authenticated principal, bounds header/name/body, rejects client-owned account/clear/timestamp fields, and requires JSON plus X-Game-Request marker for writes. Public responses never expose raw SDK errors, storage keys or ETags.
+- Repository uses one hashed account entity, all-or-none best columns, actual clear separately, server timestamp, exact non-wildcard ETag Replace, bounded five-attempt reread/validate/merge. Table list walks all continuation pages retaining top10. No table creation/reset in request handlers.
+- Real SDK discovery: a missing entity is HTTP404 with details.odataError.code=ResourceNotFound; RestError.code may be undefined. The repository handles this while TableNotFound stays503. Unit and actual emulator regressions cover both paths.
+- npm --prefix api ci passed. API unit suite: 94/94. Actual isolated Azurite integration: 10/10, including deterministic simultaneous409/412, stale ETag rejection, ACK-loss replay, independent-client restore, >10 rows/real continuation paging, ranking tuple and missing table.
+- Production target additionally verified with Node v22.23.4 using npm exec --yes --package=node@22.23.4 -- node node_modules/vitest/vitest.mjs run --config vitest.config.ts and the equivalent vitest.integration.config.ts command, from api/: final94/94 and10/10, zero skipped. Default workspace Node is v24.21.0; API allows supported local22/24 while deployment target remains22.
+- One post-ci parallel run exhausted the emulator's12s startup budget under local load; final sequential Node22 run passed unchanged deadlines/assertions. Startup failures fail the suite; no fallback to real Azure or skipped required tests.
+- Shared contracts137/137 passed; npm run lint, npm --prefix api run build, npm run build and diff checks passed. API bundle17.7kB. Frontend output remains JS583.75kB/CSS75.93kB (same asset hashes), with the pre-existing bundle-size warning. Root full UI suite is not claimed; relevant auth/selector corrections and full gate remain T03/T04.
+- npm --prefix api audit --omit=dev:0 vulnerabilities. Full API audit reports4 moderate advisories through development-only Azurite -> uuid / @azure/ms-rest-js / sequelize. No incompatible forced downgrade/override applied. Azurite is loopback-only, ephemeral and excluded from production dependencies. Track upstream remediation separately: https://github.com/advisories/GHSA-w5hq-g745-h8pq .
+- The emulator harness uses its own node process, random loopback port/account key and owned temp directory; telemetry disabled; verifies target paths before cleanup. It does not read production GAME_RECORDS settings or touch existing root emulator files.
+- Important boundary: parsing x-ms-client-principal does not cryptographically authenticate an arbitrary direct caller. The future SWA tenant/route restriction and managed-only endpoint are required before deployment. No actual Entra login, Azure resources or GitHub push performed here.
 
 ## Next
 P01-T03-hosted-company-auth. memory-execute commits only scoped code/memory and advances pointer once.
