@@ -4,6 +4,17 @@ import { CheckpointPanel } from "./CheckpointPanel";
 
 afterEach(cleanup);
 describe("CheckpointPanel", () => {
+  it("includes cloud retry actions and login links in its focus trap while retaining both game choices", () => {
+    const retry = vi.fn();
+    render(<CheckpointPanel stage={1} score={150} remainingTimeCs={100} onContinue={vi.fn()} onQuit={vi.fn()} disabled={false}
+      recordsNotice={<><button onClick={retry}>공유 기록 재시도</button><a href="/.auth/login/aad">다시 로그인</a></>} />);
+    const first = screen.getByRole("button", { name: "공유 기록 재시도" });
+    const last = screen.getByRole("button", { name: "그만두기" });
+    expect(screen.getByRole("button", { name: "계속하기" })).toHaveFocus();
+    first.focus(); fireEvent.keyDown(first, { key: "Tab", shiftKey: true }); expect(last).toHaveFocus();
+    fireEvent.keyDown(last, { key: "Tab" }); expect(first).toHaveFocus();
+    fireEvent.click(first); expect(retry).toHaveBeenCalledOnce();
+  });
   it.each([[0,"0.00초"],[1,"0.01초"],[1234,"12.34초"],[9000,"90.00초"]] as const)("shows the frozen time%s as%s", (remainingTimeCs, label) => {
     render(<CheckpointPanel stage={1} score={150} remainingTimeCs={remainingTimeCs} onContinue={vi.fn()} onQuit={vi.fn()} disabled={false} />);
     expect(screen.getByText(`남은 시간 ${label}`)).toBeVisible();

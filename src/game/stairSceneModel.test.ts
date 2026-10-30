@@ -6,6 +6,7 @@ import { withPursuitAt } from "../test/gameFixtures";
 import { buildStairSceneModel, projectRouteStep } from "./stairSceneModel";
 import { advanceStairRoute, countStraightSteps, getRouteRun, getRouteStep } from "./stairRoute";
 import type { GameState } from "./types";
+import { getStageRule } from "./stageRules";
 
 function climb(state: GameState): GameState {
   const next = getRouteStep(state.route, state.stepsClimbed + 1);
@@ -71,7 +72,7 @@ describe("stair scene projection", () => {
     expect(scene.player.index - scene.pursuer.index).toBe(5);
     expect(state.score).toBe(7);
     // Fast fall steps reach this corner sooner; inspect the actual adjacent move before the first catch.
-    state = tickGame(state, 3_101);
+    state = tickGame(state, state.recoveryEndsAt! + 2 * getStageRule(1).pursuerStepIntervalMs);
     expect(state.status).toBe("playing");
     scene = buildStairSceneModel(state);
     expect(scene.player).toMatchObject({ index: 7, direction: "right" });
@@ -165,9 +166,10 @@ describe("stair scene projection", () => {
   });
 
   it("projects the last real adjacent pursuer step with motion outside the clip", () => {
-    const state = tickGame(startGame(createGameState(() => 0), 0), 1_000);
+    const atMs = getStageRule(1).pursuerStepIntervalMs;
+    const state = tickGame(startGame(createGameState(() => 0), 0), atMs);
     expect(buildStairSceneModel(state).pursuerMotion).toEqual({
-      from: { x: 124, y: 328 }, to: { x: 158, y: 300 }, atMs: 600,
+      from: { x: 124, y: 328 }, to: { x: 158, y: 300 }, atMs,
     });
     expect(() => buildStairSceneModel({ ...state, lastPursuerMove: { fromIndex: -4, toIndex: -2, atMs: 1_000 } })).toThrow(RangeError);
   });

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { applyInput, continueGame, createGameState, getStageSecondsLeft, quitAtCheckpoint, resetGame, resumeGameAfterPause, startGame, tickGame } from "./gameEngine";
 import { captureStageResult, formatRemainingTimeCs, isStageResult } from "./stageResult";
-import { STAGE_RULES } from "./stageRules";
+import { getStageRule, STAGE_RULES } from "./stageRules";
 import { getRouteStep } from "./stairRoute";
 import { hasObstacle } from "./stairObstacles";
 import { withPursuitAt } from "../test/gameFixtures";
@@ -125,10 +125,11 @@ describe("actual stage result boundaries", () => {
 
   it("uses the actual contact deadline even when the callback arrives much later", () => {
     const initial = freeze(playing()), after = tickGame(initial, 100000);
-    expect(after.stageResult).toEqual({ stage: 1, score: 0, remainingTimeCs: 8760, endedAtMs: 2400, outcome: "caught" });
+    const contact = 4 * getStageRule(1).pursuerStepIntervalMs;
+    expect(after.stageResult).toEqual({ stage: 1, score: 0, remainingTimeCs: (90000 - contact) / 10, endedAtMs: contact, outcome: "caught" });
     expect(after.captureEndsAt).toBeNull();
     let incremental = initial;
-    for (const now of [599,600,1200,1800,2400,2899,2900,100000]) incremental = tickGame(incremental, now);
+    for (const now of [499,500,1000,1500,2000,2499,2500,100000]) incremental = tickGame(incremental, now);
     expect(after).toEqual(incremental);
     expect(initial.stageResult).toBeNull();
   });
@@ -148,16 +149,19 @@ describe("actual stage result boundaries", () => {
     while (state.pursuerDistance < 15) state = applyInput(state, nextInput(state), 0);
     expect(state.stageResult).toBeNull();
     const exited = tickGame(state, 900);
-    expect(exited).toMatchObject({ isPursuerCatchingUp: false, pursuerDistance: 6, stageResult: null, nextPursuerStepAt: 1500 });
+    const baseInterval = getStageRule(1).pursuerStepIntervalMs;
+    expect(exited).toMatchObject({ isPursuerCatchingUp: false, pursuerDistance: 6, stageResult: null, nextPursuerStepAt: 900 + baseInterval });
     const after = tickGame(exited, 100000);
-    expect(after.stageResult).toEqual({ stage: 1, score: state.score, remainingTimeCs: 8550, endedAtMs: 4500, outcome: "caught" });
+    const contact = 900 + 6 * baseInterval;
+    expect(after.stageResult).toEqual({ stage: 1, score: state.score, remainingTimeCs: (90000 - contact) / 10, endedAtMs: contact, outcome: "caught" });
     expect(tickGame(state, 100000)).toEqual(after);
   });
 
   it("preserves stage expiry over a tied catch or successful final input", () => {
-    const before = withPursuitAt({ ...playing(), score: 149, stageEndsAt: 600 }, 0, 1);
-    const after = applyInput(before, "forward", 600);
-    expect(after.stageResult).toEqual({ stage: 1, score: 149, remainingTimeCs: 0, endedAtMs: 600, outcome: "time-limit" });
+    const deadline = getStageRule(1).pursuerStepIntervalMs;
+    const before = withPursuitAt({ ...playing(), score: 149, stageEndsAt: deadline }, 0, 1);
+    const after = applyInput(before, "forward", deadline);
+    expect(after.stageResult).toEqual({ stage: 1, score: 149, remainingTimeCs: 0, endedAtMs: deadline, outcome: "time-limit" });
     expect(after.captureCount).toBe(0);
     expect(after.clearedStageThisRun).toBe(0);
   });
@@ -174,7 +178,8 @@ describe("actual stage result boundaries", () => {
     expect(tickGame(quit, 1e6).stageResult).toBe(snapshot);
     const continued = continueGame(clear, 95100);
     expect(continued).toMatchObject({ stage: 2, score: 0, stageResult: null, stageEndsAt: 170100 });
-    expect(tickGame(continued, 200000).stageResult).toEqual({ stage: 2, score: 0, remainingTimeCs: 7300, endedAtMs: 97100, outcome: "caught" });
+    const contact = 95100 + 4 * getStageRule(2).pursuerStepIntervalMs;
+    expect(tickGame(continued, 200000).stageResult).toEqual({ stage: 2, score: 0, remainingTimeCs: (170100 - contact) / 10, endedAtMs: contact, outcome: "caught" });
     expect(resetGame(() => 0).stageResult).toBeNull();
   });
 
@@ -182,7 +187,8 @@ describe("actual stage result boundaries", () => {
     const paused = resumeGameAfterPause(playing(), 100, 95100);
     expect(paused.stageResult).toBeNull();
     const caught = tickGame(paused, 200000);
-    expect(caught.stageResult).toEqual({ stage: 1, score: 0, remainingTimeCs: 8760, endedAtMs: 97400, outcome: "caught" });
+    const activeContact = 4 * getStageRule(1).pursuerStepIntervalMs;
+    expect(caught.stageResult).toEqual({ stage: 1, score: 0, remainingTimeCs: (90000 - activeContact) / 10, endedAtMs: 95000 + activeContact, outcome: "caught" });
     expect(resumeGameAfterPause(caught, 200000, 300000).stageResult).toBe(caught.stageResult);
   });
 

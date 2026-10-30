@@ -1,6 +1,6 @@
 # Task: T04 Cloud Records Game Integration
 
-## Status: pending
+## Status: done
 
 ## Goal
 서버 profile을 로드한 뒤 게임을 만들고, 결과 확정 즉시 계정별 대기열을 통해 공유 랭킹/실제 클리어를 저장한다. 저장 실패에도 게임·체크포인트·연출은 진행한다.
@@ -58,8 +58,8 @@ type CompanyStoreSnapshot =
   - `src/App.tsx` :: hosted branch / GameAppShell CompanyRecordBinding; modify.
   - `src/game/GameScreen.tsx` :: props, record initialization, readKnownHighest, clear/result effects, record display; modify.
   - `src/game/CheckpointPanel.tsx` :: optional recordsNotice; modify.
-  - `src/game/LeaderboardPanel.tsx` :: optional scope/company label; modify.
-  - `src/game/leaderboard.ts`, `src/game/stageProgress.ts`, `src/game/core.ts`, `src/game/stageResult.ts` :: existing behavior read-only.
+  - `src/leaderboard/LeaderboardPanel.tsx` :: optional scope/company label; modify.
+  - `src/leaderboard/leaderboard.ts`, `src/game/stageProgress.ts`, `src/game/gameEngine.ts`, `src/game/stageResult.ts` :: existing behavior read-only.
 - GameScreen optional prop `companyRecords?:CompanyRecordBinding`. Local caller unchanged. Hosted App sequence: HostedAuthGate(account) → CompanyRecordsGate(account) → GameAppShell → GameScreen(binding). Key account-bound subtree by current ID.
 - **Execution Flow / Logic**:
   1. companyRecords provided: initialize highest from profile.highestClearedStage, initial selected stage=min(5,highest+1), leaderboard from binding. Skip all local progress/score readers, migrations and writers in this branch.
@@ -81,10 +81,10 @@ type CompanyStoreSnapshot =
 - Keep all local tests passing and run entire root suite after T03 selector correction. New meaningful race tests use controlled promises/fake timers; do not weaken assertions/timeouts/skips.
 
 ## Acceptance Criteria
-- [ ] Other-device saved unlocks exist at initial stage selection.
-- [ ] Cloud and local data paths remain separate; no legacy upload or local-data deletion.
-- [ ] Captured/cleared results enqueue before scenes end and survive safe retries/account switches.
-- [ ] Entire frontend suite and actual emulator API integration pass without changing game rules.
+- [x] Other-device saved unlocks exist at initial stage selection (server-response bootstrap integration; live multi-device confirmation is P02).
+- [x] Cloud and local data paths remain separate; no legacy upload or local-data deletion.
+- [x] Captured/cleared results enqueue before scenes end and survive safe retries/account switches.
+- [x] Entire frontend suite and actual emulator API integration pass without changing game rules.
 
 ## Validation
 - `npm run test -- --run --maxWorkers=2` — full root suite, API excluded by separate config, no skips added.
@@ -106,9 +106,23 @@ Task: T04-cloud-records-game-integration
 ```
 
 ## Progress
-- [ ] 구현 완료
-- [ ] 검증 통과
+- [x] 구현 완료
+- [x] 검증 통과
 - commit: pending
+
+## Execution Evidence (2026-10-30)
+- Added src/company/types.ts, recordApi.ts, CompanyRecordStore.ts and CompanyRecordsGate.tsx. Hosted App now gates GameAppShell/audio/GameScreen on both the current server profile and shared top10; failed initial reads remain retry/login states, not empty official profiles. Local MSAL/demo behavior and records remain browser-local.
+- HTTP client uses cookies/no-store/manual redirects/same-origin,15s cancellation, validated actor/profile/ranking/ACK DTOs and fixed public errors. HTML/invalid JSON on gateway503 remains retryable; login redirects/401/403 require authentication. POST includes only UUID + four result fields, never actor/clear/endedAtMs.
+- Necessary account-switch integration fix: api/src/handlers.ts checks optional X-Game-Account against the platform-authenticated actor before all repository access; the client always sends this precondition on personal reads/writes. It cannot select/impersonate an actor. If cookies switch A->B before A's queued request reaches the server, it returns401 rather than applying A's result to B. Added API regression; API unit95/95.
+- Store construction has no I/O. start/stop own storage reads, listeners, fetch cancellation and retries. Immutable result copies, per-reference WeakMap dedup, account/environment-scoped durable FIFO, matching-ACK removal, serial refresh and monotonic confirmed profile merge cover lost ACKs, stale data and StrictMode stop/start. Storage denial retains in-memory results and displays refresh-loss warnings; malformed queues are ignored with warning, never uploaded or globally cleared.
+- Added CompanyRecordsNotice and tests, plus src/test/companyFixtures.ts. Checkpoint/result display pending/retry/login status; normal Tab focus includes nested retry buttons/login links, while gameplay keys do not escape the notice. Continue/quit remain available despite failed saves. Shared leaderboard uses company label and shared deterministic ordering.
+- GameScreen cloud branch avoids all local score/progress reads/migrations/writes, initializes selection from confirmed highest clear, and submits StageResult before caught/final scenes finish. Callback/status changes do not reset clocks or the500ms catch/2s office/4s exit durations; remote unlock refresh opens new stages without changing a deliberately selected lower one.
+- Full-root gate initially found19 failures:18 existing stale pursuit-time test expectations and one new test fixture requesting unavailable step-8. The new fixture now uses actual retained stairs and normal player movement; no route/runtime code changed.
+- Existing-failure baseline proof:12 original test/runtime files were hash-matched to HEAD, then the six unchanged suites ran alone:276 total/258 passed/18 failed. Evidence: %TEMP%/dex-existing-tests-44c53fe6a4624447bb05c35f4d895162.json. A separate archive/junction/cleanup baseline command was rejected by automatic approval review before execution; the non-destructive existing-file check completed instead.
+- Required full-suite maintenance (test-only): src/game/gameEngine.test.ts, stageResult.test.ts, stairSceneModel.test.ts; src/descent/DescentGameScreen.test.tsx, descentSceneModel.test.ts, descentViewState.test.ts. Updated old600ms/500ms stage intervals to current500ms/400ms rules, tied expiry/contact fixtures, remaining-time calculations and recovery scheduling. Assertions/branches retained, no skips or weakened timeouts; those same276 tests subsequently passed. Production engine/stage/pursuit/scene/experimental descent logic is unchanged.
+- Final root run:1269/1269 tests across42 files,0 failed/0 pending, using --run --maxWorkers=2. Evidence: %TEMP%/dex-company-full-root-2026-10-30.json. Relevant UI/company subset195/195 also passed before the final extra serialized-refresh test.
+- API unit95/95, isolated real Azurite integration10/10, API TypeScript/esbuild build17.9kB, lint, normal and hosted builds and diff checks passed. Normal frontend JS600.18kB/CSS76.01kB; hosted JS600.13kB/CSS76.01kB. Hosted build used process-only auth mode, blank local SPA IDs and demo flag=true; env restored in finally, .env.local unchanged. Existing bundle warning remains deferred.
+- No new packages/lockfile changes, Azure resources/credentials/settings, GitHub push or real company sign-in performed. Only isolated emulation/mocked UI was used; actual HTTPS/session/shared-record multi-device verification remains the P02 release gate.
 
 ## Next
 P02-T01-deployment-config-and-workflow; mark P01 done4/4 only after above gates.

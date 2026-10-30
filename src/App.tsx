@@ -5,6 +5,8 @@ import { AuthGate } from "./auth/AuthGate";
 import { HostedAuthGate } from "./auth/HostedAuthGate";
 import type { AuthMode } from "./auth/authConfig";
 import type { GameAccount } from "./auth/gameAccount";
+import { CompanyRecordsGate } from "./company/CompanyRecordsGate";
+import type { CompanyRecordBinding } from "./company/types";
 import { GameScreen } from "./game/GameScreen";
 import { createAudioController } from "./audio/audioController";
 import { loadAudioPreferences, saveAudioPreferences, type AudioPreferences } from "./audio/audioPreferences";
@@ -32,7 +34,7 @@ function AuthConfigurationMessage({ message }: { message: string }) {
   );
 }
 
-function GameAppShell({ account }: { account: GameAccount }) {
+function GameAppShell({ account, companyRecords }: { account: GameAccount; companyRecords?: CompanyRecordBinding }) {
   const [audioController] = useState(() => createAudioController());
   const [audioPreferences, setAudioPreferences] = useState(() => loadAudioPreferences());
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
@@ -67,6 +69,7 @@ function GameAppShell({ account }: { account: GameAccount }) {
     <GameScreen
       key={account.homeAccountId}
       account={account}
+      companyRecords={companyRecords}
       audioController={audioController}
       audioPreferences={audioPreferences}
       autoplayBlocked={autoplayBlocked}
@@ -106,7 +109,11 @@ const localDemoAccount: AccountInfo = {
 
 export default function App({ configurationError, localDemoMode = false, authMode = "entra-spa" }: AppProps) {
   if (authMode === "azure-static-web-apps") {
-    return <HostedAuthGate>{(account) => <GameAppShell key={account.homeAccountId} account={account} />}</HostedAuthGate>;
+    return <HostedAuthGate>{(account) => (
+      <CompanyRecordsGate account={account}>{(records) => (
+        <GameAppShell key={account.homeAccountId} account={account} companyRecords={records} />
+      )}</CompanyRecordsGate>
+    )}</HostedAuthGate>;
   }
 
   if (localDemoMode && import.meta.env.DEV) {

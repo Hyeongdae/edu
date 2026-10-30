@@ -87,7 +87,7 @@ describe("descent view transitions", () => {
     const before = fixture({ ...withPursuitAt(start().game, 0, 1), stageEndsAt: 801 });
     const caught = reduce(before, { type: "tick", nowMs: 900 });
     expect(caught).toMatchObject({ playerMoveAt: null, scoreGain: null,
-      game: { endReason: "caught", captureCount: 1, captureEndsAt: 1100 } });
+      game: { endReason: "caught", captureCount: 1, captureEndsAt: 1000 } });
     const after = reduce(caught, { type: "tick", nowMs: 1400 });
     expect(after.game).toMatchObject({ captureCount: 1, captureEndsAt: null, endReason: "caught" });
   });
@@ -102,7 +102,7 @@ describe("descent view transitions", () => {
     }
     const closed = reduce(open, { type: "close-settings", nowMs: 95100 });
     expect(closed).toMatchObject({ settingsOpenedAt: null, playerMoveAt: null, scoreGain: null,
-      game: { stageEndsAt: 185000, eventEndsAt: 125000, nextPursuerStepAt: 95600 } });
+      game: { stageEndsAt: 185000, eventEndsAt: 125000, nextPursuerStepAt: 95500 } });
     expect(closed.game.route).toBe(before.game.route);
     expect(closed.game.obstacles).toBe(before.game.obstacles);
     expect(reduce(closed, { type: "close-settings", nowMs: 96000 })).toBe(closed);
@@ -110,7 +110,7 @@ describe("descent view transitions", () => {
 
   it("does not replay either actor's old movement after a brief settings visit", () => {
     const moved = input(start(), "forward", 600);
-    expect(moved.game.lastPursuerMove?.atMs).toBe(600);
+    expect(moved.game.lastPursuerMove?.atMs).toBe(500);
     const open = reduce(moved, { type: "open-settings", nowMs: 801 });
     const closed = reduce(open, { type: "close-settings", nowMs: 802 });
     expect(closed).toMatchObject({ playerMoveAt: null, scoreGain: null, game: { lastPursuerMove: null } });
@@ -127,7 +127,7 @@ describe("descent view transitions", () => {
     const open = reduce(fallen, { type: "open-settings", nowMs: 100 });
     const closed = reduce(open, { type: "close-settings", nowMs: 10100 });
     expect(closed.game).toMatchObject({ recoveryEndsAt: null, nextPursuerStepAt: 10250 });
-    expect(reduce(closed, { type: "tick", nowMs: 10250 }).game).toMatchObject({ nextPursuerStepAt: 10850 });
+    expect(reduce(closed, { type: "tick", nowMs: 10250 }).game).toMatchObject({ nextPursuerStepAt: 10750 });
   });
 
   it("restarts with supplied fresh state, preserves counters and consumes no RNG", () => {

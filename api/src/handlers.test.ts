@@ -31,6 +31,13 @@ beforeEach(() => {
 });
 
 describe("record handlers", () => {
+  it("rejects a queued request after cookies switch to another authenticated account", async () => {
+    expect(await handlers.results(request({ headers: { "x-game-account": "previous-account" } }), context))
+      .toMatchObject({ status: 401, jsonBody: { error: { code: "unauthenticated" } } });
+    expect(repository.submit).not.toHaveBeenCalled();
+    expect(await handlers.results(request({ headers: { "x-game-account": ACTOR.accountId } }), context))
+      .toMatchObject({ status: 200 });
+  });
   it.each(["profile", "leaderboard", "results"] as const)("authenticates %s before repository access", async (route) => {
     const response = await handlers[route](request({ headers: { "x-ms-client-principal": "" } }), context);
     expect(response).toMatchObject({ status: 401, jsonBody: { error: { code: "unauthenticated" } } });

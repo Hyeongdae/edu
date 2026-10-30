@@ -52,7 +52,7 @@ describe("dedicated descending screen", () => {
     expect(tick.mock.results.at(-1)!.value).toMatchObject({ pursuerDistance: 7, isPursuerCatchingUp: true });
     expect(screen.getByTestId("descent-pursuer-motion").style.getPropertyValue("--pursuer-step-duration")).toBe("100ms");
     act(() => { vi.advanceTimersByTime(100); });
-    expect(tick.mock.results.at(-1)!.value).toMatchObject({ pursuerDistance: 6, isPursuerCatchingUp: false, nextPursuerStepAt: 1500 });
+    expect(tick.mock.results.at(-1)!.value).toMatchObject({ pursuerDistance: 6, isPursuerCatchingUp: false, nextPursuerStepAt: 1400 });
     expect(screen.getByTestId("descent-pursuer-motion").style.getPropertyValue("--pursuer-step-duration")).toBe("240ms");
   });
   it("starts stopped, shows only the one-stage experiment, and arms once", () => {

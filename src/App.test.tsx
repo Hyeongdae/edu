@@ -117,9 +117,10 @@ describe("authenticated audio setup", () => {
   });
 
   it("uses hosted identity before local demo or missing SPA settings, with no MSAL hooks", async () => {
-    const fetcher = vi.fn().mockResolvedValue(Response.json({ clientPrincipal: {
+    const fetcher = vi.fn((path: string) => Promise.resolve(Response.json(path === "/.auth/me" ? { clientPrincipal: {
       identityProvider: "aad", userId: "hosted-a", userDetails: "회사 사용자", userRoles: ["authenticated"],
-    } }));
+    } } : path === "/api/profile" ? { accountId: "hosted-a", displayName: "회사 사용자", highestClearedStage: 0, best: null }
+      : { entries: [] })));
     vi.stubGlobal("fetch", fetcher);
     render(<App configurationError="로컬 SPA 설정 없음" localDemoMode authMode="azure-static-web-apps" />);
     expect(await screen.findByRole("heading", { name: "덱스 탈출 넘버원" })).toBeVisible();
@@ -129,7 +130,7 @@ describe("authenticated audio setup", () => {
     await openAudioSettings();
     expect(screen.getByText("회사 사용자")).toBeVisible();
     expect(screen.queryByText("로컬 테스트 사용자")).not.toBeInTheDocument();
-    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(fetcher).toHaveBeenCalledTimes(3);
   });
 
   it("does not create audio or a game while hosted identity is unavailable", async () => {

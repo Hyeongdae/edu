@@ -55,6 +55,9 @@ export function createRecordHandlers(deps: { repository: PlayerRepository }): {
       return { status: error.status, headers, jsonBody: { error: { code: error.code, message: error.message } } };
     }
     try {
+      // A precondition, never an identity selector: cookies can switch accounts while a queued request is in flight.
+      const expectedAccount = req.headers.get("x-game-account");
+      if (expectedAccount !== null && expectedAccount !== actor.accountId) throw new RecordServiceError("unauthenticated");
       return { status: 200, headers, jsonBody: await action(actor) };
     } catch (failure) {
       const error = failure instanceof RecordServiceError ? failure : new RecordServiceError("storage-unavailable");

@@ -1,5 +1,7 @@
 import { type KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 import type { GameAccount } from "../auth/gameAccount";
+import type { CompanyRecordBinding } from "../company/types";
+import { CompanyRecordsNotice } from "../company/CompanyRecordsNotice";
 import { applyInput, continueGame, createGameState, getStageSecondsLeft, quitAtCheckpoint, resetGame, resumeGameAfterPause, startGame, tickGame } from "./gameEngine";
 import { CheckpointPanel } from "./CheckpointPanel";
 import { StageSelectPanel } from "./StageSelectPanel";
@@ -29,6 +31,7 @@ const TITLE_SCENE_TRANSITION_MS = 200;
 
 interface GameScreenProps {
   account: GameAccount;
+  companyRecords?: CompanyRecordBinding;
   audioController?: AudioController;
   audioPreferences?: AudioPreferences;
   autoplayBlocked?: boolean;
@@ -49,13 +52,18 @@ function isTextEntryTarget(target: EventTarget | null): boolean {
 
 export function GameScreen({
   account,
+  companyRecords,
   audioController,
   audioPreferences,
   autoplayBlocked = false,
   onAudioPreferencesChange,
   onEnableAudio,
 }: GameScreenProps) {
+  const usesCompanyRecords = companyRecords !== undefined;
+  const submitCompanyResult = companyRecords?.submitResult;
+  const submittedCompanyResults = useRef(new WeakSet<object>());
   const [initialProfile] = useState(() => {
+    if (companyRecords) return { entries: companyRecords.entries, knownHighest: companyRecords.profile.highestClearedStage, progressAvailable: true };
     const entries = readLeaderboard(undefined, "descent");
     const progress = readStageProgress(account.homeAccountId, undefined, "descent");
     const knownHighest = progress.highestClearedStage;
@@ -159,6 +167,8 @@ export function GameScreen({
   }, []);
 
   const readKnownHighest = (): ClearedStage => {
+    if (companyRecords) return Math.max(gameState.highestClearedStage, initialProfile.knownHighest,
+      companyRecords.profile.highestClearedStage) as ClearedStage;
     const progress = readStageProgress(account.homeAccountId, undefined, "descent");
     setProgressUnavailable(!progress.available);
     return Math.max(gameState.highestClearedStage, initialProfile.knownHighest, progress.highestClearedStage) as ClearedStage;
@@ -221,13 +231,14 @@ export function GameScreen({
   };
 
   useEffect(() => {
+    if (usesCompanyRecords) return;
     const clearedStage = gameState.clearedStageThisRun;
     const previous = progressSavedRef.current;
     if (clearedStage === 0 || (previous.accountId === account.homeAccountId && previous.clearedStage >= clearedStage)) return;
     progressSavedRef.current = { accountId: account.homeAccountId, clearedStage };
     const result = saveStageProgress(account.homeAccountId, gameState.highestClearedStage, undefined, "descent");
     window.setTimeout(() => setProgressError(!result.saved), 0);
-  }, [account.homeAccountId, gameState.clearedStageThisRun, gameState.highestClearedStage]);
+  }, [account.homeAccountId, gameState.clearedStageThisRun, gameState.highestClearedStage, usesCompanyRecords]);
 
   useEffect(() => {
     const climbedSuccessfully = gameState.stepsClimbed > previousStepsRef.current;
@@ -341,6 +352,13 @@ export function GameScreen({
   const isForegroundEnding = isEnding || isOvertimeEnding;
   useEffect(() => {
     if (stageResult === null) return;
+    if (submitCompanyResult) {
+      if (!submittedCompanyResults.current.has(stageResult)) {
+        submittedCompanyResults.current.add(stageResult);
+        submitCompanyResult(stageResult);
+      }
+      return;
+    }
 
     const result = account.homeAccountId
       ? saveBestScore({
@@ -356,7 +374,7 @@ export function GameScreen({
       setSaveError(result === null || !result.saved);
     }, 0);
     return () => window.clearTimeout(update);
-  }, [account.homeAccountId, account.name, stageResult]);
+  }, [account.homeAccountId, account.name, stageResult, submitCompanyResult]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -534,7 +552,9 @@ export function GameScreen({
               </button>
 
               {gameState.status === "ready" && (!isTitleScreen || isTitleLeaving) ? (
-                <StageSelectPanel selectedStage={gameState.stage} highestClearedStage={gameState.highestClearedStage}
+                <StageSelectPanel selectedStage={gameState.stage} highestClearedStage={Math.max(
+                  gameState.highestClearedStage, companyRecords?.profile.highestClearedStage ?? 0,
+                ) as ClearedStage}
                   onSelect={handleSelectStage} onStart={handleStart} disabled={false} progressUnavailable={progressUnavailable} />
               ) : gameState.status === "playing" ? (
                 <ControlButtons
@@ -546,7 +566,8 @@ export function GameScreen({
               ) : gameState.status === "checkpoint" ? (
                 <CheckpointPanel stage={gameState.stage} score={gameState.score}
                   remainingTimeCs={stageResult!.remainingTimeCs}
-                  onContinue={handleContinue} onQuit={handleQuit} disabled={false} progressError={progressError} rankingError={saveError} />
+                  onContinue={handleContinue} onQuit={handleQuit} disabled={false} progressError={progressError} rankingError={saveError}
+                  recordsNotice={companyRecords && <CompanyRecordsNotice records={companyRecords} />} />
               ) : isEnding ? <OfficeExitEnding key={stageResult!.endedAtMs} variant="animated" startedAtMs={stageResult!.endedAtMs} />
                 : overtime.phase === "capture" ? null
                 : isOvertimeEnding ? <OvertimeCaptureEnding key={stageResult!.endedAtMs} variant="animated" startedAtMs={overtime.sceneStartedAtMs!} /> : (
@@ -566,11 +587,13 @@ export function GameScreen({
                     <p>계단 {gameState.stepsClimbed}개를 내려왔어요.</p>
                     {saveError && <p className="leaderboard-error" role="status">기록을 저장하지 못했습니다. 이 브라우저의 저장 공간을 확인해 주세요.</p>}
                     {progressError && <p role="status">진행도를 저장하지 못했습니다. 이 브라우저의 저장 공간을 확인해 주세요.</p>}
+                    {companyRecords && <CompanyRecordsNotice records={companyRecords} />}
                     <button ref={restartButtonRef} className="start-button restart-button" type="button" onClick={handleShowStageSelection}>
                       <PixelIcon name="restart" size={20} /> 다시 시작
                     </button>
                   </div>
-                  <LeaderboardPanel entries={leaderboard} currentAccountId={account.homeAccountId} />
+                  <LeaderboardPanel entries={companyRecords?.entries ?? leaderboard} currentAccountId={account.homeAccountId}
+                    scope={usesCompanyRecords ? "company" : "browser"} />
                 </section>
               )}
               <p className="game-footer" aria-hidden={isForegroundEnding || undefined} inert={isForegroundEnding || undefined}>

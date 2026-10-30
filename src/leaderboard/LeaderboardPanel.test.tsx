@@ -4,6 +4,15 @@ import { LeaderboardPanel } from "./LeaderboardPanel";
 import type { LeaderboardEntry } from "./leaderboard";
 
 describe("LeaderboardPanel", () => {
+  it("labels company records and deterministically orders fully tied accounts", () => {
+    const row = { bestStage: 1 as const, bestScore: 100, remainingTimeCs: 6000, achievedAt: "2026-10-30T00:00:00.000Z" };
+    render(<LeaderboardPanel scope="company" currentAccountId="a" entries={[
+      { ...row, accountId: "b", displayName: "B" }, { ...row, accountId: "a", displayName: "A" },
+    ]} />);
+    expect(screen.getByText("COMPANY RANKING")).toBeVisible();
+    expect(screen.queryByText("THIS BROWSER")).not.toBeInTheDocument();
+    expect(within(screen.getAllByRole("listitem")[0]).getByText("A")).toBeVisible();
+  });
   afterEach(cleanup);
 
   it("displays the same centisecond value used for ranking including zero and missing legacy time", () => {

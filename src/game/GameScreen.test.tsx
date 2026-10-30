@@ -16,6 +16,13 @@ import { getRouteStep } from "./stairRoute";
 import type { AudioController } from "../audio/audioController";
 import { DEFAULT_AUDIO_PREFERENCES } from "../audio/audioPreferences";
 import { DESCENT_LEADERBOARD_KEY, LEGACY_DESCENT_LEADERBOARD_KEY, DESCENT_PROGRESS_KEY, DESCENT_RESET_KEY } from "./recordStorage";
+import type { CompanyRecordBinding } from "../company/types";
+import { companyProfile } from "../test/companyFixtures";
+
+function companyBinding(highestClearedStage: CompanyRecordBinding["profile"]["highestClearedStage"] = 0): CompanyRecordBinding {
+  return { profile: companyProfile({ accountId: account.homeAccountId, highestClearedStage }), entries: [],
+    syncStatus: "idle", pendingCount: 0, errorMessage: null, submitResult: vi.fn(), retry: vi.fn(), refresh: vi.fn() };
+}
 
 const account = {
   homeAccountId: "local-account",
@@ -74,6 +81,94 @@ function mockMotionPreference(initial: boolean) {
     act(() => { for (const listener of [...listeners]) listener(); });
   } };
 }
+
+describe("company record persistence", () => {
+  beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(0); });
+  afterEach(() => { cleanup(); localStorage.clear(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
+
+  it("uses confirmed server unlocks and never reads or migrates local score/progress data", () => {
+    const records = companyBinding(2);
+    const read = vi.spyOn(Storage.prototype, "getItem");
+    const write = vi.spyOn(Storage.prototype, "setItem");
+    const remove = vi.spyOn(Storage.prototype, "removeItem");
+    render(<GameScreen account={account} companyRecords={records} />);
+    expect(screen.getByRole("button", { name: "3단계 선택" })).toHaveAttribute("aria-pressed", "true");
+    expect(read).not.toHaveBeenCalled(); expect(write).not.toHaveBeenCalled(); expect(remove).not.toHaveBeenCalled();
+  });
+
+  it("opens newly restored stages without resetting an intentionally selected lower stage", () => {
+    const records = companyBinding(2);
+    const view = render(<GameScreen account={account} companyRecords={records} />);
+    fireEvent.click(screen.getByRole("button", { name: "1단계 선택" }));
+    view.rerender(<GameScreen account={account} companyRecords={{ ...records, profile: { ...records.profile, highestClearedStage: 4 } }} />);
+    expect(screen.getByRole("button", { name: "1단계 선택" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "5단계 선택" })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "5단계 선택" }));
+    expect(screen.getByRole("button", { name: "5단계 선택" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("submits the clear once and continues immediately while its cloud save is pending or failed", () => {
+    seedReadyStage(1);
+    const records = companyBinding();
+    const write = vi.spyOn(Storage.prototype, "setItem");
+    const view = render(<GameScreen account={account} companyRecords={records} />);
+    fireEvent.click(screen.getByRole("button", { name: "시작하기" })); climbOneStep();
+    expect(records.submitResult).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ stage: 1, score: 150, outcome: "cleared" }));
+    view.rerender(<GameScreen account={account} companyRecords={{ ...records, syncStatus: "error", pendingCount: 1, errorMessage: "사내 저장 실패" }} />);
+    expect(screen.getByText("사내 저장 실패")).toBeVisible();
+    expect(screen.getByRole("button", { name: "그만두기" })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "계속하기" }));
+    expect(screen.getByTestId("stage-value")).toHaveTextContent("2단계");
+    expect(screen.getByTestId("score-value")).toHaveTextContent("0");
+    expect(records.submitResult).toHaveBeenCalledTimes(1);
+    expect(write).not.toHaveBeenCalled();
+  });
+
+  it("does not pause or restart the active clock on cloud status rerenders", async () => {
+    seedReadyStage(1, { score: 0 });
+    const records = companyBinding();
+    const view = render(<GameScreen account={account} companyRecords={records} />);
+    fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    expect(screen.getByTestId("stage-time")).toHaveTextContent("01:29");
+    view.rerender(<GameScreen account={account} companyRecords={{ ...records, syncStatus: "error", pendingCount: 1 }} />);
+    climbOneStep();
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    expect(screen.getByTestId("stage-time")).toHaveTextContent("01:28");
+    expect(records.submitResult).not.toHaveBeenCalled();
+  });
+
+  it("queues a captured snapshot before the office scene and does not resubmit after status changes", async () => {
+    seedReadyStage(1, { score: 80, pursuerDistance: 1 }); mockMotionPreference(false);
+    const records = companyBinding();
+    const view = render(<GameScreen account={account} companyRecords={records} />);
+    fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(500); });
+    expect(records.submitResult).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ score: 80, outcome: "caught", endedAtMs: 500 }));
+    expect(screen.queryByTestId("overtime-capture-ending")).not.toBeInTheDocument();
+    view.rerender(<GameScreen account={account} companyRecords={{ ...records, syncStatus: "saving", pendingCount: 1 }} />);
+    await act(async () => { await vi.advanceTimersByTimeAsync(500); });
+    expect(screen.getByRole("dialog", { name: "야근 사무실" })).toBeVisible();
+    expect(records.submitResult).toHaveBeenCalledTimes(1);
+  });
+
+  it("saves a final clear before the exit scene and preserves its four-second duration during retries", async () => {
+    seedReadyStage(5); mockMotionPreference(false);
+    const records = companyBinding(4);
+    const view = render(<GameScreen account={account} companyRecords={records} />);
+    fireEvent.click(screen.getByRole("button", { name: "시작하기" })); climbOneStep();
+    expect(records.submitResult).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ stage: 5, outcome: "cleared" }));
+    expect(screen.getByRole("dialog", { name: "오늘도 수고했어요!" })).toBeVisible();
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    view.rerender(<GameScreen account={account} companyRecords={{ ...records, syncStatus: "error", errorMessage: "공유 저장 오류" }} />);
+    await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
+    expect(screen.getByRole("heading", { name: "퇴근 완료!" })).toBeVisible();
+    expect(screen.getByText("COMPANY RANKING")).toBeVisible();
+    expect(screen.queryByText("THIS BROWSER")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "기록 저장 다시 시도" }));
+    expect(records.retry).toHaveBeenCalledOnce(); expect(records.submitResult).toHaveBeenCalledOnce();
+  });
+});
 
 describe("time-ranked result persistence", () => {
   afterEach(() => { cleanup(); localStorage.clear(); vi.restoreAllMocks(); vi.useRealTimers(); });

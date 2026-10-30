@@ -131,7 +131,7 @@ describe("downward staircase coordinates", () => {
   it("maps both endpoints and timing of an independent adjacent NPC step", () => {
     const state = tickDescent(geometryAt(0, 0), 800);
     expect(buildDescentSceneModel(state).pursuerMotion).toEqual({
-      from: { x: 124, y: 104 }, to: { x: 158, y: 132 }, atMs: 600,
+      from: { x: 124, y: 104 }, to: { x: 158, y: 132 }, atMs: 500,
     });
   });
 

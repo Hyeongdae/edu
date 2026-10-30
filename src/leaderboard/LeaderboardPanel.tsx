@@ -1,19 +1,22 @@
 import { getTopScores, type LeaderboardEntry } from "./leaderboard";
 import { formatRemainingTimeCs } from "../game/stageResult";
+import { getSharedTopScores, type SharedBest } from "../../shared/companyRecords";
 
 interface LeaderboardPanelProps {
   entries: LeaderboardEntry[];
   currentAccountId: string;
+  scope?: "browser" | "company";
 }
 
-export function LeaderboardPanel({ entries, currentAccountId }: LeaderboardPanelProps) {
-  const topScores = getTopScores(entries);
+export function LeaderboardPanel({ entries, currentAccountId, scope = "browser" }: LeaderboardPanelProps) {
+  const topScores = scope === "company" ? getSharedTopScores(entries.filter((entry): entry is SharedBest => entry.remainingTimeCs !== undefined))
+    : getTopScores(entries);
 
   return (
     <section className="leaderboard-card" aria-labelledby="leaderboard-title">
       <div className="leaderboard-heading">
         <div>
-          <p className="leaderboard-kicker">THIS BROWSER</p>
+          <p className="leaderboard-kicker">{scope === "company" ? "COMPANY RANKING" : "THIS BROWSER"}</p>
           <h2 id="leaderboard-title">최고 기록 랭킹</h2>
         </div>
         <span className="leaderboard-count">TOP 10</span>

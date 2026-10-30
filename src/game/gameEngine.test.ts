@@ -95,7 +95,7 @@ describe("checkpoint sessions", () => {
     expect(resumeGameAfterPause(checkpoint, 100, 95_100)).toBe(checkpoint);
     const resumed = continueGame(checkpoint, 95_100);
     expect(resumed).toMatchObject({ status: "playing", stage: 2, score: 0, lastMove: null,
-      stageEndsAt: 170_100, nextPursuerStepAt: 95_600, pursuerDistance: 4,
+      stageEndsAt: 170_100, nextPursuerStepAt: 95_100 + getStageRule(2).pursuerStepIntervalMs, pursuerDistance: 4,
       eventEndsAt: 125_000, highestClearedStage: 1, clearedStageThisRun: 1, checkpointEnteredAt: null });
     expect(getStageTargetScore(resumed.stage)).toBe(200);
     expect(resumed.route).toBe(checkpoint.route);
@@ -276,7 +276,7 @@ describe("applyInput", () => {
   });
 
   it("ignores inputs during recovery, then accepts input at the recovery boundary", () => {
-    const fallen = applyInput(playingState(), "turn", 1_000);
+    const fallen = applyInput(playingState({}, 1_000), "turn", 1_000);
     const blocked = applyInput(fallen, "forward", 1_499);
     const recovered = applyInput(blocked, "forward", 1_500);
 
@@ -311,7 +311,7 @@ describe("applyInput", () => {
   });
 
   it("starts the 30 second event on the 30th successful step", () => {
-    const before = playingState({ eventSteps: 29 });
+    const before = playingState({ eventSteps: 29 }, 2_000);
     const after = applyInput(before, "forward", 2_000);
 
     expect(after).toMatchObject({
@@ -521,7 +521,7 @@ describe("obstacle jumps", () => {
     const wrong = applyInput(state, "forward", 900);
     const blocked = applyInput(wrong, "jump", 1_000);
     expect(blocked).toMatchObject({ recoveryEndsAt: 1_400, stepsClimbed: 1, score: 1,
-      pursuerIndex: state.pursuerIndex + 1, pursuerDistance: 3, nextPursuerStepAt: 1_150 });
+      pursuerIndex: state.pursuerIndex + 2, pursuerDistance: 2, nextPursuerStepAt: 1_250 });
   });
 
   it("resolves a due catch before Space and clears move metadata without revealing boxes", () => {
@@ -561,7 +561,7 @@ describe("obstacle jumps", () => {
     const ticked = tickGame(moved, 1_000);
     expect(ticked.lastMove).toBe(moved.lastMove);
     expect(ticked.eventEndsAt).toBeNull();
-    expect(ticked.pursuerIndex).toBe(moved.pursuerIndex + 1);
+    expect(ticked.pursuerIndex).toBe(moved.pursuerIndex + 2);
   });
 
   it("reveals new runs with the promoted stage and keeps earlier decisions by reference", () => {
