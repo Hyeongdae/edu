@@ -10,7 +10,7 @@
 None — plan complete (P03 Azure Cutover, 3/3 tasks).
 
 ## Last Completed Task
-[T03 Delete Legacy Storage](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P03-azure-cutover/T03-delete-legacy-storage.md) - deployment tests 26/26, lint/build passed; old Table settings and dedicated account removed; Cosmos/SWA remain and user confirmed records remain available.
+[T03 Delete Legacy Storage](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P03-azure-cutover/T03-delete-legacy-storage.md) - `e8e335d`; deployment tests 26/26, lint/build passed; old Table settings and dedicated account removed; Cosmos/SWA remain and user confirmed records remain available.
 
 ## Status
 - P01 Gameplay Polish is complete (3/3): score cap, the three-second stage transition countdown, and the 30% default BGM preference are implemented and validated.

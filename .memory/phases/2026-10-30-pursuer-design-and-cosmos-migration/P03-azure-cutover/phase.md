@@ -11,4 +11,5 @@
 ## Progress
 - done: 3/3
 - T01 commit: `a904755`
+- T03 commit: `e8e335d`
 - T03 validation: deployment tests 26/26, lint, build, Azure resource/settings verification, anonymous API redirect (302), user-confirmed Cosmos records remain available.

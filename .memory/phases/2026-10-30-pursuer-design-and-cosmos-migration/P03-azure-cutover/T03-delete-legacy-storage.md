@@ -70,4 +70,4 @@ Task: T03-delete-legacy-storage
 ## Progress
 - [x] Implementation complete: old Table settings removed and only the dedicated `stdexescape384874bc` account deleted.
 - [x] Validation passed: deployment tests 26/26, lint, production build, Azure resource/settings check, anonymous API redirect (302), and user-confirmed Cosmos records remain available.
-- commit: pending
+- commit: `e8e335d`
