@@ -76,6 +76,11 @@ test("defaults to PlanOnly with zero native/cloud calls even when identifiers ar
   assert.ok(!JSON.stringify(result).includes(ids.client));
 });
 
+test("pre-created resource group mode keeps planning read-only and reports the scoped path", () => {
+  const result = powershell(`$output=& ${literal(scriptPath)} -UseExistingResourceGroup -SubscriptionId '${ids.subscription}' -TenantId '${ids.tenant}' -ClientId '${ids.client}' -ToolRunner { throw 'Plan invoked a tool' }; $output|ConvertFrom-Json|ConvertTo-Json`);
+  assert.equal(result.mode, "PlanOnly"); assert.equal(result.cloudWrites, false); assert.equal(result.useExistingResourceGroup, true);
+});
+
 test("rejects missing Azure permissions before any GitHub operation, state file or resource write", () => {
   const result = powershell(`
     $state=@{calls=0;denied=$false};
@@ -131,7 +136,8 @@ test("mock Apply is additive, secret-safe and reuses resources and credentials o
         'ad app owner' {return @(@{id='operator'})}
         'provider show*' {return @{registrationState='Registered';resourceTypes=@(@{resourceType='staticSites';locations=@('East Asia')},@{resourceType='storageAccounts';locations=@('East Asia')})}}
         'group exists*' {return $state.group}
-        'group show*' {return @{name=$plan.Target.resourceGroup;tags=$plan.Tags}}
+        'group show*' {$state.group=$true; return @{name=$plan.Target.resourceGroup;tags=$plan.Tags}}
+        'resource list*' {return @()}
         'group create*' {$state.group=$true; $state.creates++; return @{name=$plan.Target.resourceGroup}}
         'staticwebapp list*' {if(-not $state.site){return}; return @{name=$plan.Target.staticSiteName;tags=$plan.Tags;sku=@{name='Standard'};defaultHostname='fixture.azurestaticapps.net'}}
         'staticwebapp create*' {if($a -notcontains 'Standard' -or $a -contains '--source'){throw 'Unexpected hosting mode'}; $state.site=$true; $state.creates++; return @{defaultHostname='fixture.azurestaticapps.net'}}
@@ -156,11 +162,11 @@ test("mock Apply is additive, secret-safe and reuses resources and credentials o
       }
     }.GetNewClosure();
     $parameters=@{Apply=$true;SubscriptionId='${ids.subscription}';TenantId='${ids.tenant}';ClientId='${ids.client}';
-      AzureCliPath='fake-az';GhPath='fake-gh';ToolRunner=$fake;ManifestPath=${literal(manifestPath)};StatePath=${literal(statePath)}};
+      AzureCliPath='fake-az';GhPath='fake-gh';ToolRunner=$fake;ManifestPath=${literal(manifestPath)};StatePath=${literal(statePath)};UseExistingResourceGroup=$true};
     $null=& ${literal(scriptPath)} @parameters; $count=$state.creates; $null=& ${literal(scriptPath)} @parameters;
     if($state.settings.UNRELATED -cne 'keep' -or $state.web.homePageUrl -cne 'https://other.example/'){throw 'Unrelated configuration lost'};
     @{creates=$state.creates;firstCreates=$count;group=$state.group;site=$state.site;storage=$state.storage;table=$state.table;credentials=$state.passwords.Count;stdinOnly=$state.stdinOnly;patchSafe=$state.patchSafe;callbacks=@($state.web.redirectUris)}|ConvertTo-Json -Depth 5`);
-  assert.equal(result.creates, 4, JSON.stringify(result)); assert.equal(result.firstCreates, 4); assert.equal(result.credentials, 1);
+  assert.equal(result.creates, 3, JSON.stringify(result)); assert.equal(result.firstCreates, 3); assert.equal(result.credentials, 1);
   assert.equal(result.stdinOnly, true); assert.equal(result.patchSafe, true);
   assert.deepEqual(result.callbacks, ["https://other.example/callback", "https://fixture.azurestaticapps.net/.auth/login/aad/callback"]);
   const manifest = await readFile(manifestPath, "utf8");

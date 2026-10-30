@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
     [switch]$Apply,
+    [switch]$UseExistingResourceGroup,
     [string]$SubscriptionId = $env:AZURE_SUBSCRIPTION_ID,
     [string]$TenantId = $env:ENTRA_TENANT_ID,
     [string]$ClientId = $env:AZURE_CLIENT_ID,
@@ -40,6 +41,7 @@ if (-not $Apply) {
     [pscustomobject]@{ mode = 'PlanOnly'; identityConfigured = $plan.IdentityConfigured; repository = $target.repository; branch = $target.branch;
         resourceGroup = $target.resourceGroup; location = $target.location; staticSiteName = $target.staticSiteName;
         storageAccountName = $target.storageAccountName; tableName = $target.tableName; sku = $target.sku;
+        useExistingResourceGroup = [bool]$UseExistingResourceGroup;
         savedTarget = ($null -ne $saved); cloudWrites = $false } | ConvertTo-Json
     return
 }
@@ -64,9 +66,9 @@ function Call-Gh {
 $account = Call-Az @('account','show')
 if ($account.id -ine $plan.SubscriptionId -or $account.tenantId -ine $plan.TenantId -or $account.state -ine 'Enabled') { throw 'Azure subscription or tenant does not match the intended company context.' }
 $permissionScope = '/subscriptions/' + $plan.SubscriptionId
-if ($saved) { $permissionScope += '/resourceGroups/' + $target.resourceGroup }
+if ($saved -or $UseExistingResourceGroup) { $permissionScope += '/resourceGroups/' + $target.resourceGroup }
 $permissions = Call-Az @('rest','--method','get','--url',('https://management.azure.com' + $permissionScope + '/providers/Microsoft.Authorization/permissions?api-version=2022-04-01'))
-Assert-DexDeploymentPermissions -Permissions $permissions -NeedResourceGroupCreation:($null -eq $saved)
+Assert-DexDeploymentPermissions -Permissions $permissions -NeedResourceGroupCreation:($null -eq $saved -and -not $UseExistingResourceGroup)
 $repository = Call-Gh @('api','repos/Hyeongdae/edu')
 if ($repository.full_name -cne 'Hyeongdae/edu' -or -not $repository.permissions.push) { throw 'Authenticated GitHub account cannot push to the intended repository.' }
 $null = Call-Gh @('api','repos/Hyeongdae/edu/actions/secrets/public-key')
@@ -77,14 +79,24 @@ if ($enterpriseApp.appRoleAssignmentRequired) { throw 'The existing enterprise a
 $operator = Call-Az @('ad','signed-in-user','show')
 $owners = @(Call-Az @('ad','app','owner','list','--id',$plan.ClientId))
 if (-not @($owners | Where-Object { $_.id -ieq $operator.id }).Count) { throw 'Use an authenticated owner of the existing app registration for this deployment.' }
+if (-not $UseExistingResourceGroup) {
 foreach ($entry in @(@('Microsoft.Web','staticSites'), @('Microsoft.Storage','storageAccounts'))) {
     $provider = Call-Az @('provider','show','--namespace',$entry[0])
     $resourceType = @($provider.resourceTypes | Where-Object { $_.resourceType -ceq $entry[1] })
     if ($provider.registrationState -ine 'Registered' -or -not $resourceType.Count -or
         -not @($resourceType[0].locations | Where-Object { $_.Replace(' ','').ToLowerInvariant() -ceq $target.location }).Count) { throw 'Requested region/provider is not available; select a supported region before Apply.' }
 }
-$exists = Call-Az @('group','exists','--name',$target.resourceGroup)
-if ($exists) {
+}
+if ($UseExistingResourceGroup -and -not $saved) {
+    $group = Call-Az @('group','show','--name',$target.resourceGroup)
+    Assert-DexOwnedResource -Resource $group -ExpectedName $target.resourceGroup -Tags $plan.Tags
+    $groupContents = @(Call-Az @('resource','list','--resource-group',$target.resourceGroup))
+    if ($groupContents.Count) { throw 'The pre-created deployment resource group must be dedicated and empty.' }
+    $exists = $true
+} else {
+    $exists = Call-Az @('group','exists','--name',$target.resourceGroup)
+}
+if ($exists -and -not ($UseExistingResourceGroup -and -not $saved)) {
     $group = Call-Az @('group','show','--name',$target.resourceGroup)
     if ($null -eq $saved) { throw 'Existing resources require an owned saved manifest or recovery journal.' }
     Assert-DexOwnedResource -Resource $group -ExpectedName $target.resourceGroup -Tags $plan.Tags
