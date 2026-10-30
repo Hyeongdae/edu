@@ -4,17 +4,20 @@
   "private": true,
   "type": "module",
   "main": "dist/index.cjs",
-  "engines": { "node": ">=22.12.0 <25" },
+  "engines": {
+    "node": ">=22.12.0 <25"
+  },
   "scripts": {
     "build": "tsc --noEmit && esbuild src/index.ts --bundle --platform=node --target=node22 --format=cjs --packages=external --outfile=dist/index.cjs",
     "test": "vitest run --config vitest.config.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
-    "@azure/data-tables": "13.3.2",
+    "@azure/cosmos": "4.10.1",
     "@azure/functions": "4.17.0"
   },
   "devDependencies": {
+    "@azure/data-tables": "13.3.2",
     "@types/node": "^22.0.0",
     "azurite": "3.37.0",
     "esbuild": "0.28.2",

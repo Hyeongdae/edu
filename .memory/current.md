@@ -7,13 +7,13 @@
 [P02 Cosmos Application](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P02-cosmos-application/phase.md)
 
 ## Active Task
-[T01 Cosmos Player Repository](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P02-cosmos-application/T01-cosmos-player-repository.md)
+[T02 Cosmos Integration Coverage](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P02-cosmos-application/T02-cosmos-integration-coverage.md)
 
 ## Last Completed Task
-[T01 Consistent Pursuer Pixel Art](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P01-pursuer-pixel-art/T01-consistent-pursuer-art.md) - `5fb2b95` (2026-10-30).
+[T01 Cosmos Player Repository](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P02-cosmos-application/T01-cosmos-player-repository.md)
 
 ## Status
-- The new combined plan has 3 phases and 7 sequential tasks. P01 pursuer artwork is complete (1/1, `5fb2b95`); P02 Cosmos API/integration/local behavior is active; P03 Azure container, release verification, then legacy Storage deletion follows.
+- P01 pursuer art is complete (`5fb2b95`). P02-T01 Cosmos player repository is complete; P02-T02 Cosmos emulator integration coverage is active.
 - No source implementation, Cosmos resource creation, deployment setting change, or Storage deletion occurred while planning.
 - Parked prior pointer: [Azure Company Game Deployment P02-T03](./phases/2026-10-30-azure-company-game-deployment/P02-azure-release/T03-release-and-verify-url.md). Its real Entra login/save verification is superseded by the Cosmos-backed verification in P03-T02. Do not delete the legacy Storage account before that verification passes.
 - Confirmed boundaries: Cosmos `auth`/`game` containers remain untouched; local game runs save no ranking/progress records but retain in-memory unlocks for the current session; production records keep the current rank ordering; the old table history is not migrated.
@@ -24,7 +24,7 @@
 - [Cosmos ranking storage migration](./decisions/2026-10-30-cosmos-ranking-storage-migration.md)
 
 ## Next Step (IMPORTANT)
-Read only P02-T01 Cosmos player repository blueprint and implement its API repository changes. Do not start frontend Cosmos integration or Azure resource tasks until the current pointer advances.
+Read only P02-T02 Cosmos integration coverage blueprint and replace the old Azurite/Table integration tests with isolated Cosmos emulator coverage. Do not start local-game persistence or Azure resource tasks until the pointer advances.
 ---
 
 ### Previous Context: Main Game Descent Conversion
