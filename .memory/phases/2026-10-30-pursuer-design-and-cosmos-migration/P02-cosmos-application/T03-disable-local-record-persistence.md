@@ -69,4 +69,4 @@ Task: T03-disable-local-record-persistence
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: `50d7965`
+- commit: `be80818`

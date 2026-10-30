@@ -21,15 +21,17 @@ function powershell(code) {
 }
 const plan = `$plan=Get-DeploymentPlan -SubscriptionId '${ids.subscription}' -TenantId '${ids.tenant}' -ClientId '${ids.client}'; `;
 
-test("builds deterministic legal dedicated names and explicitly chooses Standard", () => {
+test("binds the exact Cosmos ranking target and explicitly chooses Standard", () => {
   const result = powershell(plan + '$plan.Target | ConvertTo-Json -Depth 5');
   assert.equal(result.sku, "Standard"); assert.equal(result.repository, "Hyeongdae/edu");
-  assert.match(result.storageAccountName, /^[a-z0-9]{3,24}$/);
+  assert.equal(result.cosmosAccountName, "maze-rescue-ms-b7af62a9");
+  assert.equal(result.cosmosDatabaseName, "stair-climb"); assert.equal(result.cosmosContainerName, "players");
+  assert.equal(result.cosmosDatabaseThroughput, 400); assert.equal(result.legacyStorageAccountName, "stdexescape384874bc");
   assert.equal(result.staticSiteName, powershell(plan + '$plan.Target | ConvertTo-Json -Depth 5').staticSiteName);
 });
 
 test("rejects invalid target names, identifiers and repositories", () => {
-  const result = powershell(`$passed=0; foreach($parameters in @(@{TenantId='common'},@{StorageName='Invalid-Storage'},@{StaticSiteName='x;command'},@{Repository='other/repo'})) {
+  const result = powershell(`$passed=0; foreach($parameters in @(@{TenantId='common'},@{ResourceGroup='Invalid Group'},@{StaticSiteName='x;command'},@{Repository='other/repo'})) {
     try { $null=Get-DeploymentPlan @parameters; throw 'Accepted invalid input' } catch { if($_.Exception.Message -eq 'Accepted invalid input'){throw}; $passed++ }
   }; @{rejected=$passed}|ConvertTo-Json`);
   assert.equal(result.rejected, 4);
@@ -100,10 +102,10 @@ test("rejects missing Azure permissions before any GitHub operation, state file 
 test("permission preflight accepts scoped Contributor wildcards and rejects exclusions", () => {
   const result = powershell(`
     Assert-DexDeploymentPermissions -Permissions @{value=@(@{actions=@('*');notActions=@('Microsoft.Authorization/*/Write','Microsoft.Authorization/*/Delete')})} -NeedResourceGroupCreation;
-    Assert-DexDeploymentPermissions -Permissions @{value=@(@{actions=@('Microsoft.Web/staticSites/*','Microsoft.Storage/storageAccounts/*','Microsoft.Resources/subscriptions/resourceGroups/read');notActions=@()})};
-    Assert-DexDeploymentPermissions -Permissions @{value=@(@{actions=@('*/read','*/write','Microsoft.Web/staticSites/listappsettings/action','Microsoft.Web/staticSites/listsecrets/action','Microsoft.Storage/storageAccounts/listKeys/action');notActions=@('*/delete')})} -NeedResourceGroupCreation;
+    Assert-DexDeploymentPermissions -Permissions @{value=@(@{actions=@('Microsoft.Web/staticSites/*','Microsoft.DocumentDB/databaseAccounts/*','Microsoft.Resources/subscriptions/resourceGroups/read');notActions=@()})};
+    Assert-DexDeploymentPermissions -Permissions @{value=@(@{actions=@('*/read','*/write','Microsoft.Web/staticSites/listappsettings/action','Microsoft.Web/staticSites/listsecrets/action','Microsoft.DocumentDB/databaseAccounts/listKeys/action');notActions=@('*/delete')})} -NeedResourceGroupCreation;
     $rejected=0;
-    try { Assert-DexDeploymentPermissions -Permissions @{value=@(@{actions=@('*');notActions=@('Microsoft.Storage/storageAccounts/listKeys/action')})} } catch {$rejected++};
+    try { Assert-DexDeploymentPermissions -Permissions @{value=@(@{actions=@('*');notActions=@('Microsoft.DocumentDB/databaseAccounts/listKeys/action')})} } catch {$rejected++};
     try { Assert-DexDeploymentPermissions -Permissions @{value=@(@{actions=@('*/read');notActions=@()})} -NeedResourceGroupCreation } catch {$rejected++};
     @{rejected=$rejected}|ConvertTo-Json`);
   assert.equal(result.rejected, 2);
@@ -115,7 +117,7 @@ test("mock Apply is additive, secret-safe and reuses resources and credentials o
   t.after(async () => { const path = await realpath(folder); assert.equal(dirname(path), base); assert.ok(basename(path).startsWith("dex-provision-fixture-")); await rm(path, { recursive: true }); });
   const manifestPath = join(folder, "manifest.json"), statePath = join(folder, "state.json");
   const result = powershell(plan + `
-    $state=@{group=$false;site=$false;storage=$false;table=$false;creates=0;passwords=@(); settings=@{UNRELATED='keep'};
+    $state=@{group=$false;site=$false;container=$false;creates=0;passwords=@(); settings=@{UNRELATED='keep';GAME_RECORDS_CONNECTION_STRING='legacy-table-secret';GAME_RECORDS_TABLE='DexEscapePlayers'};
       web=@{redirectUris=@('https://other.example/callback');homePageUrl='https://other.example/'};stdinOnly=$false; patchSafe=$false};
     $fake={param($Tool,$Arguments,$InputText)
       $a=$Arguments; $operation=($a[0..([Math]::Min(2,$a.Length-1))] -join ' ');
@@ -134,24 +136,26 @@ test("mock Apply is additive, secret-safe and reuses resources and credentials o
         'ad signed-in-user show' {return @{id='operator'}}
         'ad sp show' {return @{appRoleAssignmentRequired=$false}}
         'ad app owner' {return @(@{id='operator'})}
-        'provider show*' {return @{registrationState='Registered';resourceTypes=@(@{resourceType='staticSites';locations=@('East Asia')},@{resourceType='storageAccounts';locations=@('East Asia')})}}
+        'provider show*' {return @{registrationState='Registered';resourceTypes=@(@{resourceType='staticSites';locations=@('East Asia')},@{resourceType='databaseAccounts';locations=@('East Asia')})}}
         'group exists*' {return $state.group}
         'group show*' {$state.group=$true; return @{name='grill-me-edu';tags=$plan.Tags}}
         'resource list*' {return @()}
         'group create*' {$state.group=$true; $state.creates++; return @{name=$plan.Target.resourceGroup}}
         'staticwebapp list*' {if(-not $state.site){return}; return @{name=$plan.Target.staticSiteName;tags=$plan.Tags;sku=@{name='Standard'};defaultHostname='fixture.azurestaticapps.net'}}
         'staticwebapp create*' {if($a -notcontains 'Standard' -or $a -contains '--source'){throw 'Unexpected hosting mode'}; $state.site=$true; $state.creates++; return @{defaultHostname='fixture.azurestaticapps.net'}}
-        'storage account list' {if(-not $state.storage){return}; return @{name=$plan.Target.storageAccountName;tags=$plan.Tags;allowBlobPublicAccess=$false;enableHttpsTrafficOnly=$true;minimumTlsVersion='TLS1_2';kind='StorageV2';sku=@{name='Standard_LRS'}}}
-        'storage account create' {$state.storage=$true; $state.creates++; return @{name=$plan.Target.storageAccountName}}
-        'storage account check-name' {return @{nameAvailable=(-not $state.storage)}}
-        'storage account show-connection-string' {return @{connectionString='fixture-private-connection'}}
+        'cosmosdb show*' {return @{name=$plan.Target.cosmosAccountName;kind='GlobalDocumentDB';documentEndpoint='https://fixture.documents.azure.com:443/'} }
+        'cosmosdb sql database' {if($a -contains 'throughput'){return @{resource=@{throughput=400}}}; return @{name=$plan.Target.cosmosDatabaseName}}
+        'cosmosdb sql container' {
+          if($a -contains 'create'){if($a -contains '--throughput' -or $a -notcontains '/accountId'){throw 'Container throughput or partition key mismatch'}; $state.container=$true; $state.creates++; return @{resource=@{partitionKey=@{paths=@('/accountId')}}}}
+          if($a -contains 'show'){return @{resource=@{partitionKey=@{paths=@('/accountId')}};options=@{}}}
+          if(-not $state.container){return @()}; return @(@{name=$plan.Target.cosmosContainerName})
+        }
+        'cosmosdb keys list' {return @{primaryMasterKey='fixture-private-cosmos-key'}}
         'staticwebapp secrets list' {return @{properties=@{apiKey='fixture-deployment-token'}}}
         'rest *' {
           $url=$a[[array]::IndexOf($a,'--url')+1]; $method=$a[[array]::IndexOf($a,'--method')+1]; $body=$null;
           if($url.Contains('/Microsoft.Authorization/permissions?')){return @{value=@(@{actions=@('*');notActions=@()})}}
           if($a -contains '--body'){ $path=$a[[array]::IndexOf($a,'--body')+1]; if(-not $path.StartsWith('@')){throw 'JSON must be in private files'}; $body=ConvertFrom-Json ([IO.File]::ReadAllText($path.Substring(1))) }
-          if($url.Contains('/tableServices/default/tables?')){return @{value=$(if($state.table){@(@{name='DexEscapePlayers'})}else{@()})}}
-          if($url.Contains('/tables/DexEscapePlayers?')){$state.table=$true; $state.creates++; return @{}}
           if($method -eq 'patch'){if($body.PSObject.Properties.Name -contains 'spa' -or $body.PSObject.Properties.Name -contains 'passwordCredentials'){throw 'Unrelated app configuration changed'}; $state.web=ConvertTo-DexMap $body.web; $state.patchSafe=$true; return}
           if($url -match '/addPassword$'){$credential=@{keyId='55555555-6666-4777-8888-999999999999';endDateTime='2099-01-01T00:00:00Z'}; $state.passwords=@($credential); return @{keyId=$credential.keyId;endDateTime=$credential.endDateTime;secretText='fixture-private-app-secret'}}
           if($url.Contains('/listAppSettings?')){return @{properties=$state.settings}}
@@ -164,11 +168,13 @@ test("mock Apply is additive, secret-safe and reuses resources and credentials o
     $parameters=@{Apply=$true;SubscriptionId='${ids.subscription}';TenantId='${ids.tenant}';ClientId='${ids.client}';
       AzureCliPath='fake-az';GhPath='fake-gh';ToolRunner=$fake;ManifestPath=${literal(manifestPath)};StatePath=${literal(statePath)};UseExistingResourceGroup=$true;ResourceGroup='grill-me-edu'};
     $null=& ${literal(scriptPath)} @parameters; $count=$state.creates; $null=& ${literal(scriptPath)} @parameters;
-    if($state.settings.UNRELATED -cne 'keep' -or $state.web.homePageUrl -cne 'https://other.example/'){throw 'Unrelated configuration lost'};
-    @{creates=$state.creates;firstCreates=$count;group=$state.group;site=$state.site;storage=$state.storage;table=$state.table;credentials=$state.passwords.Count;stdinOnly=$state.stdinOnly;patchSafe=$state.patchSafe;callbacks=@($state.web.redirectUris)}|ConvertTo-Json -Depth 5`);
-  assert.equal(result.creates, 3, JSON.stringify(result)); assert.equal(result.firstCreates, 3); assert.equal(result.credentials, 1);
+    if($state.settings.UNRELATED -cne 'keep' -or $state.settings.GAME_RECORDS_CONNECTION_STRING -cne 'legacy-table-secret' -or $state.settings.GAME_RECORDS_TABLE -cne 'DexEscapePlayers' -or $state.web.homePageUrl -cne 'https://other.example/'){throw 'Unrelated or rollback configuration lost'};
+    if($state.settings.GAME_RECORDS_COSMOS_CONNECTION_STRING -cne 'AccountEndpoint=https://fixture.documents.azure.com:443/;AccountKey=fixture-private-cosmos-key;' -or $state.settings.GAME_RECORDS_COSMOS_DATABASE -cne 'stair-climb' -or $state.settings.GAME_RECORDS_COSMOS_CONTAINER -cne 'players'){throw 'Cosmos settings mismatch'};
+    @{creates=$state.creates;firstCreates=$count;group=$state.group;site=$state.site;container=$state.container;credentials=$state.passwords.Count;stdinOnly=$state.stdinOnly;patchSafe=$state.patchSafe;callbacks=@($state.web.redirectUris)}|ConvertTo-Json -Depth 5`);
+  assert.equal(result.creates, 2, JSON.stringify(result)); assert.equal(result.firstCreates, 2); assert.equal(result.credentials, 1);
   assert.equal(result.stdinOnly, true); assert.equal(result.patchSafe, true);
   assert.deepEqual(result.callbacks, ["https://other.example/callback", "https://fixture.azurestaticapps.net/.auth/login/aad/callback"]);
   const manifest = await readFile(manifestPath, "utf8");
-  assert.ok(!/fixture-private|fixture-deployment-token|connectionString|secretText/.test(manifest));
+  assert.ok(!/fixture-private|fixture-deployment-token|fixture-private-cosmos-key|connectionString|secretText/.test(manifest));
+  assert.ok(!JSON.stringify(result).includes("fixture-private-cosmos-key"));
 });

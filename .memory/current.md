@@ -7,10 +7,10 @@
 [P03 Azure Cutover](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P03-azure-cutover/phase.md)
 
 ## Active Task
-[T01 Provision Cosmos Container](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P03-azure-cutover/T01-provision-cosmos-container.md)
+[T02 Deploy and Verify Cosmos](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P03-azure-cutover/T02-deploy-and-verify-cosmos.md)
 
 ## Last Completed Task
-[T03 Disable Local Record Persistence](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P02-cosmos-application/T03-disable-local-record-persistence.md) - `50d7965`, 128 tests, lint, and build passed (2026-10-30).
+[T03 Disable Local Record Persistence](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P02-cosmos-application/T03-disable-local-record-persistence.md) - `be80818`, 128 tests, lint, and build passed (2026-10-30).
 
 ## Status
 - P02-T02 is complete. GitHub Actions verified the Cosmos emulator integration suite and the production artifact staging; local Docker was not required.
@@ -24,7 +24,7 @@
 - [Cosmos ranking storage migration](./decisions/2026-10-30-cosmos-ranking-storage-migration.md)
 
 ## Next Step (IMPORTANT)
-Read only the active P03-T01 blueprint and verify the Cosmos `stair-climb/players` container and Static Web App server settings; keep legacy Table settings/account until the real company-account verification passes in P03-T02.
+Read only the active P03-T02 blueprint and publish the verified Cosmos-backed API/game, then verify a real company-account save, ranking, and unlock restore at the existing Static Web Apps URL. Keep the Table settings/account until that live verification succeeds.
 ---
 
 ### Previous Context: Main Game Descent Conversion

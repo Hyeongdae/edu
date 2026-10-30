@@ -1,6 +1,6 @@
 # Task: T01 Provision Cosmos Container
 
-## Status: pending
+## Status: done
 
 ## Goal
 Create the requested stair-game container in the existing Cosmos account and configure the deployed Static Web Apps API to reach it securely, without interrupting the currently deployed Table-backed release or deleting any existing resource.
@@ -45,16 +45,16 @@ Create the requested stair-game container in the existing Cosmos account and con
 - **No deletion here**: Leave `GAME_RECORDS_CONNECTION_STRING`, `GAME_RECORDS_TABLE`, account `stdexescape384874bc`, and `DexEscapePlayers` untouched until T02 has deployed and a company login/save has been verified.
 
 ## Acceptance Criteria
-- [ ] Existing Cosmos account/database are verified, and the new container uses `/accountId` with the database-shared throughput configuration.
-- [ ] Cosmos connection string is available only to the deployed API through server-side settings; no credential appears in tracked files, output, or frontend assets.
-- [ ] Existing SWA/Entra/deployment settings remain intact and current Table deployment remains available for rollback.
-- [ ] Apply rerun is idempotent and mismatched resource/container ownership/configuration fails closed.
-- [ ] This task deletes no resource and changes no existing Cosmos data/container.
+- [x] Existing Cosmos account/database are verified, and the new container uses `/accountId` with the database-shared throughput configuration.
+- [x] Cosmos connection string is available only to the deployed API through server-side settings; no credential appears in tracked files, output, or frontend assets.
+- [x] Existing SWA/Entra/deployment settings remain intact and current Table deployment remains available for rollback.
+- [x] Apply rerun is idempotent and mismatched resource/container ownership/configuration fails closed.
+- [x] This task deletes no resource and changes no existing Cosmos data/container.
 
 ## Validation
-- `npm run test:deployment` — updated deployment-plan/policy fixtures pass with no unintended cloud calls in PlanOnly.
-- `npm run lint` — deployment test helpers remain valid.
-- Mock Apply — verifies exact Cosmos target, server-only app-setting names/presence, old Table settings retained, secret-safe output, and idempotent rerun.
+- `npm run test:deployment` — 25 tests pass; PlanOnly made no cloud calls.
+- `npm run lint` — passes.
+- Mock Apply — exact Cosmos target, server-only settings, preserved Table rollback settings, secret-safe output, and idempotent rerun pass.
 
 ## Commit Message
 ```text
@@ -71,5 +71,5 @@ Task: T01-provision-cosmos-container
 ## Progress
 - [x] Azure resource provisioned: `stair-climb/players`, `/accountId`, shared database throughput 400 RU/s; initial `maze-rescue/stair-climb-players` removed per user correction.
 - [x] Production SWA app settings added; original Table settings preserved. Secret values were not printed.
-- [ ] Deployment code/manifest updated and automated checks passed.
-- commit: pending
+- [x] Deployment code/manifest updated and automated checks passed.
+- commit: `a904755`
