@@ -1,18 +1,19 @@
 # Current Context
 
 ## Active Plan
-[Score Cap, Stage Countdown, and BGM Volume](./plans/2026-10-30-score-cap-stage-countdown-bgm.md)
+[Pursuer Design and Cosmos Migration](./plans/2026-10-30-pursuer-design-and-cosmos-migration.md)
 
 ## Active Phase
-[P01 Gameplay Polish](./phases/2026-10-30-score-cap-stage-countdown-bgm/P01-gameplay-polish/phase.md)
+[P03 Azure Cutover](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P03-azure-cutover/phase.md)
 
 ## Active Task
-[T03 Default BGM Volume](./phases/2026-10-30-score-cap-stage-countdown-bgm/P01-gameplay-polish/T03-default-bgm-volume.md)
+[T02 Deploy and Verify Cosmos](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P03-azure-cutover/T02-deploy-and-verify-cosmos.md)
 
 ## Last Completed Task
-[T02 Stage Countdown](./phases/2026-10-30-score-cap-stage-countdown-bgm/P01-gameplay-polish/T02-stage-countdown.md) - `1e59190`, 102 focused tests, lint, and build passed (2026-10-30).
+[T03 Default BGM Volume](./phases/2026-10-30-score-cap-stage-countdown-bgm/P01-gameplay-polish/T03-default-bgm-volume.md) - `7d54586`, 19 focused tests, lint, and build passed (2026-10-30).
 
 ## Status
+- P01 Gameplay Polish is complete (3/3): score cap, the three-second stage transition countdown, and the 30% default BGM preference are implemented and validated.
 - P01-T01 score cap is implemented and validated: new in-game scores and result/API/Cosmos validation stop at the per-stage target. Existing Cosmos records were not changed; the user will edit previous over-target data. Web/API unit tests, lint, and both builds pass; emulator integration was skipped because its connection string is not configured.
 - The previous active task [Pursuer Design and Cosmos Migration P03-T02](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P03-azure-cutover/T02-deploy-and-verify-cosmos.md) is parked and remains `in_progress`; resume it after this plan is complete. Keep legacy Storage settings/account until its real company-account verification succeeds.
 - P02-T02 is complete. GitHub Actions verified the Cosmos emulator integration suite and the production artifact staging; local Docker was not required.
@@ -26,7 +27,7 @@
 - [Cosmos ranking storage migration](./decisions/2026-10-30-cosmos-ranking-storage-migration.md)
 
 ## Next Step (IMPORTANT)
-Read the active P01-T03 blueprint. Set the default BGM preference to 30% while preserving existing saved volume settings.
+Read P03-T02 and continue Cosmos deployment verification. Preserve the existing legacy Storage settings/account until the Cosmos-backed company ranking is verified.
 ---
 
 ### Previous Context: Main Game Descent Conversion
@@ -48,6 +49,7 @@ Read the active P01-T03 blueprint. Set the default BGM preference to 30% while p
 [T03 Main Descent Browser Validation](./phases/2026-10-28-main-game-descent-conversion/P01-main-descent/T03-main-descent-browser-validation.md) — `8da80d6` (2026-10-28). 이번 계획 T02 `5217dfa`/동기화 `c537dfb`, T01 `9b6ba54`/동기화 `4d7669e`. 이전 local-descent 계획 T03 `04fdeea`/동기화 `bdf18d5`, T01 `0225893`/동기화 `4b49dc8`, T02 `f9aa712`/동기화 `8f92171`. 이전 stage-score 계획: T01 `f5ef960`/동기화 `0ca7bf2`, T02 `f35254f`/동기화 `6dfa99a`, T03 `20f8425`/완료 동기화 `8d9b31d`. 이전 checkpoint 계획 완료: T04 `9fda567`, 동기화 `cec0d37`.
 
 ### Status
+- P01 Gameplay Polish is complete (3/3): score cap, the three-second stage transition countdown, and the 30% default BGM preference are implemented and validated.
 
 - main-game-descent-conversion: **completed, done3/3, Active Task none**. 2026-10-28 T03 `8da80d6` 완료: 소유 브라우저9 driver/네 화면5단계·새 저장·모션/실제 시간·모바일/큰 글자·오디오 재시도 focus·인증/독립 실험 경계를 검증했다. 지정27파일727/727tests(56.60초/workers2/skip0), lint/build/diff check 통과. 제품 source/test 추가 수정 없음. 사용자 profile/실제 기록에는 직접 접근하지 않았다.
 - T03 증거: `%TEMP%\main-game-descent-conversion-2026-10-28\evidence-index.json`의145artifact/PNG82·필수14사진/9driver와 로그·SHA256. seed0.5의320×667/390×667/768×1024/1440×900 각각615행동·641물리계단·26보너스점프/점수150·200·250·300·352. 실제 재접속/초기화 실패 재시도·public 계정분리, 양방향 animation0/150/300·catch500/reduced·실제250/500/1300과4초same-document lifecycle, native retry Promise·focus/range·늦은 결과·unmount timer0/listener0/dispose1 통과. 일반2점은 seed0.19 generated native Space로 별도 확인했다. 전체 진행의 제어 시계와 실제 시간/함수 경계 fixture/공개 GameScreen 계정 fixture를 구분했다.
