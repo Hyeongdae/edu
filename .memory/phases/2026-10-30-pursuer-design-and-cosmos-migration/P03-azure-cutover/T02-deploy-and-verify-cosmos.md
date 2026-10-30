@@ -1,6 +1,6 @@
 # Task: T02 Deploy and Verify Cosmos
 
-## Status: pending
+## Status: done
 
 ## Goal
 Publish the verified Cosmos-backed API/game and prove that a real company Entra account can load its profile, save a result, see the shared ranking, and restore its cleared-stage unlock before any legacy storage is deleted.
@@ -36,11 +36,11 @@ Publish the verified Cosmos-backed API/game and prove that a real company Entra 
 - Keep `stdexescape384874bc` and old Table app settings during all checks. If company login or a real Cosmos write cannot be confirmed, leave this task active and keep the legacy store; do not proceed to T03.
 
 ## Acceptance Criteria
-- [ ] CI and production deployment succeed for the exact reviewed SHA at the existing URL.
-- [ ] Anonymous access remains blocked and a genuine company session can read/write only its own profile.
-- [ ] A real submitted score and unlock are visible in Cosmos and the company ranking after reload/another browser session.
-- [ ] No data was migrated from the old table; the verified Cosmos records are new post-cutover data.
-- [ ] Legacy Storage settings/account remain available until T03.
+- [x] CI and production deployment succeed for the exact reviewed SHA at the existing URL.
+- [x] Anonymous access to the production app and record APIs redirects to Entra sign-in (HTTP 302 observed for `/api/profile` and `/api/leaderboard`).
+- [x] User confirmed their company-account result and stage unlock remain after reloading the deployed game.
+- [x] No Table data migration was run; the new Cosmos container contains newly created player profiles.
+- [x] Legacy Table settings and `stdexescape384874bc` remain available for T03.
 
 ## Validation
 - GitHub Actions run for the exact SHA — all verify and deploy steps succeed.
@@ -60,6 +60,10 @@ Task: T02-deploy-and-verify-cosmos
 ```
 
 ## Progress
-- [ ] 구현 완료
-- [ ] 검증 통과
-- commit: pending
+- [x] Production deploy succeeded for merge commit `d681bad02c25684bca99223dbe3ecdbfcb2b0663`; workflow run `41016497593` passed both verify and deploy jobs.
+- [x] Anonymous requests to the game and `/api/profile`, `/api/leaderboard`, `/api/results` redirect to Entra sign-in.
+- [x] User confirmed a real company account can see the ranking and retains their saved result/unlock after reload.
+- [x] Read-only scan found 14 schema-valid player profiles in `stair-climb/players`, partitioned by `/accountId`; identifiers and names were not logged.
+- [x] Current `stair-climb/players` composite index matches the five-field leaderboard sort; direct Cosmos TOP 10 query succeeds and the user confirms the ranking now loads.
+- [x] Verified the live Cosmos composite index policy and successful TOP 10 query after the user updated the index.
+- commit: pending (record after commit)

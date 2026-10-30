@@ -20,3 +20,13 @@
 ## Entra 자격 증명 갱신
 
 Entra 앱 등록 관리자 담당입니다. 현재 등록된 앱 자격 증명은 2027-04-28에 만료됩니다. 만료 전에 앱 등록에서 새 자격 증명을 추가하고 Azure Static Web Apps의 `GAME_ENTRA_CLIENT_SECRET` 애플리케이션 설정을 갱신한 다음 로그인/API를 확인하세요. 확인이 끝난 후 이전 자격 증명을 제거합니다. 비밀값은 이 문서나 저장소에 기록하지 않습니다.
+
+
+## Cosmos ranking cutover (2026-10-30)
+
+- Cosmos-backed API/game deployed to the existing production URL: https://ashy-cliff-0e5e4b600.1.azurestaticapps.net/
+- Merge commit: d681bad02c25684bca99223dbe3ecdbfcb2b0663; GitHub Actions run: https://github.com/Hyeongdae/edu/actions/runs/41016497593 (verify and deploy succeeded).
+- Anonymous game and ranking/profile/result API requests redirect to Entra sign-in.
+- User confirmed the production ranking loads and their own result/unlock persist after reloading. Legacy Table settings and `stdexescape384874bc` remain available until the separately planned cleanup task.
+- Verified in Azure that `stair-climb/players` has the exact five-field composite index used by the leaderboard query; a direct Cosmos TOP 10 query succeeds and returns 10 entries.
+- Read-only Cosmos verification found 14 player profiles; all use the `/accountId` partition key and pass the expected hashed-id/profile schema checks. No account IDs, display names, or secrets were recorded.
