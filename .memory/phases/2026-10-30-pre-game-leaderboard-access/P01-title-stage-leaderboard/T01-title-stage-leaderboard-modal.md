@@ -132,4 +132,4 @@ Task: T01-title-stage-leaderboard-modal
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과 — targeted147/147, lint, build, diff check.
-- commit: pending
+- commit: `6548e3b06e93ea11bb33d071470693dd7c723ce8`
