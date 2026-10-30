@@ -109,7 +109,7 @@ Task: T02-functions-table-api
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: pending
+- commit: `be54a6b`
 
 ## Execution Evidence (2026-10-30)
 - Added independent api package/lock, Functions v4 GET profile/GET leaderboard/POST results registrations, lazy server-only environment loading, principal parser, fixed public errors, bounded JSON reader and Table repository. Package main is dist/index.cjs; build targets Node22 with external Azure runtime packages and bundled pure shared contracts.

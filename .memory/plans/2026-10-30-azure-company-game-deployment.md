@@ -59,6 +59,7 @@
 문서는 계획 근거이며 실제 런타임·권한·리전 지원은 해당 실행 Task에서도 확인한다.
 
 ## Progress
-- done: 1/7
-- Active: P01-T02.
+- done: 2/7
+- Active: P01-T03.
 - P01-T01 `e880da2`: shared contracts, 137/137 tests, lint/build/diff checks passed on 2026-10-30. Deployment is not yet performed.
+- P01-T02 `be54a6b`: authenticated-principal API and private Table adapter; Node22 unit94/94, actual isolated integration10/10, shared137/137, ci/lint/build/diff checks passed. Actual hosting authentication and cloud release remain pending.
