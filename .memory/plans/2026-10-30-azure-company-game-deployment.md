@@ -59,7 +59,8 @@
 문서는 계획 근거이며 실제 런타임·권한·리전 지원은 해당 실행 Task에서도 확인한다.
 
 ## Progress
-- done: 2/7
-- Active: P01-T03.
+- done: 3/7
+- Active: P01-T04.
 - P01-T01 `e880da2`: shared contracts, 137/137 tests, lint/build/diff checks passed on 2026-10-30. Deployment is not yet performed.
 - P01-T02 `be54a6b`: authenticated-principal API and private Table adapter; Node22 unit94/94, actual isolated integration10/10, shared137/137, ci/lint/build/diff checks passed. Actual hosting authentication and cloud release remain pending.
+- P01-T03 `f56b4fe`: SWA session bootstrap, mode precedence, minimal game identity and account-owned audio; targeted78/78, lint, normal/hosted builds/diff passed. No live Azure/Entra changes or deployment.

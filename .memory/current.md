@@ -7,19 +7,22 @@
 [P01 Company Records](./phases/2026-10-30-azure-company-game-deployment/P01-company-records/phase.md)
 
 ## Active Task
-[T03 Hosted Company Auth](./phases/2026-10-30-azure-company-game-deployment/P01-company-records/T03-hosted-company-auth.md)
+[T04 Cloud Records Game Integration](./phases/2026-10-30-azure-company-game-deployment/P01-company-records/T04-cloud-records-game-integration.md)
 
 ## Last Completed Task
-[T02 Functions Table API](./phases/2026-10-30-azure-company-game-deployment/P01-company-records/T02-functions-table-api.md) — `be54a6b` (2026-10-30). Previous T01 `e880da2`, memory sync `d4f1d02`.
+[T03 Hosted Company Auth](./phases/2026-10-30-azure-company-game-deployment/P01-company-records/T03-hosted-company-auth.md) — `f56b4fe` (2026-10-30). Previous T02 `be54a6b`/sync `9b49244`, T01 `e880da2`/sync `d4f1d02`.
 
 ## Status
-- azure-company-game-deployment: done 2/7, P01 done 2/4; Active P01-T03. T02 `be54a6b` adds GET profile/leaderboard, POST results, trusted-platform-principal parsing, safe HTTP errors and conditional Table storage.
+- azure-company-game-deployment: done 3/7, P01 done 3/4; Active P01-T04. T03 `f56b4fe` connects hosted /.auth/me bootstrap before game/audio, skips MSAL/provider/local-ID requirements in hosted mode, preserves local MSAL and DEV-only demo.
+- T03 validation: 78/78 targeted auth configuration/parser/gate/App/main-entry tests, lint, normal build (JS587.13kB/CSS76.01kB), hosted build without local SPA IDs (JS587.08kB/CSS76.01kB), diff checks passed. Existing bundle warning remains. StrictMode/abort/stale responses, safe return paths, PROD demo disabled and account-owned audio cleanup verified.
+- T03 corrected stale App title/settings selectors and existing gain-adjusted playback expectation without changing audio rules. GameScreen changed only its account prop type. Hosted frontend still uses interim local records until T04; do not publish this intermediate build. No actual Entra session, Azure setting/credential/resource change or Git push.
+- T02 `be54a6b` adds GET profile/leaderboard, POST results, trusted-platform-principal parsing, safe HTTP errors and conditional Table storage.
 - T02 validation: clean api ci; API unit94/94 and isolated actual Azurite integration10/10 passed additionally on Node22.23.4; shared137/137, lint, API17.7kB build and unchanged frontend build/diff checks passed. No test skips in final runs. One parallel cold-start test exceeded the unchanged12s emulator startup budget; final sequential Node22 run passed.
 - API deployment requires SWA tenant/route protection and no direct exposed backend; header parsing alone is not cryptographic authentication. No actual Azure resource creation, company login, GitHub mutation or production record writes performed. Full root UI suite remains T03/T04 after relevant auth/selector correction.
 - API production dependency audit0 vulnerabilities; development-only Azurite uuid/ms-rest-js/sequelize chain reports4 moderate advisories. Do not force an incompatible emulator downgrade or ship Azurite dev dependencies in production.
 - T01 `e880da2` exports shared DTOs, strict request validation, whole-tuple rankings and immutable monotonic cleared-stage merging.
 - T01 validation: 137/137 Node-environment contract tests, lint, TypeScript/Vite build and diff checks passed. Existing JS583.75kB/CSS75.93kB output and bundle-size warning remain. No frontend runtime integration, game-rule changes, local-record writes or Azure/GitHub mutations.
-- Follow one Active Task per memory-execute. P01-T03 connects hosted identity to the UI while preserving local MSAL/DEV demo; shared frontend persistence is T04 and actual cloud release is P02.
+- Follow one Active Task per memory-execute. P01-T04 now connects company records via per-account FIFO and profile bootstrap; actual cloud release remains P02. Preserve auth-mode precedence and audio ownership from T03.
 - Verified paths: StageResult is exported by src/game/types.ts, leaderboard lives at src/leaderboard/leaderboard.ts, engine is src/game/gameEngine.ts. Later blueprint references must use actual paths; unrelated source was not changed during T01.
 - Previous title-copy-and-overtime-capture completed 2/2: T02 `10e1ac4`, T01 `4e41af6`, memory syncs `2d73945` and `2786222`.
 - Previous overtime T02 connected the 500 ms staircase catch → 2,000 ms office scene → recorded result flow in GameScreen, with reduced-motion static results and restart focus, and changed the exact title subtitle. Captured-result storage, engine rules, auth/config files, and audio ownership were unchanged.
@@ -31,7 +34,7 @@
 [Azure Company Game Deployment](./decisions/2026-10-30-azure-company-game-deployment.md)
 
 ## Next Step (IMPORTANT)
-Read only P01-T03-hosted-company-auth blueprint. Add minimal GameAccount and hosted-auth mode; bootstrap the SWA session through /.auth/me before mounting the account-bound shell, without creating MSAL or requiring local SPA env values in hosted mode. Preserve existing local MSAL/DEV-only demo, title flow and one audio controller per account. Correct directly relevant App/auth selectors, run specified validations and commit before advancing to T04. API uses details.odataError.code to distinguish missing entity from missing table; preserve exact-ETag conditional writes. Separate bundle-loading optimization remains deferred. Preserve local records and unrelated untracked files; actual Azure/Entra resource changes and deployment URL remain P02 gates.
+Read only P01-T04-cloud-records-game-integration blueprint. Implement typed /api client, side-effect-free account store with durable FIFO/retry and CompanyRecordsGate before GameAppShell. Hosted mode must await server profile before GameScreen initializes, avoid all legacy local score/progress reads/writes, and enqueue frozen results before office/exit scenes finish without blocking play. Local MSAL/demo stays browser-local. Actual leaderboard files are under src/leaderboard/, engine is src/game/gameEngine.ts, StageResult is exported by src/game/types.ts; adapt blueprint references to those real paths. Run the full root/API/emulator/build gates, commit, then advance to P02-T01. Preserve exact-ETag API semantics, actual auth deployment boundary and unrelated untracked data. Bundle optimization remains deferred; no actual Azure creation or deployment in T04.
 ---
 
 ### Previous Context: Main Game Descent Conversion

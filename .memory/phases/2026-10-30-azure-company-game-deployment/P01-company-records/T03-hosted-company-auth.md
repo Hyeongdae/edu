@@ -106,7 +106,7 @@ Task: T03-hosted-company-auth
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: pending
+- commit: `f56b4fe`
 
 ## Execution Evidence (2026-10-30)
 - Added minimal GameAccount, strict getAuthMode selection and typed VITE_AUTH_MODE. Missing/blank mode keeps local SPA; unsupported mode displays a configuration error and cannot fall back to demo. Hosted entry does not construct a PublicClientApplication or MsalProvider and does not require local SPA environment IDs.
