@@ -107,7 +107,7 @@ Task: T02-provision-company-resources
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: pending
+- commit: `df5a933`
 
 ## Execution Evidence (2026-10-30)
 - Completed with the user's direction to use the existing `grill-me-edu` resource group. Its Contributor role was verified at that group scope; the new game resources were independently tagged. No new group was created.

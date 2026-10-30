@@ -7,12 +7,13 @@
 | Task | Status | Summary | Blueprint |
 | :--- | :--- | :--- | :--- |
 | T01 | `done ✅` | auth/config 산출물, main Actions, 기본 PlanOnly 배포 도구 | [T01](./T01-deployment-config-and-workflow.md) |
-| T02 | `in_progress 🔵` | 실제 권한 확인, 전용 Azure/Entra/GitHub 설정 | [T02](./T02-provision-company-resources.md) |
-| T03 | `pending` | main release, 실제 로그인/공유 기록 검증 및 URL | [T03](./T03-release-and-verify-url.md) |
+| T02 | `done ✅` | grill-me-edu에 Standard 사이트/저장소, Entra/GitHub 설정 | [T02](./T02-provision-company-resources.md) |
+| T03 | `in_progress 🔵` | main release, 실제 로그인/공유 기록 검증 및 URL | [T03](./T03-release-and-verify-url.md) |
 
 ## Progress
-- done: 1/3 (active: T02; P01 complete4/4)
-- T02 attempted2026-10-30; still pending actual Azure RBAC. Company tenant/app owner and GitHub Hyeongdae push/Secrets access verified, but Azure subscription permissions empty and group check Forbidden. Added early permission gate;24/24 helpers/lint/diff pass. No resources/settings/credentials/GitHub secret changes/push/manifest/journal created. Resume T02 after company administrator provides necessary deployment access or a permitted account is authenticated.
+- done: 2/3 (active: T03; P01 complete4/4)
+- T02 complete2026-10-30: actual user Contributor on grill-me-edu allowed scoped create in that existing shared group. New dedicated Standard site URL `https://ashy-cliff-0e5e4b600.1.azurestaticapps.net`, separate tagged private Storage/table, additive company app callback/180-day credential, server settings and correct repository secret/vars verified. Original 20 resource names remain; unrelated Automation publish by another principal was separately identified. Deploy still pending; T03 tests public protection/login/API/company records and releases main SHA.
+- T02 source final commit `df5a933`; prerequisite implementation fixes `f1ddac4` (fail-fast Azure RBAC) and `87336ca` (reuse existing scoped group). T02 validation25/25, lint/diff and actual live config verification passed. No secret values tracked. Use T03 for deployment URL acceptance.
 - T01 `b2d2172`: protected config, exact-SHA allowlisted production artifacts, main-only Actions and default-PlanOnly owned-resource tools complete. Helpers22/root1269/API95/Azurite10, lint/build, real package/config verification and official actionlint passed. No live resources/credentials/GitHub settings/push/release created; T02 verifies actual permissions and provisions the approved dedicated target.
 - P01 final implementation `42466f6`, root1269/API95/Azurite10 passing. No production site has been provisioned/released by this plan yet.
 - Dependencies: P01 complete → T01 → T02 → T03.

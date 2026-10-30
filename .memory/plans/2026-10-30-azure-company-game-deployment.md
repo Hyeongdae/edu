@@ -13,7 +13,7 @@
 | P02 | `in_progress` | 검증된 배포 구성, 전용 Azure/Entra 연결, 실제 배포와 URL 검증 | [P02](../phases/2026-10-30-azure-company-game-deployment/P02-azure-release/phase.md) |
 
 ## Scope and Architecture
-- Azure 기본 `azurestaticapps.net` HTTPS 주소, 새 전용 리소스 그룹/Standard 사이트/비공개 Table Storage. 기존 다른 게임의 리소스는 수정하지 않는다. Standard 및 저장소 비용은 인터뷰에서 승인한 범위다.
+- Azure 기본 `azurestaticapps.net` HTTPS 주소, 전용 Standard 사이트/비공개 Table Storage. Initially planned a new resource group; during execution the user directed use of the existing `grill-me-edu` RG because they have Contributor access there. Its 20 existing resource names were preserved; game site/storage are separately named and tagged. Standard and storage costs remain within the previously approved scope.
 - 배포본: 단일 테넌트 custom Entra provider → SWA 세션 → `/.auth/me` → 개인 profile/공유 leaderboard → GameScreen. MSAL을 다시 로그인시키지 않는다.
 - 로컬: 현재 MSAL 및 DEV 전용 데모, 로컬 점수/해금 데이터 유지. 기존 로컬 데이터를 공유 서비스에 업로드하거나 삭제하지 않는다.
 - API: same-origin managed Azure Functions Node 22, `GET /api/profile`, `GET /api/leaderboard`, `POST /api/results`. SWA 인증 principal로 계정을 결정한다.
@@ -59,10 +59,11 @@
 문서는 계획 근거이며 실제 런타임·권한·리전 지원은 해당 실행 Task에서도 확인한다.
 
 ## Progress
-- done: 5/7
-- Active: P02-T02.
+- done: 6/7
+- Active: P02-T03.
 - P01-T01 `e880da2`: shared contracts, 137/137 tests, lint/build/diff checks passed on 2026-10-30. Deployment is not yet performed.
 - P01-T02 `be54a6b`: authenticated-principal API and private Table adapter; Node22 unit94/94, actual isolated integration10/10, shared137/137, ci/lint/build/diff checks passed. Actual hosting authentication and cloud release remain pending.
 - P01-T03 `f56b4fe`: SWA session bootstrap, mode precedence, minimal game identity and account-owned audio; targeted78/78, lint, normal/hosted builds/diff passed. No live Azure/Entra changes or deployment.
 - P01-T04 `42466f6`: cloud bootstrap/FIFO/game integration; full root1269/1269, API95/95, isolated Azurite10/10, lint/API/normal/hosted builds/diff passed. P01 complete4/4. Production resources/login/URL and CI remain P02 work.
 - P02-T01 `b2d2172`: tenant-bound protected config, main-only verified exact-SHA artifacts, allowlisted production API dependencies and PlanOnly/scoped provisioning tools. Helpers22/22, root1269/1269, API95/95, isolated Azurite10/10, lint/build/artifact verification/actionlint passed. Real Apply, GitHub Actions and company login have not run; actual provisioning is T02 and release/URL validation T03.
+- P02-T02 `df5a933` actual provisioning: used user's Contributor in `grill-me-edu` rather than creating a new RG. Standard site, private storage/table, additive Entra callback/credential, server settings and GitHub deploy secret/vars verified. Site target is `https://ashy-cliff-0e5e4b600.1.azurestaticapps.net`; it is not a live game link until T03 deploy/login/record checks. Original resource names remain; a concurrent unrelated Automation change was attributed to another operator.
