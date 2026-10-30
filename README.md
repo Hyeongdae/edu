@@ -151,6 +151,8 @@ powershell.exe -NoProfile -File deploy/Deploy-DexEscape.ps1
 
 실제 생성 단계에서는 인증된 Azure CLI와 GitHub CLI가 필요합니다. 회사 구독·테넌트가 일치하고 기존 앱 등록을 수정할 수 있는 앱 소유자 계정이어야 합니다. GitHub 계정에는 해당 저장소 push와 Actions secrets 설정 권한이 필요합니다. CLI가 PATH에 없으면 `-AzureCliPath` / `-GhPath`로 지정합니다. 필요한 회사 로그인은 CLI의 정상 브라우저/디바이스 인증으로 완료하며 비밀번호나 MFA 코드를 파일·채팅에 저장하지 않습니다.
 
+Entra 앱 소유권은 Azure 리소스 생성 권한을 부여하지 않습니다. 새 전용 리소스 그룹을 만들려면 구독 범위에서 그룹 생성 및 사이트·저장소 관리 권한이 별도로 필요합니다. 도구는 생성 전에 유효 Azure RBAC 권한을 확인하고 부족하면 중단합니다. 저장된 배포를 재사용할 때는 해당 전용 그룹 범위의 권한을 확인합니다. `Forbidden` 또는 빈 권한 목록이면 회사 관리자에게 필요한 배포 접근을 요청하거나 해당 권한이 있는 회사 계정으로 로그인한 뒤 다시 실행하세요. 권한을 얻기 위해 다른 구독으로 자동 전환하거나 새 결제 계정을 만들지 않습니다.
+
 ```powershell
 # 실제 리소스 생성 Task에서만 실행. 식별자는 실제 회사 값으로 지정.
 # TenantId/ClientId를 생략하면 기존 .env.local의 공개 SPA 식별자를 읽음.

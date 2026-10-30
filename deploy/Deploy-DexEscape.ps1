@@ -63,6 +63,10 @@ function Call-Gh {
 # All identity/repository/region checks happen before any paid resource creation.
 $account = Call-Az @('account','show')
 if ($account.id -ine $plan.SubscriptionId -or $account.tenantId -ine $plan.TenantId -or $account.state -ine 'Enabled') { throw 'Azure subscription or tenant does not match the intended company context.' }
+$permissionScope = '/subscriptions/' + $plan.SubscriptionId
+if ($saved) { $permissionScope += '/resourceGroups/' + $target.resourceGroup }
+$permissions = Call-Az @('rest','--method','get','--url',('https://management.azure.com' + $permissionScope + '/providers/Microsoft.Authorization/permissions?api-version=2022-04-01'))
+Assert-DexDeploymentPermissions -Permissions $permissions -NeedResourceGroupCreation:($null -eq $saved)
 $repository = Call-Gh @('api','repos/Hyeongdae/edu')
 if ($repository.full_name -cne 'Hyeongdae/edu' -or -not $repository.permissions.push) { throw 'Authenticated GitHub account cannot push to the intended repository.' }
 $null = Call-Gh @('api','repos/Hyeongdae/edu/actions/secrets/public-key')

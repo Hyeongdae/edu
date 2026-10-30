@@ -91,6 +91,26 @@ function Assert-DexOwnedResource {
     foreach ($key in $Tags.Keys) { if (-not $actual.ContainsKey($key) -or $actual[$key] -cne $Tags[$key]) { throw 'Refusing to adopt an unowned resource.' } }
 }
 
+function Assert-DexDeploymentPermissions {
+    param($Permissions, [switch]$NeedResourceGroupCreation)
+    $required = @('Microsoft.Resources/subscriptions/resourceGroups/read',
+        'Microsoft.Web/staticSites/read', 'Microsoft.Web/staticSites/write',
+        'Microsoft.Web/staticSites/config/write', 'Microsoft.Web/staticSites/listappsettings/action',
+        'Microsoft.Web/staticSites/listsecrets/action', 'Microsoft.Storage/storageAccounts/read',
+        'Microsoft.Storage/storageAccounts/write', 'Microsoft.Storage/storageAccounts/listKeys/action',
+        'Microsoft.Storage/storageAccounts/tableServices/tables/read',
+        'Microsoft.Storage/storageAccounts/tableServices/tables/write')
+    if ($NeedResourceGroupCreation) { $required += 'Microsoft.Resources/subscriptions/resourceGroups/write' }
+    foreach ($action in $required) {
+        $granted = @($Permissions.value | Where-Object {
+            $entry = $_
+            @($entry.actions | Where-Object { $action -like $_ }).Count -gt 0 -and
+                @($entry.notActions | Where-Object { $action -like $_ }).Count -eq 0
+        }).Count -gt 0
+        if (-not $granted) { throw 'Azure resource deployment permissions are missing at the intended scope. No resources were created; ask an administrator for the required deployment access.' }
+    }
+}
+
 function Write-DexManifest {
     param($Manifest, [string]$Path, [switch]$AllowIncomplete)
     Assert-DexManifest $Manifest -AllowIncomplete:$AllowIncomplete
@@ -134,4 +154,4 @@ function New-DexPrivateDirectory {
     return [IO.Path]::GetFullPath($directory)
 }
 
-Export-ModuleMember -Function Get-DeploymentPlan, Merge-EntraWebRedirects, Assert-DexManifest, Assert-DexOwnedResource, Write-DexManifest, ConvertTo-DexMap, Invoke-DexTool, New-DexPrivateDirectory
+Export-ModuleMember -Function Get-DeploymentPlan, Merge-EntraWebRedirects, Assert-DexManifest, Assert-DexOwnedResource, Assert-DexDeploymentPermissions, Write-DexManifest, ConvertTo-DexMap, Invoke-DexTool, New-DexPrivateDirectory

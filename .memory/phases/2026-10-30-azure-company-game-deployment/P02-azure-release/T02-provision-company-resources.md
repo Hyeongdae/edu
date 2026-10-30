@@ -109,5 +109,17 @@ Task: T02-provision-company-resources
 - [ ] 검증 통과
 - commit: pending
 
+## Execution Attempt (2026-10-30; awaiting Azure access)
+- Task remains pending. No successful provisioning, manifest, recovery journal, resource, credential, callback, server setting, GitHub secret/variable or release was created. Do not advance to T03.
+- Actual Azure CLI account is enabled CR-Project-01 and tenant matches ignored .env.local. Existing configured app resolves to Stair-Climb-Game-Local, AzureADMyOrg; operator is an app owner. Snapshot: SPA callbacks2, Web callbacks0, credentials0. Identifiers/tokens were captured privately, not copied into tracked files.
+- Microsoft.Web and Microsoft.Storage are registered and both advertise East Asia support; SWA provider exposes API2025-05-01. This proves region/schema availability, not actual deployment permission or a created Standard SKU.
+- PlanOnly concrete target: rg-dex-escape-prod / swa-dex-escape-prod-384874bc / stdexescape384874bc / DexEscapePlayers / eastasia / Standard; cloudWrites=false. These are planned names only, not a deployed URL.
+- Azure management GET subscription effective permissions returned value=[]; actual group-exists check returned Forbidden. App ownership does not confer Azure resource RBAC. No create attempt is an appropriate substitute for the missing permissions.
+- Added deployment permission preflight before GitHub operations/state creation/cloud writes. Initial creation checks subscription scope (including group creation); owned saved reruns check dedicated group scope. Checks required read/write/list-secret operations, supports wildcard or narrower custom roles and respects notActions. Actual Apply now stops with a sanitized missing-permissions error; manifestCreated=false/recoveryStateCreated=false/cloudWrites=false verified.
+- Official GitHub CLI v2.103.3 amd64 installed outside repo at %LOCALAPPDATA%/dex-tools/gh-v2.103.3/bin/gh.exe; SHA25698d0cfa794721665d7973dd728c78aff7bd836d58f10f6d7a03568eccb0a22e0 matched GitHub release asset digest. Normal device login completed as Hyeongdae. Actual repo Hyeongdae/edu push/admin=true, Actions secrets public-key and variables-read checks passed; no remote setting changes or push.
+- Local validation after preflight change: deployment24/24, zero skipped; lint and diff checks passed. Tests cover empty permissions stopping after two read operations with no state file, scoped/narrow roles and exclusions, plus repeat fake Apply preserving resources/callbacks/settings/credentials.
+- Access dependency: ask company administrator for the necessary deployment rights in CR-Project-01, or authenticate a company account that has those rights and the existing app edit capability. Never switch subscriptions/billing owner or grant roles automatically. Recheck permissions on resume, then run PlanOnly/Apply and all I05 actual configuration checks.
+- Public references: [GitHub CLI v2.103.3](https://github.com/cli/cli/releases/tag/v2.103.3), [Azure Web RBAC operations](https://learn.microsoft.com/en-us/azure/role-based-access-control/permissions/web-and-mobile). No broader app/game changes; existing bundle warning remains deferred.
+
 ## Next
 P02-T03-release-and-verify-url. Do not stop the overall deployment objective at this empty-resource milestone.

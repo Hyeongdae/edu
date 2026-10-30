@@ -12,6 +12,7 @@
 
 ## Progress
 - done: 1/3 (active: T02; P01 complete4/4)
+- T02 attempted2026-10-30; still pending actual Azure RBAC. Company tenant/app owner and GitHub Hyeongdae push/Secrets access verified, but Azure subscription permissions empty and group check Forbidden. Added early permission gate;24/24 helpers/lint/diff pass. No resources/settings/credentials/GitHub secret changes/push/manifest/journal created. Resume T02 after company administrator provides necessary deployment access or a permitted account is authenticated.
 - T01 `b2d2172`: protected config, exact-SHA allowlisted production artifacts, main-only Actions and default-PlanOnly owned-resource tools complete. Helpers22/root1269/API95/Azurite10, lint/build, real package/config verification and official actionlint passed. No live resources/credentials/GitHub settings/push/release created; T02 verifies actual permissions and provisions the approved dedicated target.
 - P01 final implementation `42466f6`, root1269/API95/Azurite10 passing. No production site has been provisioned/released by this plan yet.
 - Dependencies: P01 complete → T01 → T02 → T03.

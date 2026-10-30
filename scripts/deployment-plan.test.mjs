@@ -76,6 +76,34 @@ test("defaults to PlanOnly with zero native/cloud calls even when identifiers ar
   assert.ok(!JSON.stringify(result).includes(ids.client));
 });
 
+test("rejects missing Azure permissions before any GitHub operation, state file or resource write", () => {
+  const result = powershell(`
+    $state=@{calls=0;denied=$false};
+    $fake={param($Tool,$Arguments,$InputText)
+      $state.calls++;
+      if($state.calls -eq 1 -and $Arguments[0] -eq 'account'){return @{id='${ids.subscription}';tenantId='${ids.tenant}';state='Enabled'}}
+      if($state.calls -eq 2 -and $Arguments[0] -eq 'rest' -and $Arguments -contains 'get'){return @{value=@()}}
+      throw 'Unexpected operation after permission rejection'
+    }.GetNewClosure();
+    $path=Join-Path ([IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString()+'.json');
+    try { & ${literal(scriptPath)} -Apply -SubscriptionId '${ids.subscription}' -TenantId '${ids.tenant}' -ClientId '${ids.client}' -AzureCliPath fake-az -GhPath fake-gh -ToolRunner $fake -ManifestPath $path -StatePath $path }
+    catch { if($_.Exception.Message -notmatch 'deployment permissions are missing'){throw}; $state.denied=$true };
+    @{denied=$state.denied;calls=$state.calls;fileCreated=(Test-Path -LiteralPath $path)}|ConvertTo-Json`);
+  assert.equal(result.denied, true); assert.equal(result.calls, 2); assert.equal(result.fileCreated, false);
+});
+
+test("permission preflight accepts scoped Contributor wildcards and rejects exclusions", () => {
+  const result = powershell(`
+    Assert-DexDeploymentPermissions -Permissions @{value=@(@{actions=@('*');notActions=@('Microsoft.Authorization/*/Write','Microsoft.Authorization/*/Delete')})} -NeedResourceGroupCreation;
+    Assert-DexDeploymentPermissions -Permissions @{value=@(@{actions=@('Microsoft.Web/staticSites/*','Microsoft.Storage/storageAccounts/*','Microsoft.Resources/subscriptions/resourceGroups/read');notActions=@()})};
+    Assert-DexDeploymentPermissions -Permissions @{value=@(@{actions=@('*/read','*/write','Microsoft.Web/staticSites/listappsettings/action','Microsoft.Web/staticSites/listsecrets/action','Microsoft.Storage/storageAccounts/listKeys/action');notActions=@('*/delete')})} -NeedResourceGroupCreation;
+    $rejected=0;
+    try { Assert-DexDeploymentPermissions -Permissions @{value=@(@{actions=@('*');notActions=@('Microsoft.Storage/storageAccounts/listKeys/action')})} } catch {$rejected++};
+    try { Assert-DexDeploymentPermissions -Permissions @{value=@(@{actions=@('*/read');notActions=@()})} -NeedResourceGroupCreation } catch {$rejected++};
+    @{rejected=$rejected}|ConvertTo-Json`);
+  assert.equal(result.rejected, 2);
+});
+
 test("mock Apply is additive, secret-safe and reuses resources and credentials on rerun", async (t) => {
   const base = await realpath(tmpdir());
   const folder = await mkdtemp(join(base, "dex-provision-fixture-"));
@@ -114,6 +142,7 @@ test("mock Apply is additive, secret-safe and reuses resources and credentials o
         'staticwebapp secrets list' {return @{properties=@{apiKey='fixture-deployment-token'}}}
         'rest *' {
           $url=$a[[array]::IndexOf($a,'--url')+1]; $method=$a[[array]::IndexOf($a,'--method')+1]; $body=$null;
+          if($url.Contains('/Microsoft.Authorization/permissions?')){return @{value=@(@{actions=@('*');notActions=@()})}}
           if($a -contains '--body'){ $path=$a[[array]::IndexOf($a,'--body')+1]; if(-not $path.StartsWith('@')){throw 'JSON must be in private files'}; $body=ConvertFrom-Json ([IO.File]::ReadAllText($path.Substring(1))) }
           if($url.Contains('/tableServices/default/tables?')){return @{value=$(if($state.table){@(@{name='DexEscapePlayers'})}else{@()})}}
           if($url.Contains('/tables/DexEscapePlayers?')){$state.table=$true; $state.creates++; return @{}}
