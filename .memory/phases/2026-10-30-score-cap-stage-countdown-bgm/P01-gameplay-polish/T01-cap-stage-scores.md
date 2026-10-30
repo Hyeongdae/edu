@@ -91,4 +91,4 @@ Task: T01-cap-stage-scores
 - [x] Implementation complete
 - [x] Validation passed (594 web tests, 51 API tests, lint, web build, API build)
 - Cosmos emulator integration test skipped because `GAME_RECORDS_COSMOS_CONNECTION_STRING` is not configured.
-- commit: pending
+- commit: `a6e4c81`
