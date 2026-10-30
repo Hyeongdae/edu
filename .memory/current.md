@@ -10,7 +10,7 @@
 [T02 Cosmos Integration Coverage](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P02-cosmos-application/T02-cosmos-integration-coverage.md)
 
 ## Last Completed Task
-[T01 Cosmos Player Repository](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P02-cosmos-application/T01-cosmos-player-repository.md)
+[T01 Cosmos Player Repository](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P02-cosmos-application/T01-cosmos-player-repository.md) - `cd7a914` (2026-10-30).
 
 ## Status
 - P01 pursuer art is complete (`5fb2b95`). P02-T01 Cosmos player repository is complete; P02-T02 Cosmos emulator integration coverage is active.
