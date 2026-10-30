@@ -219,12 +219,13 @@ export function GameScreen({
   };
 
   const handleStart = () => {
-    if (activeDialogRef.current !== null || gameState.status !== "ready" || runStartedRef.current) return;
-    const startedAt = Date.now();
-    const nextState = startGame(gameState, startedAt);
+    if (activeDialogRef.current !== null || gameState.status !== "ready" || runStartedRef.current || countdownEndsAtRef.current !== null) return;
+    const requestedAt = Date.now();
+    const endsAt = requestedAt + STAGE_COUNTDOWN_MS;
     runStartedRef.current = true;
-    setNowMs(startedAt);
-    setGameState(nextState);
+    countdownEndsAtRef.current = endsAt;
+    setNowMs(requestedAt);
+    setCountdownEndsAt(endsAt);
     void audioController?.startBgm();
   };
 
@@ -248,7 +249,7 @@ export function GameScreen({
   };
 
   useEffect(() => {
-    if (countdownEndsAt === null || gameState.status !== "checkpoint") return undefined;
+    if (countdownEndsAt === null || (gameState.status !== "checkpoint" && gameState.status !== "ready")) return undefined;
 
     const updateCountdown = () => {
       if (document.visibilityState !== "visible" || countdownEndsAtRef.current !== countdownEndsAt) return;
@@ -258,7 +259,9 @@ export function GameScreen({
 
       countdownEndsAtRef.current = null;
       setCountdownEndsAt(null);
-      setGameState((state) => state.status === "checkpoint" ? continueGame(state, actualNowMs) : state);
+      setGameState((state) => state.status === "checkpoint"
+        ? continueGame(state, actualNowMs)
+        : state.status === "ready" ? startGame(state, actualNowMs) : state);
     };
 
     const intervalId = window.setInterval(updateCountdown, 50);
@@ -571,7 +574,7 @@ export function GameScreen({
                 <PixelIcon name="settings" />
               </button>
 
-              {gameState.status === "ready" && (!isTitleScreen || isTitleLeaving) ? (
+              {gameState.status === "ready" && countdownEndsAt !== null ? null : gameState.status === "ready" && (!isTitleScreen || isTitleLeaving) ? (
                 <StageSelectPanel selectedStage={gameState.stage} highestClearedStage={Math.max(
                   gameState.highestClearedStage, companyRecords?.profile.highestClearedStage ?? 0,
                 ) as ClearedStage}
@@ -632,7 +635,7 @@ export function GameScreen({
               scoreGain={scoreGain}
               scoreGainIsBonus={scoreGainIsBonus}
               scoreAnimationKey={scoreAnimationKey}
-              stageSecondsLeft={getStageSecondsLeft(gameState, nowMs)}
+              stageSecondsLeft={getStageSecondsLeft(gameState, Math.max(0, nowMs))}
             />}
             <div className="game-layout" data-game-status={gameState.status}>
               <StairScene
@@ -645,9 +648,9 @@ export function GameScreen({
               />
             </div>
           </div>
-          {gameState.status === "checkpoint" && countdownEndsAt !== null && (
+          {(gameState.status === "checkpoint" || gameState.status === "ready") && countdownEndsAt !== null && (
             <StageTransitionCountdown
-              nextStage={(gameState.stage + 1) as GameStage}
+              stage={gameState.status === "checkpoint" ? (gameState.stage + 1) as GameStage : gameState.stage}
               secondsRemaining={Math.max(1, Math.min(3, Math.ceil((countdownEndsAt - nowMs) / 1000))) as 1 | 2 | 3}
             />
           )}

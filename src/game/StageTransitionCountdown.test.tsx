@@ -5,8 +5,8 @@ import { StageTransitionCountdown } from "./StageTransitionCountdown";
 
 describe("StageTransitionCountdown", () => {
   afterEach(cleanup);
-  it.each([3, 2, 1] as const)("announces %i and the next stage", (secondsRemaining) => {
-    render(<StageTransitionCountdown nextStage={2} secondsRemaining={secondsRemaining} />);
+  it.each([3, 2, 1] as const)("announces %i and the selected stage", (secondsRemaining) => {
+    render(<StageTransitionCountdown stage={2} secondsRemaining={secondsRemaining} />);
 
     expect(screen.getByRole("status")).toHaveAttribute("aria-live", "assertive");
     expect(screen.getByText("2단계 시작")).toBeVisible();

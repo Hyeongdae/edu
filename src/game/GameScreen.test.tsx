@@ -53,6 +53,16 @@ function climbOneStep(): void {
   fireEvent.keyDown(window, { key: nextClimbKey() });
 }
 
+function startSelectedStageImmediately(gameStartTimeMs = 0): void {
+  if (!vi.isFakeTimers()) vi.useFakeTimers();
+  // Keep the gameplay epoch at zero for legacy tests that set absolute fake times.
+  vi.setSystemTime(gameStartTimeMs - 3_000);
+  const startButton = document.querySelector<HTMLButtonElement>(".stage-select-start");
+  if (!startButton) throw new Error("The stage Start button is not available.");
+  fireEvent.click(startButton);
+  act(() => { vi.advanceTimersByTime(3_000); });
+}
+
 function seedReadyStage(stage: GameStage, overrides: Partial<GameState> = {}, durationMs?: number): void {
   const originalFactory = gameEngine.createGameState;
   const originalStart = gameEngine.startGame;
@@ -111,7 +121,7 @@ describe("company record persistence", () => {
     const records = companyBinding();
     const write = vi.spyOn(Storage.prototype, "setItem");
     render(<GameScreen account={account} companyRecords={records} />);
-    fireEvent.click(document.querySelector<HTMLButtonElement>(".stage-select-start")!); climbOneStep();
+    startSelectedStageImmediately(); climbOneStep();
     expect(records.submitResult).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ stage: 1, score: 150, outcome: "cleared" }));
     const continueButton = document.querySelector<HTMLButtonElement>(".checkpoint-actions button")!;
     fireEvent.click(continueButton);
@@ -127,7 +137,7 @@ describe("company record persistence", () => {
     seedReadyStage(1, { score: 0 });
     const records = companyBinding();
     const view = render(<GameScreen account={account} companyRecords={records} />);
-    fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
+    startSelectedStageImmediately();
     await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
     expect(screen.getByTestId("stage-time")).toHaveTextContent("01:29");
     view.rerender(<GameScreen account={account} companyRecords={{ ...records, syncStatus: "error", pendingCount: 1 }} />);
@@ -141,7 +151,7 @@ describe("company record persistence", () => {
     seedReadyStage(1, { score: 80, pursuerDistance: 1 }); mockMotionPreference(false);
     const records = companyBinding();
     const view = render(<GameScreen account={account} companyRecords={records} />);
-    fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
+    startSelectedStageImmediately();
     await act(async () => { await vi.advanceTimersByTimeAsync(500); });
     expect(records.submitResult).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ score: 80, outcome: "caught", endedAtMs: 500 }));
     expect(screen.queryByTestId("overtime-capture-ending")).not.toBeInTheDocument();
@@ -155,7 +165,7 @@ describe("company record persistence", () => {
     seedReadyStage(5); mockMotionPreference(false);
     const records = companyBinding(4);
     const view = render(<GameScreen account={account} companyRecords={records} />);
-    fireEvent.click(screen.getByRole("button", { name: "시작하기" })); climbOneStep();
+    startSelectedStageImmediately(); climbOneStep();
     expect(records.submitResult).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ stage: 5, outcome: "cleared" }));
     expect(screen.getByRole("dialog", { name: "오늘도 수고했어요!" })).toBeVisible();
     await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
@@ -187,7 +197,7 @@ describe("local record policy", () => {
     const write=vi.spyOn(Storage.prototype,"setItem");
     const first=renderBase(<GameScreen account={account} />);
     fireEvent.click(screen.getAllByRole("button")[0]); await act(async()=>{await vi.advanceTimersByTimeAsync(200);});
-    fireEvent.click(document.querySelector<HTMLButtonElement>(".stage-select-start")!); climbOneStep();
+    startSelectedStageImmediately(); climbOneStep();
     fireEvent.click(document.querySelector<HTMLButtonElement>(".checkpoint-actions button")!);
     await act(async()=>{await vi.advanceTimersByTimeAsync(3000);});
     expect(screen.getByTestId("stage-value")).toHaveTextContent("2");
@@ -201,7 +211,7 @@ describe("local record policy", () => {
 describe("title screen entry", () => {
   afterEach(() => { cleanup(); localStorage.clear(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 
-  it("shows the game title and three actions, then opens stage selection without starting play", async () => {
+  it("shows the title and stage selection, then counts down before starting play", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);
     const start = vi.spyOn(gameEngine, "startGame");
@@ -240,7 +250,17 @@ describe("title screen entry", () => {
     await act(async () => { await vi.advanceTimersByTimeAsync(5_000); });
     expect(screen.getByTestId("stage-time")).toHaveTextContent("01:30");
 
-    fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
+    const stageStart = document.querySelector<HTMLButtonElement>(".stage-select-start")!;
+    fireEvent.click(stageStart);
+    expect(screen.getByRole("status")).toHaveTextContent("3");
+    expect(start).not.toHaveBeenCalled();
+    expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "ready");
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    expect(screen.getByRole("status")).toHaveTextContent("2");
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    expect(screen.getByRole("status")).toHaveTextContent("1");
+    expect(start).not.toHaveBeenCalled();
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
     expect(start).toHaveBeenCalledOnce();
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "playing");
     expect(screen.queryByRole("button", { name: "게임 설명" })).not.toBeInTheDocument();
@@ -332,7 +352,7 @@ describe("caught overtime integration", () => {
     const view = renderBase(<StrictMode><GameScreen account={account} audioController={audioController} /></StrictMode>);
     fireEvent.click(screen.getByRole("button", { name: "게임 시작" }));
     if (document.querySelector(".game-title-screen")) await wait(200);
-    fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
+    startSelectedStageImmediately();
     return view;
   }
 
@@ -430,7 +450,7 @@ describe("caught overtime integration", () => {
     expect(screen.getByTestId("score-value")).toHaveTextContent(/^0$/);
     expect(screen.getByRole("button", { name: "1단계 선택" })).toHaveFocus();
     expect(screen.queryByTestId("overtime-capture-ending")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
+    startSelectedStageImmediately();
     await wait(2500); // Fresh game starts four stairs from the pursuer.
     expect(screen.getByRole("dialog", { name: "야근 사무실" })).toBeVisible();
   });
@@ -484,7 +504,7 @@ describe("fifth-stage office exit integration", () => {
     vi.useFakeTimers(); vi.setSystemTime(0); seedReadyStage(5); mockMotion(false);
     const audio = audioFixture(), input = vi.spyOn(gameEngine, "applyInput"), write = vi.spyOn(Storage.prototype, "setItem");
     const view = render(<StrictMode><GameScreen account={account} audioController={audio} /></StrictMode>);
-    fireEvent.click(screen.getByRole("button", { name: "시작하기" })); climbOneStep();
+    startSelectedStageImmediately(); climbOneStep();
     const calls = input.mock.calls.length;
     expect(screen.getByRole("dialog", { name: "오늘도 수고했어요!" })).toBeVisible();
     expect(screen.getByRole("heading", { name: "오늘도 수고했어요!" })).toHaveFocus();
@@ -518,7 +538,7 @@ describe("fifth-stage office exit integration", () => {
   it("shows a static complete scene and focuses the result immediately with reduced motion", async () => {
     vi.useFakeTimers(); vi.setSystemTime(0); seedReadyStage(5); const motion = mockMotion(true);
     render(<StrictMode><GameScreen account={account} /></StrictMode>);
-    fireEvent.click(screen.getByRole("button", { name: "시작하기" })); climbOneStep();
+    startSelectedStageImmediately(); climbOneStep();
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(screen.getByTestId("office-exit-ending")).toHaveAttribute("data-variant", "complete");
     expect(screen.getByRole("button", { name: /다시 시작/ })).toHaveFocus();
@@ -533,7 +553,7 @@ describe("fifth-stage office exit integration", () => {
     vi.useFakeTimers(); vi.setSystemTime(0); seedReadyStage(5); const motion = mockMotion(false);
     const write = vi.spyOn(Storage.prototype, "setItem");
     render(<GameScreen account={account} />);
-    fireEvent.click(screen.getByRole("button", { name: "시작하기" })); climbOneStep();
+    startSelectedStageImmediately(); climbOneStep();
     await act(async () => { await vi.advanceTimersByTimeAsync(1000); }); motion.change(true);
     expect(screen.queryByRole("dialog")).toBeNull(); expect(screen.getByRole("button", { name: /다시 시작/ })).toHaveFocus();
     motion.change(false); expect(screen.queryByRole("dialog")).toBeNull();
@@ -547,7 +567,7 @@ describe("fifth-stage office exit integration", () => {
     if (mode === "checkpoint" || mode === "quit") seedReadyStage(1);
     else seedReadyStage(5, { score: 0, pursuerDistance: 1 }, mode === "time-limit" ? 100 : undefined);
     render(<GameScreen account={account} />);
-    fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
+    startSelectedStageImmediately();
     if (mode === "checkpoint" || mode === "quit") {
       climbOneStep();
       if (mode === "quit") fireEvent.click(screen.getByRole("button", { name: "그만두기" }));
@@ -563,7 +583,7 @@ describe("fifth-stage office exit integration", () => {
   it("removes the pending ending timer and media subscription on unmount", async () => {
     vi.useFakeTimers(); vi.setSystemTime(0); seedReadyStage(5); const motion = mockMotion(false);
     const view = render(<GameScreen account={account} />);
-    fireEvent.click(screen.getByRole("button", { name: "시작하기" })); climbOneStep();
+    startSelectedStageImmediately(); climbOneStep();
     await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
     view.unmount(); expect(vi.getTimerCount()).toBe(0); expect(motion.listeners.size).toBe(0);
   });
@@ -583,7 +603,7 @@ describe("GameScreen controls", () => {
     vi.spyOn(Math, "random").mockReturnValue(0);
     const tick = vi.spyOn(gameEngine, "tickGame"), input = vi.spyOn(gameEngine, "applyInput");
     render(<StrictMode><GameScreen account={account} /></StrictMode>);
-    fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
+    startSelectedStageImmediately();
     let preview = gameEngine.startGame(createGameState(() => 0), 0);
     const keys: string[] = [];
     for (let step = 0; step < 11; step++) {
@@ -610,7 +630,7 @@ describe("GameScreen controls", () => {
     vi.useFakeTimers();
     render(<GameScreen account={account} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    startSelectedStageImmediately();
     fireEvent.keyDown(window, { key: "d" });
     expect(screen.getByTestId("score-value")).toHaveTextContent("1");
     expect(screen.getByTestId("score-gain")).toHaveTextContent("+1");
@@ -640,7 +660,7 @@ describe("GameScreen controls", () => {
     expect(screen.getByRole("region", { name: "게임 현황" }).closest(".game-stage")).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "계단 장면" }).closest(".game-stage")).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "오디오 설정" })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    startSelectedStageImmediately();
     fireEvent.click(screen.getByRole("button", { name: "게임 설정" }));
     expect(screen.getByRole("region", { name: "오디오 설정" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "설정 닫기" }));
@@ -660,7 +680,7 @@ describe("GameScreen controls", () => {
 
   it("opens accessible settings, blocks play input, and resumes after closing without audio props", () => {
     render(<GameScreen account={account} />);
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    startSelectedStageImmediately();
     const trigger = screen.getByRole("button", { name: "게임 설정" });
     fireEvent.click(trigger);
 
@@ -714,7 +734,7 @@ describe("GameScreen controls", () => {
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "ready");
     fireEvent.click(screen.getByRole("button", { name: "게임 시작" }));
     await act(async () => { await vi.advanceTimersByTimeAsync(200); });
-    fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
+    startSelectedStageImmediately();
     expect(screen.getByTestId("stage-time")).toHaveTextContent("01:30");
   });
 
@@ -723,7 +743,7 @@ describe("GameScreen controls", () => {
     vi.setSystemTime(0);
     seedReadyStage(1, { score: 0, eventSteps: 29 });
     render(<GameScreen account={account} />);
-    fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
+    startSelectedStageImmediately();
     climbOneStep();
     const stageTime = screen.getByTestId("stage-time").textContent;
     const eventStatus = screen.getByTestId("event-status").textContent;
@@ -763,7 +783,7 @@ describe("GameScreen controls", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    startSelectedStageImmediately();
     // Start the bonus one stair before its threshold so the test can focus on clock pausing.
     climbOneStep();
     const eventStatus = screen.getByTestId("event-status");
@@ -800,7 +820,7 @@ describe("GameScreen controls", () => {
     vi.spyOn(Math, "random").mockReturnValue(0);
     render(<GameScreen account={account} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    startSelectedStageImmediately();
     fireEvent.keyDown(window, { key: "d" });
     expect(screen.getByTestId("score-value")).toHaveTextContent("1");
     expect(screen.getByTestId("score-gain")).toHaveTextContent("+1");
@@ -830,7 +850,7 @@ describe("GameScreen controls", () => {
     vi.setSystemTime(0);
     vi.spyOn(Math, "random").mockReturnValue(0);
     render(<GameScreen account={account} />);
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    startSelectedStageImmediately();
     expect(screen.getByTestId("pursuer").querySelector("[data-officer-variant='older']")).toHaveAttribute("data-officer-pose", "idle");
     for (let step = 0; step < 5; step += 1) fireEvent.keyDown(window, { key: "d" });
     expect(screen.getByTestId("runner")).toHaveClass("is-climbing");
@@ -879,7 +899,7 @@ describe("GameScreen controls", () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);
     render(<GameScreen account={account} />);
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    startSelectedStageImmediately();
     await act(async () => { await vi.advanceTimersByTimeAsync(100); });
     fireEvent.keyDown(window, { key: "j" });
     expect(screen.getByTestId("runner")).toHaveClass("is-falling");
@@ -909,7 +929,7 @@ describe("GameScreen controls", () => {
     const ready = withPursuitAt({ ...state, status: "ready", stageEndsAt: null }, 0);
     vi.spyOn(gameEngine, "createGameState").mockReturnValue(ready);
     render(<GameScreen account={account} />);
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    startSelectedStageImmediately();
     expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "2");
     climbOneStep();
     expect(screen.getByTestId("runner")).toHaveAttribute("data-route-index", "7");
@@ -935,7 +955,7 @@ describe("GameScreen controls", () => {
       setPreferences: vi.fn(), playFootstep: vi.fn(), playFall: vi.fn(), dispose: vi.fn(),
     } satisfies AudioController;
     render(<GameScreen account={account} audioController={audio} />);
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    startSelectedStageImmediately();
     for (let mistake = 1; mistake <= 4; mistake += 1) {
       const previousPose = screen.getByTestId("runner-pose");
       vi.setSystemTime(100 + (mistake - 1) * 500);
@@ -967,7 +987,7 @@ describe("GameScreen controls", () => {
       setPreferences: vi.fn(), playFootstep: vi.fn(), playFall: vi.fn(), dispose: vi.fn(),
     } satisfies AudioController;
     render(<GameScreen account={account} audioController={audio} />);
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    startSelectedStageImmediately();
     await act(async () => { await vi.advanceTimersByTimeAsync(500); });
     fireEvent.keyDown(window, { key: "d" });
     const playerKey = screen.getByTestId("runner").getAttribute("data-motion-key");
@@ -991,7 +1011,7 @@ describe("GameScreen controls", () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);
     render(<GameScreen account={account} />);
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    startSelectedStageImmediately();
     await act(async () => { await vi.advanceTimersByTimeAsync(400); });
     fireEvent.keyDown(window, { key: "j" });
     expect(screen.getByTestId("runner")).toHaveClass("is-falling");
@@ -1010,7 +1030,7 @@ describe("GameScreen controls", () => {
     vi.setSystemTime(0);
     seedReadyStage(5, { score: 349 });
     render(<GameScreen account={account} />);
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    startSelectedStageImmediately();
     await act(async () => { await vi.advanceTimersByTimeAsync(1_400); });
     const catchNode = screen.getByTestId("pursuer");
     expect(catchNode).toHaveClass("is-caught");
@@ -1035,7 +1055,7 @@ describe("GameScreen controls", () => {
     const input = vi.spyOn(gameEngine, "applyInput");
     const save = vi.spyOn(Storage.prototype, "setItem");
     render(<GameScreen account={account} />);
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    startSelectedStageImmediately();
     for (let step = 0; step < 20; step += 1) climbOneStep();
     expect(screen.queryByTestId("pursuer")).not.toBeInTheDocument();
     expect(screen.getByRole("img")).toHaveAttribute("data-pursuer-index", "-4");
@@ -1058,7 +1078,7 @@ describe("GameScreen controls", () => {
     vi.setSystemTime(0);
     seedReadyStage(1, { score: 0 }, 900);
     render(<GameScreen account={account} />);
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    startSelectedStageImmediately();
     await act(async () => { await vi.advanceTimersByTimeAsync(600); });
     expect(screen.getByTestId("pursuer")).toHaveClass("is-following");
     await act(async () => { await vi.advanceTimersByTimeAsync(300); });
@@ -1095,7 +1115,7 @@ describe("GameScreen controls", () => {
       </>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    startSelectedStageImmediately();
     fireEvent.keyDown(screen.getByRole("textbox", { name: "메모 입력" }), { key: "d" });
 
     expect(screen.getByTestId("score-value")).toHaveTextContent("0");
@@ -1114,7 +1134,7 @@ describe("GameScreen controls", () => {
     } satisfies AudioController;
     render(<GameScreen account={account} audioController={audio} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    startSelectedStageImmediately();
     for (let step = 0; step < 30; step += 1) climbOneStep();
 
     expect(audio.startBgm).toHaveBeenCalledOnce();
@@ -1142,7 +1162,7 @@ describe("GameScreen controls", () => {
     } satisfies AudioController;
     render(<StrictMode><GameScreen account={account} audioController={audio} /></StrictMode>);
 
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    startSelectedStageImmediately();
     vi.setSystemTime(13_000);
     fireEvent(document, new Event("visibilitychange"));
     await act(async () => { await vi.advanceTimersByTimeAsync(500); });
@@ -1166,7 +1186,7 @@ describe("GameScreen controls", () => {
     expect(screen.getByRole("region", { name: "단계 선택" })).toBeVisible();
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "ready");
     expect(audio.startBgm).toHaveBeenCalledTimes(1);
-    fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
+    startSelectedStageImmediately();
     expect(randomSpy).toHaveBeenCalledTimes(randomCallsBeforeRestart + 1);
     expect(audio.startBgm).toHaveBeenCalledTimes(2);
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "playing");
@@ -1183,7 +1203,7 @@ describe("GameScreen controls", () => {
     const saveSpy = vi.spyOn(Storage.prototype, "setItem");
     render(<GameScreen account={account} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    startSelectedStageImmediately(1_000);
     vi.setSystemTime(3_400);
     fireEvent(document, new Event("visibilitychange"));
     const gameFrame = document.querySelector(".game-frame");
@@ -1212,7 +1232,7 @@ describe("GameScreen controls", () => {
     vi.spyOn(Math, "random").mockReturnValue(0.5);
     render(<GameScreen account={account} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    startSelectedStageImmediately();
     vi.setSystemTime(13_000);
     fireEvent(document, new Event("visibilitychange"));
     await act(async () => { await vi.advanceTimersByTimeAsync(500); });
@@ -1230,7 +1250,7 @@ describe("GameScreen controls", () => {
     mockMotionPreference(true);
     vi.spyOn(Math, "random").mockReturnValue(0);
     render(<StrictMode><GameScreen account={account} /></StrictMode>);
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    startSelectedStageImmediately(1_000);
     vi.setSystemTime(3_400);
     fireEvent(document, new Event("visibilitychange"));
     expect(screen.getByTestId("pursuer")).toHaveClass("is-caught");
@@ -1244,7 +1264,7 @@ describe("GameScreen controls", () => {
     expect(screen.queryByText(/게임 종료/)).not.toBeInTheDocument();
     expect(screen.getByRole("region", { name: "단계 선택" })).toBeVisible();
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "ready");
-    fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
+    startSelectedStageImmediately();
     fireEvent.keyDown(window, { key: "j" });
     expect(screen.getByTestId("pursuer")).not.toHaveClass("is-approaching");
     expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "-4");
@@ -1257,7 +1277,7 @@ describe("GameScreen controls", () => {
     render(<GameScreen account={account} />);
     vi.setSystemTime(100_000);
     expect(screen.getByTestId("stage-time")).toHaveTextContent("01:30");
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    startSelectedStageImmediately(100_000);
     vi.setSystemTime(100_099);
     fireEvent.keyDown(window, { key: "d" });
     expect(screen.getByTestId("score-value")).toHaveTextContent(/^1$/);
@@ -1266,7 +1286,7 @@ describe("GameScreen controls", () => {
     expect(screen.getByText("시간 초과")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /다시 시작/ }));
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "ready");
-    fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
+    startSelectedStageImmediately(100_100);
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "playing");
     vi.setSystemTime(100_199);
     fireEvent.keyDown(window, { key: "d" });
@@ -1287,7 +1307,7 @@ describe("GameScreen controls", () => {
     } satisfies AudioController;
     const save = vi.spyOn(Storage.prototype, "setItem");
     render(<StrictMode><GameScreen account={account} audioController={audio} /></StrictMode>);
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    startSelectedStageImmediately(1_000);
     vi.setSystemTime(1_100);
     if (trigger === "interval") {
       await act(async () => { await vi.advanceTimersByTimeAsync(100); });
@@ -1321,7 +1341,7 @@ describe("GameScreen controls", () => {
     vi.useFakeTimers();
     vi.setSystemTime(1_000);
     render(<GameScreen account={account} />);
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    startSelectedStageImmediately(1_000);
     vi.setSystemTime(1_100);
     const trigger = screen.getByRole("button", { name: "게임 설정" });
     fireEvent.click(trigger);
@@ -1352,7 +1372,7 @@ describe("GameScreen controls", () => {
     const ready = createGameState(() => 0);
     vi.spyOn(gameEngine, "createGameState").mockReturnValue({ ...ready, eventEndsAt: 30_550 });
     render(<GameScreen account={account} />);
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    startSelectedStageImmediately(550);
     expect(screen.getByTestId("event-status")).toHaveTextContent("2배 점수 · 30초");
     expect(screen.getByTestId("stage-time")).toHaveTextContent("01:30");
     act(() => { vi.advanceTimersByTime(500); });
@@ -1376,7 +1396,7 @@ describe("GameScreen controls", () => {
     seedReadyStage(stage, {}, 100);
     const save = vi.spyOn(Storage.prototype, "setItem");
     render(<StrictMode><GameScreen account={account} /></StrictMode>);
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    startSelectedStageImmediately();
     const rule = getStageRule(stage);
     vi.setSystemTime(1_100);
     fireEvent.keyDown(window, { key: "d" });
@@ -1399,7 +1419,7 @@ describe("GameScreen controls", () => {
     } satisfies AudioController;
     const save = vi.spyOn(Storage.prototype, "setItem");
     render(<StrictMode><GameScreen account={account} audioController={audio} /></StrictMode>);
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    startSelectedStageImmediately();
     fireEvent.keyDown(window, { key: "d" });
     const finalScore = 350;
     expect(screen.getByRole("dialog", { name: "오늘도 수고했어요!" })).toBeVisible();
@@ -1430,7 +1450,7 @@ describe("GameScreen controls", () => {
     expect(screen.getByTestId("stage-time")).toHaveTextContent("00:50");
     expect(audio.startBgm).toHaveBeenCalledOnce();
     fireEvent.click(screen.getByRole("button", { name: "1단계 선택" }));
-    fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
+    startSelectedStageImmediately();
     expect(screen.getByTestId("stage-value")).toHaveTextContent("1단계");
     expect(screen.getByTestId("stage-time")).toHaveTextContent("01:30");
     expect(screen.getByText("목표 150점")).toBeInTheDocument();
@@ -1453,7 +1473,7 @@ describe("settings focus after audio retry", () => {
       return strict ? <StrictMode>{game}</StrictMode> : game;
     };
     const view = render(draw(true));
-    fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
+    startSelectedStageImmediately();
     const trigger = screen.getByRole("button", { name: "게임 설정" });
     fireEvent.click(trigger);
     const retry = screen.getByRole("button", { name: "음악 켜기" });
@@ -1487,7 +1507,7 @@ describe("settings focus after audio retry", () => {
     const draw = (blocked: boolean) => <GameScreen account={account} autoplayBlocked={blocked}
       audioPreferences={DEFAULT_AUDIO_PREFERENCES} onAudioPreferencesChange={change} onEnableAudio={vi.fn()} />;
     const view = render(draw(true));
-    fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
+    startSelectedStageImmediately();
     fireEvent.click(screen.getByRole("button", { name: "게임 설정" }));
     const focused = screen.getByRole(control, { name: control === "slider" ? "배경 음악 음량" : "배경 음악 음소거" });
     focused.focus();
@@ -1509,7 +1529,7 @@ describe("settings focus after audio retry", () => {
       audioPreferences={DEFAULT_AUDIO_PREFERENCES} onAudioPreferencesChange={vi.fn()} onEnableAudio={vi.fn()} />
       <input aria-label="outside focus" /></StrictMode>;
     const view = render(draw(true));
-    fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
+    startSelectedStageImmediately();
     fireEvent.click(screen.getByRole("button", { name: "게임 설정" }));
     const retry = screen.getByRole("button", { name: "음악 켜기" });
     retry.focus(); fireEvent.click(retry);
@@ -1528,12 +1548,58 @@ describe("settings focus after audio retry", () => {
 
 describe("session checkpoints", () => {
   afterEach(() => { cleanup(); localStorage.clear(); vi.useRealTimers(); vi.restoreAllMocks(); });
+  it("starts the selected stage clock and pursuer only after the initial countdown", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(0);
+    const start = vi.spyOn(gameEngine, "startGame");
+    const input = vi.spyOn(gameEngine, "applyInput");
+    render(<GameScreen account={account} />);
+
+    fireEvent.click(document.querySelector<HTMLButtonElement>(".stage-select-start")!);
+    expect(screen.getByRole("status")).toHaveTextContent("3");
+    expect(start).not.toHaveBeenCalled();
+    expect(screen.getByTestId("stage-time")).toHaveTextContent("01:30");
+    const runner = screen.getByTestId("runner");
+    const pursuer = screen.getByTestId("pursuer");
+    const runnerRoute = runner.getAttribute("data-route-index");
+    const pursuerRoute = pursuer.getAttribute("data-route-index");
+
+    for (const key of ["d", "j", " "]) fireEvent.keyDown(window, { key });
+    expect(runner).toHaveAttribute("data-route-index", runnerRoute);
+    expect(pursuer).toHaveAttribute("data-route-index", pursuerRoute);
+    await act(async () => { await vi.advanceTimersByTimeAsync(2999); });
+    expect(start).not.toHaveBeenCalled();
+    expect(input).not.toHaveBeenCalled();
+    expect(screen.getByRole("status")).toHaveTextContent("1");
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+    expect(start).toHaveBeenCalledOnce();
+    expect(start.mock.calls[0][0]).toMatchObject({ status: "ready", stage: 1 });
+    expect(start.mock.calls[0][1]).toBe(3000);
+    expect(start.mock.results[0].value).toMatchObject({
+      status: "playing",
+      stageEndsAt: 3000 + getStageRule(1).durationMs,
+      nextPursuerStepAt: 3000 + getStageRule(1).pursuerStepIntervalMs,
+    });
+  });
+
+  it("cancels an initial start countdown on unmount", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(0);
+    const start = vi.spyOn(gameEngine, "startGame");
+    const view = render(<GameScreen account={account} />);
+    fireEvent.click(document.querySelector<HTMLButtonElement>(".stage-select-start")!);
+    expect(screen.getByRole("status")).toHaveTextContent("3");
+    view.unmount();
+    await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
+    expect(start).not.toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it("keeps checkpoint clocks paused for three seconds, then starts stage time and pursuit", async () => {
     vi.useFakeTimers(); vi.setSystemTime(0); seedReadyStage(1);
     const continueSpy = vi.spyOn(gameEngine, "continueGame");
     const inputSpy = vi.spyOn(gameEngine, "applyInput");
     const write = vi.spyOn(Storage.prototype, "setItem"); render(<GameScreen account={account}/>);
-    fireEvent.click(document.querySelector<HTMLButtonElement>(".stage-select-start")!); climbOneStep();
+    startSelectedStageImmediately(); climbOneStep();
     fireEvent.click(document.querySelector<HTMLButtonElement>(".checkpoint-actions button")!);
     expect(screen.getByRole("status")).toHaveTextContent("3");
     expect(screen.getByTestId("stage-value")).toHaveTextContent(/^\d/);
@@ -1558,7 +1624,7 @@ describe("session checkpoints", () => {
     vi.useFakeTimers(); vi.setSystemTime(0); seedReadyStage(1);
     const continueSpy = vi.spyOn(gameEngine, "continueGame");
     const view = render(<GameScreen account={account}/>);
-    fireEvent.click(document.querySelector<HTMLButtonElement>(".stage-select-start")!); climbOneStep();
+    startSelectedStageImmediately(); climbOneStep();
     expect(document.querySelectorAll(".checkpoint-actions button")).toHaveLength(2);
     fireEvent.click(document.querySelector<HTMLButtonElement>(".checkpoint-actions button")!);
     expect(document.querySelectorAll(".checkpoint-actions button")).toHaveLength(0);
@@ -1569,9 +1635,9 @@ describe("session checkpoints", () => {
   it("waits until a hidden page becomes active before completing a delayed countdown", async () => {
     vi.useFakeTimers(); vi.setSystemTime(0); seedReadyStage(1);
     const continueSpy = vi.spyOn(gameEngine, "continueGame");
-    const visibility = vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
     render(<GameScreen account={account}/>);
-    fireEvent.click(document.querySelector<HTMLButtonElement>(".stage-select-start")!); climbOneStep();
+    startSelectedStageImmediately(); climbOneStep();
+    const visibility = vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
     fireEvent.click(document.querySelector<HTMLButtonElement>(".checkpoint-actions button")!);
     await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
     expect(continueSpy).not.toHaveBeenCalled();
@@ -1583,7 +1649,7 @@ describe("session checkpoints", () => {
   it("still submits authenticated company results", () => {
     vi.useFakeTimers(); vi.setSystemTime(0); seedReadyStage(1);
     const records=companyBinding(), write=vi.spyOn(Storage.prototype,"setItem"); render(<GameScreen account={account} companyRecords={records}/>);
-    fireEvent.click(document.querySelector<HTMLButtonElement>(".stage-select-start")!); climbOneStep();
+    startSelectedStageImmediately(); climbOneStep();
     expect(records.submitResult).toHaveBeenCalledOnce();
     expect(write.mock.calls.filter(([k])=>k===DESCENT_LEADERBOARD_KEY||k===DESCENT_PROGRESS_KEY)).toEqual([]);
   });
@@ -1609,7 +1675,7 @@ describe("fall pursuit presentation", () => {
     vi.useFakeTimers(); vi.setSystemTime(0);
     const audio = audioFixture(), input = vi.spyOn(gameEngine, "applyInput"), tick = vi.spyOn(gameEngine, "tickGame");
     render(<GameScreen account={account} audioController={audio} />);
-    fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
+    startSelectedStageImmediately();
     fireEvent.keyDown(window, { key: "j" });
     expect(input.mock.results.at(-1)!.value).toMatchObject({ recoveryEndsAt: 500, nextPursuerStepAt: 250, pursuerIndex: -4 });
     expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "-4");
@@ -1651,7 +1717,7 @@ describe("fall pursuit presentation", () => {
     vi.useFakeTimers(); vi.setSystemTime(0); seedReadyStage(1, { score: 0, pursuerDistance: 2 });
     const audio = audioFixture(), write = vi.spyOn(Storage.prototype, "setItem");
     render(<StrictMode><GameScreen account={account} audioController={audio} /></StrictMode>);
-    fireEvent.click(screen.getByRole("button", { name: "시작하기" })); fireEvent.keyDown(window, { key: "j" });
+    startSelectedStageImmediately(); fireEvent.keyDown(window, { key: "j" });
     await act(async () => { await vi.advanceTimersByTimeAsync(500); });
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "game-over");
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-pursuer-catching", "true");
@@ -1674,7 +1740,7 @@ describe("fall pursuit presentation", () => {
     vi.useFakeTimers(); vi.setSystemTime(0); seedReadyStage(1, { score: 0, eventEndsAt: 30_000 });
     const resume = vi.spyOn(gameEngine, "resumeGameAfterPause"), tick = vi.spyOn(gameEngine, "tickGame");
     render(<GameScreen account={account} />);
-    fireEvent.click(screen.getByRole("button", { name: "시작하기" })); fireEvent.keyDown(window, { key: "j" });
+    startSelectedStageImmediately(); fireEvent.keyDown(window, { key: "j" });
     await act(async () => { await vi.advanceTimersByTimeAsync(100); });
     fireEvent.click(screen.getByRole("button", { name: "게임 설정" }));
     expect(screen.getByText(/15칸 이상 멀어지면 0.1초마다 추격하고, 6칸까지 좁혀지면/)).toBeVisible();
@@ -1699,7 +1765,7 @@ describe("fall pursuit presentation", () => {
     const tick = vi.spyOn(gameEngine, "tickGame"), input = vi.spyOn(gameEngine, "applyInput"), audio = audioFixture();
     const write = vi.spyOn(Storage.prototype, "setItem");
     render(<GameScreen account={account} audioController={audio} />);
-    fireEvent.click(screen.getByRole("button", { name: "시작하기" })); fireEvent.keyDown(window, { key: "j" });
+    startSelectedStageImmediately(); fireEvent.keyDown(window, { key: "j" });
     const fallen: GameState = input.mock.results.at(-1)!.value;
     vi.setSystemTime(1300); fireEvent(document, new Event("visibilitychange"));
     expect(tick.mock.results.at(-1)!.value).toEqual(gameEngine.tickGame(fallen, 1300));
@@ -1718,7 +1784,7 @@ describe("fall pursuit presentation", () => {
     vi.useFakeTimers(); vi.setSystemTime(0); seedReadyStage(1, { pursuerDistance: 1 }, 250);
     const audio = audioFixture();
     render(<GameScreen account={account} audioController={audio} />);
-    fireEvent.click(screen.getByRole("button", { name: "시작하기" })); fireEvent.keyDown(window, { key: "j" });
+    startSelectedStageImmediately(); fireEvent.keyDown(window, { key: "j" });
     await act(async () => { await vi.advanceTimersByTimeAsync(300); });
     expect(screen.getByText("시간 초과")).toBeVisible();
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-pursuer-catching", "false");
@@ -1731,7 +1797,7 @@ beforeEach(() => {
   vi.spyOn(stairObstacles, "createObstacleState").mockImplementation((route, stage) => makeObstacleFixture(route, 0, stage));
   vi.spyOn(stairObstacles, "revealObstacles").mockImplementation((state, route, index, stage) => makeObstacleFixture(route, index, stage, state));
 });
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); });
 
 describe("GameScreen obstacle gameplay", () => {
   afterEach(() => { cleanup(); window.localStorage.clear(); vi.useRealTimers(); });
@@ -1754,7 +1820,7 @@ describe("GameScreen obstacle gameplay", () => {
     render(<GameScreen account={account} audioController={audio} />);
     expect(screen.getAllByTestId("stair-step")).toHaveLength(11);
     expect(screen.getByTestId("stair-obstacle")).toHaveAttribute("data-route-index", "2");
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    startSelectedStageImmediately();
     fireEvent.keyDown(window, { key: "d" });
     expect(screen.getByTestId("route-direction")).toHaveTextContent("장애물! 점프하세요");
     expect(screen.getByRole("img", { name: /다음 계단에 장애물/ })).toBeInTheDocument();
@@ -1782,7 +1848,7 @@ describe("GameScreen obstacle gameplay", () => {
   it("accepts an immediate climb after jumping and keeps NPC updates from freezing feedback", async () => {
     vi.useFakeTimers(); vi.setSystemTime(0); seedBox();
     render(<GameScreen account={account} />);
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    startSelectedStageImmediately();
     fireEvent.keyDown(window, { key: "d" });
     await act(async () => { await vi.advanceTimersByTimeAsync(900); });
     fireEvent.keyDown(window, { key: " ", code: "Space" });
@@ -1803,7 +1869,7 @@ describe("GameScreen obstacle gameplay", () => {
     const audio = audioFixture();
     const input = vi.spyOn(gameEngine, "applyInput");
     render(<GameScreen account={account} audioController={audio} />);
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    startSelectedStageImmediately();
     fireEvent.keyDown(window, { code: "Space", key: " ", repeat: true });
     expect(input).not.toHaveBeenCalled();
     fireEvent.keyDown(window, { code: "Space", key: " " });
@@ -1820,7 +1886,7 @@ describe("GameScreen obstacle gameplay", () => {
     vi.useFakeTimers(); vi.setSystemTime(0); seedBox();
     const input = vi.spyOn(gameEngine, "applyInput");
     const view = render(<GameScreen account={account} />);
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    startSelectedStageImmediately();
     for (const tag of ["input", "textarea", "select", "button", "div"]) {
       const element = document.createElement(tag);
       if (tag === "div") element.setAttribute("role", "button");
@@ -1843,7 +1909,7 @@ describe("GameScreen obstacle gameplay", () => {
   it("clears a bonus popup on a mistake without leaving its cancelled timer stuck", async () => {
     vi.useFakeTimers(); vi.setSystemTime(0); seedBox({ eventEndsAt: 30_000 });
     render(<GameScreen account={account} />);
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    startSelectedStageImmediately();
     fireEvent.keyDown(window, { key: "d" });
     expect(screen.getByTestId("score-gain")).toHaveClass("is-bonus");
     fireEvent.keyDown(window, { key: "d" });
@@ -1858,7 +1924,7 @@ describe("GameScreen obstacle gameplay", () => {
     const save = vi.spyOn(Storage.prototype, "setItem");
     const audio = audioFixture();
     render(<GameScreen account={account} audioController={audio} />);
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    startSelectedStageImmediately();
     fireEvent.keyDown(window, { key: "d" });
     fireEvent.keyDown(window, { key: " ", code: "Space" });
     expect(screen.getByTestId("runner")).toHaveClass("is-jumping");
@@ -1889,7 +1955,7 @@ describe("dedicated jump animation lifecycle", () => {
   function startAt(state: GameState): void {
     vi.spyOn(gameEngine, "createGameState").mockReturnValue(state);
     render(<GameScreen account={account} />);
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    startSelectedStageImmediately();
     fireEvent.keyDown(window, { key: " ", code: "Space" });
   }
 
@@ -1933,7 +1999,7 @@ describe("dedicated jump animation lifecycle", () => {
     const state = readyAt();
     vi.spyOn(gameEngine, "createGameState").mockReturnValue(state);
     render(<GameScreen account={account} />);
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    startSelectedStageImmediately();
     await act(async () => { await vi.advanceTimersByTimeAsync(1_100); });
     fireEvent.keyDown(window, { key: " ", code: "Space" });
     const motion = screen.getByTestId("runner-motion");
@@ -1965,7 +2031,7 @@ describe("dedicated jump animation lifecycle", () => {
     expect(document.querySelector(".jump-overlay")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /다시 시작/ }));
     expect(screen.getByRole("region", { name: "단계 선택" })).toBeVisible();
-    fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
+    startSelectedStageImmediately();
     expect(screen.getByTestId("runner")).toHaveAttribute("data-route-index", "0");
     expect(document.querySelector(".jump-overlay")).toBeNull();
     expect(screen.getAllByTestId("runner")).toHaveLength(1);
@@ -1981,7 +2047,7 @@ describe("dedicated jump animation lifecycle", () => {
     vi.spyOn(gameEngine, "createGameState").mockReturnValue(ready);
     const save = vi.spyOn(Storage.prototype, "setItem");
     render(<GameScreen account={account} audioController={audio} />);
-    fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
+    startSelectedStageImmediately();
     fireEvent.keyDown(window, { key: " " });
     expect(screen.getByRole("dialog", { name: "오늘도 수고했어요!" })).toBeInTheDocument();
     expect(screen.getByTestId("score-value")).toHaveTextContent("350");
