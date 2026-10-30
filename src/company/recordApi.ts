@@ -21,7 +21,7 @@ export function isSharedBest(value: unknown): value is SharedBest {
     typeof value.displayName !== "string" || !isGameStage(value.bestStage)) return false;
   const rule = getStageRule(value.bestStage);
   return typeof value.bestScore === "number" && Number.isSafeInteger(value.bestScore) && value.bestScore >= 0 &&
-    value.bestScore <= rule.scoreRequired + 3 && typeof value.remainingTimeCs === "number" &&
+    value.bestScore <= rule.scoreRequired && typeof value.remainingTimeCs === "number" &&
     Number.isSafeInteger(value.remainingTimeCs) && value.remainingTimeCs >= 0 && value.remainingTimeCs <= rule.durationMs / 10 &&
     typeof value.achievedAt === "string" && Number.isFinite(Date.parse(value.achievedAt)) &&
     new Date(value.achievedAt).toISOString() === value.achievedAt;

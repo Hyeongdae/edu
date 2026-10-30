@@ -109,7 +109,7 @@ describe("Cosmos player repository", () => {
   it.each([
     { id: "someone-else" }, { schemaVersion: 2 }, { accountId: "" }, { displayName: " " },
     { displayName: "x".repeat(201) }, { highestClearedStage: 6 }, { bestStage: 6 },
-    { bestScore: 154 }, { bestScore: 150 }, { bestScore: -1 }, { remainingTimeCs: 9001 },
+    { bestScore: 151 }, { bestScore: -1 }, { remainingTimeCs: 9001 },
     { remainingTimeCs: 1.5 }, { achievedAt: "bad-time" }, { achievedAt: undefined },
     { bestStage: undefined }, { displayName: "x".repeat(201) }, { best: null },
   ])("fails closed on corrupt persisted documents: %j", async (overrides) => {
@@ -135,7 +135,7 @@ describe("Cosmos player repository", () => {
 
   it("creates one item with the account partition key and without null best fields", async () => {
     item.read.mockRejectedValueOnce(itemNotFound);
-    const saved = await repository().submit(ACTOR, submission({ score: 153, outcome: "cleared" }));
+    const saved = await repository().submit(ACTOR, submission({ score: 150, outcome: "cleared" }));
     expect(saved.highestClearedStage).toBe(1);
     expect(container.items.create).toHaveBeenCalledExactlyOnceWith({
       id: getPlayerRowKey(ACTOR.accountId),
@@ -144,7 +144,7 @@ describe("Cosmos player repository", () => {
       displayName: ACTOR.displayName,
       highestClearedStage: 1,
       bestStage: 1,
-      bestScore: 153,
+      bestScore: 150,
       remainingTimeCs: 6000,
       achievedAt: NOW,
     });
@@ -170,7 +170,7 @@ describe("Cosmos player repository", () => {
   it("validates stage limits and the latest unlock before writing", async () => {
     await expect(repository().submit(ACTOR, submission({ stage: 2 })))
       .rejects.toMatchObject({ code: "stage-locked" });
-    await expect(repository().submit(ACTOR, submission({ score: 154, outcome: "cleared" })))
+    await expect(repository().submit(ACTOR, submission({ score: 151, outcome: "cleared" })))
       .rejects.toMatchObject({ code: "invalid-request" });
     expect(item.replace).not.toHaveBeenCalled();
   });
@@ -188,13 +188,13 @@ describe("Cosmos player repository", () => {
 
   it("re-reads and merges the latest unlock after a conditional replace conflict", async () => {
     item.read.mockResolvedValueOnce({ resource: stored(), etag: ITEM_ETAG }).mockResolvedValueOnce({
-      resource: stored({ highestClearedStage: 1, bestScore: 150 }), etag: '"player-version-2"',
+      resource: stored({ highestClearedStage: 1, bestScore: 149 }), etag: '"player-version-2"',
     });
     item.replace.mockRejectedValueOnce({ code: 412 }).mockResolvedValueOnce({});
-    const saved = await repository().submit(ACTOR, submission({ score: 151, outcome: "cleared" }));
+    const saved = await repository().submit(ACTOR, submission({ score: 150, outcome: "cleared" }));
     expect(saved.highestClearedStage).toBe(1);
     expect(item.replace).toHaveBeenLastCalledWith(
-      expect.objectContaining({ highestClearedStage: 1, bestScore: 151 }),
+      expect.objectContaining({ highestClearedStage: 1, bestScore: 150 }),
       { accessCondition: { type: "IfMatch", condition: '"player-version-2"' } },
     );
   });

@@ -1007,7 +1007,7 @@ describe("GameScreen controls", () => {
   it("shows the current stage-five pursuer position while its catch is still visible", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);
-    seedReadyStage(5, { score: 1_200 });
+    seedReadyStage(5, { score: 349 });
     render(<GameScreen account={account} />);
     fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
     await act(async () => { await vi.advanceTimersByTimeAsync(1_400); });
@@ -1400,7 +1400,7 @@ describe("GameScreen controls", () => {
     render(<StrictMode><GameScreen account={account} audioController={audio} /></StrictMode>);
     fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
     fireEvent.keyDown(window, { key: "d" });
-    const finalScore = bonus ? 351 : 350;
+    const finalScore = 350;
     expect(screen.getByRole("dialog", { name: "오늘도 수고했어요!" })).toBeVisible();
     expect(save.mock.calls.filter(([key]) => key === DESCENT_LEADERBOARD_KEY)).toHaveLength(0);
     await act(async () => { await vi.advanceTimersByTimeAsync(4000); });
@@ -1940,7 +1940,7 @@ describe("dedicated jump animation lifecycle", () => {
     fireEvent.click(screen.getByRole("button", { name: /시작하기/ }));
     fireEvent.keyDown(window, { key: " " });
     expect(screen.getByRole("dialog", { name: "오늘도 수고했어요!" })).toBeInTheDocument();
-    expect(screen.getByTestId("score-value")).toHaveTextContent("351");
+    expect(screen.getByTestId("score-value")).toHaveTextContent("350");
     expect(document.querySelector(".jump-overlay")).toBeNull();
     expect(screen.getByTestId("runner")).toHaveAttribute("data-motion-kind", "idle");
     expect(audio.playFootstep).toHaveBeenCalledOnce();

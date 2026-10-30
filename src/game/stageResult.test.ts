@@ -54,6 +54,12 @@ describe("stage result helpers", () => {
       .toMatchObject({ stage: rule.stage, remainingTimeCs: rule.durationMs / 10 });
   });
 
+  it.each(STAGE_RULES)("accepts scores at or below the stage$stage target only", rule => {
+    const remainingTimeCs = Math.min(result().remainingTimeCs, rule.durationMs / 10);
+    expect(isStageResult({ ...result(), stage: rule.stage, score: rule.scoreRequired, remainingTimeCs, outcome: "cleared" })).toBe(true);
+    expect(isStageResult({ ...result(), stage: rule.stage, score: rule.scoreRequired + 1, remainingTimeCs, outcome: "cleared" })).toBe(false);
+  });
+
   it.each([null,undefined,false,[],{}])("rejects a non-result%j", value => {
     expect(isStageResult(value)).toBe(false);
   });
@@ -115,12 +121,12 @@ describe("actual stage result boundaries", () => {
     expect(before).toEqual(snapshot);
   });
 
-  it("retains actual bonus-jump overshoot as a single clear result", () => {
+  it("caps bonus-jump gain at the exact clear target", () => {
     const before = freeze(withObstacle({ ...applyInput(playing(), "forward", 0), score: 149, eventEndsAt: 30000 }, 2));
     const after = applyInput(before, "jump", 100);
-    expect(after.stageResult).toEqual({ stage: 1, score: 153, remainingTimeCs: 8990, endedAtMs: 100, outcome: "cleared" });
-    expect(after.lastMove).toMatchObject({ fromIndex: 1, toIndex: 3, scoreGain: 4 });
-    expect(after.score).toBe(153);
+    expect(after.stageResult).toEqual({ stage: 1, score: 150, remainingTimeCs: 8990, endedAtMs: 100, outcome: "cleared" });
+    expect(after.lastMove).toMatchObject({ fromIndex: 1, toIndex: 3, scoreGain: 1 });
+    expect(after.score).toBe(150);
   });
 
   it("uses the actual contact deadline even when the callback arrives much later", () => {

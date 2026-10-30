@@ -6,6 +6,7 @@ export function isStageResult(value: unknown): value is StageResult {
   const result = value as Partial<StageResult>;
   return isGameStage(result.stage) &&
     typeof result.score === "number" && Number.isInteger(result.score) && result.score >= 0 &&
+    result.score <= getStageRule(result.stage).scoreRequired &&
     typeof result.endedAtMs === "number" && Number.isFinite(result.endedAtMs) && result.endedAtMs >= 0 &&
     typeof result.remainingTimeCs === "number" && Number.isSafeInteger(result.remainingTimeCs) &&
     result.remainingTimeCs >= 0 && result.remainingTimeCs <= getStageRule(result.stage).durationMs / 10 &&

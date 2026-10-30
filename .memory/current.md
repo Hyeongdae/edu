@@ -1,18 +1,20 @@
 # Current Context
 
 ## Active Plan
-[Pursuer Design and Cosmos Migration](./plans/2026-10-30-pursuer-design-and-cosmos-migration.md)
+[Score Cap, Stage Countdown, and BGM Volume](./plans/2026-10-30-score-cap-stage-countdown-bgm.md)
 
 ## Active Phase
-[P03 Azure Cutover](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P03-azure-cutover/phase.md)
+[P01 Gameplay Polish](./phases/2026-10-30-score-cap-stage-countdown-bgm/P01-gameplay-polish/phase.md)
 
 ## Active Task
-[T02 Deploy and Verify Cosmos](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P03-azure-cutover/T02-deploy-and-verify-cosmos.md)
+[T02 Stage Countdown](./phases/2026-10-30-score-cap-stage-countdown-bgm/P01-gameplay-polish/T02-stage-countdown.md)
 
 ## Last Completed Task
 [T03 Disable Local Record Persistence](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P02-cosmos-application/T03-disable-local-record-persistence.md) - `be80818`, 128 tests, lint, and build passed (2026-10-30).
 
 ## Status
+- P01-T01 score cap is implemented and validated: new in-game scores and result/API/Cosmos validation stop at the per-stage target. Existing Cosmos records were not changed; the user will edit previous over-target data. Web/API unit tests, lint, and both builds pass; emulator integration was skipped because its connection string is not configured.
+- The previous active task [Pursuer Design and Cosmos Migration P03-T02](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P03-azure-cutover/T02-deploy-and-verify-cosmos.md) is parked and remains `in_progress`; resume it after this plan is complete. Keep legacy Storage settings/account until its real company-account verification succeeds.
 - P02-T02 is complete. GitHub Actions verified the Cosmos emulator integration suite and the production artifact staging; local Docker was not required.
 - Azure target is provisioned at `stair-climb/players` with `/accountId` and its own shared 400 RU/s database throughput. The initial container under `maze-rescue` was deleted. The deployed SWA has Cosmos server settings added while legacy Table settings remain; Cosmos-backed code has not yet been deployed or company-account verified.
 - Parked prior pointer: [Azure Company Game Deployment P02-T03](./phases/2026-10-30-azure-company-game-deployment/P02-azure-release/T03-release-and-verify-url.md). Its real Entra login/save verification is superseded by the Cosmos-backed verification in P03-T02. Do not delete the legacy Storage account before that verification passes.
@@ -24,7 +26,7 @@
 - [Cosmos ranking storage migration](./decisions/2026-10-30-cosmos-ranking-storage-migration.md)
 
 ## Next Step (IMPORTANT)
-Read only the active P03-T02 blueprint and publish the verified Cosmos-backed API/game, then verify a real company-account save, ranking, and unlock restore at the existing Static Web Apps URL. Keep the Table settings/account until that live verification succeeds.
+Read the active P01-T02 blueprint. Add the three-second Continue countdown over the stair scene; keep stage time and pursuer stopped until it ends.
 ---
 
 ### Previous Context: Main Game Descent Conversion

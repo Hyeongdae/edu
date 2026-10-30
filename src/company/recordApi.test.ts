@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { companyAck, companyProfile, companySubmission } from "../test/companyFixtures";
-import { fetchLeaderboard, fetchProfile, postResult } from "./recordApi";
+import { fetchLeaderboard, fetchProfile, isSharedBest, postResult } from "./recordApi";
 
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
 
@@ -49,6 +49,7 @@ describe("company record HTTP boundary", () => {
   it.each([
     companyProfile({ accountId: "other-user" }), companyProfile({ highestClearedStage: 6 as never }),
     {}, { ...companyProfile(), best: { accountId: "employee-a", bestStage: 1, bestScore: 100 } },
+    companyProfile({ highestClearedStage: 1, best: { accountId: "employee-a", displayName: "A", bestStage: 1, bestScore: 151, remainingTimeCs: 100, achievedAt: "2026-10-30T00:00:00.000Z" } }),
   ])("rejects wrong-account or malformed official profiles: %j", async (profile) => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json(profile)));
     await expect(fetchProfile("employee-a", new AbortController().signal)).rejects.toMatchObject({ code: "invalid-response" });
@@ -71,6 +72,13 @@ describe("company record HTTP boundary", () => {
     vi.stubGlobal("fetch", fetcher);
     expect(await fetchLeaderboard(new AbortController().signal)).toEqual([]);
     await expect(fetchLeaderboard(new AbortController().signal)).rejects.toMatchObject({ code: "invalid-response" });
+  });
+
+  it("rejects a company ranking entry above its stage score target", () => {
+    expect(isSharedBest({ accountId: "employee-a", displayName: "A", bestStage: 1, bestScore: 150,
+      remainingTimeCs: 100, achievedAt: "2026-10-30T00:00:00.000Z" })).toBe(true);
+    expect(isSharedBest({ accountId: "employee-a", displayName: "A", bestStage: 1, bestScore: 151,
+      remainingTimeCs: 100, achievedAt: "2026-10-30T00:00:00.000Z" })).toBe(false);
   });
 
   it.each(["conflict", "stage-locked", "invalid-request", "storage-unavailable"] as const)("preserves safe API error code %s", async (code) => {

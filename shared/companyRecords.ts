@@ -88,7 +88,7 @@ export function validateResultForProfile(result: ResultInput, highest: ClearedSt
   }
 
   const rule = getStageRule(result.stage);
-  if (result.score > rule.scoreRequired + 3 || result.remainingTimeCs > rule.durationMs / 10) {
+  if (result.score > rule.scoreRequired || result.remainingTimeCs > rule.durationMs / 10) {
     return { ok: false, code: "invalid-request", message: "Result exceeds the stage score or time limits." };
   }
   const cleared = result.outcome === "cleared";

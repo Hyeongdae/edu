@@ -62,7 +62,7 @@ export interface GameMove {
   kind: "climb" | "jump";
   fromIndex: number;
   toIndex: number;
-  scoreGain: 1 | 2 | 4;
+  scoreGain: 1 | 2 | 3 | 4;
   isBonus: boolean;
 }
 

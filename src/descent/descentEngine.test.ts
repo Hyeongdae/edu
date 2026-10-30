@@ -139,21 +139,20 @@ describe("single-stage descent sessions", () => {
       highestClearedStage: 1, clearedStageThisRun: 1, checkpointEnteredAt: null,
       stageEndsAt: null, nextPursuerStepAt: null, eventEndsAt: null,
       recoveryEndsAt: null, captureEndsAt: null, lastPursuerMove: null });
-    expect(state.score).toBeGreaterThanOrEqual(150);
-    expect(state.score).toBeLessThanOrEqual(153);
+    expect(state.score).toBe(150);
     expect(tickDescent(state, 1e6)).toBe(state);
     expect(startDescent(state, 1e6)).toBe(state);
     expect(applyDescentInput(state, "jump", 1e6)).toBe(state);
     expect(resumeDescentAfterPause(state, 0, 1e6)).toBe(state);
   });
 
-  it.each([[149, false, 151], [149, true, 153], [148, true, 152]] as const)(
-    "retains the final jump's actual overshoot from %s with bonus %s", (score, bonus, expected) => {
+  it.each([[149, false, 150, 1], [149, true, 150, 1], [148, true, 150, 2]] as const)(
+    "caps the final jump from %s at 150 with bonus %s", (score, bonus, expected, credited) => {
       const before = freeze(jumpState({ score, eventEndsAt: bonus ? 30_000 : null }));
       const after = applyDescentInput(before, "jump", 100);
       expect(after).toMatchObject({ status: "game-over", endReason: "cleared", score: expected,
         checkpointEnteredAt: null, eventEndsAt: null, captureEndsAt: null, stepsClimbed: 3,
-        lastMove: { kind: "jump", fromIndex: 1, toIndex: 3, scoreGain: bonus ? 4 : 2, isBonus: bonus } });
+        lastMove: { kind: "jump", fromIndex: 1, toIndex: 3, scoreGain: credited, isBonus: bonus } });
       expect(after.obstacles).toEqual(revealObstacles(before.obstacles, after.route, 3, 1));
     },
   );

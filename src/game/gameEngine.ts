@@ -22,6 +22,7 @@ function validatePursuit(state: GameState): void {
   if (!isClearedStage(state.highestClearedStage) || !isClearedStage(state.clearedStageThisRun) ||
     state.highestClearedStage < state.clearedStageThisRun || state.clearedStageThisRun > state.stage ||
     state.stage > getHighestUnlockedStage(state.highestClearedStage) || !Number.isInteger(state.score) || state.score < 0 ||
+    state.score > getStageTargetScore(state.stage) || (state.status === "playing" && state.score >= getStageTargetScore(state.stage)) ||
     (state.status === "checkpoint" && (state.stage === 5 || state.clearedStageThisRun !== state.stage ||
       state.highestClearedStage < state.stage || state.checkpointEnteredAt === null || state.stageEndsAt !== null)) ||
     (state.status !== "checkpoint" && state.checkpointEnteredAt !== null)) {
@@ -202,7 +203,8 @@ export function applyInput(state: GameState, input: GameInput, nowMs: number): G
     eventSteps += distance;
     if (eventSteps >= EVENT_STEP_TARGET) { eventSteps = 0; eventEndsAt = nowMs + EVENT_DURATION_MS; }
   }
-  const scoreGain = (distance * (eventIsActive ? 2 : 1)) as GameMove["scoreGain"];
+  const rawScoreGain = distance * (eventIsActive ? 2 : 1);
+  const scoreGain = Math.min(rawScoreGain, getStageTargetScore(currentState.stage) - currentState.score) as GameMove["scoreGain"];
   const score = currentState.score + scoreGain;
   const pursuerDistance = nextStepsClimbed - currentState.pursuerIndex;
   const isPursuerCatchingUp = getPursuerCatchUpState(currentState.isPursuerCatchingUp, pursuerDistance);

@@ -108,11 +108,11 @@ describe.each(STAGE_RULES)("stage $stage result limits", (rule) => {
     expect(validateResultForProfile(valid({ score: 0, remainingTimeCs: 0 }), highest)).toEqual({ ok: true });
   });
 
-  it("accepts a clear at target and all possible bonus-jump overshoots", () => {
-    for (const extra of [0, 1, 2, 3]) {
-      expect(validateResultForProfile(valid({ score: rule.scoreRequired + extra, outcome: "cleared" }), highest))
-        .toEqual({ ok: true });
-    }
+  it("accepts a clear at the exact target and rejects any overshoot", () => {
+    expect(validateResultForProfile(valid({ score: rule.scoreRequired, outcome: "cleared" }), highest))
+      .toEqual({ ok: true });
+    expect(validateResultForProfile(valid({ score: rule.scoreRequired + 1, outcome: "cleared" }), highest))
+      .toMatchObject({ ok: false, code: "invalid-request" });
   });
 
   it("rejects impossible score/time and outcome combinations", () => {
@@ -201,7 +201,7 @@ describe("shared rankings", () => {
 
   it("deduplicates each account by its best complete ranking in either input order", () => {
     const strongest = best({ bestStage: 2, bestScore: 20, remainingTimeCs: 1 });
-    const weaker = best({ bestScore: 153, remainingTimeCs: 9000 });
+    const weaker = best({ bestScore: 150, remainingTimeCs: 9000 });
     const laterTie = { ...strongest, achievedAt: LATER_TIME };
     const other = best({ accountId: "employee-b", bestScore: 150 });
     expect(getSharedTopScores([weaker, laterTie, other, strongest])).toEqual([strongest, other]);
@@ -229,8 +229,8 @@ describe("immutable personal record merging", () => {
   });
 
   it("creates a clear record and unlocks the next stage", () => {
-    const merged = mergeSharedResult(null, actor, result({ score: 153, outcome: "cleared" }), FIRST_TIME);
-    expect(merged).toEqual({ changed: true, profile: profile({ highestClearedStage: 1, best: best({ bestScore: 153 }) }) });
+    const merged = mergeSharedResult(null, actor, result({ score: 150, outcome: "cleared" }), FIRST_TIME);
+    expect(merged).toEqual({ changed: true, profile: profile({ highestClearedStage: 1, best: best({ bestScore: 150 }) }) });
     expect(getHighestUnlockedStage(merged.profile.highestClearedStage)).toBe(2);
   });
 
@@ -271,7 +271,7 @@ describe("immutable personal record merging", () => {
   });
 
   it("replaces all fields when a higher stage beats a higher-score earlier stage", () => {
-    const previous = profile({ highestClearedStage: 1, best: best({ bestScore: 153, remainingTimeCs: 8000 }) });
+    const previous = profile({ highestClearedStage: 1, best: best({ bestScore: 150, remainingTimeCs: 8000 }) });
     const merged = mergeSharedResult(previous, actor, result({ stage: 2, score: 1, remainingTimeCs: 1 }), LATER_TIME);
     expect(merged.profile.best).toEqual(best({ bestStage: 2, bestScore: 1, remainingTimeCs: 1, achievedAt: LATER_TIME }));
   });
@@ -312,9 +312,9 @@ describe("immutable personal record merging", () => {
 
   it("preserves monotonic state regardless of retry order when concurrent writes are reread and merged", () => {
     const initial = profile({ highestClearedStage: 1, best: best({ bestScore: 150 }) });
-    const clear = result({ stage: 2, score: 201, remainingTimeCs: 100, outcome: "cleared" });
+    const clear = result({ stage: 2, score: 200, remainingTimeCs: 100, outcome: "cleared" });
     const failure = result({ stage: 2, score: 199, remainingTimeCs: 7000 });
-    const replay = result({ score: 153, remainingTimeCs: 9000, outcome: "cleared" });
+    const replay = result({ score: 150, remainingTimeCs: 9000, outcome: "cleared" });
     for (const sequence of [[clear, failure, replay, clear], [failure, replay, clear, failure], [replay, clear, failure, replay]]) {
       let current = initial;
       for (const input of sequence) {
@@ -324,7 +324,7 @@ describe("immutable personal record merging", () => {
         current = merged.profile;
       }
       expect(current).toEqual(profile({ highestClearedStage: 2, best: best({
-        bestStage: 2, bestScore: 201, remainingTimeCs: 100, achievedAt: LATER_TIME,
+        bestStage: 2, bestScore: 200, remainingTimeCs: 100, achievedAt: LATER_TIME,
       }) }));
     }
   });

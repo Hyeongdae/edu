@@ -192,7 +192,7 @@ describe("dedicated descending screen", () => {
     act(() => { keys.forEach(k => key(k)); });
     expect(screen.getByRole("heading", { name: "1단계 클리어!" })).toBeInTheDocument();
     const score = Number(screen.getByTestId("descent-score").textContent);
-    expect(score).toBeGreaterThanOrEqual(150); expect(score).toBeLessThanOrEqual(153);
+    expect(score).toBe(150);
     expect(c.playFootstep).toHaveBeenCalledTimes(keys.length);
     expect(c.playFall).not.toHaveBeenCalled(); expect(c.stopBgm).toHaveBeenCalledOnce();
     expect(document.querySelector(".descent-jump-overlay,.descent-step-overlay")).toBeNull();
@@ -209,7 +209,7 @@ describe("dedicated descending screen", () => {
     seedStart((s, now) => withObstacle({ ...engine.applyDescentInput(s, "forward", now), score: 149, eventEndsAt: now + 30000 }, 2));
     const { c } = draw(); start(); key(" ");
     expect(screen.getByRole("heading", { name: "1단계 클리어!" })).toBeInTheDocument();
-    expect(screen.getByTestId("descent-score")).toHaveTextContent("153");
+    expect(screen.getByTestId("descent-score")).toHaveTextContent("150");
     expect(c.playFootstep).toHaveBeenCalledOnce();
     expect(c.stopBgm).toHaveBeenCalledOnce();
     expect(document.querySelector(".descent-jump-overlay")).toBeNull();

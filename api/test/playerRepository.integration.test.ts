@@ -60,13 +60,13 @@ describe("real isolated Cosmos DB repository operations", () => {
     const owner = actor("create-race");
     const shared = holdFirstItemReadsTogether(emulator.container as unknown as Container);
     await Promise.all([
-      repository(shared).submit(owner, submission({ score: 151, outcome: "cleared", remainingTimeCs: 100 })),
+      repository(shared).submit(owner, submission({ score: 150, outcome: "cleared", remainingTimeCs: 100 })),
       repository(shared).submit(owner, submission({ score: 100, remainingTimeCs: 8000 })),
     ]);
 
     expect(await repository().getProfile(owner)).toMatchObject({
       highestClearedStage: 1,
-      best: { bestStage: 1, bestScore: 151, remainingTimeCs: 100 },
+      best: { bestStage: 1, bestScore: 150, remainingTimeCs: 100 },
     });
     expect(await countAccountDocuments(owner.accountId)).toBe(1);
   });

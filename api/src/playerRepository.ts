@@ -90,7 +90,7 @@ function decodeDocument(document: unknown): SharedProfile {
   if (hasBest) {
     if (!isGameStage(document.bestStage) ||
       typeof document.bestScore !== "number" || !Number.isSafeInteger(document.bestScore) || document.bestScore < 0 ||
-      document.bestScore > getStageRule(document.bestStage).scoreRequired + 3 ||
+      document.bestScore > getStageRule(document.bestStage).scoreRequired ||
       typeof document.remainingTimeCs !== "number" || !Number.isSafeInteger(document.remainingTimeCs) || document.remainingTimeCs < 0 ||
       document.remainingTimeCs > getStageRule(document.bestStage).durationMs / 10 ||
       typeof document.achievedAt !== "string" || !Number.isFinite(Date.parse(document.achievedAt)) ||

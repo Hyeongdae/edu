@@ -293,7 +293,7 @@ describe("fall pursuit scheduling", () => {
     const blocked = applyInput(fallen, "forward", 499);
     expect(blocked).toMatchObject({ status: "playing", score: 149, stepsClimbed: 0, recoveryEndsAt: 500 });
     const checkpoint = applyInput(blocked, "forward", 500);
-    expect(checkpoint).toMatchObject({ status: "checkpoint", score: 151, stepsClimbed: 1,
+    expect(checkpoint).toMatchObject({ status: "checkpoint", score: 150, stepsClimbed: 1,
       recoveryEndsAt: null, lastMistake: false, nextPursuerStepAt: null, lastPursuerMove: null });
     expect(tickGame(checkpoint, 95_000)).toBe(checkpoint);
     expect(continueGame(checkpoint, 95_000)).toMatchObject({ status: "playing", stage: 2,

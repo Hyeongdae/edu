@@ -51,11 +51,11 @@ describe("GameHud stage clock", () => {
   });
 
   it("distinguishes final clear from a stage-five time limit", () => {
-    const state = { ...createGameState(() => 0, {stage: 5, highestClearedStage: 4}), status: "game-over" as const, score: 351, endReason: "cleared" as const };
+    const state = { ...createGameState(() => 0, {stage: 5, highestClearedStage: 4}), status: "game-over" as const, score: 350, endReason: "cleared" as const };
     const view = render(<GameHud state={state} stageSecondsLeft={0} eventSecondsLeft={0} scoreGain={2} scoreGainIsBonus={true} scoreAnimationKey={1} />);
     expect(screen.getByTestId("stage-time")).toHaveTextContent("클리어");
     expect(screen.getByText("모든 단계 클리어")).toBeInTheDocument();
-    expect(screen.getByTestId("score-value")).toHaveTextContent("351");
+    expect(screen.getByTestId("score-value")).toHaveTextContent("350");
     view.rerender(<GameHud state={{ ...state, endReason: "time-limit" }} stageSecondsLeft={0} eventSecondsLeft={0} scoreGain={null} scoreGainIsBonus={false} scoreAnimationKey={1} />);
     expect(screen.getByTestId("stage-time")).toHaveTextContent("00:00");
     expect(screen.getByText("목표 350점")).toBeInTheDocument();
@@ -63,7 +63,7 @@ describe("GameHud stage clock", () => {
   });
 
   it("shows checkpoint clear and a stage-local target without a life card", () => {
-    const state = { ...createGameState(), status: "checkpoint" as const, score: 151,
+    const state = { ...createGameState(), status: "checkpoint" as const, score: 150,
       highestClearedStage: 1 as const, clearedStageThisRun: 1 as const, checkpointEnteredAt: 0 };
     render(<GameHud state={state} stageSecondsLeft={0} eventSecondsLeft={20} scoreGain={2}
       scoreGainIsBonus={true} scoreAnimationKey={1} />);
