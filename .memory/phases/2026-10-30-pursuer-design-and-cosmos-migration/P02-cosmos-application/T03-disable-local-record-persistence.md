@@ -1,6 +1,6 @@
 # Task: T03 Disable Local Record Persistence
 
-## Status: pending
+## Status: done
 
 ## Goal
 Keep local/demo gameplay usable without reading or writing browser-local rankings or stage-unlock records; only an authenticated deployed session uses the company record API/Cosmos-backed profile.
@@ -44,15 +44,15 @@ Keep local/demo gameplay usable without reading or writing browser-local ranking
 - If a local leaderboard dialog is opened, its browser scope remains empty and uses the new local-only explanatory empty-state copy.
 
 ## Acceptance Criteria
-- [ ] Local/demo startup makes no local leaderboard/progress reads; result handling makes no local record writes and makes no `/api/results` request.
-- [ ] Local gameplay can still clear/select higher stages during the same in-memory session; reload starts at stage 1.
-- [ ] The local leaderboard clearly states that local records are not saved instead of promising a save.
-- [ ] Hosted company profile, unlock, submit, ranking, offline retry, and result-ACK behavior are unchanged.
+- [x] Local/demo startup makes no local leaderboard/progress reads; result handling makes no local record writes and makes no `/api/results` request.
+- [x] Local gameplay can still clear/select higher stages during the same in-memory session; reload starts at stage 1.
+- [x] The local leaderboard clearly states that local records are not saved instead of promising a save.
+- [x] Hosted company profile, unlock, submit, ranking, offline retry, and result-ACK behavior are unchanged.
 
 ## Validation
-- `npm test -- --run src/game/GameScreen.test.tsx src/leaderboard/LeaderboardPanel.test.tsx src/company/CompanyRecordsGate.test.tsx src/company/CompanyRecordStore.test.ts` — local non-persistence and hosted record behavior pass.
-- `npm run lint` — no unused storage imports or state remain.
-- `npm run build` — frontend TypeScript/Vite build passes.
+- `npm test -- --run src/game/GameScreen.test.tsx src/leaderboard/LeaderboardPanel.test.tsx src/company/CompanyRecordsGate.test.tsx src/company/CompanyRecordStore.test.ts` — 128 tests pass.
+- `npm run lint` — passes.
+- `npm run build` — TypeScript/Vite build passes (existing 500 kB chunk-size warning).
 
 ## Commit Message
 ```text
@@ -67,6 +67,6 @@ Task: T03-disable-local-record-persistence
 ```
 
 ## Progress
-- [ ] 구현 완료
-- [ ] 검증 통과
-- commit: pending
+- [x] 구현 완료
+- [x] 검증 통과
+- commit: `50d7965`

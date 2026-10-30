@@ -1,6 +1,6 @@
 # Task: T02 Cosmos Integration Coverage
 
-## Status: in_progress
+## Status: done
 
 ## Goal
 Exercise the Cosmos repository against an isolated NoSQL emulator in CI so item reads/writes, ranking queries, and ETag conflicts are checked without using the company Cosmos account or any real player records.
@@ -70,5 +70,5 @@ Task: T02-cosmos-integration-coverage
 
 ## Progress
 - [x] Implementation complete
-- [ ] Integration validation pending: wait for the GitHub Actions PR `verify` job.
-- commit: pending
+- [x] GitHub Actions PR `verify` passed, including the Cosmos emulator integration suite and production artifact staging.
+- commit: `b12fb0a` (follow-up fixes: `1953844`, `3b19c48`)

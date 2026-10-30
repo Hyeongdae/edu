@@ -16,13 +16,17 @@ export function LeaderboardPanel({ entries, currentAccountId, scope = "browser" 
     <section className="leaderboard-card" aria-labelledby="leaderboard-title">
       <div className="leaderboard-heading">
         <div>
-          <p className="leaderboard-kicker">{scope === "company" ? "COMPANY RANKING" : "THIS BROWSER"}</p>
+          <p className="leaderboard-kicker">{scope === "company" ? "COMPANY RANKING" : "LOCAL PLAY"}</p>
           <h2 id="leaderboard-title">최고 기록 랭킹</h2>
         </div>
         <span className="leaderboard-count">TOP 10</span>
       </div>
       {topScores.length === 0 ? (
-        <p className="leaderboard-empty">아직 저장된 기록이 없어요. 첫 기록을 만들어 보세요!</p>
+        <p className="leaderboard-empty">
+          {scope === "company"
+            ? "아직 저장된 기록이 없어요. 첫 기록을 만들어 보세요!"
+            : "로컬 플레이 기록은 저장되지 않아요. 회사 게임에 로그인하면 랭킹에 기록됩니다."}
+        </p>
       ) : (
         <ol className="leaderboard-list">
           {topScores.map((entry, index) => (

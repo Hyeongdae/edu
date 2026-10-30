@@ -4,16 +4,16 @@
 [Pursuer Design and Cosmos Migration](./plans/2026-10-30-pursuer-design-and-cosmos-migration.md)
 
 ## Active Phase
-[P02 Cosmos Application](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P02-cosmos-application/phase.md)
+[P03 Azure Cutover](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P03-azure-cutover/phase.md)
 
 ## Active Task
-[T02 Cosmos Integration Coverage](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P02-cosmos-application/T02-cosmos-integration-coverage.md)
+[T01 Provision Cosmos Container](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P03-azure-cutover/T01-provision-cosmos-container.md)
 
 ## Last Completed Task
-[T01 Cosmos Player Repository](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P02-cosmos-application/T01-cosmos-player-repository.md) - `cd7a914` (2026-10-30).
+[T03 Disable Local Record Persistence](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P02-cosmos-application/T03-disable-local-record-persistence.md) - `50d7965`, 128 tests, lint, and build passed (2026-10-30).
 
 ## Status
-- P02-T02 implementation is in progress. API unit tests/build, lint, and deployment-plan checks pass; the emulator integration test still requires Docker.
+- P02-T02 is complete. GitHub Actions verified the Cosmos emulator integration suite and the production artifact staging; local Docker was not required.
 - Azure target is provisioned at `stair-climb/players` with `/accountId` and its own shared 400 RU/s database throughput. The initial container under `maze-rescue` was deleted. The deployed SWA has Cosmos server settings added while legacy Table settings remain; Cosmos-backed code has not yet been deployed or company-account verified.
 - Parked prior pointer: [Azure Company Game Deployment P02-T03](./phases/2026-10-30-azure-company-game-deployment/P02-azure-release/T03-release-and-verify-url.md). Its real Entra login/save verification is superseded by the Cosmos-backed verification in P03-T02. Do not delete the legacy Storage account before that verification passes.
 - Confirmed boundaries: Cosmos `auth`/`game` containers remain untouched; local game runs save no ranking/progress records but retain in-memory unlocks for the current session; production records keep the current rank ordering; the old table history is not migrated.
@@ -24,7 +24,7 @@
 - [Cosmos ranking storage migration](./decisions/2026-10-30-cosmos-ranking-storage-migration.md)
 
 ## Next Step (IMPORTANT)
-Run the pull-request `verify` workflow, which starts the Cosmos emulator service on GitHub's Linux runner and runs `npm --prefix api run test:integration`. Do not advance to P02-T03 until the emulator-backed job succeeds.
+Read only the active P03-T01 blueprint and verify the Cosmos `stair-climb/players` container and Static Web App server settings; keep legacy Table settings/account until the real company-account verification passes in P03-T02.
 ---
 
 ### Previous Context: Main Game Descent Conversion
