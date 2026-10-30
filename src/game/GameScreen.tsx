@@ -4,6 +4,7 @@ import type { CompanyRecordBinding } from "../company/types";
 import { CompanyRecordsNotice } from "../company/CompanyRecordsNotice";
 import { applyInput, continueGame, createGameState, getStageSecondsLeft, quitAtCheckpoint, resetGame, resumeGameAfterPause, startGame, tickGame } from "./gameEngine";
 import { CheckpointPanel } from "./CheckpointPanel";
+import { StageTransitionCountdown } from "./StageTransitionCountdown";
 import { StageSelectPanel } from "./StageSelectPanel";
 import { getHighestUnlockedStage } from "./stageRules";
 import { getPursuerMotionDurationMs, PURSUER_POLL_INTERVAL_MS } from "./pursuitRules";
@@ -27,6 +28,7 @@ import "./game.css";
 import "./pixel-theme.css";
 
 const TITLE_SCENE_TRANSITION_MS = 200;
+const STAGE_COUNTDOWN_MS = 3000;
 type ActiveGameDialog = "settings" | "instructions" | "leaderboard" | null;
 type OpenGameDialog = Exclude<ActiveGameDialog, null>;
 
@@ -74,6 +76,8 @@ export function GameScreen({
   const [isTitleLeaving, setIsTitleLeaving] = useState(false);
   const titleTransitionTimeoutRef = useRef<number | undefined>(undefined);
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const [countdownEndsAt, setCountdownEndsAt] = useState<number | null>(null);
+  const countdownEndsAtRef = useRef<number | null>(null);
   const leaderboard = initialProfile.entries;
   const progressUnavailable = false;
   const [climbAnimationKey, setClimbAnimationKey] = useState(0);
@@ -225,15 +229,46 @@ export function GameScreen({
   };
 
   const handleContinue = () => {
-    const continuedAt = Date.now();
-    setNowMs(continuedAt);
-    setGameState((state) => continueGame(state, continuedAt));
+    if (gameState.status !== "checkpoint" || countdownEndsAtRef.current !== null) return;
+    const endsAt = Date.now() + STAGE_COUNTDOWN_MS;
+    countdownEndsAtRef.current = endsAt;
+    setNowMs(endsAt - STAGE_COUNTDOWN_MS);
+    setCountdownEndsAt(endsAt);
+  };
+  const clearStageCountdown = () => {
+    countdownEndsAtRef.current = null;
+    setCountdownEndsAt(null);
   };
   const handleQuit = () => {
+    if (countdownEndsAtRef.current !== null) return;
+    clearStageCountdown();
     const quitAt = Date.now();
     setNowMs(quitAt);
     setGameState((state) => quitAtCheckpoint(state, quitAt));
   };
+
+  useEffect(() => {
+    if (countdownEndsAt === null || gameState.status !== "checkpoint") return undefined;
+
+    const updateCountdown = () => {
+      if (document.visibilityState !== "visible" || countdownEndsAtRef.current !== countdownEndsAt) return;
+      const actualNowMs = Date.now();
+      setNowMs(actualNowMs);
+      if (actualNowMs < countdownEndsAt) return;
+
+      countdownEndsAtRef.current = null;
+      setCountdownEndsAt(null);
+      setGameState((state) => state.status === "checkpoint" ? continueGame(state, actualNowMs) : state);
+    };
+
+    const intervalId = window.setInterval(updateCountdown, 50);
+    document.addEventListener("visibilitychange", updateCountdown);
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", updateCountdown);
+      if (countdownEndsAtRef.current === countdownEndsAt) countdownEndsAtRef.current = null;
+    };
+  }, [countdownEndsAt, gameState.status]);
 
   useEffect(() => {
     const climbedSuccessfully = gameState.stepsClimbed > previousStepsRef.current;
@@ -549,7 +584,7 @@ export function GameScreen({
                   onJump={() => handleInput("jump")}
                   disabled={controlsDisabled}
                 />
-              ) : gameState.status === "checkpoint" ? (
+              ) : gameState.status === "checkpoint" && countdownEndsAt === null ? (
                 <CheckpointPanel stage={gameState.stage} score={gameState.score}
                   remainingTimeCs={stageResult!.remainingTimeCs}
                   onContinue={handleContinue} onQuit={handleQuit} disabled={false}
@@ -610,6 +645,12 @@ export function GameScreen({
               />
             </div>
           </div>
+          {gameState.status === "checkpoint" && countdownEndsAt !== null && (
+            <StageTransitionCountdown
+              nextStage={(gameState.stage + 1) as GameStage}
+              secondsRemaining={Math.max(1, Math.min(3, Math.ceil((countdownEndsAt - nowMs) / 1000))) as 1 | 2 | 3}
+            />
+          )}
           {isSettingsOpen && (
             <div
               className="settings-backdrop"

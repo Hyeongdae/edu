@@ -206,6 +206,13 @@
 .stair-game.pixel-theme .checkpoint-actions button { min-width: 0; min-height: 56px; white-space: normal; border-radius: 0; border: 3px solid var(--pixel-gold); background: #263d50; color: #eef7ff; font: inherit; cursor: pointer; }
 .stair-game.pixel-theme .checkpoint-actions button:focus-visible { outline: 3px solid #eef7ff; outline-offset: -6px; }
 .stair-game.pixel-theme .checkpoint-progress-error { background: #142238; color: #f7a9c8; overflow-wrap: anywhere; }
+.stair-game.pixel-theme .stage-transition-countdown { border: 4px solid var(--pixel-gold); box-shadow: 6px 6px 0 #080e1b; }
+.stair-game.pixel-theme .stage-transition-label { color: var(--pixel-cyan); font-size: clamp(1.1rem, 3vw, 2rem); font-weight: 800; }
+.stair-game.pixel-theme .stage-transition-number { color: var(--pixel-gold); font-size: clamp(7rem, 24vw, 15rem); font-weight: 900; text-shadow: 5px 5px 0 #713e16; }
+@media (prefers-reduced-motion: reduce) {
+  .stair-game.pixel-theme .stage-transition-countdown,
+  .stair-game.pixel-theme .stage-transition-number { animation: none !important; transition: none !important; }
+}
 @media (max-width: 720px) {
   .stair-game.pixel-theme .checkpoint-actions { grid-template-columns: minmax(0, 1fr); }
 }

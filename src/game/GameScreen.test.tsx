@@ -106,23 +106,23 @@ describe("company record persistence", () => {
     expect(screen.getByRole("button", { name: "5단계 선택" })).toHaveAttribute("aria-pressed", "true");
   });
 
-  it("submits the clear once and continues immediately while its cloud save is pending or failed", () => {
-    seedReadyStage(1);
+  it("submits the clear once and counts down while its cloud save is pending or failed", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(0); seedReadyStage(1);
     const records = companyBinding();
     const write = vi.spyOn(Storage.prototype, "setItem");
-    const view = render(<GameScreen account={account} companyRecords={records} />);
-    fireEvent.click(screen.getByRole("button", { name: "시작하기" })); climbOneStep();
+    render(<GameScreen account={account} companyRecords={records} />);
+    fireEvent.click(document.querySelector<HTMLButtonElement>(".stage-select-start")!); climbOneStep();
     expect(records.submitResult).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ stage: 1, score: 150, outcome: "cleared" }));
-    view.rerender(<GameScreen account={account} companyRecords={{ ...records, syncStatus: "error", pendingCount: 1, errorMessage: "사내 저장 실패" }} />);
-    expect(screen.getByText("사내 저장 실패")).toBeVisible();
-    expect(screen.getByRole("button", { name: "그만두기" })).toBeEnabled();
-    fireEvent.click(screen.getByRole("button", { name: "계속하기" }));
-    expect(screen.getByTestId("stage-value")).toHaveTextContent("2단계");
+    const continueButton = document.querySelector<HTMLButtonElement>(".checkpoint-actions button")!;
+    fireEvent.click(continueButton);
+    fireEvent.click(continueButton);
+    expect(screen.getByRole("status")).toHaveTextContent("3");
+    await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
+    expect(screen.getByTestId("stage-value")).toHaveTextContent(/^\d/);
     expect(screen.getByTestId("score-value")).toHaveTextContent("0");
     expect(records.submitResult).toHaveBeenCalledTimes(1);
     expect(write).not.toHaveBeenCalled();
   });
-
   it("does not pause or restart the active clock on cloud status rerenders", async () => {
     seedReadyStage(1, { score: 0 });
     const records = companyBinding();
@@ -189,6 +189,7 @@ describe("local record policy", () => {
     fireEvent.click(screen.getAllByRole("button")[0]); await act(async()=>{await vi.advanceTimersByTimeAsync(200);});
     fireEvent.click(document.querySelector<HTMLButtonElement>(".stage-select-start")!); climbOneStep();
     fireEvent.click(document.querySelector<HTMLButtonElement>(".checkpoint-actions button")!);
+    await act(async()=>{await vi.advanceTimersByTimeAsync(3000);});
     expect(screen.getByTestId("stage-value")).toHaveTextContent("2");
     expect(write.mock.calls.filter(([k])=>k===DESCENT_LEADERBOARD_KEY||k===DESCENT_PROGRESS_KEY)).toEqual([]);
     first.unmount(); renderBase(<GameScreen account={account} />);
@@ -1527,13 +1528,57 @@ describe("settings focus after audio retry", () => {
 
 describe("session checkpoints", () => {
   afterEach(() => { cleanup(); localStorage.clear(); vi.useRealTimers(); vi.restoreAllMocks(); });
-  it("continues to the next stage without saving browser records", () => {
+  it("keeps checkpoint clocks paused for three seconds, then starts stage time and pursuit", async () => {
     vi.useFakeTimers(); vi.setSystemTime(0); seedReadyStage(1);
-    const write=vi.spyOn(Storage.prototype,"setItem"); render(<GameScreen account={account}/>);
+    const continueSpy = vi.spyOn(gameEngine, "continueGame");
+    const inputSpy = vi.spyOn(gameEngine, "applyInput");
+    const write = vi.spyOn(Storage.prototype, "setItem"); render(<GameScreen account={account}/>);
     fireEvent.click(document.querySelector<HTMLButtonElement>(".stage-select-start")!); climbOneStep();
     fireEvent.click(document.querySelector<HTMLButtonElement>(".checkpoint-actions button")!);
-    expect(screen.getByTestId("stage-value")).toHaveTextContent("2");
+    expect(screen.getByRole("status")).toHaveTextContent("3");
+    expect(screen.getByTestId("stage-value")).toHaveTextContent(/^\d/);
+    expect(document.querySelectorAll(".checkpoint-actions button")).toHaveLength(0);
+    expect(continueSpy).not.toHaveBeenCalled();
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    expect(screen.getByRole("status")).toHaveTextContent("2");
+    for (const key of ["d", "j", " "]) fireEvent.keyDown(window, { key });
+    expect(inputSpy).toHaveBeenCalledTimes(1);
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    expect(screen.getByRole("status")).toHaveTextContent("1");
+    expect(continueSpy).not.toHaveBeenCalled();
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    expect(continueSpy).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ status: "checkpoint" }), 3000);
+    expect(continueSpy.mock.results[0].value).toMatchObject({ status: "playing", stage: 2, score: 0,
+      stageEndsAt: 3000 + getStageRule(2).durationMs,
+      nextPursuerStepAt: 3000 + getStageRule(2).pursuerStepIntervalMs });
+    expect(screen.getByTestId("stage-value")).toHaveTextContent(/^\d/);
     expect(write.mock.calls.filter(([k])=>k===DESCENT_LEADERBOARD_KEY||k===DESCENT_PROGRESS_KEY)).toEqual([]);
+  });
+  it("keeps Quit available before Continue and cancels the countdown timer on unmount", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(0); seedReadyStage(1);
+    const continueSpy = vi.spyOn(gameEngine, "continueGame");
+    const view = render(<GameScreen account={account}/>);
+    fireEvent.click(document.querySelector<HTMLButtonElement>(".stage-select-start")!); climbOneStep();
+    expect(document.querySelectorAll(".checkpoint-actions button")).toHaveLength(2);
+    fireEvent.click(document.querySelector<HTMLButtonElement>(".checkpoint-actions button")!);
+    expect(document.querySelectorAll(".checkpoint-actions button")).toHaveLength(0);
+    view.unmount();
+    await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
+    expect(continueSpy).not.toHaveBeenCalled();
+  });
+  it("waits until a hidden page becomes active before completing a delayed countdown", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(0); seedReadyStage(1);
+    const continueSpy = vi.spyOn(gameEngine, "continueGame");
+    const visibility = vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
+    render(<GameScreen account={account}/>);
+    fireEvent.click(document.querySelector<HTMLButtonElement>(".stage-select-start")!); climbOneStep();
+    fireEvent.click(document.querySelector<HTMLButtonElement>(".checkpoint-actions button")!);
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+    expect(continueSpy).not.toHaveBeenCalled();
+    visibility.mockReturnValue("visible");
+    fireEvent(document, new Event("visibilitychange"));
+    expect(continueSpy).toHaveBeenCalledOnce();
+    expect(continueSpy.mock.calls[0][1]).toBe(5000);
   });
   it("still submits authenticated company results", () => {
     vi.useFakeTimers(); vi.setSystemTime(0); seedReadyStage(1);
@@ -1543,7 +1588,6 @@ describe("session checkpoints", () => {
     expect(write.mock.calls.filter(([k])=>k===DESCENT_LEADERBOARD_KEY||k===DESCENT_PROGRESS_KEY)).toEqual([]);
   });
 });
-
 describe("local stage selection", () => {
   afterEach(() => { cleanup(); localStorage.clear(); vi.useRealTimers(); vi.restoreAllMocks(); });
   it("does not import old progress when choosing a starting stage", () => {

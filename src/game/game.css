@@ -72,6 +72,21 @@
   outline-offset: 3px;
 }
 
+.stage-transition-countdown {
+  position: absolute;
+  z-index: 6;
+  inset: 12px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 8px;
+  background: rgb(13 24 40 / 76%);
+  color: #fff;
+  text-align: center;
+}
+.stage-transition-label { margin: 0; }
+.stage-transition-number { line-height: 1; }
+
 .game-title-screen {
   position: absolute;
   z-index: 4;
