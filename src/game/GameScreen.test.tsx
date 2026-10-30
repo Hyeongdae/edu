@@ -291,7 +291,7 @@ describe("time-ranked result persistence", () => {
 describe("title screen entry", () => {
   afterEach(() => { cleanup(); localStorage.clear(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 
-  it("shows the game title and two actions, then opens stage selection without starting play", async () => {
+  it("shows the game title and three actions, then opens stage selection without starting play", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);
     const start = vi.spyOn(gameEngine, "startGame");
@@ -299,9 +299,10 @@ describe("title screen entry", () => {
 
     expect(screen.getByRole("heading", { level: 1, name: "덱스 탈출 넘버원" })).toBeVisible();
     expect(screen.getByText("계단을 내려가 1층까지 도착해 퇴근하세요!")).toBeVisible();
-    expect(screen.getAllByRole("button")).toHaveLength(2);
+    expect(screen.getAllByRole("button")).toHaveLength(3);
     expect(screen.getByRole("button", { name: "게임 시작" })).toBeVisible();
     expect(screen.getByRole("button", { name: "게임 설명" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "랭킹 보기" })).toBeVisible();
     expect(screen.queryByRole("region", { name: "단계 선택" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "게임 설정" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "?" })).not.toBeInTheDocument();
@@ -334,6 +335,63 @@ describe("title screen entry", () => {
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "playing");
     expect(screen.queryByRole("button", { name: "게임 설명" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "?" })).not.toBeInTheDocument();
+  });
+
+  it("opens the same company ranking from title and stage selection, then restores focus and stage", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const records = companyBinding(2);
+    records.entries = [{ accountId: "company-runner", displayName: "서버 플레이어", bestStage: 2, bestScore: 430,
+      remainingTimeCs: 2150, achievedAt: "2026-10-30T12:00:00.000Z" }];
+    const start = vi.spyOn(gameEngine, "startGame");
+    renderBase(<GameScreen account={account} companyRecords={records} />);
+
+    const titleTrigger = screen.getByRole("button", { name: "랭킹 보기" });
+    fireEvent.click(titleTrigger);
+    let dialog = screen.getByRole("dialog", { name: "최고 기록 랭킹" });
+    expect(within(dialog).getByText("COMPANY RANKING")).toBeVisible();
+    expect(within(dialog).getByText("서버 플레이어")).toBeVisible();
+    const closeButton = screen.getByRole("button", { name: "랭킹 닫기" });
+    expect(closeButton).toHaveFocus();
+    fireEvent.keyDown(dialog, { key: "Tab" });
+    expect(closeButton).toHaveFocus();
+    fireEvent.keyDown(dialog, { key: "Tab", shiftKey: true });
+    expect(closeButton).toHaveFocus();
+    fireEvent.keyDown(dialog, { key: "Escape" });
+    expect(titleTrigger).toHaveFocus();
+    expect(screen.queryByRole("region", { name: "단계 선택" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "게임 시작" }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(200); });
+    const stageTwo = screen.getByRole("button", { name: "2단계 선택" });
+    fireEvent.click(stageTwo);
+    expect(stageTwo).toHaveAttribute("aria-pressed", "true");
+
+    const stageTrigger = screen.getByRole("button", { name: "랭킹 보기" });
+    fireEvent.click(stageTrigger);
+    dialog = screen.getByRole("dialog", { name: "최고 기록 랭킹" });
+    expect(within(dialog).getByText("서버 플레이어")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "랭킹 닫기" }));
+    expect(stageTrigger).toHaveFocus();
+    expect(screen.getByRole("button", { name: "2단계 선택" })).toHaveAttribute("aria-pressed", "true");
+    expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "ready");
+    expect(start).not.toHaveBeenCalled();
+  });
+
+  it("uses browser-local ranking entries in local/demo mode", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    localStorage.setItem(DESCENT_LEADERBOARD_KEY, JSON.stringify([
+      { accountId: account.homeAccountId, displayName: "로컬 기록", bestStage: 1, bestScore: 275,
+        remainingTimeCs: 5100, achievedAt: "2026-10-30T11:00:00.000Z" },
+    ]));
+    renderBase(<GameScreen account={account} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "랭킹 보기" }));
+    const dialog = screen.getByRole("dialog", { name: "최고 기록 랭킹" });
+    expect(within(dialog).getByText("THIS BROWSER")).toBeVisible();
+    expect(within(dialog).getByText("로컬 기록")).toBeVisible();
+    expect(within(dialog).getByText("275점")).toBeVisible();
   });
 
   it("skips the title transition when reduced motion is preferred", () => {

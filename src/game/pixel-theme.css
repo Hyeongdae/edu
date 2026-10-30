@@ -129,6 +129,11 @@
   background: #15243b;
   color: var(--pixel-cyan);
 }
+.stair-game.pixel-theme .game-title-ranking {
+  border-color: var(--pixel-gold);
+  background: #302b27;
+  color: var(--pixel-gold);
+}
 .stair-game.pixel-theme .game-title-actions button:hover { transform: translateY(-2px); }
 .stair-game.pixel-theme .game-title-actions button:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #050b19; }
 
@@ -174,6 +179,8 @@
 .stair-game.pixel-theme .stage-select-start:disabled { opacity: 0.45; cursor: default; }
 .stair-game.pixel-theme .stage-select-summary { color: var(--pixel-cyan); font-weight: 700; }
 .stair-game.pixel-theme .stage-select-start { width: 100%; border-color: var(--pixel-gold); font-weight: 700; }
+.stair-game.pixel-theme .stage-select-leaderboard { width: 100%; min-height: 48px; border: 2px solid var(--pixel-cyan); border-radius: 0; background: #15243b; color: var(--pixel-cyan); font: inherit; font-weight: 700; cursor: pointer; }
+.stair-game.pixel-theme .stage-select-leaderboard:disabled { opacity: 0.45; cursor: default; }
 @media (max-width: 720px) {
   .stair-game.pixel-theme .stage-select-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
@@ -421,6 +428,15 @@
 .stair-game.pixel-theme .instructions-encouragement { border: 1px solid var(--pixel-gold); background: #302b27; color: var(--pixel-gold); }
 .stair-game.pixel-theme .settings-dialog { display: flex; width: min(100%, 680px); max-height: 100%; flex-direction: column; min-width: 0; min-height: 0; padding: 0; overflow: hidden; border: 2px solid var(--pixel-edge); border-radius: 0; background: var(--pixel-panel); box-shadow: 6px 6px 0 #030815; }
 .stair-game.pixel-theme .settings-dialog-header { flex: 0 0 auto; min-width: 0; gap: 10px; margin: 0; padding: 14px; border-bottom: 2px solid var(--pixel-edge); background: #151f37; }
+.stair-game.pixel-theme .leaderboard-dialog-backdrop { z-index: 8; padding: 20px; overflow: hidden; background: rgb(3 8 20 / 82%); }
+.stair-game.pixel-theme .leaderboard-dialog { width: min(100%, 760px); max-height: 100%; border: 2px solid var(--pixel-cyan); border-radius: 0; background: #0b1427; box-shadow: 6px 6px 0 #030815; }
+.stair-game.pixel-theme .leaderboard-dialog-header { padding: 12px 16px; border-bottom: 2px solid var(--pixel-edge); background: #151f37; color: var(--pixel-muted); }
+.stair-game.pixel-theme .leaderboard-dialog-kicker { font-size: 0.7rem; }
+.stair-game.pixel-theme .leaderboard-dialog-close { min-width: 56px; min-height: 40px; border: 1px solid var(--pixel-cyan); border-radius: 0; background: #173640; color: var(--pixel-cyan); font: inherit; cursor: pointer; }
+.stair-game.pixel-theme .leaderboard-dialog-close:focus-visible { outline: 2px solid var(--pixel-gold); outline-offset: 3px; }
+.stair-game.pixel-theme .leaderboard-dialog .leaderboard-card { min-height: 0; padding: 20px; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.stair-game.pixel-theme .leaderboard-dialog .leaderboard-heading { flex: 0 0 auto; }
+.stair-game.pixel-theme .leaderboard-dialog .leaderboard-list { min-height: 0; max-height: min(60vh, 540px); flex: 1 1 auto; overflow: auto; }
 .stair-game.pixel-theme .game-brand { min-width: 0; gap: 10px; }
 .stair-game.pixel-theme .brand-mark { width: 40px; height: 40px; flex: 0 0 40px; border: 2px solid var(--pixel-cyan); border-radius: 0; background: #173a45; box-shadow: none; color: var(--pixel-cyan); }
 .stair-game.pixel-theme .brand-kicker { color: var(--pixel-muted); font-size: 0.65rem; letter-spacing: 0; }
@@ -552,6 +568,9 @@
   .stair-game.pixel-theme .mobile-control-hint { display: inline; }
   .stair-game.pixel-theme .settings-backdrop { padding: 12px; }
   .stair-game.pixel-theme .instructions-backdrop { padding: 12px; }
+  .stair-game.pixel-theme .leaderboard-dialog-backdrop { padding: 12px; }
+  .stair-game.pixel-theme .leaderboard-dialog-header { padding: 10px; }
+  .stair-game.pixel-theme .leaderboard-dialog .leaderboard-card { padding: 12px; }
   .stair-game.pixel-theme .instructions-dialog-header { padding: 10px; }
   .stair-game.pixel-theme .instructions-content { padding: 10px; }
   .stair-game.pixel-theme .settings-dialog-header { padding: 10px; }

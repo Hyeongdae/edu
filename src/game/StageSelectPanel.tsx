@@ -7,11 +7,12 @@ interface StageSelectPanelProps {
   highestClearedStage: ClearedStage;
   onSelect: (stage: GameStage) => void;
   onStart: () => void;
+  onOpenLeaderboard: (trigger: HTMLButtonElement) => void;
   disabled: boolean;
   progressUnavailable: boolean;
 }
 
-export function StageSelectPanel({ selectedStage, highestClearedStage, onSelect, onStart, disabled, progressUnavailable }: StageSelectPanelProps): ReactElement {
+export function StageSelectPanel({ selectedStage, highestClearedStage, onSelect, onStart, onOpenLeaderboard, disabled, progressUnavailable }: StageSelectPanelProps): ReactElement {
   const selectedButtonRef = useRef<HTMLButtonElement>(null);
   useEffect(() => { selectedButtonRef.current?.focus(); }, []);
   const seconds = getStageRule(selectedStage).durationMs / 1000;
@@ -39,6 +40,8 @@ export function StageSelectPanel({ selectedStage, highestClearedStage, onSelect,
       {highestClearedStage > 0 && <p>최고 클리어 {highestClearedStage}단계</p>}
       {progressUnavailable && <p role="status">진행도를 읽지 못했습니다. 확인된 클리어 이력과 이번 플레이 진행도를 사용합니다.</p>}
       <button className="stage-select-start" type="button" disabled={disabled} onClick={onStart}>시작하기</button>
+      <button className="stage-select-leaderboard" type="button" aria-haspopup="dialog" aria-controls="leaderboard-dialog" disabled={disabled}
+        onClick={(event) => onOpenLeaderboard(event.currentTarget)}>랭킹 보기</button>
     </section>
   );
 }

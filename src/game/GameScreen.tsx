@@ -16,6 +16,7 @@ import { OvertimeCaptureEnding } from "./OvertimeCaptureEnding";
 import { ControlButtons } from "./ControlButtons";
 import { GameHud } from "./GameHud";
 import { GameInstructionsDialog } from "./GameInstructionsDialog";
+import { LeaderboardDialog } from "../leaderboard/LeaderboardDialog";
 import { StairScene } from "./StairScene";
 import { PixelIcon } from "./pixel/PixelIcon";
 import type { ClearedStage, GameInput, GameStage } from "./types";
@@ -28,6 +29,8 @@ import "./game.css";
 import "./pixel-theme.css";
 
 const TITLE_SCENE_TRANSITION_MS = 200;
+type ActiveGameDialog = "settings" | "instructions" | "leaderboard" | null;
+type OpenGameDialog = Exclude<ActiveGameDialog, null>;
 
 interface GameScreenProps {
   account: GameAccount;
@@ -87,20 +90,24 @@ export function GameScreen({
   const [scoreGainIsBonus, setScoreGainIsBonus] = useState(false);
   const [scoreAnimationKey, setScoreAnimationKey] = useState(0);
   const [pursuerAnimationTime, setPursuerAnimationTime] = useState(0);
-  const [activeDialog, setActiveDialog] = useState<"settings" | "instructions" | null>(null);
+  const [activeDialog, setActiveDialog] = useState<ActiveGameDialog>(null);
   const isSettingsOpen = activeDialog === "settings";
   const isInstructionsOpen = activeDialog === "instructions";
+  const isLeaderboardOpen = activeDialog === "leaderboard";
   const runStartedRef = useRef(false);
   const pausedDialogOpenedAtRef = useRef<number | null>(null);
-  const activeDialogRef = useRef<"settings" | "instructions" | null>(null);
+  const activeDialogRef = useRef<ActiveGameDialog>(null);
   const settingsTriggerRef = useRef<HTMLButtonElement | null>(null);
   const settingsCloseRef = useRef<HTMLButtonElement | null>(null);
   const instructionsTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const leaderboardReturnFocusRef = useRef<HTMLButtonElement | null>(null);
   const instructionsCloseRef = useRef<HTMLButtonElement | null>(null);
   const restartButtonRef = useRef<HTMLButtonElement | null>(null);
   const settingsDialogRef = useRef<HTMLElement | null>(null);
   const instructionsDialogRef = useRef<HTMLElement | null>(null);
-  const previousDialogRef = useRef<"settings" | "instructions" | null>(null);
+  const leaderboardCloseRef = useRef<HTMLButtonElement | null>(null);
+  const leaderboardDialogRef = useRef<HTMLElement | null>(null);
+  const previousDialogRef = useRef<ActiveGameDialog>(null);
   const previousStepsRef = useRef(gameState.stepsClimbed);
   const climbTimeoutRef = useRef<number | undefined>(undefined);
   const previousScoreRef = useRef({ stage: gameState.stage, score: gameState.score });
@@ -110,10 +117,11 @@ export function GameScreen({
   const pursuerTimeoutRef = useRef<number | undefined>(undefined);
   const previousEventActiveRef = useRef(gameState.eventEndsAt !== null);
 
-  const openGameDialog = useCallback((dialog: "settings" | "instructions") => {
+  const openGameDialog = useCallback((dialog: OpenGameDialog) => {
     if (activeDialogRef.current !== null) return;
     if (dialog === "settings" && gameState.status !== "playing") return;
     if (dialog === "instructions" && !isTitleScreen) return;
+    if (dialog === "leaderboard" && gameState.status !== "ready") return;
 
     const openedAt = Date.now();
     if (gameState.status === "playing") {
@@ -130,7 +138,7 @@ export function GameScreen({
     setActiveDialog(dialog);
   }, [gameState, isTitleScreen]);
 
-  const closeGameDialog = useCallback((dialog: "settings" | "instructions") => {
+  const closeGameDialog = useCallback((dialog: OpenGameDialog) => {
     if (activeDialogRef.current !== dialog) return;
     const openedAt = pausedDialogOpenedAtRef.current;
     const closedAt = Date.now();
@@ -157,6 +165,15 @@ export function GameScreen({
 
   const closeInstructions = useCallback(() => {
     closeGameDialog("instructions");
+  }, [closeGameDialog]);
+
+  const openLeaderboard = useCallback((trigger: HTMLButtonElement) => {
+    leaderboardReturnFocusRef.current = trigger;
+    openGameDialog("leaderboard");
+  }, [openGameDialog]);
+
+  const closeLeaderboard = useCallback(() => {
+    closeGameDialog("leaderboard");
   }, [closeGameDialog]);
 
   const handleInput = useCallback((input: GameInput) => {
@@ -460,10 +477,15 @@ export function GameScreen({
       if (!settingsDialogRef.current?.contains(document.activeElement)) settingsCloseRef.current?.focus();
     } else if (activeDialog === "instructions") {
       if (!instructionsDialogRef.current?.contains(document.activeElement)) instructionsCloseRef.current?.focus();
+    } else if (activeDialog === "leaderboard") {
+      if (!leaderboardDialogRef.current?.contains(document.activeElement)) leaderboardCloseRef.current?.focus();
     } else if (previousDialogRef.current === "settings") {
       settingsTriggerRef.current?.focus();
     } else if (previousDialogRef.current === "instructions") {
       instructionsTriggerRef.current?.focus();
+    } else if (previousDialogRef.current === "leaderboard") {
+      leaderboardReturnFocusRef.current?.focus();
+      leaderboardReturnFocusRef.current = null;
     }
     previousDialogRef.current = activeDialog;
   }, [activeDialog, autoplayBlocked]);
@@ -492,6 +514,7 @@ export function GameScreen({
 
   const onSettingsDialogKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => onDialogKeyDown(event, closeSettings);
   const onInstructionsDialogKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => onDialogKeyDown(event, closeInstructions);
+  const onLeaderboardDialogKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => onDialogKeyDown(event, closeLeaderboard);
 
   return (
     <main className="stair-game pixel-theme" data-game-status={gameState.status}>
@@ -533,6 +556,10 @@ export function GameScreen({
                 >
                   게임 설명
                 </button>
+                <button className="game-title-ranking" type="button" aria-haspopup="dialog" aria-expanded={isLeaderboardOpen}
+                  aria-controls="leaderboard-dialog" onClick={(event) => openLeaderboard(event.currentTarget)}>
+                  랭킹 보기
+                </button>
               </div>
             </section>
           )}
@@ -555,7 +582,8 @@ export function GameScreen({
                 <StageSelectPanel selectedStage={gameState.stage} highestClearedStage={Math.max(
                   gameState.highestClearedStage, companyRecords?.profile.highestClearedStage ?? 0,
                 ) as ClearedStage}
-                  onSelect={handleSelectStage} onStart={handleStart} disabled={false} progressUnavailable={progressUnavailable} />
+                  onSelect={handleSelectStage} onStart={handleStart} onOpenLeaderboard={openLeaderboard}
+                  disabled={false} progressUnavailable={progressUnavailable} />
               ) : gameState.status === "playing" ? (
                 <ControlButtons
                   onForward={() => handleInput("forward")}
@@ -705,6 +733,17 @@ export function GameScreen({
               closeButtonRef={instructionsCloseRef}
               dialogRef={instructionsDialogRef}
               onKeyDown={onInstructionsDialogKeyDown}
+            />
+          )}
+          {isLeaderboardOpen && (
+            <LeaderboardDialog
+              entries={companyRecords?.entries ?? leaderboard}
+              currentAccountId={account.homeAccountId}
+              scope={usesCompanyRecords ? "company" : "browser"}
+              onClose={closeLeaderboard}
+              closeButtonRef={leaderboardCloseRef}
+              dialogRef={leaderboardDialogRef}
+              onKeyDown={onLeaderboardDialogKeyDown}
             />
           )}
         </div>
