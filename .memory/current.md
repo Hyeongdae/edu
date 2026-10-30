@@ -7,7 +7,7 @@
 [P03 Azure Cutover](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P03-azure-cutover/phase.md)
 
 ## Active Task
-None — plan complete (P03 Azure Cutover, 3/3 tasks).
+None - plan complete (P03 Azure Cutover, 3/3 tasks).
 
 ## Last Completed Task
 [T03 Delete Legacy Storage](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P03-azure-cutover/T03-delete-legacy-storage.md) - `e8e335d`; deployment tests 26/26, lint/build passed; old Table settings and dedicated account removed; Cosmos/SWA remain and user confirmed records remain available.
@@ -18,7 +18,7 @@ None — plan complete (P03 Azure Cutover, 3/3 tasks).
 - P03 Azure cutover is complete: company-account Cosmos persistence was verified before deleting the legacy Storage account; after cleanup the user confirmed the ranking records remained.
 - P02-T02 is complete. GitHub Actions verified the Cosmos emulator integration suite and the production artifact staging; local Docker was not required.
 - Azure target is live at `stair-climb/players` with `/accountId` and shared 400 RU/s database throughput. The deployed SWA has Cosmos server settings only; legacy Table settings and the dedicated Storage account have been removed.
-- Parked prior pointer: [Azure Company Game Deployment P02-T03](./phases/2026-10-30-azure-company-game-deployment/P02-azure-release/T03-release-and-verify-url.md). Its real Entra login/save verification is superseded by the Cosmos-backed verification in P03-T02. Do not delete the legacy Storage account before that verification passes.
+- Parked prior pointer: [Azure Company Game Deployment P02-T03](./phases/2026-10-30-azure-company-game-deployment/P02-azure-release/T03-release-and-verify-url.md). Its real Entra login/save verification was superseded by the Cosmos-backed verification in P03-T02.
 - Confirmed boundaries: Cosmos `auth`/`game` containers remain untouched; local game runs save no ranking/progress records but retain in-memory unlocks for the current session; production records keep the current rank ordering; the old table history is not migrated.
 - Existing `maze-rescue` containers and throughput are untouched. The new `stair-climb` database has a separate shared 400 RU/s pool; `players` has no dedicated throughput.
 

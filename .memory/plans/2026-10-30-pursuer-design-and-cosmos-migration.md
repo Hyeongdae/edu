@@ -36,4 +36,4 @@ Give the pursuer one consistent, slightly slimmer pixel-art appearance with a ye
 - Cosmos NoSQL emulator for isolated local/CI integration coverage: [Linux-based emulator](https://learn.microsoft.com/en-us/azure/cosmos-db/emulator-linux).
 
 ## Progress
-- done: 0/7 (active: P01-T01)
+- done: 7/7 tasks (plan complete)
