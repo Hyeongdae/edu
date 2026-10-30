@@ -7,10 +7,10 @@
 [P03 Azure Cutover](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P03-azure-cutover/phase.md)
 
 ## Active Task
-[T02 Deploy and Verify Cosmos](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P03-azure-cutover/T02-deploy-and-verify-cosmos.md)
+[T03 Delete Legacy Storage](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P03-azure-cutover/T03-delete-legacy-storage.md)
 
 ## Last Completed Task
-[T03 Default BGM Volume](./phases/2026-10-30-score-cap-stage-countdown-bgm/P01-gameplay-polish/T03-default-bgm-volume.md) - `7d54586`, 19 focused tests, lint, and build passed (2026-10-30).
+[T02 Deploy and Verify Cosmos](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P03-azure-cutover/T02-deploy-and-verify-cosmos.md) - `3b468ca`; verified deployment run `41016497593`, anonymous 302 protection, active Cosmos composite index, 14 valid profiles, and user-confirmed score/unlock persistence after reload.
 
 ## Status
 - P01 Gameplay Polish is complete (3/3): score cap, the three-second stage transition countdown, and the 30% default BGM preference are implemented and validated.
@@ -27,7 +27,7 @@
 - [Cosmos ranking storage migration](./decisions/2026-10-30-cosmos-ranking-storage-migration.md)
 
 ## Next Step (IMPORTANT)
-Read P03-T02 and continue Cosmos deployment verification. Preserve the existing legacy Storage settings/account until the Cosmos-backed company ranking is verified.
+Read P03-T03. The Cosmos ranking and account persistence are verified; remove the old Table app settings and delete only the dedicated `stdexescape384874bc` legacy Storage account.
 ---
 
 ### Previous Context: Main Game Descent Conversion

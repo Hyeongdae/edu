@@ -66,4 +66,4 @@ Task: T02-deploy-and-verify-cosmos
 - [x] Read-only scan found 14 schema-valid player profiles in `stair-climb/players`, partitioned by `/accountId`; identifiers and names were not logged.
 - [x] Current `stair-climb/players` composite index matches the five-field leaderboard sort; direct Cosmos TOP 10 query succeeds and the user confirms the ranking now loads.
 - [x] Verified the live Cosmos composite index policy and successful TOP 10 query after the user updated the index.
-- commit: pending (record after commit)
+- commit: `3b468ca`
