@@ -1,6 +1,6 @@
-# Task: T03 Delete Legacy Storage
+﻿# Task: T03 Delete Legacy Storage
 
-## Status: pending
+## Status: done
 
 ## Goal
 After T02 proves that real company records are saved and restored from Cosmos, remove the obsolete Table app settings and delete only the dedicated game Storage account requested by the user.
@@ -14,11 +14,11 @@ After T02 proves that real company records are saved and restored from Cosmos, r
 ### I01. Remove the legacy app settings and Storage account
 
 - Related Files:
-  - `deploy/Deploy-DexEscape.ps1` :: final Apply configuration and retired-resource handling — remove old Storage provisioning/configuration after the account is deleted; modify.
-  - `deploy/DeploymentPlan.psm1` :: `Assert-DexManifest`, `Get-DeploymentPlan`, permissions — remove `legacyStorageAccountName` from the final steady-state target; modify.
-  - `deploy/azure.resources.json` :: final manifest — record Cosmos target only and remove retired Storage identifiers; modify.
-  - `scripts/deployment-plan.test.mjs` :: final plan/Apply expectations — assert no Storage creation, Table creation, or old setting returns; modify.
-  - `deploy/RELEASE.md` :: final API storage and deleted-resource status — update with non-secret facts.
+  - `deploy/Deploy-DexEscape.ps1` :: final Apply configuration and retired-resource handling ??remove old Storage provisioning/configuration after the account is deleted; modify.
+  - `deploy/DeploymentPlan.psm1` :: `Assert-DexManifest`, `Get-DeploymentPlan`, permissions ??remove `legacyStorageAccountName` from the final steady-state target; modify.
+  - `deploy/azure.resources.json` :: final manifest ??record Cosmos target only and remove retired Storage identifiers; modify.
+  - `scripts/deployment-plan.test.mjs` :: final plan/Apply expectations ??assert no Storage creation, Table creation, or old setting returns; modify.
+  - `deploy/RELEASE.md` :: final API storage and deleted-resource status ??update with non-secret facts.
 
 #### Details
 - **Preconditions**:
@@ -34,26 +34,26 @@ After T02 proves that real company records are saved and restored from Cosmos, r
 ### I02. Final source/release verification
 
 - Related Files:
-  - `deploy/azure.resources.json` :: final Cosmos-only manifest — verify no secret/legacy account field remains.
-  - `deploy/RELEASE.md` :: final live-storage note — verify Cosmos account/database/container identifiers and production URL; no personal record data.
-  - `deploy/DeploymentPlan.psm1` and `deploy/Deploy-DexEscape.ps1` :: final steady-state script — verify Apply/PlanOnly never recreates Table resources.
+  - `deploy/azure.resources.json` :: final Cosmos-only manifest ??verify no secret/legacy account field remains.
+  - `deploy/RELEASE.md` :: final live-storage note ??verify Cosmos account/database/container identifiers and production URL; no personal record data.
+  - `deploy/DeploymentPlan.psm1` and `deploy/Deploy-DexEscape.ps1` :: final steady-state script ??verify Apply/PlanOnly never recreates Table resources.
 
 #### Details
 - Search source/config/docs for `DexEscapePlayers`, `GAME_RECORDS_TABLE`, `GAME_RECORDS_CONNECTION_STRING`, and `Microsoft.Storage/storageAccounts`; remove production provisioning references while retaining historical decision/task evidence as historical records, not as active config.
 - Validate all unrelated SWA settings and the Entra app configuration remain unchanged. Do not modify or clear `auth`/`game` containers.
 
 ## Acceptance Criteria
-- [ ] T02 live verification passed before deletion begins.
-- [ ] Only `stdexescape384874bc` is deleted; the account is absent and the SWA/Cosmos resources remain.
-- [ ] Old Table app settings and active provisioning references are removed; rerun does not recreate storage/table resources.
-- [ ] Production rankings/profile continue to read/write Cosmos after the cleanup.
-- [ ] Existing `maze-rescue` Cosmos containers/data and its 400 RU/s throughput are unchanged; `stair-climb/players` remains available with its separate shared 400 RU/s database throughput.
+- [x] T02 live verification passed before deletion begins.
+- [x] Only `stdexescape384874bc` is deleted; the account is absent and the SWA/Cosmos resources remain.
+- [x] Old Table app settings and active provisioning references are removed; rerun does not recreate storage/table resources.
+- [x] Production rankings/profile continue to read/write Cosmos after the cleanup; the user confirmed their records remained.
+- [x] Existing `maze-rescue` Cosmos containers/data and its 400 RU/s throughput are unchanged; `stair-climb/players` remains available with its separate shared 400 RU/s database throughput.
 
 ## Validation
-- `npm run test:deployment` — final manifest and idempotent Apply tests prove no Table/Storage recreation.
-- `npm run lint` — scripts and tests pass static checks.
-- `npm run build` — deployed app build remains valid.
-- Read-only Azure verification — legacy account absent, Cosmos/SWA resources present, Cosmos server settings remain present, and post-delete company profile/leaderboard smoke succeeds.
+- `npm run test:deployment` ??final manifest and idempotent Apply tests prove no Table/Storage recreation.
+- `npm run lint` ??scripts and tests pass static checks.
+- `npm run build` ??deployed app build remains valid.
+- Read-only Azure verification ??legacy account absent, Cosmos/SWA resources present, Cosmos server settings remain present, and post-delete company profile/leaderboard smoke succeeds.
 
 ## Commit Message
 ```text
@@ -68,6 +68,6 @@ Task: T03-delete-legacy-storage
 ```
 
 ## Progress
-- [ ] 구현 완료
-- [ ] 검증 통과
+- [x] Implementation complete: old Table settings removed and only the dedicated `stdexescape384874bc` account deleted.
+- [x] Validation passed: deployment tests 26/26, lint, production build, Azure resource/settings check, anonymous API redirect (302), and user-confirmed Cosmos records remain available.
 - commit: pending

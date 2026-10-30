@@ -26,13 +26,13 @@ function Assert-DexUuid {
 function Assert-DexManifest {
     param($Manifest, [switch]$AllowIncomplete)
     $value = ConvertTo-DexMap $Manifest
-    $fields = @('schemaVersion','repository','branch','resourceGroup','location','staticSiteName','cosmosAccountName','cosmosDatabaseName','cosmosContainerName','cosmosDatabaseThroughput','legacyStorageAccountName','tableName','sku','defaultHostName','url','tenantFingerprint','credential')
+    $fields = @('schemaVersion','repository','branch','resourceGroup','location','staticSiteName','cosmosAccountName','cosmosDatabaseName','cosmosContainerName','cosmosDatabaseThroughput','sku','defaultHostName','url','tenantFingerprint','credential')
     if ($value.Count -ne $fields.Count -or @($value.Keys | Where-Object { $_ -notin $fields }).Count -ne 0) { throw 'Unexpected manifest fields; refusing to serialize credentials or raw provider output.' }
-    if ($value.schemaVersion -ne 2 -or $value.repository -cne 'Hyeongdae/edu' -or $value.branch -cne 'main' -or $value.sku -cne 'Standard' -or
+    if ($value.schemaVersion -ne 3 -or $value.repository -cne 'Hyeongdae/edu' -or $value.branch -cne 'main' -or $value.sku -cne 'Standard' -or
         $value.cosmosAccountName -cne 'maze-rescue-ms-b7af62a9' -or $value.cosmosDatabaseName -cne 'stair-climb' -or $value.cosmosContainerName -cne 'players' -or
-        $value.cosmosDatabaseThroughput -ne 400 -or $value.legacyStorageAccountName -cne 'stdexescape384874bc' -or $value.tableName -cne 'DexEscapePlayers') { throw 'Unexpected deployment target.' }
+        $value.cosmosDatabaseThroughput -ne 400) { throw 'Unexpected deployment target.' }
     if ($value.resourceGroup -notmatch '^[a-z0-9][a-z0-9-]{1,88}$' -or $value.location -notmatch '^[a-z][a-z0-9]+$' -or
-        $value.staticSiteName -notmatch '^[a-z0-9][a-z0-9-]{1,59}$' -or $value.legacyStorageAccountName -notmatch '^[a-z0-9]{3,24}$' -or
+        $value.staticSiteName -notmatch '^[a-z0-9][a-z0-9-]{1,59}$' -or
         $value.tenantFingerprint -notmatch '^[a-f0-9]{12}$') { throw 'Invalid deployment names or tenant fingerprint.' }
     if ($value.defaultHostName) {
         if ($value.defaultHostName -notmatch '^[a-z0-9][a-z0-9.-]*\.azurestaticapps\.net$' -or $value.url -cne ('https://' + $value.defaultHostName)) { throw 'Unexpected production hostname.' }
@@ -64,9 +64,9 @@ function Get-DeploymentPlan {
         $ResourceGroup = $SavedManifest.resourceGroup; $Location = $SavedManifest.location
         $StaticSiteName = $SavedManifest.staticSiteName
     }
-    $manifest = [ordered]@{ schemaVersion = 2; repository = $Repository; branch = 'main'; resourceGroup = $ResourceGroup;
+    $manifest = [ordered]@{ schemaVersion = 3; repository = $Repository; branch = 'main'; resourceGroup = $ResourceGroup;
         location = $Location; staticSiteName = $StaticSiteName; cosmosAccountName = 'maze-rescue-ms-b7af62a9'; cosmosDatabaseName = 'stair-climb';
-        cosmosContainerName = 'players'; cosmosDatabaseThroughput = 400; legacyStorageAccountName = 'stdexescape384874bc'; tableName = 'DexEscapePlayers';
+        cosmosContainerName = 'players'; cosmosDatabaseThroughput = 400;
         sku = 'Standard'; defaultHostName = ''; url = ''; tenantFingerprint = $fingerprint;
         credential = @{ keyId = ''; expiresAt = '' } }
     Assert-DexManifest $manifest -AllowIncomplete

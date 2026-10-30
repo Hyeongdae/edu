@@ -21,13 +21,26 @@ function powershell(code) {
 }
 const plan = `$plan=Get-DeploymentPlan -SubscriptionId '${ids.subscription}' -TenantId '${ids.tenant}' -ClientId '${ids.client}'; `;
 
-test("binds the exact Cosmos ranking target and explicitly chooses Standard", () => {
+test("binds the exact Cosmos-only target and explicitly chooses Standard", () => {
   const result = powershell(plan + '$plan.Target | ConvertTo-Json -Depth 5');
+  assert.equal(result.schemaVersion, 3);
   assert.equal(result.sku, "Standard"); assert.equal(result.repository, "Hyeongdae/edu");
   assert.equal(result.cosmosAccountName, "maze-rescue-ms-b7af62a9");
   assert.equal(result.cosmosDatabaseName, "stair-climb"); assert.equal(result.cosmosContainerName, "players");
-  assert.equal(result.cosmosDatabaseThroughput, 400); assert.equal(result.legacyStorageAccountName, "stdexescape384874bc");
+  assert.equal(result.cosmosDatabaseThroughput, 400);
+  assert.equal(Object.hasOwn(result, "legacyStorageAccountName"), false);
+  assert.equal(Object.hasOwn(result, "tableName"), false);
   assert.equal(result.staticSiteName, powershell(plan + '$plan.Target | ConvertTo-Json -Depth 5').staticSiteName);
+});
+
+test("rejects the retired schema that still names the old Table account", () => {
+  const result = powershell(plan + `
+    $old=$plan.Target | ConvertTo-Json -Depth 8 | ConvertFrom-Json;
+    $old.schemaVersion=2; $old | Add-Member -NotePropertyName legacyStorageAccountName -NotePropertyValue 'stdexescape384874bc';
+    $old | Add-Member -NotePropertyName tableName -NotePropertyValue 'DexEscapePlayers';
+    $rejected=$false; try { Assert-DexManifest $old -AllowIncomplete } catch { $rejected=$true };
+    @{rejected=$rejected}|ConvertTo-Json`);
+  assert.equal(result.rejected, true);
 });
 
 test("rejects invalid target names, identifiers and repositories", () => {
@@ -111,7 +124,7 @@ test("permission preflight accepts scoped Contributor wildcards and rejects excl
   assert.equal(result.rejected, 2);
 });
 
-test("mock Apply is additive, secret-safe and reuses resources and credentials on rerun", async (t) => {
+test("mock Apply removes retired Table settings, remains secret-safe, and reuses resources on rerun", async (t) => {
   const base = await realpath(tmpdir());
   const folder = await mkdtemp(join(base, "dex-provision-fixture-"));
   t.after(async () => { const path = await realpath(folder); assert.equal(dirname(path), base); assert.ok(basename(path).startsWith("dex-provision-fixture-")); await rm(path, { recursive: true }); });
@@ -168,11 +181,12 @@ test("mock Apply is additive, secret-safe and reuses resources and credentials o
     $parameters=@{Apply=$true;SubscriptionId='${ids.subscription}';TenantId='${ids.tenant}';ClientId='${ids.client}';
       AzureCliPath='fake-az';GhPath='fake-gh';ToolRunner=$fake;ManifestPath=${literal(manifestPath)};StatePath=${literal(statePath)};UseExistingResourceGroup=$true;ResourceGroup='grill-me-edu'};
     $null=& ${literal(scriptPath)} @parameters; $count=$state.creates; $null=& ${literal(scriptPath)} @parameters;
-    if($state.settings.UNRELATED -cne 'keep' -or $state.settings.GAME_RECORDS_CONNECTION_STRING -cne 'legacy-table-secret' -or $state.settings.GAME_RECORDS_TABLE -cne 'DexEscapePlayers' -or $state.web.homePageUrl -cne 'https://other.example/'){throw 'Unrelated or rollback configuration lost'};
+    if($state.settings.UNRELATED -cne 'keep' -or $state.settings.ContainsKey('GAME_RECORDS_CONNECTION_STRING') -or $state.settings.ContainsKey('GAME_RECORDS_TABLE') -or $state.web.homePageUrl -cne 'https://other.example/'){throw 'Retired Table settings or unrelated configuration remain'};
     if($state.settings.GAME_RECORDS_COSMOS_CONNECTION_STRING -cne 'AccountEndpoint=https://fixture.documents.azure.com:443/;AccountKey=fixture-private-cosmos-key;' -or $state.settings.GAME_RECORDS_COSMOS_DATABASE -cne 'stair-climb' -or $state.settings.GAME_RECORDS_COSMOS_CONTAINER -cne 'players'){throw 'Cosmos settings mismatch'};
     @{creates=$state.creates;firstCreates=$count;group=$state.group;site=$state.site;container=$state.container;credentials=$state.passwords.Count;stdinOnly=$state.stdinOnly;patchSafe=$state.patchSafe;callbacks=@($state.web.redirectUris)}|ConvertTo-Json -Depth 5`);
   assert.equal(result.creates, 2, JSON.stringify(result)); assert.equal(result.firstCreates, 2); assert.equal(result.credentials, 1);
   assert.equal(result.stdinOnly, true); assert.equal(result.patchSafe, true);
+  assert.ok(!JSON.stringify(result).includes("legacyStorageAccountName"));
   assert.deepEqual(result.callbacks, ["https://other.example/callback", "https://fixture.azurestaticapps.net/.auth/login/aad/callback"]);
   const manifest = await readFile(manifestPath, "utf8");
   assert.ok(!/fixture-private|fixture-deployment-token|fixture-private-cosmos-key|connectionString|secretText/.test(manifest));

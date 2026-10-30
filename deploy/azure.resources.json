@@ -1,5 +1,5 @@
 {
-    "schemaVersion":  2,
+    "schemaVersion":  3,
     "repository":  "Hyeongdae/edu",
     "branch":  "main",
     "resourceGroup":  "grill-me-edu",
@@ -9,8 +9,6 @@
     "cosmosDatabaseName":  "stair-climb",
     "cosmosContainerName":  "players",
     "cosmosDatabaseThroughput":  400,
-    "legacyStorageAccountName":  "stdexescape384874bc",
-    "tableName":  "DexEscapePlayers",
     "sku":  "Standard",
     "defaultHostName":  "ashy-cliff-0e5e4b600.1.azurestaticapps.net",
     "url":  "https://ashy-cliff-0e5e4b600.1.azurestaticapps.net",

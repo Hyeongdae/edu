@@ -40,8 +40,7 @@ if (-not $Apply) {
     [pscustomobject]@{ mode = 'PlanOnly'; identityConfigured = $plan.IdentityConfigured; repository = $target.repository; branch = $target.branch;
         resourceGroup = $target.resourceGroup; location = $target.location; staticSiteName = $target.staticSiteName;
         cosmosAccountName = $target.cosmosAccountName; cosmosDatabaseName = $target.cosmosDatabaseName;
-        cosmosContainerName = $target.cosmosContainerName; cosmosDatabaseThroughput = $target.cosmosDatabaseThroughput;
-        legacyStorageAccountName = $target.legacyStorageAccountName; tableName = $target.tableName; sku = $target.sku;
+        cosmosContainerName = $target.cosmosContainerName; cosmosDatabaseThroughput = $target.cosmosDatabaseThroughput; sku = $target.sku;
         useExistingResourceGroup = [bool]$UseExistingResourceGroup;
         savedTarget = ($null -ne $saved); cloudWrites = $false } | ConvertTo-Json
     return
@@ -178,6 +177,8 @@ try {
     if (-not $cosmos.documentEndpoint -or -not $cosmosKeys.primaryMasterKey) { throw 'Cosmos endpoint or key was not returned.' }
     $cosmosConnectionString = 'AccountEndpoint=' + $cosmos.documentEndpoint + ';AccountKey=' + $cosmosKeys.primaryMasterKey + ';'
     $settings['AZURE_CLIENT_ID'] = $plan.ClientId
+    $null = $settings.Remove('GAME_RECORDS_CONNECTION_STRING')
+    $null = $settings.Remove('GAME_RECORDS_TABLE')
     $settings['GAME_RECORDS_COSMOS_CONNECTION_STRING'] = $cosmosConnectionString
     $settings['GAME_RECORDS_COSMOS_DATABASE'] = $target.cosmosDatabaseName
     $settings['GAME_RECORDS_COSMOS_CONTAINER'] = $target.cosmosContainerName

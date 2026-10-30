@@ -7,17 +7,17 @@
 [P03 Azure Cutover](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P03-azure-cutover/phase.md)
 
 ## Active Task
-[T03 Delete Legacy Storage](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P03-azure-cutover/T03-delete-legacy-storage.md)
+None — plan complete (P03 Azure Cutover, 3/3 tasks).
 
 ## Last Completed Task
-[T02 Deploy and Verify Cosmos](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P03-azure-cutover/T02-deploy-and-verify-cosmos.md) - `3b468ca`; verified deployment run `41016497593`, anonymous 302 protection, active Cosmos composite index, 14 valid profiles, and user-confirmed score/unlock persistence after reload.
+[T03 Delete Legacy Storage](./phases/2026-10-30-pursuer-design-and-cosmos-migration/P03-azure-cutover/T03-delete-legacy-storage.md) - deployment tests 26/26, lint/build passed; old Table settings and dedicated account removed; Cosmos/SWA remain and user confirmed records remain available.
 
 ## Status
 - P01 Gameplay Polish is complete (3/3): score cap, the three-second stage transition countdown, and the 30% default BGM preference are implemented and validated.
 - P01-T01 score cap is implemented and validated: new in-game scores and result/API/Cosmos validation stop at the per-stage target. Existing Cosmos records were not changed; the user will edit previous over-target data. Web/API unit tests, lint, and both builds pass; emulator integration was skipped because its connection string is not configured.
-- P03-T02 is now active again. Keep legacy Storage settings/account until real company-account verification of Cosmos-backed rankings succeeds.
+- P03 Azure cutover is complete: company-account Cosmos persistence was verified before deleting the legacy Storage account; after cleanup the user confirmed the ranking records remained.
 - P02-T02 is complete. GitHub Actions verified the Cosmos emulator integration suite and the production artifact staging; local Docker was not required.
-- Azure target is provisioned at `stair-climb/players` with `/accountId` and its own shared 400 RU/s database throughput. The initial container under `maze-rescue` was deleted. The deployed SWA has Cosmos server settings added while legacy Table settings remain; Cosmos-backed code has not yet been deployed or company-account verified.
+- Azure target is live at `stair-climb/players` with `/accountId` and shared 400 RU/s database throughput. The deployed SWA has Cosmos server settings only; legacy Table settings and the dedicated Storage account have been removed.
 - Parked prior pointer: [Azure Company Game Deployment P02-T03](./phases/2026-10-30-azure-company-game-deployment/P02-azure-release/T03-release-and-verify-url.md). Its real Entra login/save verification is superseded by the Cosmos-backed verification in P03-T02. Do not delete the legacy Storage account before that verification passes.
 - Confirmed boundaries: Cosmos `auth`/`game` containers remain untouched; local game runs save no ranking/progress records but retain in-memory unlocks for the current session; production records keep the current rank ordering; the old table history is not migrated.
 - Existing `maze-rescue` containers and throughput are untouched. The new `stair-climb` database has a separate shared 400 RU/s pool; `players` has no dedicated throughput.
@@ -27,7 +27,7 @@
 - [Cosmos ranking storage migration](./decisions/2026-10-30-cosmos-ranking-storage-migration.md)
 
 ## Next Step (IMPORTANT)
-Read P03-T03. The Cosmos ranking and account persistence are verified; remove the old Table app settings and delete only the dedicated `stdexescape384874bc` legacy Storage account.
+This plan is complete. Follow the user's next requested task.
 ---
 
 ### Previous Context: Main Game Descent Conversion
