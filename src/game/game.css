@@ -872,6 +872,12 @@
   font-size: 1.05rem;
 }
 
+.leaderboard-ranking-rule {
+  margin: 4px 0 0;
+  color: #71809a;
+  font-size: 0.68rem;
+}
+
 .leaderboard-kicker {
   margin-top: 0;
   font-size: 0.61rem;
@@ -910,6 +916,20 @@
 .leaderboard-row.is-current-player {
   background: #fff4dc;
   color: #795727;
+}
+
+.leaderboard-record {
+  min-width: 0;
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+}
+
+.leaderboard-time {
+  color: #71809a;
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .leaderboard-rank {

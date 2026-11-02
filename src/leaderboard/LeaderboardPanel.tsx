@@ -18,6 +18,7 @@ export function LeaderboardPanel({ entries, currentAccountId, scope = "browser" 
         <div>
           <p className="leaderboard-kicker">{scope === "company" ? "COMPANY RANKING" : "LOCAL PLAY"}</p>
           <h2 id="leaderboard-title">최고 기록 랭킹</h2>
+          <p className="leaderboard-ranking-rule">순위 기준: 단계 → 점수 → 남은 시간</p>
         </div>
         <span className="leaderboard-count">TOP 10</span>
       </div>

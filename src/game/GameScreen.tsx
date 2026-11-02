@@ -203,6 +203,17 @@ export function GameScreen({
     setGameState(preview);
   };
 
+  const handleReturnToTitle = () => {
+    if (activeDialogRef.current !== null || gameState.status !== "game-over" || !runStartedRef.current || isCaughtPresentationPending) return;
+    const knownHighest = readKnownHighest();
+    const preview = resetGame(undefined, { stage: getHighestUnlockedStage(knownHighest), highestClearedStage: knownHighest });
+    runStartedRef.current = false;
+    setIsTitleLeaving(false);
+    setIsTitleScreen(true);
+    setNowMs(Date.now());
+    setGameState(preview);
+  };
+
   const handleEnterStageSelection = () => {
     if (activeDialogRef.current !== null || gameState.status !== "ready" || isTitleLeaving) return;
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
@@ -574,7 +585,7 @@ export function GameScreen({
                 <PixelIcon name="settings" />
               </button>
 
-              {gameState.status === "ready" && countdownEndsAt !== null ? null : gameState.status === "ready" && (!isTitleScreen || isTitleLeaving) ? (
+              {countdownEndsAt !== null && (gameState.status === "ready" || gameState.status === "checkpoint") ? null : gameState.status === "ready" && (!isTitleScreen || isTitleLeaving) ? (
                 <StageSelectPanel selectedStage={gameState.stage} highestClearedStage={Math.max(
                   gameState.highestClearedStage, companyRecords?.profile.highestClearedStage ?? 0,
                 ) as ClearedStage}
@@ -608,11 +619,16 @@ export function GameScreen({
                     <p className="game-over-stage">기록 단계 {gameState.stage}단계</p>
                     <p className="game-over-time">남은 시간 {formatRemainingTimeCs(stageResult!.remainingTimeCs)}</p>
                     <p className="game-over-reason">{gameState.endReason === "cleared" ? "최종 클리어!" : gameState.endReason === "time-limit" ? "시간 초과" : gameState.endReason === "quit" ? "체크포인트에서 종료했어요" : "추격자에게 잡혔어요"}</p>
-                    <p>계단 {gameState.stepsClimbed}개를 내려왔어요.</p>
+                    <p className="game-over-steps">계단 {gameState.stepsClimbed}개를 내려왔어요.</p>
                     {companyRecords && <CompanyRecordsNotice records={companyRecords} />}
-                    <button ref={restartButtonRef} className="start-button restart-button" type="button" onClick={handleShowStageSelection}>
-                      <PixelIcon name="restart" size={20} /> 다시 시작
-                    </button>
+                    <div className="game-over-actions">
+                      <button ref={restartButtonRef} className="start-button restart-button" type="button" onClick={handleShowStageSelection}>
+                        <PixelIcon name="restart" size={20} /> 다시 시작
+                      </button>
+                      <button className="start-button game-over-title-button" type="button" onClick={handleReturnToTitle}>
+                        메인 타이틀로
+                      </button>
+                    </div>
                   </div>
                   <LeaderboardPanel entries={companyRecords?.entries ?? leaderboard} currentAccountId={account.homeAccountId}
                     scope={usesCompanyRecords ? "company" : "browser"} />
