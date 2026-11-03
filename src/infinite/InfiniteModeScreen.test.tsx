@@ -38,6 +38,11 @@ describe("InfiniteModeScreen", () => {
     fireEvent.keyDown(window, { key: "d" });
     expect(screen.getByTestId("infinite-score")).toHaveTextContent("0");
     await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(350); });
+    expect(screen.getByRole("heading", { name: "무한 모드" })).toBeVisible();
+    expect(screen.getByRole("region", { name: "무한 모드 기록" })).toBeVisible();
+    expect(screen.getByRole("region", { name: "위로 올라가는 계단 장면" })).toBeVisible();
+    expect(screen.getByTestId("infinite-distance")).toHaveTextContent("3칸");
     expect(screen.queryByRole("button", { name: "장애물을 뛰어넘기" })).not.toBeInTheDocument();
     expect(screen.getByTestId("infinite-score")).toHaveTextContent("0");
     fireEvent.keyDown(window, { key: "d" });

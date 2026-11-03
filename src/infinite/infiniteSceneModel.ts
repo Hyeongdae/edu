@@ -6,7 +6,8 @@ import type {
 import type { InfiniteGameState } from "./types";
 
 const VISIBLE_STAIR_COUNT = 11;
-const VISIBLE_BEHIND = 5;
+const VISIBLE_BEHIND = 4;
+const VISIBLE_WITH_TRAILING_PURSUER = 5;
 
 export interface InfiniteSceneModel {
   steps: readonly SceneStep[];
@@ -73,7 +74,10 @@ export function buildInfiniteSceneModel(state: InfiniteGameState): InfiniteScene
     { offset: 1, behind: state.pursuerDistance },
   ];
   const firstRetainedIndex = state.route.steps[0].index;
-  const visibleBehind = Math.min(VISIBLE_BEHIND, state.stepsClimbed - firstRetainedIndex);
+  const desiredBehind = state.pursuerDistance === VISIBLE_WITH_TRAILING_PURSUER
+    ? VISIBLE_WITH_TRAILING_PURSUER
+    : VISIBLE_BEHIND;
+  const visibleBehind = Math.min(desiredBehind, state.stepsClimbed - firstRetainedIndex);
   const steps = Array.from({ length: VISIBLE_STAIR_COUNT }, (_, offset): SceneStep =>
     actorAt(state.stepsClimbed - visibleBehind + offset));
   const visibleIndices = new Set(steps.map((step) => step.index));

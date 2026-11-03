@@ -11,8 +11,8 @@
   position: relative;
   display: grid;
   grid-template-rows: auto auto minmax(180px, 1fr) auto;
-  gap: clamp(8px, 1.2vh, 14px);
-  padding: clamp(10px, 1.5vh, 18px);
+  gap: clamp(5px, 1vh, 10px);
+  padding: 0;
   overflow: hidden;
 }
 
@@ -97,8 +97,10 @@
 @media (max-width: 720px) {
   .stair-game.pixel-theme.infinite-mode-screen .game-frame.infinite-mode-frame {
     grid-template-rows: auto auto minmax(160px, 1fr) auto;
-    gap: 6px;
-    padding: 8px;
+    gap: 8px;
+    padding: 0 0 var(--pixel-safe-bottom);
+    border-width: 0;
+    box-shadow: none;
   }
   .infinite-hud-stats { gap: 6px; }
   .infinite-stat { padding: 8px; }
