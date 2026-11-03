@@ -126,7 +126,7 @@ Task: T03-appearance-autosave
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: pending
+- commit: `9e06d5a`
 
 ## Validation Results — 2026-11-03
 - 지정한4개 테스트 파일236/236 통과(7.26초).400ms debounce, 최신 revision/원래 외형으로 되돌리기, 점수 우선 직렬 저장, 실패/온라인 재시도, 세션 만료, 계정 전환과 StrictMode 재연결을 확인했다.

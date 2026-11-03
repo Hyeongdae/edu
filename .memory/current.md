@@ -7,19 +7,20 @@
 [P01 Character Customization](./phases/2026-11-03-character-customization/P01-character-customization/phase.md)
 
 ## Active Task
-[T03 Appearance Autosave](./phases/2026-11-03-character-customization/P01-character-customization/T03-appearance-autosave.md)
+[T04 Customizable Pixel Characters](./phases/2026-11-03-character-customization/P01-character-customization/T04-customizable-pixel-characters.md)
 
 ## Status
-- Character Customization T01 (`8898b74`), T02 (`5f98abb`) 완료. done 2/5, Active P01-T03.
-- T02 API 테스트186/186, shared 테스트205/205, lint/API build 통과. 새 emulator 통합3건은 로컬 실행 환경이 없어 미실행이며 배포 전 CI 검증이 필요하다.
-- 인증된 `/api/appearance`와 기존 기록을 보존하는 Cosmos 저장을 구현했다. 다음 작업은 클라이언트 자동 저장과 응답 순서 제어다.
+- Character Customization T01 (`8898b74`), T02 (`5f98abb`), T03 (`9e06d5a`) 완료. done 3/5, Active P01-T04.
+- T03 지정 테스트236/236, lint/frontend build 통과.400ms 자동 저장, 최신 선택 보존, 실패/재시도와 계정 수명 처리를 구현했다.
+- T02의 새 emulator 통합3건은 로컬 실행 환경이 없어 미실행이며 배포 전 CI 검증이 필요하다.
+- 다음 작업은 선택 외형을 일반·야근 캐릭터의 모든 픽셀 포즈에 적용하는 공통 렌더러다.
 - 기존 `src/game/pixel-theme.css`의 미커밋 모바일 무한 모드 버튼 간격 변경을 보존한다.
 
 ## Source Decision
 - [Character Customization](./decisions/2026-11-03-character-customization.md)
 
 ## Next Step
-T03 청사진을 읽고 `src/company/recordApi.ts`, `src/company/types.ts`, `src/company/CompanyRecordStore.ts`의400ms 외형 자동 저장·최신 선택 보존·실패/재시도를 구현한다. `/memory-execute` 또는 `current 보고 이어서 해줘`로 Active Task 한 개씩 진행한다.
+T04 청사진을 읽고 `src/game/pixel/OfficerAppearanceParts.tsx`와 기존 `PixelOfficer.tsx`, `OvertimeOfficer.tsx`에 성별·머리·옷·소품·피부색 렌더링을 구현한다. `/memory-execute` 또는 `current 보고 이어서 해줘`로 Active Task 한 개씩 진행한다.
 
 ## Previous Completed Plan
 - [Game Pause Menu](./plans/2026-11-03-game-pause-menu.md) complete 3/3. T02: `b9b95f4`; T03: `ec1c52a`.

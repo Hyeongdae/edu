@@ -76,7 +76,7 @@
 추가 범위를 결정해야 하는 별도 결함은 발견하지 않았다. 기존 미배포 모바일 CSS 변경은 보존 대상이며 이 계획의 별도 Task로 늘리지 않는다.
 
 ## Progress
-- done: 2/5
-- Completed: P01-T01 (`8898b74`), P01-T02 (`5f98abb`). T02 API tests186/186, shared tests205/205, lint/API build passed.
+- done: 3/5
+- Completed: P01-T01 (`8898b74`), P01-T02 (`5f98abb`), P01-T03 (`9e06d5a`). T03 지정4파일236/236, lint/frontend build passed. T02 API tests186/186 passed.
 - Emulator 통합 테스트3건을 추가했으나 로컬 emulator가 없어 미실행. 기존 CI의 통합 검증은 배포 전 필수다.
-- Active: P01-T03
+- Active: P01-T04
