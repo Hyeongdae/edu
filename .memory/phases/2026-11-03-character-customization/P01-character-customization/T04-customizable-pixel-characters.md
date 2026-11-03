@@ -1,6 +1,6 @@
 # Task: T04 Customizable Pixel Characters
 
-## Status: pending
+## Status: done
 
 ## Goal
 공통 외형 설정으로 일반 이동4개 프레임과 야근4개 포즈를 그린다. 성별·머리·옷·모자·안경·신발·피부색 선택이 모든 포즈에서 보이고 캐릭터 발 위치와 기존 모션을 유지한다.
@@ -13,7 +13,8 @@
 
 ### I01. 재사용하는 외형 부품
 - Related Files:
-  - `src/game/pixel/OfficerAppearanceParts.tsx` :: `getOfficerPalette`, `OfficerHeadArt`, `OfficerOutfitArt`, `OfficerShoeArt`; new
+  - `src/game/pixel/OfficerAppearanceParts.tsx` :: `OfficerHeadArt`, `OfficerOutfitArt`, `OfficerShoeArt`; new
+  - `src/game/pixel/officerPalette.ts` :: `OfficerPalette`, `getOfficerPalette` — 순수 팔레트 계산을 React 컴포넌트와 분리해 Fast Refresh 규칙을 준수; new
   - `shared/characterAppearance.ts` :: `CharacterLook`, `APPEARANCE_OPTIONS`, `getDefaultCharacterLook`; read-only
   - `src/game/pixel/characterAppearanceArt.test.tsx` :: 옵션별 실제 부위 표시와 팔레트; new
 
@@ -93,10 +94,10 @@
 - 작은 동작 차이는 구조 테스트로, 스타일별 알아보기와 소품 겹침은 T05 로컬 브라우저 미리보기로 확인한다.
 
 ## Acceptance Criteria
-- [ ] 모든 카탈로그 항목이 도형 또는 팔레트에 실제 반영된다.
-- [ ] 남녀/나이 역할과 옷·머리·소품을 독립 조합할 수 있다.
-- [ ] 모든 일반 프레임과 야근 포즈에서 외형이 일관된다.
-- [ ] 기본 외형과 프레임/방향/발 기준선 계약이 유지된다.
+- [x] 모든 카탈로그 항목이 도형 또는 팔레트에 실제 반영된다.
+- [x] 남녀/나이 역할과 옷·머리·소품을 독립 조합할 수 있다.
+- [x] 모든 일반 프레임과 야근 포즈에서 외형이 일관된다.
+- [x] 기본 외형과 프레임/방향/발 기준선 계약이 유지된다.
 
 ## Validation
 - `npm test -- --run src/game/pixel/characterAppearanceArt.test.tsx src/game/pixel/pursuerAppearance.test.tsx src/game/StairScene.test.tsx src/infinite/InfiniteStairScene.test.tsx src/game/OfficeExitEnding.test.tsx src/game/OvertimeCaptureEnding.test.tsx --maxWorkers=2` — 기본 외형과 공유 부위 회귀 통과.
@@ -116,6 +117,15 @@ Task: T04-customizable-pixel-characters
 ```
 
 ## Progress
-- [ ] 구현 완료
-- [ ] 검증 통과
+- [x] 구현 완료
+- [x] 검증 통과
 - commit: pending
+
+## Validation Results — 2026-11-03
+- 지정한6개 파일126/126 통과(17.79초). 모든 일반 프레임·야근 포즈, 역할/방향, 선택 부위 도형/색상, 발 기준선과 기존 엔딩 회귀를 확인했다.
+- `npm run lint`: 통과. 테스트 행렬의 TypeScript tuple 추론 수정 후 해당 테스트 파일 ESLint도 통과했다.
+- `npm run build`: 테스트 tuple 타입을 명시한 후 타입/빌드 통과. JS641.68kB(gzip176.94kB), CSS88.41kB(gzip15.27kB). 기존500kB bundle 경고 유지.
+- 격리된 headless Chrome에서 실제 컴포넌트10가지 조합을1200×720 정적 격자로 확인했다. 머리·옷·모자·안경·피부/신발 색과 발 착지 기준이 구분됨을 확인했다. 증거: `C:/Users/DEX/AppData/Local/Temp/character-art-preview-20261103.png`.
+- 검토용 임시 HTML은 제거했고 게임의 모션 CSS와 장면 좌표를 수정하지 않았다. 실제 계정 선택 UI와 장면 외형 전달은 T05에서 연결한다.
+- 순수 팔레트 함수만 별도 `.ts` 파일로 분리한 것은 컴포넌트 파일의 Fast Refresh lint 규칙을 지키기 위한 같은 Task 내 파일 구성 조정이다.
+- 기존 미커밋 모바일 CSS는 보존했다. 추가 범위가 필요한 발견: 특이사항 없음.

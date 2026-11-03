@@ -1,5 +1,9 @@
 import type { ReactElement } from "react";
 import type { Direction } from "../types";
+import { getDefaultCharacterLook } from "../../../shared/characterAppearance";
+import type { CharacterLook } from "../../../shared/characterAppearance";
+import { OfficerHeadArt, OfficerOutfitArt, OfficerShoeArt } from "./OfficerAppearanceParts";
+import { getOfficerPalette } from "./officerPalette";
 
 export type OfficerVariant = "young" | "older";
 export type OfficerPose = "idle" | "climb" | "fall" | "jump";
@@ -9,90 +13,21 @@ interface PixelOfficerProps {
   variant: OfficerVariant;
   direction: Direction;
   pose: OfficerPose;
+  appearance?: CharacterLook;
 }
 
 const FRAMES: readonly OfficerFrame[] = ["idle", "run-a", "run-b", "stumble"];
 
-function OfficerFrameArt({ variant, frame }: { variant: OfficerVariant; frame: OfficerFrame }): ReactElement {
+function OfficerFrameArt({ variant, frame, appearance }: { variant: OfficerVariant; frame: OfficerFrame; appearance: CharacterLook }): ReactElement {
   const older = variant === "older";
   const stumble = frame === "stumble";
-  const skin = older ? "#e9b58b" : "#f5c49a";
-  const sleeve = older ? "#746184" : "#e6f2f3";
-  const sleeveShade = older ? "#4b425f" : "#91b6c6";
-  const ink = "#10182c";
+  const { skin, cloth: sleeve, clothShade: sleeveShade } = getOfficerPalette(appearance);
 
   return (
     <g className={`officer-frame officer-frame--${frame}`} data-officer-frame={frame}>
       {/* All four poses share the same head height and shoe baseline (y=40). */}
-      <g fill={ink}>
-        <rect x="10" y="2" width="15" height="2" />
-        <rect x="7" y="4" width="21" height="15" />
-        <rect x="10" y="19" width="15" height="3" />
-        <rect x="9" y="22" width="18" height="11" />
-      </g>
-      <rect x="9" y="7" width="17" height="12" fill={skin} />
-      <rect x="12" y="19" width="12" height="2" fill={skin} />
-      <rect x="26" y="11" width="3" height="4" fill={skin} />
-      <rect x="7" y="11" width="4" height="6" fill="#d89579" />
-      <rect x="9" y="12" width="2" height="3" fill={skin} />
-      <rect x="16" y="21" width="6" height="3" fill={skin} />
-      <g fill={older ? "#52556a" : "#20283e"}>
-        <rect x="10" y="3" width="15" height="3" />
-        <rect x="8" y="5" width="11" height="4" />
-        <rect x="8" y="8" width="3" height="4" />
-        <rect x="23" y="5" width="4" height="3" />
-      </g>
-      <rect x="12" y="4" width="10" height="1" fill={older ? "#89909e" : "#41516c"} />
-      {older && (
-        <g fill="#abb1b9">
-          <rect x="8" y="8" width="3" height="5" />
-          <rect x="24" y="7" width="3" height="3" />
-          <rect x="11" y="5" width="4" height="1" />
-        </g>
-      )}
-      {older ? (
-        <g>
-          <rect x="12" y="10" width="7" height="6" fill={ink} />
-          <rect x="21" y="10" width="7" height="6" fill={ink} />
-          <rect x="19" y="11" width="2" height="2" fill={ink} />
-          <rect x="13" y="11" width="5" height="3" fill="#d8e7de" />
-          <rect x="22" y="11" width="5" height="3" fill="#d8e7de" />
-          <rect x="16" y="12" width="2" height="2" fill={ink} />
-          <rect x="25" y="12" width="2" height="2" fill={ink} />
-        </g>
-      ) : (
-        <g fill={ink}>
-          <rect x="14" y={stumble ? 10 : 11} width="3" height={stumble ? 5 : 3} />
-          <rect x="23" y={stumble ? 10 : 11} width="3" height={stumble ? 5 : 3} />
-          <rect x="13" y="9" width="4" height="1" />
-          <rect x="23" y="9" width="4" height="1" />
-        </g>
-      )}
-      {older && (
-        <g className="officer-straw-hat">
-          <path d="M10 7V5H12V3H15V1H21V3H24V5H26V7H29V8H31V10H5V8H8V7Z" fill="#b9772d" />
-          <path d="M11 6V4H14V2H22V4H25V7H11Z" fill="#f0c451" />
-          <rect x="13" y="4" width="10" height="2" fill="#a85f2a" />
-          <rect x="7" y="8" width="22" height="1" fill="#ffe18a" />
-        </g>
-      )}
-      <rect x="12" y="16" width="3" height="2" fill="#df9487" />
-      <rect x="24" y="16" width="2" height="1" fill="#df9487" />
-      <rect x="19" y="18" width={stumble ? 3 : 5} height={stumble ? 2 : 1} fill="#874e56" />
-      {!stumble && <rect x="23" y="17" width="2" height="1" fill="#874e56" />}
-      <rect x={older ? 11 : 10} y="23" width={older ? 14 : 16} height="9" fill={sleeve} />
-      <rect x={older ? 11 : 10} y="24" width={older ? 2 : 3} height="8" fill={sleeveShade} />
-      <rect x="16" y="23" width={older ? 7 : 8} height="9" fill="#e6f2ed" />
-      <rect x="16" y="23" width="2" height="2" fill="#b7cad1" />
-      <rect x="22" y="23" width="2" height="2" fill="#b7cad1" />
-      <rect x="19" y="24" width="3" height="2" fill={older ? "#61e8e1" : "#f07c9f"} />
-      <rect x="20" y="26" width="2" height="4" fill={older ? "#36a2aa" : "#c84e76"} />
-      <rect x="13" y="24" width="1" height="4" fill="#ffd27a" />
-      <rect x="12" y="27" width="4" height="5" fill={ink} />
-      <rect x="13" y="28" width="2" height="3" fill="#eef7ff" />
-      <rect x="13" y="28" width="2" height="1" fill="#61e8e1" />
-      <rect x={older ? 12 : 11} y="32" width={older ? 13 : 15} height="2" fill={ink} />
-      <rect x="19" y="32" width="2" height="1" fill="#b8c8d3" />
+      <OfficerHeadArt variant={variant} appearance={appearance} expression={stumble ? "stumble" : "normal"} />
+      <OfficerOutfitArt variant={variant} appearance={appearance} pose="normal" />
       {frame === "idle" && (
         <g>
           <rect x={older ? 7 : 6} y="24" width={older ? 3 : 4} height="8" fill={sleeveShade} />
@@ -101,8 +36,8 @@ function OfficerFrameArt({ variant, frame }: { variant: OfficerVariant; frame: O
           <rect x={older ? 25 : 26} y="31" width={older ? 3 : 4} height="4" fill={skin} />
           <rect x={older ? 13 : 12} y="34" width={older ? 4 : 5} height="5" fill="#2c3b59" />
           <rect x="21" y="34" width={older ? 4 : 5} height="5" fill="#354766" />
-          <rect x={older ? 11 : 10} y="38" width={older ? 7 : 8} height="2" fill={ink} />
-          <rect x="20" y="38" width={older ? 8 : 9} height="2" fill={ink} />
+          <OfficerShoeArt appearance={appearance} x={older ? 11 : 10} y={38} width={older ? 7 : 8} />
+          <OfficerShoeArt appearance={appearance} x={20} y={38} width={older ? 8 : 9} />
         </g>
       )}
       {frame === "run-a" && (
@@ -116,8 +51,8 @@ function OfficerFrameArt({ variant, frame }: { variant: OfficerVariant; frame: O
           <rect x="7" y="35" width={older ? 5 : 6} height="4" fill="#2c3b59" />
           <rect x="21" y="33" width={older ? 4 : 5} height="4" fill="#354766" />
           <rect x="24" y="36" width={older ? 4 : 5} height="3" fill="#354766" />
-          <rect x="5" y="38" width="9" height="2" fill={ink} />
-          <rect x="24" y="38" width="8" height="2" fill={ink} />
+          <OfficerShoeArt appearance={appearance} x={5} y={38} width={9} />
+          <OfficerShoeArt appearance={appearance} x={24} y={38} width={8} />
         </g>
       )}
       {frame === "run-b" && (
@@ -130,8 +65,8 @@ function OfficerFrameArt({ variant, frame }: { variant: OfficerVariant; frame: O
           <rect x="10" y="36" width={older ? 4 : 5} height="3" fill="#2c3b59" />
           <rect x="20" y="33" width={older ? 5 : 6} height="4" fill="#354766" />
           <rect x="24" y="35" width={older ? 5 : 6} height="4" fill="#354766" />
-          <rect x="8" y="38" width="8" height="2" fill={ink} />
-          <rect x="24" y="38" width="8" height="2" fill={ink} />
+          <OfficerShoeArt appearance={appearance} x={8} y={38} width={8} />
+          <OfficerShoeArt appearance={appearance} x={24} y={38} width={8} />
         </g>
       )}
       {stumble && (
@@ -144,8 +79,8 @@ function OfficerFrameArt({ variant, frame }: { variant: OfficerVariant; frame: O
           <rect x={older ? 7 : 6} y="36" width={older ? 5 : 6} height="3" fill="#2c3b59" />
           <rect x="21" y="33" width={older ? 6 : 7} height="4" fill="#354766" />
           <rect x="25" y="36" width={older ? 4 : 5} height="3" fill="#354766" />
-          <rect x={older ? 4 : 3} y="38" width={older ? 9 : 10} height="2" fill={ink} />
-          <rect x="24" y="38" width={older ? 7 : 8} height="2" fill={ink} />
+          <OfficerShoeArt appearance={appearance} x={older ? 4 : 3} y={38} width={older ? 9 : 10} />
+          <OfficerShoeArt appearance={appearance} x={24} y={38} width={older ? 7 : 8} />
           <rect x="1" y="5" width="2" height="6" fill="#ffd27a" />
           <rect x="1" y="13" width="2" height="2" fill="#ffd27a" />
         </g>
@@ -154,7 +89,8 @@ function OfficerFrameArt({ variant, frame }: { variant: OfficerVariant; frame: O
   );
 }
 
-export function PixelOfficer({ variant, direction, pose }: PixelOfficerProps): ReactElement {
+export function PixelOfficer({ variant, direction, pose, appearance }: PixelOfficerProps): ReactElement {
+  const look = appearance ?? getDefaultCharacterLook(variant === "young" ? "runner" : "pursuer");
   return (
     <g
       className="pixel-officer" data-officer-variant={variant} data-officer-pose={pose}
@@ -163,7 +99,7 @@ export function PixelOfficer({ variant, direction, pose }: PixelOfficerProps): R
     >
       <g className="officer-body">
         <g transform="translate(-32 -80) scale(2)">
-          {FRAMES.map((frame) => <OfficerFrameArt key={frame} variant={variant} frame={frame} />)}
+          {FRAMES.map((frame) => <OfficerFrameArt key={frame} variant={variant} frame={frame} appearance={look} />)}
         </g>
       </g>
     </g>
