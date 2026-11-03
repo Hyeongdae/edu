@@ -116,7 +116,7 @@ Task: T01-appearance-contracts
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: pending
+- commit: `8898b74`
 
 ## Validation Results — 2026-11-03
 - 지정한 shared 테스트2개 파일205/205 통과(1.95초). 입력 경계, 숨은 추가 필드·상속 필드, 역할/계정 간 복사 독립성, 두 모드 점수 병합 후 외형 보존을 확인했다.

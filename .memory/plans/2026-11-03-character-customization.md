@@ -1,7 +1,7 @@
 # Plan: Character Customization
 
 - Date: 2026-11-03
-- Status: ready
+- Status: in_progress
 - Decision: [Character Customization](../decisions/2026-11-03-character-customization.md)
 
 ## Goal
@@ -76,5 +76,6 @@
 추가 범위를 결정해야 하는 별도 결함은 발견하지 않았다. 기존 미배포 모바일 CSS 변경은 보존 대상이며 이 계획의 별도 Task로 늘리지 않는다.
 
 ## Progress
-- done: 0/5
-- Active: P01-T01
+- done: 1/5
+- Completed: P01-T01 (`8898b74`), shared tests205/205, lint/frontend build/API build passed.
+- Active: P01-T02

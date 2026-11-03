@@ -7,18 +7,19 @@
 [P01 Character Customization](./phases/2026-11-03-character-customization/P01-character-customization/phase.md)
 
 ## Active Task
-[T01 Appearance Contracts](./phases/2026-11-03-character-customization/P01-character-customization/T01-appearance-contracts.md)
+[T02 Account Appearance API](./phases/2026-11-03-character-customization/P01-character-customization/T02-account-appearance-api.md)
 
 ## Status
-- Character Customization 계획/청사진 작성 완료. done 0/5, Active P01-T01.
-- 계획 단계에서는 구현·테스트·커밋·배포를 수행하지 않았다.
+- Character Customization T01 완료 (`8898b74`). done 1/5, Active P01-T02.
+- T01 shared 테스트205/205, lint, frontend/API build 통과. 기존500kB bundle 경고 유지.
+- 외형 카탈로그·계약과 점수 병합 보존까지 구현했다. 다음 작업은 실제 계정 저장 API다.
 - 기존 `src/game/pixel-theme.css`의 미커밋 모바일 무한 모드 버튼 간격 변경을 보존한다.
 
 ## Source Decision
 - [Character Customization](./decisions/2026-11-03-character-customization.md)
 
 ## Next Step
-T01 청사진을 읽고 `shared/characterAppearance.ts`의 카탈로그/계약과 `shared/companyRecords.ts`의 외형 보존을 구현한다. `/memory-execute` 또는 `current 보고 이어서 해줘`로 Active Task 한 개씩 진행한다.
+T02 청사진을 읽고 `api/src/playerRepository.ts`의 외형 저장·기록 보존과 `api/src/handlers.ts`, `api/src/index.ts`의 인증된 `/api/appearance` 경로를 구현한다. `/memory-execute` 또는 `current 보고 이어서 해줘`로 Active Task 한 개씩 진행한다.
 
 ## Previous Completed Plan
 - [Game Pause Menu](./plans/2026-11-03-game-pause-menu.md) complete 3/3. T02: `b9b95f4`; T03: `ec1c52a`.
