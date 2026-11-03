@@ -1,6 +1,8 @@
 import { type KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 import type { GameAccount } from "../auth/gameAccount";
-import type { CompanyRecordBinding } from "../company/types";
+import { getDefaultCharacterAppearance } from "../../shared/characterAppearance";
+import { CharacterCustomizationDialog } from "../character/CharacterCustomizationDialog";
+import type { AppearanceBinding, CompanyRecordBinding } from "../company/types";
 import { CompanyRecordsNotice } from "../company/CompanyRecordsNotice";
 import { applyInput, continueGame, createGameState, getStageSecondsLeft, quitAtCheckpoint, resetGame, resumeGameAfterPause, startGame, tickGame } from "./gameEngine";
 import { CheckpointPanel } from "./CheckpointPanel";
@@ -31,7 +33,7 @@ import "./pixel-theme.css";
 
 const TITLE_SCENE_TRANSITION_MS = 200;
 const STAGE_COUNTDOWN_MS = 3000;
-type ActiveGameDialog = "settings" | "instructions" | "leaderboard" | "pause" | null;
+type ActiveGameDialog = "settings" | "instructions" | "leaderboard" | "pause" | "customization" | null;
 type OpenGameDialog = Exclude<ActiveGameDialog, null>;
 type StageResumeTarget = "playing" | "start" | "continue" | null;
 
@@ -65,6 +67,12 @@ export function GameScreen({
   onAudioPreferencesChange,
   onEnableAudio,
 }: GameScreenProps) {
+  const [localAppearance, setLocalAppearance] = useState(getDefaultCharacterAppearance);
+  const appearanceBinding: AppearanceBinding = companyRecords?.appearance ?? {
+    value: localAppearance, status: "idle", errorMessage: null, update: setLocalAppearance, retry: () => {},
+  };
+  const appearance = appearanceBinding.value;
+  const customizationTriggerRef = useRef<HTMLButtonElement | null>(null);
   const usesCompanyRecords = companyRecords !== undefined;
   const submitCompanyResult = companyRecords?.submitResult;
   const submittedCompanyResults = useRef(new WeakSet<object>());
@@ -94,6 +102,7 @@ export function GameScreen({
   const isSettingsOpen = activeDialog === "settings";
   const isInstructionsOpen = activeDialog === "instructions";
   const isLeaderboardOpen = activeDialog === "leaderboard";
+  const isCustomizationOpen = activeDialog === "customization";
   const isPauseOpen = activeDialog === "pause";
   const [pauseConfirmation, setPauseConfirmation] = useState<PauseMenuConfirmation>(null);
   const [pausedGameTime, setPausedGameTime] = useState<number | null>(null);
@@ -125,6 +134,7 @@ export function GameScreen({
 
   const openGameDialog = useCallback((dialog: OpenGameDialog) => {
     if (activeDialogRef.current !== null) return;
+    if (dialog === "customization" && (!isTitleScreen || isTitleLeaving || gameState.status !== "ready")) return;
     if (dialog === "settings" && gameState.status !== "playing") return;
     if (dialog === "instructions" && !isTitleScreen) return;
     if (dialog === "leaderboard" && gameState.status !== "ready") return;
@@ -142,7 +152,7 @@ export function GameScreen({
 
     activeDialogRef.current = dialog;
     setActiveDialog(dialog);
-  }, [gameState, isTitleScreen]);
+  }, [gameState, isTitleScreen, isTitleLeaving]);
 
   const closeGameDialog = useCallback((dialog: OpenGameDialog) => {
     if (activeDialogRef.current !== dialog) return;
@@ -609,6 +619,8 @@ export function GameScreen({
       if (!instructionsDialogRef.current?.contains(document.activeElement)) instructionsCloseRef.current?.focus();
     } else if (activeDialog === "leaderboard") {
       if (!leaderboardDialogRef.current?.contains(document.activeElement)) leaderboardCloseRef.current?.focus();
+    } else if (activeDialog === "customization") {
+      // CharacterCustomizationDialog owns initial focus.
     } else if (activeDialog === "pause") {
       // PauseMenuDialog owns initial focus.
     } else if (previousDialogRef.current === "settings") {
@@ -618,6 +630,8 @@ export function GameScreen({
     } else if (previousDialogRef.current === "leaderboard") {
       leaderboardReturnFocusRef.current?.focus();
       leaderboardReturnFocusRef.current = null;
+    } else if (previousDialogRef.current === "customization") {
+      customizationTriggerRef.current?.focus();
     } else if (previousDialogRef.current === "pause") {
       if (isTitleScreen) titleStartButtonRef.current?.focus();
       else pauseTriggerRef.current?.focus();
@@ -652,7 +666,7 @@ export function GameScreen({
   const onLeaderboardDialogKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => onDialogKeyDown(event, closeLeaderboard);
 
   if (activeMode === "infinite") {
-    return <InfiniteModeScreen account={account} companyRecords={companyRecords} audioController={audioController}
+    return <InfiniteModeScreen appearance={appearance} account={account} companyRecords={companyRecords} audioController={audioController}
       audioPreferences={audioPreferences} autoplayBlocked={autoplayBlocked} onAudioPreferencesChange={onAudioPreferencesChange}
       onEnableAudio={onEnableAudio} onReturnToTitle={() => setActiveMode("title")} />;
   }
@@ -674,8 +688,8 @@ export function GameScreen({
             <section
               className={`game-title-screen${isTitleLeaving ? " is-leaving" : ""}`}
               aria-labelledby="game-title"
-              aria-hidden={isTitleLeaving || undefined}
-              inert={isTitleLeaving || undefined}
+              aria-hidden={isTitleLeaving || isCustomizationOpen || undefined}
+              inert={isTitleLeaving || isCustomizationOpen || undefined}
             >
               <div className="game-title-copy">
                 <p className="game-title-kicker">STAIRWAY CHALLENGE</p>
@@ -686,7 +700,7 @@ export function GameScreen({
                 <button ref={titleStartButtonRef} className="game-title-start" type="button" onClick={handleEnterStageSelection}>
                   단계 모드
                 </button>
-                <button className="game-title-infinite" type="button" onClick={() => setActiveMode("infinite")}>
+                <button className="game-title-infinite" type="button" onClick={() => { if (activeDialogRef.current === null && !isTitleLeaving) setActiveMode("infinite"); }}>
                   무한 모드
                 </button>
                 <button
@@ -699,6 +713,11 @@ export function GameScreen({
                   onClick={openInstructions}
                 >
                   게임 설명
+                </button>
+                <button ref={customizationTriggerRef} className="game-title-customization" type="button"
+                  aria-haspopup="dialog" aria-expanded={isCustomizationOpen} aria-controls="character-customization-dialog"
+                  onClick={() => openGameDialog("customization")}>
+                  캐릭터 꾸미기
                 </button>
                 <button className="game-title-ranking" type="button" aria-haspopup="dialog" aria-expanded={isLeaderboardOpen}
                   aria-controls="leaderboard-dialog" onClick={(event) => openLeaderboard(event.currentTarget)}>
@@ -756,16 +775,16 @@ export function GameScreen({
                   remainingTimeCs={stageResult!.remainingTimeCs}
                   onContinue={handleContinue} onQuit={handleQuit} disabled={false}
                   recordsNotice={companyRecords && <CompanyRecordsNotice records={companyRecords} />} />
-              ) : isEnding ? <OfficeExitEnding key={stageResult!.endedAtMs} variant="animated" startedAtMs={stageResult!.endedAtMs} />
+              ) : isEnding ? <OfficeExitEnding appearance={appearance.runner} key={stageResult!.endedAtMs} variant="animated" startedAtMs={stageResult!.endedAtMs} />
                 : overtime.phase === "capture" ? null
-                : isOvertimeEnding ? <OvertimeCaptureEnding key={stageResult!.endedAtMs} variant="animated" startedAtMs={overtime.sceneStartedAtMs!} /> : (
+                : isOvertimeEnding ? <OvertimeCaptureEnding appearance={appearance} key={stageResult!.endedAtMs} variant="animated" startedAtMs={overtime.sceneStartedAtMs!} /> : (
                 <section
                   className="game-over-panel"
                   aria-labelledby="game-over-title"
                 >
                   <div className="game-over-result">
-                    {stageResult?.stage === 5 && stageResult.outcome === "cleared" && <OfficeExitEnding variant="complete" />}
-                    {stageResult?.outcome === "caught" && overtime.prefersReducedMotion && <OvertimeCaptureEnding variant="complete" />}
+                    {stageResult?.stage === 5 && stageResult.outcome === "cleared" && <OfficeExitEnding appearance={appearance.runner} variant="complete" />}
+                    {stageResult?.outcome === "caught" && overtime.prefersReducedMotion && <OvertimeCaptureEnding appearance={appearance} variant="complete" />}
                     <PixelIcon name="flag" className="game-over-icon" size={36} />
                     <p className="game-over-kicker">이번 도전 결과</p>
                     <h2 id="game-over-title">{gameState.score}점</h2>
@@ -808,6 +827,7 @@ export function GameScreen({
             />}
             <div className="game-layout" data-game-status={gameState.status}>
               <StairScene
+                appearance={appearance}
                 state={gameState}
                 climbAnimationKey={climbAnimationKey}
                 isClimbing={isClimbing && gameState.status === "playing" && !gameState.lastMistake && !pursuerCatchVisible}
@@ -912,6 +932,10 @@ export function GameScreen({
                 </div>
               </section>
             </div>
+          )}
+          {isCustomizationOpen && (
+            <CharacterCustomizationDialog binding={appearanceBinding} storageMode={companyRecords?.appearance ? "account" : "session"}
+              onClose={() => closeGameDialog("customization")} />
           )}
           {isInstructionsOpen && (
             <GameInstructionsDialog

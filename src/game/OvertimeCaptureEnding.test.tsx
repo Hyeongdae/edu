@@ -4,6 +4,24 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { OvertimeCaptureEnding } from "./OvertimeCaptureEnding";
 import { OVERTIME_CAPTURE_DURATION_MS, OVERTIME_STAIR_CAPTURE_MS, useOvertimeCaptureEnding } from "./useOvertimeCaptureEnding";
 import type { GameStage, StageResult } from "./types";
+import { getDefaultCharacterAppearance } from "../../shared/characterAppearance";
+
+it.each(["animated", "complete"] as const)("keeps both chosen looks in all four %s overtime poses", variant => {
+  const appearance = getDefaultCharacterAppearance(); appearance.runner.hat = "cap"; appearance.runner.outfitColor = "rose";
+  appearance.pursuer.hat = "none"; appearance.pursuer.glasses = "round"; appearance.pursuer.skinTone = "deep";
+  const { container } = render(<OvertimeCaptureEnding variant={variant} appearance={appearance} />);
+  for (const pose of ["dragged", "seated"]) {
+    const officer = container.querySelector(`[data-overtime-pose="${pose}"]`)!;
+    expect(officer.querySelector(".officer-cap-hat")).not.toBeNull();
+    expect(officer.querySelector(".officer-cloth")).toHaveAttribute("fill", "#b66a87");
+  }
+  for (const pose of ["grabbing", "standing"]) {
+    const officer = container.querySelector(`[data-overtime-pose="${pose}"]`)!;
+    expect(officer.querySelector(".officer-straw-hat")).toBeNull();
+    expect(officer.querySelector(".officer-glasses--round")).not.toBeNull();
+    expect(officer.querySelector(".officer-face-skin")).toHaveAttribute("fill", "#86533a");
+  }
+});
 
 const caught = (endedAtMs = 0, stage: GameStage = 1): StageResult => Object.freeze({
   stage, score: 80, remainingTimeCs: 7_123, endedAtMs, outcome: "caught",

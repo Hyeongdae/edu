@@ -1,13 +1,15 @@
+import type { CharacterLook } from "../../shared/characterAppearance";
 import { useEffect, useId, useRef, useState, type CSSProperties, type ReactElement } from "react";
 import { PixelOfficer } from "./pixel/PixelOfficer";
 import "./office-exit-ending.css";
 
 export interface OfficeExitEndingProps {
+  appearance?: CharacterLook;
   variant: "animated" | "complete";
   startedAtMs?: number;
 }
 
-export function OfficeExitEnding({ variant, startedAtMs }: OfficeExitEndingProps): ReactElement {
+export function OfficeExitEnding({ appearance, variant, startedAtMs }: OfficeExitEndingProps): ReactElement {
   const id = useId(), titleId = `${id}-office-exit-title`, doorClipId = `${id}-office-exit-door`;
   const title = useRef<HTMLHeadingElement>(null);
   const [elapsedMs] = useState(() => startedAtMs === undefined ? 0 : Math.max(0, Date.now() - startedAtMs));
@@ -80,7 +82,7 @@ export function OfficeExitEnding({ variant, startedAtMs }: OfficeExitEndingProps
           </g>
         </g>
         <g transform="translate(145 320)" data-testid="office-exit-runner">
-          <g className="office-exit-runner-travel"><PixelOfficer variant="young" direction="right" pose={animated ? "climb" : "idle"} /></g>
+          <g className="office-exit-runner-travel"><PixelOfficer appearance={appearance} variant="young" direction="right" pose={animated ? "climb" : "idle"} /></g>
         </g>
         <g aria-hidden="true">
           <path d="M326 92H482V100H334V320H326ZM474 100H482V320H474Z" fill="#8193a1" />

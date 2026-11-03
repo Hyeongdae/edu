@@ -1,6 +1,6 @@
 # Task: T05 Title Customizer and Scene Integration
 
-## Status: pending
+## Status: done
 
 ## Goal
 타이틀의 `캐릭터 꾸미기`를 열어 두 역할의 부위와 색상을 즉시 미리 보고 자동 저장한다. 선택한 외형을 실제 단계·무한 플레이와 기존 모든 엔딩에 연결하고 모바일에서 조작 가능한 첫 버전을 완성한다.
@@ -113,12 +113,12 @@
 - 로컬은 실제 운영 계정 저장을 대신 검증하지 않는다. 계정 간 지속성은 T02/T03의 저장소·store 검증과 기존 CI에서 확인하고, 배포 후 실제 계정 시연은 배포 요청이 있을 때 수행한다.
 
 ## Acceptance Criteria
-- [ ] 타이틀에서 꾸미기를 열고 두 역할의 모든 옵션·색상을 독립 선택할 수 있다.
-- [ ] 즉시 미리보기와 계정 자동 저장·오류·재시도 표시가 실제 store와 연결된다.
-- [ ] 로컬 데모는 서버 없이 꾸미기를 시험하고 모드/타이틀 이동 후 선택을 유지한다.
-- [ ] 단계·무한·타이틀·퇴근·야근의 모든 캐릭터에 선택 외형이 일치한다.
-- [ ] 모바일/키보드에서 모든 항목과 닫기에 접근하고 게임 입력이 새지 않는다.
-- [ ] 앞서 요청한 모바일 좌우 버튼 간격 수정과 기존 점수/추격/일시정지 동작을 보존한다.
+- [x] 타이틀에서 꾸미기를 열고 두 역할의 모든 옵션·색상을 독립 선택할 수 있다.
+- [x] 즉시 미리보기와 계정 자동 저장·오류·재시도 표시가 실제 store와 연결된다.
+- [x] 로컬 데모는 서버 없이 꾸미기를 시험하고 모드/타이틀 이동 후 선택을 유지한다.
+- [x] 단계·무한·타이틀·퇴근·야근의 모든 캐릭터에 선택 외형이 일치한다.
+- [x] 모바일/키보드에서 모든 항목과 닫기에 접근하고 게임 입력이 새지 않는다.
+- [x] 앞서 요청한 모바일 좌우 버튼 간격 수정과 기존 점수/추격/일시정지 동작을 보존한다.
 
 ## Validation
 - `npm test -- --run src/character/CharacterCustomizationDialog.test.tsx src/game/GameScreen.test.tsx src/infinite/InfiniteModeScreen.test.tsx src/game/StairScene.test.tsx src/infinite/InfiniteStairScene.test.tsx src/game/OfficeExitEnding.test.tsx src/game/OvertimeCaptureEnding.test.tsx --maxWorkers=2` — 신규 연결 검증 통과.
@@ -142,6 +142,16 @@ Task: T05-title-customizer-and-scene-integration
 ```
 
 ## Progress
-- [ ] 구현 완료
-- [ ] 검증 통과
+- [x] 구현 완료
+- [x] 검증 통과
 - commit: pending
+
+## Validation Results — 2026-11-03
+- 지정7개 파일211/211 통과(56.53초). 역할별 옵션 독립성, 실제 SVG 미리보기, 자동 저장 상태/오류/재시도, 모달 입력 차단·초점 복원, 두 모드와 모든 엔딩의 외형 전달을 확인했다.
+- 전체 frontend/shared 회귀: 54파일1474/1474 통과(141.62초, maxWorkers=2). API 단위 테스트4파일186/186 통과.
+- npm run lint, npm run build, npm --prefix api run build, git diff --check 통과. JS647.11kB(gzip178.64kB), CSS92.97kB(gzip15.88kB). 번들 크기 개선은 이번 범위에 포함하지 않았다.
+- 격리된 Chrome에서320×568,390×844,768×1024,1440×900으로 타이틀5버튼, 도망자/추격자 선택, 옵션 스크롤, 닫기·저장 안내의 고정 영역을 확인했다. 가로 넘침이 없고 preview는 모바일144×168/데스크톱192×224로 표시된다.
+- 실제 브라우저의 Tab·방향키로 역할 탭과 기본 radio 선택, 닫은 뒤 trigger 초점 복원을 검증했다. 단계/무한 모드에서 선택 외형이 유지되고 pause→title→다른 모드에서도 유지되며, 계단 좌표·그리기 순서·모션은 기존대로다.
+- 브라우저 예외0. 증거: C:/Users/DEX/AppData/Local/Temp/character-t05-evidence/ 아래22개PNG, layout-results.json, keyboard-and-play.json. 테스트 로그는 TEMP/character-t05-{focused-final,full,api,lint,build}.log에 보존했다. 검토용 격리 Chrome은 종료했고 기존5173 개발 서버는 유지했다.
+- 계정 저장 성공·실패 UI는 실제 store binding 계약과 T02/T03 회귀로 검증했다. 운영 계정과 Cosmos를 직접 변경하지 않았고 emulator 통합3건은 로컬 환경이 없어 미실행이다. 배포 전 CI 통합 검증 및 배포 후 실제 계정 저장 확인이 남는다.
+- 기존 미커밋 src/game/pixel-theme.css의 모바일 버튼 간격 변경은 보존하고 이 Task 커밋에서는 제외했다. 추가 범위가 필요한 발견: 특이사항 없음.

@@ -17,6 +17,7 @@ import { DEFAULT_AUDIO_PREFERENCES } from "../audio/audioPreferences";
 import { DESCENT_LEADERBOARD_KEY, DESCENT_PROGRESS_KEY } from "./recordStorage";
 import type { CompanyRecordBinding } from "../company/types";
 import { companyProfile } from "../test/companyFixtures";
+import { getDefaultCharacterAppearance } from "../../shared/characterAppearance";
 
 function companyBinding(highestClearedStage: CompanyRecordBinding["profile"]["highestClearedStage"] = 0): CompanyRecordBinding {
   return { profile: companyProfile({ accountId: account.homeAccountId, highestClearedStage }), entries: [],
@@ -91,6 +92,86 @@ function mockMotionPreference(initial: boolean) {
     act(() => { for (const listener of [...listeners]) listener(); });
   } };
 }
+
+describe("title character customization integration", () => {
+  beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(0); });
+  afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
+
+  it("blocks background mode and play inputs, restores trigger focus, and retains session looks across both modes", () => {
+    const write = vi.spyOn(Storage.prototype, "setItem");
+    const view = renderBase(<GameScreen account={account} />);
+    const stage = screen.getByRole("button", { name: "단계 모드" });
+    const infinite = screen.getByRole("button", { name: "무한 모드" });
+    const trigger = screen.getByRole("button", { name: "캐릭터 꾸미기" });
+    fireEvent.click(trigger);
+    expect(document.querySelector(".game-title-screen")).toHaveAttribute("inert");
+    expect(document.querySelector(".game-title-screen")).toHaveAttribute("aria-hidden", "true");
+    fireEvent.click(stage); fireEvent.click(infinite);
+    for (const key of ["d", "j", " "]) fireEvent.keyDown(window, { key });
+    expect(screen.getByRole("dialog", { name: "캐릭터 꾸미기" })).toBeVisible();
+    expect(screen.queryByRole("heading", { name: "무한 모드" })).toBeNull();
+    expect(screen.getByTestId("runner")).toHaveAttribute("data-route-index", "0");
+    fireEvent.click(within(screen.getByRole("group", { name: "모자" })).getByRole("radio", { name: "캡 모자" }));
+    fireEvent.click(screen.getByRole("tab", { name: "추격자" }));
+    fireEvent.click(within(screen.getByRole("group", { name: "안경" })).getByRole("radio", { name: "둥근 안경" }));
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+    expect(trigger).toHaveFocus(); expect(trigger).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByTestId("runner").querySelector(".officer-cap-hat")).not.toBeNull();
+    fireEvent.click(stage); act(() => { vi.advanceTimersByTime(200); });
+    expect(screen.queryByRole("button", { name: "캐릭터 꾸미기" })).toBeNull();
+    expect(screen.getByTestId("runner").querySelector(".officer-cap-hat")).not.toBeNull();
+    expect(screen.getByTestId("pursuer").querySelector(".officer-glasses--round")).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "타이틀로 돌아가기" }));
+    fireEvent.click(screen.getByRole("button", { name: "무한 모드" }));
+    expect(screen.getByTestId("infinite-player").querySelector(".officer-cap-hat")).not.toBeNull();
+    expect(screen.getByTestId("infinite-pursuer").querySelector(".officer-glasses--round")).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "타이틀로" }));
+    fireEvent.click(screen.getByRole("button", { name: "캐릭터 꾸미기" }));
+    expect(within(screen.getByRole("group", { name: "모자" })).getByRole("radio", { name: "캡 모자" })).toBeChecked();
+    expect(write).not.toHaveBeenCalled();
+    view.unmount(); renderBase(<GameScreen account={account} />);
+    expect(screen.getByTestId("runner").querySelector(".officer-cap-hat")).toBeNull();
+  });
+
+  it("uses the current account draft, exposes retry, and updates scenes after server/store rerenders", () => {
+    const records = companyBinding();
+    const appearance = { value: getDefaultCharacterAppearance(), status: "saved" as const, errorMessage: null, update: vi.fn(), retry: vi.fn() };
+    const view = renderBase(<GameScreen account={account} companyRecords={{ ...records, appearance }} />);
+    fireEvent.click(screen.getByRole("button", { name: "캐릭터 꾸미기" }));
+    fireEvent.click(screen.getByRole("radio", { name: "카디건" }));
+    expect(appearance.update).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ runner: expect.objectContaining({ outfit: "cardigan" }) }));
+    const draft = appearance.update.mock.lastCall![0];
+    draft.pursuer.hat = "cap";
+    view.rerender(<GameScreen account={account} companyRecords={{ ...records, appearance: { ...appearance, value: draft, status: "error", errorMessage: "저장 연결 오류" } }} />);
+    expect(screen.getByRole("status")).toHaveTextContent("저장 연결 오류");
+    expect(screen.getByRole("radio", { name: "카디건" })).toBeChecked();
+    expect(screen.getByRole("img", { name: "도망자 미리보기" }).querySelector(".officer-outfit--cardigan")).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "다시 시도" })); expect(appearance.retry).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole("button", { name: "꾸미기 닫기" }));
+    expect(screen.getByTestId("runner").querySelector(".officer-outfit--cardigan")).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "무한 모드" }));
+    expect(screen.getByTestId("infinite-pursuer").querySelector(".officer-cap-hat")).not.toBeNull();
+  });
+
+  it.each(["cleared", "caught"] as const)("passes selected looks into the %s animated and reduced-motion endings", outcome => {
+    seedReadyStage(5, { score: outcome === "cleared" ? 349 : 0, pursuerDistance: outcome === "cleared" ? 4 : 1 });
+    const preference = mockMotionPreference(false);
+    const records = companyBinding(4);
+    const value = getDefaultCharacterAppearance(); value.runner.hat = "cap"; value.pursuer.glasses = "round";
+    records.appearance = { value, status: "saved", errorMessage: null, update: vi.fn(), retry: vi.fn() };
+    render(<GameScreen account={account} companyRecords={records} />);
+    startSelectedStageImmediately();
+    if (outcome === "cleared") climbOneStep(); else act(() => { vi.advanceTimersByTime(1000); });
+    const testId = outcome === "cleared" ? "office-exit-ending" : "overtime-capture-ending";
+    const ending = screen.getByTestId(testId);
+    expect(ending).toHaveAttribute("data-variant", "animated");
+    expect(ending.querySelector('.officer-cap-hat')).not.toBeNull();
+    if (outcome === "caught") expect(ending.querySelector('.officer-glasses--round')).not.toBeNull();
+    preference.change(true);
+    expect(screen.getByTestId(testId)).toHaveAttribute("data-variant", "complete");
+    expect(screen.getByTestId(testId).querySelector('.officer-cap-hat')).not.toBeNull();
+  });
+});
 
 describe("company record persistence", () => {
   beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(0); });
@@ -220,7 +301,7 @@ describe("title screen entry", () => {
 
     expect(screen.getByRole("heading", { level: 1, name: "덱스 탈출 넘버원" })).toBeVisible();
     expect(screen.getByText("계단을 내려가 1층까지 도착해 퇴근하세요!")).toBeVisible();
-    expect(screen.getAllByRole("button")).toHaveLength(4);
+    expect(screen.getAllByRole("button")).toHaveLength(5);
     expect(screen.getByRole("button", { name: "단계 모드" })).toBeVisible();
     expect(screen.getByRole("button", { name: "무한 모드" })).toBeVisible();
     expect(screen.getByRole("button", { name: "게임 설명" })).toBeVisible();

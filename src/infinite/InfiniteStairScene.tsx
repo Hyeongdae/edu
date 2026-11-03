@@ -1,3 +1,4 @@
+import type { CharacterAppearance } from "../../shared/characterAppearance";
 import type { ReactElement } from "react";
 import { PixelOfficer } from "../game/pixel/PixelOfficer";
 import { PixelOfficeBackdrop } from "../game/pixel/PixelOfficeBackdrop";
@@ -5,7 +6,7 @@ import { PixelStair } from "../game/pixel/PixelStair";
 import { buildInfiniteSceneModel } from "./infiniteSceneModel";
 import type { InfiniteGameState } from "./types";
 
-export function InfiniteStairScene({ state, isMoving }: { state: InfiniteGameState; isMoving: boolean }): ReactElement {
+export function InfiniteStairScene({ appearance, state, isMoving }: { appearance?: CharacterAppearance; state: InfiniteGameState; isMoving: boolean }): ReactElement {
   const model = buildInfiniteSceneModel(state);
   const nextTurn = state.straightStepsRemaining === 0;
   return (
@@ -31,12 +32,12 @@ export function InfiniteStairScene({ state, isMoving }: { state: InfiniteGameSta
           <g className={`infinite-actor infinite-player${state.status === "game-over" ? " is-falling" : ""}`}
             data-testid="infinite-player" data-route-index={model.player.index} data-direction={model.player.direction}
             transform={`translate(${model.player.x} ${model.player.y - 12})`}>
-            <PixelOfficer variant="young" direction={model.player.direction} pose={state.status === "game-over" ? "fall" : isMoving ? "climb" : "idle"} />
+            <PixelOfficer appearance={appearance?.runner} variant="young" direction={model.player.direction} pose={state.status === "game-over" ? "fall" : isMoving ? "climb" : "idle"} />
           </g>
           {model.pursuerVisible && (
             <g className={`infinite-actor infinite-pursuer${isMoving ? " is-moving" : ""}`} data-testid="infinite-pursuer"
               transform={`translate(${model.pursuer.x} ${model.pursuer.y - 12})`}>
-              <PixelOfficer variant="older" direction={model.pursuer.direction} pose={isMoving ? "climb" : "idle"} />
+              <PixelOfficer appearance={appearance?.pursuer} variant="older" direction={model.pursuer.direction} pose={isMoving ? "climb" : "idle"} />
             </g>
           )}
         </svg>

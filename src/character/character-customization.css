@@ -1,0 +1,56 @@
+.stair-game.pixel-theme .game-title-customization {
+  border-color: var(--pixel-pink); background: #38283f; color: var(--pixel-text);
+}
+.stair-game.pixel-theme .character-customization-backdrop {
+  position: absolute; inset: 0; z-index: 12; display: flex; align-items: center; justify-content: center;
+  padding: 20px; background: rgb(3 8 20 / 86%); overflow: hidden;
+}
+.stair-game.pixel-theme .character-customization-dialog {
+  display: flex; flex-direction: column; width: min(100%, 920px); max-height: 100%; min-height: 0; min-width: 0;
+  border: 2px solid var(--pixel-cyan); background: var(--pixel-panel); color: var(--pixel-text); box-shadow: 6px 6px 0 #030815;
+}
+.stair-game.pixel-theme .character-customization-header {
+  display: flex; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 16px;
+  border-bottom: 2px solid var(--pixel-edge);
+}
+.stair-game.pixel-theme .character-customization-header h2 { margin: 0; font-size: 1.3rem; }
+.stair-game.pixel-theme .character-customization-dialog button {
+  min-height: 44px; padding: 8px 12px; border: 2px solid var(--pixel-edge); border-radius: 0;
+  background: #23354a; color: var(--pixel-text); cursor: pointer;
+}
+.stair-game.pixel-theme .character-customization-dialog :focus-visible { outline: 3px solid var(--pixel-gold); outline-offset: 2px; }
+.stair-game.pixel-theme .character-role-tabs { display: flex; flex: 0 0 auto; gap: 8px; padding: 10px 16px; }
+.stair-game.pixel-theme .character-role-tabs button { flex: 1; }
+.stair-game.pixel-theme .character-role-tabs [aria-selected="true"] { border-color: var(--pixel-gold); color: var(--pixel-gold); background: #39464a; }
+.stair-game.pixel-theme .character-customization-body { display: grid; grid-template-columns: 240px minmax(0, 1fr); min-height: 0; }
+.stair-game.pixel-theme .character-preview { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 12px; background: #111b30; }
+.stair-game.pixel-theme .character-preview svg { display: block; flex-shrink: 0; image-rendering: pixelated; }
+.stair-game.pixel-theme .character-preview p { margin: 0; font-size: .8rem; color: var(--pixel-muted); text-align: center; }
+.stair-game.pixel-theme .character-options { min-height: 0; min-width: 0; overflow-y: auto; overscroll-behavior: contain; padding: 12px 16px; scrollbar-gutter: stable; }
+.stair-game.pixel-theme .character-options fieldset { min-width: 0; padding: 0 0 14px; margin: 0 0 12px; border: 0; border-bottom: 1px solid var(--pixel-edge); }
+.stair-game.pixel-theme .character-options legend { padding: 0 0 8px; font-weight: 700; color: var(--pixel-cyan); }
+.stair-game.pixel-theme .character-option-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.stair-game.pixel-theme .character-option { position: relative; min-width: 44px; min-height: 44px; cursor: pointer; }
+.stair-game.pixel-theme .character-option input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.stair-game.pixel-theme .character-option-face { display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 8px; border: 2px solid var(--pixel-edge); font-size: .85rem; }
+.stair-game.pixel-theme .character-option input:checked + .character-option-face { border-color: var(--pixel-gold); background: #39464a; }
+.stair-game.pixel-theme .character-option input:focus-visible + .character-option-face { outline: 3px solid var(--pixel-gold); outline-offset: 2px; }
+.stair-game.pixel-theme .character-option-check { visibility: hidden; color: var(--pixel-gold); }
+.stair-game.pixel-theme .character-option input:checked + .character-option-face .character-option-check { visibility: visible; }
+.stair-game.pixel-theme .character-swatch { width: 18px; height: 18px; border: 1px solid #b4c6d9; flex-shrink: 0; }
+.stair-game.pixel-theme .character-customization-footer { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-top: 2px solid var(--pixel-edge); }
+.stair-game.pixel-theme .character-customization-footer p { flex: 1; min-width: 0; margin: 0; overflow-wrap: anywhere; font-size: .85rem; }
+@media (max-width: 720px) {
+  .stair-game.pixel-theme .game-title-actions { gap: 8px; }
+  .stair-game.pixel-theme .game-title-actions button { min-height: 44px; padding: 10px; }
+  .stair-game.pixel-theme .character-customization-backdrop { padding: 8px; }
+  .stair-game.pixel-theme .character-customization-header { padding: 8px; }
+  .stair-game.pixel-theme .character-customization-header h2 { font-size: 1.1rem; }
+  .stair-game.pixel-theme .character-role-tabs { padding: 8px; }
+  .stair-game.pixel-theme .character-customization-body { display: flex; flex-direction: column; }
+  .stair-game.pixel-theme .character-preview { flex: 0 0 auto; gap: 0; padding: 0 8px 8px; }
+  .stair-game.pixel-theme .character-preview svg { width: 144px; height: 168px; }
+  .stair-game.pixel-theme .character-preview p { display: none; }
+  .stair-game.pixel-theme .character-options { padding: 8px; }
+  .stair-game.pixel-theme .character-customization-footer { padding: 8px; }
+}

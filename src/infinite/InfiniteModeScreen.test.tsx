@@ -5,6 +5,7 @@ import type { AudioController } from "../audio/audioController";
 import type { CompanyRecordBinding } from "../company/types";
 import { companyProfile } from "../test/companyFixtures";
 import { InfiniteModeScreen } from "./InfiniteModeScreen";
+import { getDefaultCharacterAppearance } from "../../shared/characterAppearance";
 
 const account: GameAccount = { homeAccountId: "employee-a", username: "employee@example.com", name: "회사원 A" };
 function records(): CompanyRecordBinding {
@@ -19,6 +20,20 @@ function audio(): AudioController {
 afterEach(() => { cleanup(); vi.useRealTimers(); });
 
 describe("InfiniteModeScreen", () => {
+  it("updates current scene looks from props without resetting an ongoing score", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(0);
+    const appearance = getDefaultCharacterAppearance(); appearance.runner.hat = "cap";
+    const view = render(<InfiniteModeScreen account={account} appearance={appearance} onReturnToTitle={vi.fn()} />);
+    expect(screen.getByTestId("infinite-player").querySelector(".officer-cap-hat")).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "게임 시작" }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
+    fireEvent.keyDown(window, { key: "d" });
+    expect(screen.getByTestId("infinite-score")).toHaveTextContent("1");
+    const next = { ...appearance, pursuer: { ...appearance.pursuer, glasses: "round" as const } };
+    view.rerender(<InfiniteModeScreen account={account} appearance={next} onReturnToTitle={vi.fn()} />);
+    expect(screen.getByTestId("infinite-pursuer").querySelector(".officer-glasses--round")).not.toBeNull();
+    expect(screen.getByTestId("infinite-score")).toHaveTextContent("1");
+  });
   it("shows pause only after starting and resumes an interrupted start countdown after three seconds", async () => {
     vi.useFakeTimers(); vi.setSystemTime(new Date("2026-11-03T00:00:00.000Z"));
     const sound = audio();

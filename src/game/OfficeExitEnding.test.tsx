@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { OfficeExitEnding } from "./OfficeExitEnding";
 import { OFFICE_EXIT_DURATION_MS, useOfficeExitEnding } from "./useOfficeExitEnding";
 import type { StageResult } from "./types";
+import { getDefaultCharacterLook } from "../../shared/characterAppearance";
 
 const completed = (endedAtMs = 0): StageResult => ({ stage: 5, score: 350, remainingTimeCs: 4500, endedAtMs, outcome: "cleared" });
 function Probe({ result }: { result: StageResult | null }) {
@@ -26,6 +27,13 @@ function media(initial = false) {
 
 beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(0); });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
+
+it.each(["animated", "complete"] as const)("uses the runner's chosen look in the %s exit", variant => {
+  const appearance = getDefaultCharacterLook("runner"); appearance.hat = "cap"; appearance.outfitColor = "rose";
+  const { container } = render(<OfficeExitEnding variant={variant} appearance={appearance} />);
+  expect(container.querySelector(".officer-cap-hat")).not.toBeNull();
+  expect(container.querySelector(".officer-cloth")).toHaveAttribute("fill", "#b66a87");
+});
 
 describe("office exit lifecycle", () => {
   it("keeps a single StrictMode timer until3999ms then completes at4000ms", () => {

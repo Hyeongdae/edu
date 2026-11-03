@@ -8,6 +8,7 @@ import { buildDescentSceneModel } from "../descent/descentSceneModel";
 import { makeObstacleFixture, withObstacle } from "../test/obstacleFixtures";
 import { withPursuitAt } from "../test/gameFixtures";
 import type { ClearedStage, GameStage, GameState } from "./types";
+import { getDefaultCharacterAppearance } from "../../shared/characterAppearance";
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 const initial = (stage: GameStage = 1) => startGame(createGameState(() => 0, { stage, highestClearedStage: (stage - 1) as ClearedStage }), 0);
@@ -25,6 +26,19 @@ function atIndex(index: number, stage: GameStage = 1): GameState {
 }
 
 describe("main downward staircase scene", () => {
+  it("applies distinct looks to both actors without changing their anchors or clipping", () => {
+    const appearance = getDefaultCharacterAppearance();
+    appearance.runner.hat = "cap"; appearance.runner.outfitColor = "rose";
+    appearance.pursuer.hat = "none"; appearance.pursuer.glasses = "round"; appearance.pursuer.skinTone = "deep";
+    const view = render(<StairScene {...props(initial())} appearance={appearance} />);
+    expect(screen.getByTestId("runner").querySelector(".officer-cap-hat")).not.toBeNull();
+    expect(screen.getByTestId("runner").querySelector(".officer-cloth")).toHaveAttribute("fill", "#b66a87");
+    expect(screen.getByTestId("pursuer").querySelector(".officer-straw-hat")).toBeNull();
+    expect(screen.getByTestId("pursuer").querySelector(".officer-glasses--round")).not.toBeNull();
+    expect(screen.getByTestId("pursuer").querySelector(".officer-face-skin")).toHaveAttribute("fill", "#86533a");
+    expect(screen.getByTestId("runner")).toHaveAttribute("transform", "translate(260 216)");
+    expect(view.container.querySelector("clipPath rect")).toHaveAttribute("height", "84");
+  });
   it.each([1, 2, 3, 4, 5] as const)("uses downward geometry with upright pixel art in stage %s", (stage) => {
     const state = initial(stage);
     const random = vi.spyOn(Math, "random");

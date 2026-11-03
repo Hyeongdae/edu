@@ -2,10 +2,23 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { applyInfiniteInput, createInfiniteGameState, startInfiniteGame } from "./infiniteEngine";
 import { InfiniteStairScene } from "./InfiniteStairScene";
+import { getDefaultCharacterAppearance } from "../../shared/characterAppearance";
 
 afterEach(cleanup);
 
 describe("InfiniteStairScene", () => {
+  it("shows independent custom looks above the stairs while preserving the original feet anchors", () => {
+    const appearance = getDefaultCharacterAppearance(); appearance.runner.hat = "cap";
+    appearance.pursuer.glasses = "round"; appearance.pursuer.outfitColor = "teal";
+    const { container } = render(<InfiniteStairScene state={createInfiniteGameState(() => 0)} isMoving={false} appearance={appearance} />);
+    const player = screen.getByTestId("infinite-player"), pursuer = screen.getByTestId("infinite-pursuer");
+    expect(player.querySelector(".officer-cap-hat")).not.toBeNull();
+    expect(pursuer.querySelector(".officer-glasses--round")).not.toBeNull();
+    expect(pursuer.querySelector(".officer-cloth")).toHaveAttribute("fill", "#397f82");
+    const lastStair = container.querySelectorAll('[data-testid="infinite-stair-step"]');
+    expect(lastStair[lastStair.length - 1].compareDocumentPosition(player) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(player).toHaveAttribute("transform", "translate(260 204)");
+  });
   it("renders pixel stairs ascending upward with both office characters and no obstacles", () => {
     let state = startInfiniteGame(createInfiniteGameState(() => 0), 0);
     state = applyInfiniteInput(state, "forward", 0);

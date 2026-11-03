@@ -1,3 +1,4 @@
+import type { CharacterAppearance } from "../../shared/characterAppearance";
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import type { GameAccount } from "../auth/gameAccount";
 import type { CompanyRecordBinding } from "../company/types";
@@ -21,6 +22,7 @@ const TICK_MS = 50;
 type InfiniteResumeTarget = "playing" | "start" | null;
 
 interface InfiniteModeScreenProps {
+  appearance?: CharacterAppearance;
   account: GameAccount;
   companyRecords?: CompanyRecordBinding;
   audioController?: AudioController;
@@ -37,7 +39,7 @@ function shiftDeadline(deadline: number | null, duration: number): number | null
 
 export function InfiniteModeScreen({
   account, companyRecords, audioController, audioPreferences, autoplayBlocked = false,
-  onAudioPreferencesChange, onEnableAudio, onReturnToTitle,
+  onAudioPreferencesChange, onEnableAudio, onReturnToTitle, appearance,
 }: InfiniteModeScreenProps) {
   const [gameState, setGameState] = useState<InfiniteGameState>(() => createInfiniteGameState());
   const [nowMs, setNowMs] = useState(() => Date.now());
@@ -334,7 +336,7 @@ export function InfiniteModeScreen({
           <h1 className="infinite-mode-accessible-title">무한 모드</h1>
           <InfiniteHud state={gameState} nowMs={gameplayNowMs} />
           <div className="game-layout" data-game-status={gameState.status}>
-            <InfiniteStairScene state={gameState} isMoving={gameState.lastPursuerMove !== null && nowMs < gameState.lastPursuerMove.atMs + 240} />
+            <InfiniteStairScene appearance={appearance} state={gameState} isMoving={gameState.lastPursuerMove !== null && nowMs < gameState.lastPursuerMove.atMs + 240} />
           </div>
         </div>
         {gameState.status === "ready" && countdownEndsAt === null && <section className="stage-select-panel infinite-start-panel" aria-labelledby="infinite-start-title">

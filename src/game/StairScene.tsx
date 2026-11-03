@@ -1,3 +1,4 @@
+import type { CharacterAppearance } from "../../shared/characterAppearance";
 import { useId, type CSSProperties, type ReactElement } from "react";
 import type { ScenePoint, SceneStep } from "./stairSceneModel";
 import { buildDescentSceneModel } from "../descent/descentSceneModel";
@@ -13,6 +14,7 @@ import { PixelObstacle } from "./pixel/PixelObstacle";
 import "./pixel/pixel-scene.css";
 
 interface StairSceneProps {
+  appearance?: CharacterAppearance;
   state: GameState;
   climbAnimationKey: number;
   isClimbing: boolean;
@@ -30,7 +32,7 @@ function travelStyle(from: ScenePoint, to: ScenePoint, prefix: string, lift: num
   } as CSSProperties;
 }
 
-export function StairScene({ state, climbAnimationKey, isClimbing, pursuerAnimationKey, isPursuerMoving, isPursuerCaught }: StairSceneProps): ReactElement {
+export function StairScene({ appearance, state, climbAnimationKey, isClimbing, pursuerAnimationKey, isPursuerMoving, isPursuerCaught }: StairSceneProps): ReactElement {
   const sceneId = useId();
   const feetClipId = `${sceneId}-feet`;
   const model = buildDescentSceneModel(state);
@@ -69,7 +71,7 @@ export function StairScene({ state, climbAnimationKey, isClimbing, pursuerAnimat
             key={state.lastMistake ? `fall-${state.recoveryEndsAt}` : climbAnimationKey}
             className="runner-pose" data-testid="runner-pose"
           >
-            <PixelOfficer variant="young" direction={model.player.direction} pose={motionKind} />
+            <PixelOfficer appearance={appearance?.runner} variant="young" direction={model.player.direction} pose={motionKind} />
           </g>
         </g>
       </g>
@@ -90,7 +92,7 @@ export function StairScene({ state, climbAnimationKey, isClimbing, pursuerAnimat
           >
             {/* Catch travel and facing belong to inner nodes, leaving the stair anchor fixed. */}
             <PixelOfficer
-              variant="older" direction={isPursuerCaught ? "right" : pursuerPoint.direction}
+              appearance={appearance?.pursuer} variant="older" direction={isPursuerCaught ? "right" : pursuerPoint.direction}
               pose={moving || isPursuerCaught ? "climb" : "idle"}
             />
           </g>

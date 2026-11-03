@@ -1,9 +1,11 @@
+import type { CharacterAppearance } from "../../shared/characterAppearance";
 import { useEffect, useId, useRef, useState, type CSSProperties, type ReactElement } from "react";
 import { OvertimeOfficer } from "./pixel/OvertimeOfficer";
 import { OVERTIME_CAPTURE_DURATION_MS } from "./useOvertimeCaptureEnding";
 import "./overtime-capture-ending.css";
 
 export interface OvertimeCaptureEndingProps {
+  appearance?: CharacterAppearance;
   variant: "animated" | "complete";
   startedAtMs?: number;
 }
@@ -14,7 +16,7 @@ const BUILDINGS = [
   { x: 216, y: 108, width: 32 }, { x: 254, y: 90, width: 52 },
 ];
 
-export function OvertimeCaptureEnding({ variant, startedAtMs }: OvertimeCaptureEndingProps): ReactElement {
+export function OvertimeCaptureEnding({ appearance, variant, startedAtMs }: OvertimeCaptureEndingProps): ReactElement {
   const id = useId(), titleId = `${id}-overtime-title`, windowId = `${id}-overtime-window`;
   const headingRef = useRef<HTMLHeadingElement>(null);
   const animated = variant === "animated";
@@ -109,18 +111,18 @@ export function OvertimeCaptureEnding({ variant, startedAtMs }: OvertimeCaptureE
           <g className="overtime-capture-bob overtime-capture-timed">
             <g transform="translate(136 326)" data-testid="overtime-capture-protagonist">
               <g className="overtime-capture-young--dragged overtime-capture-timed">
-                <OvertimeOfficer variant="young" pose="dragged" />
+                <OvertimeOfficer appearance={appearance?.runner} variant="young" pose="dragged" />
               </g>
               <g className="overtime-capture-young--seated overtime-capture-timed">
-                <OvertimeOfficer variant="young" pose="seated" />
+                <OvertimeOfficer appearance={appearance?.runner} variant="young" pose="seated" />
               </g>
             </g>
             <g transform="translate(204 326)" data-testid="overtime-capture-pursuer">
               <g className="overtime-capture-older--grabbing overtime-capture-timed">
-                <OvertimeOfficer variant="older" pose="grabbing" />
+                <OvertimeOfficer appearance={appearance?.pursuer} variant="older" pose="grabbing" />
               </g>
               <g className="overtime-capture-older--standing overtime-capture-timed">
-                <OvertimeOfficer variant="older" pose="standing" />
+                <OvertimeOfficer appearance={appearance?.pursuer} variant="older" pose="standing" />
               </g>
             </g>
           </g>
