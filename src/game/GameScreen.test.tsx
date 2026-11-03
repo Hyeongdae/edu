@@ -1,4 +1,4 @@
-import * as stairObstacles from "./stairObstacles";
+﻿import * as stairObstacles from "./stairObstacles";
 import { makeObstacleFixture, withObstacle } from "../test/obstacleFixtures";
 import { act, cleanup, fireEvent, render as renderBase, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -40,7 +40,7 @@ function render(ui: Parameters<typeof renderBase>[0]) {
     configurable: true,
     value: () => ({ matches: true }),
   });
-  fireEvent.click(screen.getByRole("button", { name: "게임 시작" }));
+  fireEvent.click(screen.getByRole("button", { name: "단계 모드" }));
   if (originalMatchMedia) Object.defineProperty(window, "matchMedia", originalMatchMedia);
   else Reflect.deleteProperty(window, "matchMedia");
   return view;
@@ -187,7 +187,7 @@ describe("local record policy", () => {
     localStorage.setItem(DESCENT_LEADERBOARD_KEY, "[]"); localStorage.setItem(DESCENT_PROGRESS_KEY, "[]");
     const read=vi.spyOn(Storage.prototype,"getItem"), write=vi.spyOn(Storage.prototype,"setItem");
     renderBase(<GameScreen account={account} />);
-    fireEvent.click(screen.getByRole("button", { name: "게임 시작" }));
+    fireEvent.click(screen.getByRole("button", { name: "단계 모드" }));
     await act(async () => { await vi.advanceTimersByTimeAsync(200); });
     expect(screen.getByTestId("stage-value")).toHaveTextContent("1");
     expect(read.mock.calls.filter(([k])=>k===DESCENT_LEADERBOARD_KEY||k===DESCENT_PROGRESS_KEY)).toEqual([]);
@@ -220,8 +220,9 @@ describe("title screen entry", () => {
 
     expect(screen.getByRole("heading", { level: 1, name: "덱스 탈출 넘버원" })).toBeVisible();
     expect(screen.getByText("계단을 내려가 1층까지 도착해 퇴근하세요!")).toBeVisible();
-    expect(screen.getAllByRole("button")).toHaveLength(3);
-    expect(screen.getByRole("button", { name: "게임 시작" })).toBeVisible();
+    expect(screen.getAllByRole("button")).toHaveLength(4);
+    expect(screen.getByRole("button", { name: "단계 모드" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "무한 모드" })).toBeVisible();
     expect(screen.getByRole("button", { name: "게임 설명" })).toBeVisible();
     expect(screen.getByRole("button", { name: "랭킹 보기" })).toBeVisible();
     expect(screen.queryByRole("region", { name: "단계 선택" })).not.toBeInTheDocument();
@@ -237,7 +238,7 @@ describe("title screen entry", () => {
     expect(document.querySelector(".game-stage .scene-hint")).toBeInTheDocument();
     expect(screen.queryByTestId("stage-time")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "게임 시작" }));
+    fireEvent.click(screen.getByRole("button", { name: "단계 모드" }));
     expect(screen.getByRole("region", { name: "단계 선택" })).toBeVisible();
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-title-transitioning", "true");
     expect(document.querySelector(".stair-scene")).toBe(scene);
@@ -268,6 +269,15 @@ describe("title screen entry", () => {
     expect(screen.queryByRole("button", { name: "?" })).not.toBeInTheDocument();
   });
 
+  it("opens the upward infinite mode directly from the title without changing stage selection", () => {
+    renderBase(<GameScreen account={account} />);
+    fireEvent.click(screen.getByRole("button", { name: "무한 모드" }));
+    expect(screen.getByRole("heading", { name: "무한 모드" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "무한 모드 시작" })).toBeVisible();
+    expect(screen.queryByRole("region", { name: "단계 선택" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "점프" })).not.toBeInTheDocument();
+  });
+
   it("opens the same company ranking from title and stage selection, then restores focus and stage", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);
@@ -287,12 +297,12 @@ describe("title screen entry", () => {
     fireEvent.keyDown(dialog, { key: "Tab" });
     expect(closeButton).toHaveFocus();
     fireEvent.keyDown(dialog, { key: "Tab", shiftKey: true });
-    expect(closeButton).toHaveFocus();
+    expect(screen.getByRole("tab", { name: "단계 모드" })).toHaveFocus();
     fireEvent.keyDown(dialog, { key: "Escape" });
     expect(titleTrigger).toHaveFocus();
     expect(screen.queryByRole("region", { name: "단계 선택" })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "게임 시작" }));
+    fireEvent.click(screen.getByRole("button", { name: "단계 모드" }));
     await act(async () => { await vi.advanceTimersByTimeAsync(200); });
     const stageTwo = screen.getByRole("button", { name: "2단계 선택" });
     fireEvent.click(stageTwo);
@@ -333,7 +343,7 @@ describe("title screen entry", () => {
     }));
     renderBase(<GameScreen account={account} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "게임 시작" }));
+    fireEvent.click(screen.getByRole("button", { name: "단계 모드" }));
 
     expect(screen.getByRole("region", { name: "단계 선택" })).toBeVisible();
     expect(document.querySelector(".game-frame")).not.toHaveAttribute("data-title-transitioning");
@@ -351,7 +361,7 @@ describe("caught overtime integration", () => {
   });
   async function openGame(audioController?: AudioController) {
     const view = renderBase(<StrictMode><GameScreen account={account} audioController={audioController} /></StrictMode>);
-    fireEvent.click(screen.getByRole("button", { name: "게임 시작" }));
+    fireEvent.click(screen.getByRole("button", { name: "단계 모드" }));
     if (document.querySelector(".game-title-screen")) await wait(200);
     startSelectedStageImmediately();
     return view;
@@ -733,7 +743,7 @@ describe("GameScreen controls", () => {
 
     await act(async () => { await vi.advanceTimersByTimeAsync(5_000); });
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "ready");
-    fireEvent.click(screen.getByRole("button", { name: "게임 시작" }));
+    fireEvent.click(screen.getByRole("button", { name: "단계 모드" }));
     await act(async () => { await vi.advanceTimersByTimeAsync(200); });
     startSelectedStageImmediately();
     expect(screen.getByTestId("stage-time")).toHaveTextContent("01:30");

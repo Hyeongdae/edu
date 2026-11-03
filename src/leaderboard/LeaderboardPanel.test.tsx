@@ -106,4 +106,17 @@ describe("LeaderboardPanel", () => {
     expect(within(rows[3]).getByText("4단계")).toBeVisible();
     expect(within(rows[4]).getByText("3단계")).toBeVisible();
   });
+
+  it("assigns dense shared ranks to the separate infinite score list", () => {
+    render(<LeaderboardPanel mode="infinite" scope="company" currentAccountId="b" entries={[]} infiniteEntries={[
+      { accountId: "a", displayName: "먼저", bestScore: 100, achievedAt: "2026-10-30T00:00:00.000Z" },
+      { accountId: "b", displayName: "나", bestScore: 100, achievedAt: "2026-10-30T00:00:01.000Z" },
+      { accountId: "c", displayName: "다음", bestScore: 90, achievedAt: "2026-10-30T00:00:02.000Z" },
+    ]} />);
+    const rows = screen.getAllByRole("listitem");
+    expect(rows.map((row) => row.querySelector(".leaderboard-rank")?.textContent)).toEqual(["1", "1", "2"]);
+    expect(rows[1]).toHaveClass("is-current-player");
+    expect(within(rows[0]).getByText("100점")).toBeVisible();
+    expect(within(rows[0]).queryByText(/초|단계/)).not.toBeInTheDocument();
+  });
 });

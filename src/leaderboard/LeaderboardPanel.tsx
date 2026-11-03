@@ -1,16 +1,24 @@
 import { getTopScores, type LeaderboardEntry } from "./leaderboard";
 import { formatRemainingTimeCs } from "../game/stageResult";
-import { getSharedTopScores, type SharedBest } from "../../shared/companyRecords";
+import { getSharedTopInfiniteScores, getSharedTopScores, type SharedBest, type SharedInfiniteBest } from "../../shared/companyRecords";
 
 interface LeaderboardPanelProps {
   entries: LeaderboardEntry[];
   currentAccountId: string;
   scope?: "browser" | "company";
+  mode?: "stage" | "infinite";
+  infiniteEntries?: SharedInfiniteBest[];
 }
 
-export function LeaderboardPanel({ entries, currentAccountId, scope = "browser" }: LeaderboardPanelProps) {
+export function LeaderboardPanel({ entries, currentAccountId, scope = "browser", mode = "stage", infiniteEntries = [] }: LeaderboardPanelProps) {
   const topScores = scope === "company" ? getSharedTopScores(entries.filter((entry): entry is SharedBest => entry.remainingTimeCs !== undefined))
     : getTopScores(entries);
+  const infiniteScores = scope === "company" ? getSharedTopInfiniteScores(infiniteEntries) : [];
+  const rankedInfiniteScores = infiniteScores.reduce<Array<SharedInfiniteBest & { rank: number }>>((rows, entry) => {
+    const previous = rows.at(-1);
+    rows.push({ ...entry, rank: !previous ? 1 : previous.bestScore === entry.bestScore ? previous.rank : previous.rank + 1 });
+    return rows;
+  }, []);
 
   return (
     <section className="leaderboard-card" aria-labelledby="leaderboard-title">
@@ -22,7 +30,19 @@ export function LeaderboardPanel({ entries, currentAccountId, scope = "browser" 
         </div>
         <span className="leaderboard-count">TOP 10</span>
       </div>
-      {topScores.length === 0 ? (
+      <p className="leaderboard-mode-label">{mode === "stage" ? "단계 모드" : "무한 모드"}</p>
+      {mode === "infinite" ? rankedInfiniteScores.length === 0 ? (
+        <p className="leaderboard-empty">{scope === "company" ? "아직 무한 모드 기록이 없습니다. 첫 기록을 만들어 보세요!" : "회사 계정으로 접속하면 무한 모드 랭킹이 기록됩니다."}</p>
+      ) : (
+        <ol className="leaderboard-list infinite-leaderboard-list">
+          {rankedInfiniteScores.map((entry) => <li className={`leaderboard-row${entry.accountId === currentAccountId ? " is-current-player" : ""}`}
+            key={entry.accountId}>
+            <span className="leaderboard-rank">{entry.rank}</span>
+            <span className="leaderboard-name">{entry.displayName || "이름 없음"}{entry.accountId === currentAccountId && <span className="leaderboard-you">나</span>}</span>
+            <strong className="leaderboard-score">{entry.bestScore}점</strong>
+          </li>)}
+        </ol>
+      ) : topScores.length === 0 ? (
         <p className="leaderboard-empty">
           {scope === "company"
             ? "아직 저장된 기록이 없어요. 첫 기록을 만들어 보세요!"

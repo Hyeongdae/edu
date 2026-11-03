@@ -1,18 +1,20 @@
 # Current Context
 
 ## Active Plan
-없음 — [Start Game Countdown](./plans/2026-10-30-start-game-countdown.md) 완료.
+[Infinite Score Mode](./plans/2026-11-03-infinite-score-mode.md) — 완료.
 
 ## Active Phase
-없음 — [P01 Start Flow](./phases/2026-10-30-start-game-countdown/P01-start-flow/phase.md) 완료.
+없음 — [P01 Infinite Score Mode](./phases/2026-11-03-infinite-score-mode/P01-infinite-mode/phase.md) 완료 (3/3).
 
 ## Active Task
-없음 — Start Game Countdown 완료 (1/1).
+없음 — Infinite Score Mode 완료 (3/3).
 
 ## Last Completed Task
-[T01 Initial Countdown](./phases/2026-10-30-start-game-countdown/P01-start-flow/T01-initial-countdown.md) — 945d567; 101 GameScreen tests, 3 countdown component tests, lint, and production build passed.
+[T03 Infinite Mode UI](./phases/2026-11-03-infinite-score-mode/P01-infinite-mode/T03-infinite-mode-ui.md) — commit hash is recorded after commit; focused frontend tests, lint, and both production builds passed.
 
 ## Status
+- Infinite Score Mode is complete: separate upward endless play, title entry, mode-specific guide and leaderboard tabs, and account-scoped Cosmos best score are implemented. T01 and T02 are complete; T03 validated and committed.
+- Confirmed boundaries: stage mode remains the existing downward five-stage game; local demo does not persist records; company ranking stores one infinite personal best in the existing `stair-climb/players` container. Equal infinite scores use dense ranks (1, 1, 2).
 - P01 Gameplay Polish is complete (3/3): score cap, the three-second stage transition countdown, and the 30% default BGM preference are implemented and validated.
 - Start Game Countdown is complete: Start shows 3-2-1 over the selected stage; the clock and pursuer begin when it ends.
 - P01-T01 score cap is implemented and validated: new in-game scores and result/API/Cosmos validation stop at the per-stage target. Existing Cosmos records were not changed; the user will edit previous over-target data. Web/API unit tests, lint, and both builds pass; emulator integration was skipped because its connection string is not configured.
@@ -28,7 +30,7 @@
 - [Cosmos ranking storage migration](./decisions/2026-10-30-cosmos-ranking-storage-migration.md)
 
 ## Next Step (IMPORTANT)
-No active task. The Start Game Countdown plan is complete.
+No active task. Infinite Score Mode is complete. Start a new interview and plan for any follow-up changes.
 ---
 
 ### Previous Context: Main Game Descent Conversion

@@ -6,7 +6,7 @@ import type {
 import type { InfiniteGameState } from "./types";
 
 const VISIBLE_STAIR_COUNT = 11;
-const VISIBLE_BEHIND = 4;
+const VISIBLE_BEHIND = 5;
 
 export interface InfiniteSceneModel {
   steps: readonly SceneStep[];
@@ -72,10 +72,11 @@ export function buildInfiniteSceneModel(state: InfiniteGameState): InfiniteScene
     { offset: 0.85, behind: 3 },
     { offset: 1, behind: state.pursuerDistance },
   ];
-  const steps = Array.from({ length: VISIBLE_STAIR_COUNT }, (_, offset): SceneStep =>
-    actorAt(state.stepsClimbed - VISIBLE_BEHIND + offset));
-  const visibleIndices = new Set(steps.map((step) => step.index));
   const firstRetainedIndex = state.route.steps[0].index;
+  const visibleBehind = Math.min(VISIBLE_BEHIND, state.stepsClimbed - firstRetainedIndex);
+  const steps = Array.from({ length: VISIBLE_STAIR_COUNT }, (_, offset): SceneStep =>
+    actorAt(state.stepsClimbed - visibleBehind + offset));
+  const visibleIndices = new Set(steps.map((step) => step.index));
   const lastRetainedIndex = state.route.steps.at(-1)!.index;
   const pursuerPreviewSteps = [state.pursuerIndex - 1, state.pursuerIndex, state.pursuerIndex + 1]
     .filter((index) => index >= firstRetainedIndex && index <= lastRetainedIndex && !visibleIndices.has(index))

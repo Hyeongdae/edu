@@ -6,9 +6,11 @@ interface ControlButtonsProps {
   onTurn: () => void;
   onJump: () => void;
   disabled: boolean;
+  showJump?: boolean;
+  direction?: "up" | "down";
 }
 
-export function ControlButtons({ onForward, onTurn, onJump, disabled }: ControlButtonsProps): ReactElement {
+export function ControlButtons({ onForward, onTurn, onJump, disabled, showJump = true, direction = "down" }: ControlButtonsProps): ReactElement {
   const onPointerDown = (event: PointerEvent<HTMLButtonElement>, action: () => void) => {
     if (disabled || !event.isPrimary || event.button !== 0) return;
     event.preventDefault();
@@ -25,12 +27,15 @@ export function ControlButtons({ onForward, onTurn, onJump, disabled }: ControlB
       <span>{text}</span>
     </button>
   );
+  const forwardLabel = direction === "up" ? "한 칸 올라가기" : "한 칸 내려가기";
+  const turnLabel = direction === "up" ? "방향 바꾸며 한 칸 올라가기" : "방향을 바꾸며 내려가기";
+  const forwardText = direction === "up" ? "올라가기" : "내려가기";
   return (
     <section className="game-controls" aria-label="게임 조작">
-      {button("forward", "한 칸 내려가기", "내려가기", onForward)}
+      {button("forward", forwardLabel, forwardText, onForward)}
       <div className="control-actions">
-        {button("turn", "방향을 바꾸며 내려가기", "방향 바꾸기", onTurn)}
-        {button("jump", "장애물을 뛰어넘기", "점프", onJump)}
+        {button("turn", turnLabel, "방향 바꾸기", onTurn)}
+        {showJump && button("jump", "장애물을 뛰어넘기", "점프", onJump)}
       </div>
     </section>
   );

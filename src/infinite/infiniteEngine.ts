@@ -11,7 +11,7 @@ const BASE_PURSUER_INTERVAL_MS = 300;
 const EVENT_STEP_TARGET = 50;
 const EVENT_DURATION_MS = 30_000;
 const TERMINAL_ANIMATION_MS = 500;
-const HISTORY_STEPS = 4;
+const HISTORY_STEPS = 5;
 const FUTURE_STEPS = 18;
 
 function validateTime(nowMs: number): void {

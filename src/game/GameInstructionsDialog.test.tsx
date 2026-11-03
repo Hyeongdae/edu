@@ -50,4 +50,14 @@ describe("GameInstructionsDialog", () => {
     fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
     expect(onKeyDown).toHaveBeenCalledOnce();
   });
+
+  it("switches to the infinite mode guide and supports arrow-key tab navigation", () => {
+    render(<GameInstructionsDialog onClose={vi.fn()} closeButtonRef={createRef<HTMLButtonElement>()}
+      dialogRef={createRef<HTMLElement>()} onKeyDown={vi.fn()} />);
+    const infiniteTab = screen.getByRole("tab", { name: "무한 모드" });
+    fireEvent.keyDown(screen.getByRole("tab", { name: "단계 모드" }), { key: "ArrowRight" });
+    expect(infiniteTab).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByText(/50칸마다 30초 동안 2배 점수/)).toBeVisible();
+    expect(screen.getByText((_, element) => element?.tagName === "LI" && element.textContent?.includes("Space") === true && element.textContent.includes("사용하지 않아요"))).toBeVisible();
+  });
 });

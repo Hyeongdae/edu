@@ -1,0 +1,26 @@
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
+import { createInfiniteGameState } from "./infiniteEngine";
+import { InfiniteHud } from "./InfiniteHud";
+
+afterEach(cleanup);
+
+describe("InfiniteHud", () => {
+  it("shows score, climbed stairs, pursuer distance, and the 50-step gauge", () => {
+    const state = { ...createInfiniteGameState(() => 0), score: 49, stepsClimbed: 49, eventSteps: 49 };
+    render(<InfiniteHud state={state} nowMs={0} />);
+    expect(screen.getByTestId("infinite-score")).toHaveTextContent("49");
+    expect(screen.getByTestId("infinite-steps")).toHaveTextContent("49칸");
+    expect(screen.getByTestId("infinite-distance")).toHaveTextContent("4칸");
+    expect(screen.getByRole("progressbar", { name: "2배 이벤트 진행 게이지" })).toHaveAttribute("value", "49");
+  });
+
+  it("shows the active bonus timer and a full gauge", () => {
+    const state = { ...createInfiniteGameState(() => 0), status: "playing" as const, eventSteps: 0,
+      eventEndsAt: 30_000, nextPursuerStepAt: 300 };
+    render(<InfiniteHud state={state} nowMs={12_100} />);
+    expect(screen.getByText("점수 2배 이벤트")).toBeVisible();
+    expect(screen.getByText("18초")).toBeVisible();
+    expect(screen.getByRole("progressbar")).toHaveAttribute("value", "50");
+  });
+});

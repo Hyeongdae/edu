@@ -24,6 +24,7 @@ import { LeaderboardPanel } from "../leaderboard/LeaderboardPanel";
 import { AudioControls } from "../audio/AudioControls";
 import type { AudioController } from "../audio/audioController";
 import type { AudioPreferences } from "../audio/audioPreferences";
+import { InfiniteModeScreen } from "../infinite/InfiniteModeScreen";
 import "./game.css";
 import "./pixel-theme.css";
 
@@ -73,6 +74,7 @@ export function GameScreen({
     stage: getHighestUnlockedStage(initialProfile.knownHighest), highestClearedStage: initialProfile.knownHighest,
   }));
   const [isTitleScreen, setIsTitleScreen] = useState(true);
+  const [activeMode, setActiveMode] = useState<"title" | "stage" | "infinite">("title");
   const [isTitleLeaving, setIsTitleLeaving] = useState(false);
   const titleTransitionTimeoutRef = useRef<number | undefined>(undefined);
   const [nowMs, setNowMs] = useState(() => Date.now());
@@ -208,6 +210,7 @@ export function GameScreen({
     const knownHighest = readKnownHighest();
     const preview = resetGame(undefined, { stage: getHighestUnlockedStage(knownHighest), highestClearedStage: knownHighest });
     runStartedRef.current = false;
+    setActiveMode("title");
     setIsTitleLeaving(false);
     setIsTitleScreen(true);
     setNowMs(Date.now());
@@ -216,6 +219,7 @@ export function GameScreen({
 
   const handleEnterStageSelection = () => {
     if (activeDialogRef.current !== null || gameState.status !== "ready" || isTitleLeaving) return;
+    setActiveMode("stage");
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
       setIsTitleScreen(false);
       return;
@@ -505,7 +509,7 @@ export function GameScreen({
     }
     if (event.key !== "Tab") return;
     const focusable = event.currentTarget.querySelectorAll<HTMLElement>(
-      'button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+      'button:not([disabled]):not([tabindex="-1"]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
     );
     if (focusable.length === 0) return;
     const first = focusable[0];
@@ -522,6 +526,12 @@ export function GameScreen({
   const onSettingsDialogKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => onDialogKeyDown(event, closeSettings);
   const onInstructionsDialogKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => onDialogKeyDown(event, closeInstructions);
   const onLeaderboardDialogKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => onDialogKeyDown(event, closeLeaderboard);
+
+  if (activeMode === "infinite") {
+    return <InfiniteModeScreen account={account} companyRecords={companyRecords} audioController={audioController}
+      audioPreferences={audioPreferences} autoplayBlocked={autoplayBlocked} onAudioPreferencesChange={onAudioPreferencesChange}
+      onEnableAudio={onEnableAudio} onReturnToTitle={() => setActiveMode("title")} />;
+  }
 
   return (
     <main className="stair-game pixel-theme" data-game-status={gameState.status}>
@@ -550,7 +560,10 @@ export function GameScreen({
               </div>
               <div className="game-title-actions">
                 <button className="game-title-start" type="button" onClick={handleEnterStageSelection}>
-                  게임 시작
+                  단계 모드
+                </button>
+                <button className="game-title-infinite" type="button" onClick={() => setActiveMode("infinite")}>
+                  무한 모드
                 </button>
                 <button
                   ref={instructionsTriggerRef}
@@ -754,6 +767,7 @@ export function GameScreen({
           {isLeaderboardOpen && (
             <LeaderboardDialog
               entries={companyRecords?.entries ?? leaderboard}
+              infiniteEntries={companyRecords?.infiniteEntries ?? []}
               currentAccountId={account.homeAccountId}
               scope={usesCompanyRecords ? "company" : "browser"}
               onClose={closeLeaderboard}

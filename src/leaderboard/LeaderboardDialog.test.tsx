@@ -46,4 +46,15 @@ describe("LeaderboardDialog", () => {
     fireEvent.mouseDown(backdrop);
     expect(onClose).toHaveBeenCalledOnce();
   });
+
+  it("switches ranking categories with accessible tabs", () => {
+    render(<LeaderboardDialog entries={entries} infiniteEntries={[
+      { accountId: "runner", displayName: "계단왕", bestScore: 80, achievedAt: "2026-10-30T00:00:00.000Z" },
+    ]} currentAccountId="runner" scope="company" onClose={vi.fn()}
+      closeButtonRef={createRef<HTMLButtonElement>()} dialogRef={createRef<HTMLElement>()} onKeyDown={vi.fn()} />);
+    fireEvent.click(screen.getByRole("tab", { name: "무한 모드" }));
+    expect(screen.getByRole("tab", { name: "무한 모드" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByText("80점")).toBeVisible();
+    expect(screen.queryByText("3단계")).not.toBeInTheDocument();
+  });
 });
