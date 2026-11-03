@@ -144,7 +144,7 @@ Task: T05-title-customizer-and-scene-integration
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: pending
+- commit: 936e26b
 
 ## Validation Results — 2026-11-03
 - 지정7개 파일211/211 통과(56.53초). 역할별 옵션 독립성, 실제 SVG 미리보기, 자동 저장 상태/오류/재시도, 모달 입력 차단·초점 복원, 두 모드와 모든 엔딩의 외형 전달을 확인했다.

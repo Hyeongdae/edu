@@ -1,26 +1,27 @@
 # Current Context
 
 ## Active Plan
-[Character Customization](./plans/2026-11-03-character-customization.md)
+[Character Customization](./plans/2026-11-03-character-customization.md) — complete (5/5)
 
 ## Active Phase
-[P01 Character Customization](./phases/2026-11-03-character-customization/P01-character-customization/phase.md)
+없음 — [P01 Character Customization](./phases/2026-11-03-character-customization/P01-character-customization/phase.md) 완료.
 
 ## Active Task
-[T05 Title Customizer and Scene Integration](./phases/2026-11-03-character-customization/P01-character-customization/T05-title-customizer-and-scene-integration.md)
+없음 — character-customization 구현 완료 (5/5).
 
 ## Status
-- Character Customization T01 (`8898b74`), T02 (`5f98abb`), T03 (`9e06d5a`), T04 (`d5489e8`) 완료. done 4/5, Active P01-T05.
-- T04 지정 테스트126/126, lint/frontend build 통과. 일반/야근 포즈의 공통 외형 부위와 팔레트를 구현했고 브라우저에서10개 조합을 정적으로 확인했다.
-- T02의 새 emulator 통합3건은 로컬 실행 환경이 없어 미실행이며 배포 전 CI 검증이 필요하다.
-- 다음 작업은 타이틀 꾸미기 화면, 계정/로컬 편집 상태, 실제 모든 장면과 엔딩의 외형 전달 연결이다.
-- 기존 `src/game/pixel-theme.css`의 미커밋 모바일 무한 모드 버튼 간격 변경을 보존한다.
+- T01 (8898b74), T02 (5f98abb), T03 (9e06d5a), T04 (d5489e8), T05 (936e26b) 완료.
+- 타이틀 꾸미기에서 도망자/추격자10개 부위·색상을 독립 선택한다. 실제 두 모드와 모든 엔딩에 전달하며 계정 자동 저장 상태/실패 재시도를 표시한다. 로컬 데모는 이번 접속의 메모리만 사용한다.
+- T05 지정7파일211/211, 전체54파일1474/1474, API4파일186/186, lint/frontend·API build/diff check 통과.
+- 격리 Chrome에서320×568,390×844,768×1024,1440×900의 타이틀5버튼, 편집/스크롤/키보드, 모드 이동과 외형 유지를 확인했다. 증거는 TEMP/character-t05-evidence/에22개PNG 및 결과JSON으로 보존했다.
+- T02 emulator 통합3건은 로컬 실행 환경이 없어 미실행이다. 배포 전 CI 검증 및 배포 후 실제 계정 저장 확인이 남으며, 운영 계정/Cosmos를 변경하지 않았다.
+- 기존 src/game/pixel-theme.css의 미커밋 모바일 무한 모드 버튼 간격 변경은 보존하고 Task 커밋에서 제외했다. 이번 계획은 아직 push/배포하지 않았다.
 
 ## Source Decision
 - [Character Customization](./decisions/2026-11-03-character-customization.md)
 
 ## Next Step
-T05 청사진을 읽고 `src/character/CharacterCustomizationDialog.tsx`, `character-customization.css`, `src/game/GameScreen.tsx` 및 실제 장면/엔딩에 꾸미기 UI와 외형 전달을 구현한다. `/memory-execute` 또는 `current 보고 이어서 해줘`로 Active Task 한 개씩 진행한다.
+로컬 테스트: http://localhost:5173/ → 캐릭터 꾸미기. 새 Active Task는 없다. 배포 요청 시 기존 CI의 Cosmos emulator 통합 테스트를 통과한 뒤 실제 회사 계정 저장·새 세션 복원을 확인한다.
 
 ## Previous Completed Plan
 - [Game Pause Menu](./plans/2026-11-03-game-pause-menu.md) complete 3/3. T02: `b9b95f4`; T03: `ec1c52a`.
