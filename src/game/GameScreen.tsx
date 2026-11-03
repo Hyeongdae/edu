@@ -19,6 +19,7 @@ import { GameInstructionsDialog } from "./GameInstructionsDialog";
 import { LeaderboardDialog } from "../leaderboard/LeaderboardDialog";
 import { StairScene } from "./StairScene";
 import { PixelIcon } from "./pixel/PixelIcon";
+import { PauseMenuDialog, type PauseMenuConfirmation } from "./PauseMenuDialog";
 import type { ClearedStage, GameInput, GameStage } from "./types";
 import { LeaderboardPanel } from "../leaderboard/LeaderboardPanel";
 import { AudioControls } from "../audio/AudioControls";
@@ -30,8 +31,9 @@ import "./pixel-theme.css";
 
 const TITLE_SCENE_TRANSITION_MS = 200;
 const STAGE_COUNTDOWN_MS = 3000;
-type ActiveGameDialog = "settings" | "instructions" | "leaderboard" | null;
+type ActiveGameDialog = "settings" | "instructions" | "leaderboard" | "pause" | null;
 type OpenGameDialog = Exclude<ActiveGameDialog, null>;
+type StageResumeTarget = "playing" | "start" | "continue" | null;
 
 interface GameScreenProps {
   account: GameAccount;
@@ -92,12 +94,18 @@ export function GameScreen({
   const isSettingsOpen = activeDialog === "settings";
   const isInstructionsOpen = activeDialog === "instructions";
   const isLeaderboardOpen = activeDialog === "leaderboard";
+  const isPauseOpen = activeDialog === "pause";
+  const [pauseConfirmation, setPauseConfirmation] = useState<PauseMenuConfirmation>(null);
+  const [pausedGameTime, setPausedGameTime] = useState<number | null>(null);
   const runStartedRef = useRef(false);
   const pausedDialogOpenedAtRef = useRef<number | null>(null);
+  const pauseResumeTargetRef = useRef<StageResumeTarget>(null);
   const activeDialogRef = useRef<ActiveGameDialog>(null);
   const settingsTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const pauseTriggerRef = useRef<HTMLButtonElement | null>(null);
   const settingsCloseRef = useRef<HTMLButtonElement | null>(null);
   const instructionsTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const titleStartButtonRef = useRef<HTMLButtonElement | null>(null);
   const leaderboardReturnFocusRef = useRef<HTMLButtonElement | null>(null);
   const instructionsCloseRef = useRef<HTMLButtonElement | null>(null);
   const restartButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -251,6 +259,87 @@ export function GameScreen({
     setNowMs(endsAt - STAGE_COUNTDOWN_MS);
     setCountdownEndsAt(endsAt);
   };
+
+  const openPauseMenu = () => {
+    if (activeDialogRef.current !== null) return;
+    const pendingCountdown = countdownEndsAtRef.current !== null;
+    const isPlaying = gameState.status === "playing";
+    if (!pendingCountdown && !isPlaying) return;
+
+    const openedAt = Date.now();
+    if (isPlaying) {
+      const reconciled = tickGame(gameState, openedAt);
+      setNowMs(openedAt);
+      setGameState(reconciled);
+      if (reconciled.status !== "playing") return;
+      pauseResumeTargetRef.current = "playing";
+      pausedDialogOpenedAtRef.current = openedAt;
+      setPausedGameTime(openedAt);
+    } else {
+      pauseResumeTargetRef.current = gameState.status === "checkpoint" ? "continue" : "start";
+      pausedDialogOpenedAtRef.current = null;
+      setPausedGameTime(null);
+      countdownEndsAtRef.current = null;
+      setCountdownEndsAt(null);
+    }
+
+    setPauseConfirmation(null);
+    activeDialogRef.current = "pause";
+    setActiveDialog("pause");
+    audioController?.stopBgm();
+  };
+
+  const beginPausedResumeCountdown = () => {
+    if (activeDialogRef.current !== "pause" || pauseResumeTargetRef.current === null) return;
+    const startedAt = Date.now();
+    const endsAt = startedAt + STAGE_COUNTDOWN_MS;
+    setPauseConfirmation(null);
+    countdownEndsAtRef.current = endsAt;
+    setNowMs(startedAt);
+    setCountdownEndsAt(endsAt);
+    void audioController?.startBgm();
+  };
+
+  const confirmPausedRestart = () => {
+    if (activeDialogRef.current !== "pause" || pauseConfirmation !== "restart") return;
+    const targetStage = gameState.status === "checkpoint" ? (gameState.stage + 1) as GameStage : gameState.stage;
+    const knownHighest = readKnownHighest();
+    const reset = resetGame(undefined, { stage: targetStage, highestClearedStage: knownHighest });
+    const startedAt = Date.now();
+    const endsAt = startedAt + STAGE_COUNTDOWN_MS;
+    pausedDialogOpenedAtRef.current = null;
+    setPausedGameTime(null);
+    pauseResumeTargetRef.current = "start";
+    activeDialogRef.current = "pause";
+    runStartedRef.current = true;
+    setPauseConfirmation(null);
+    setNowMs(startedAt);
+    setGameState(reset);
+    countdownEndsAtRef.current = endsAt;
+    setCountdownEndsAt(endsAt);
+    void audioController?.startBgm();
+  };
+
+  const confirmPausedTitleReturn = () => {
+    if (activeDialogRef.current !== "pause" || pauseConfirmation !== "title") return;
+    const knownHighest = readKnownHighest();
+    const preview = resetGame(undefined, { stage: getHighestUnlockedStage(knownHighest), highestClearedStage: knownHighest });
+    audioController?.stopBgm();
+    pausedDialogOpenedAtRef.current = null;
+    setPausedGameTime(null);
+    pauseResumeTargetRef.current = null;
+    countdownEndsAtRef.current = null;
+    activeDialogRef.current = null;
+    runStartedRef.current = false;
+    setPauseConfirmation(null);
+    setCountdownEndsAt(null);
+    setActiveDialog(null);
+    setActiveMode("title");
+    setIsTitleLeaving(false);
+    setIsTitleScreen(true);
+    setNowMs(Date.now());
+    setGameState(preview);
+  };
   const clearStageCountdown = () => {
     countdownEndsAtRef.current = null;
     setCountdownEndsAt(null);
@@ -264,7 +353,8 @@ export function GameScreen({
   };
 
   useEffect(() => {
-    if (countdownEndsAt === null || (gameState.status !== "checkpoint" && gameState.status !== "ready")) return undefined;
+    const isPauseCountdown = activeDialog === "pause" && pauseResumeTargetRef.current !== null;
+    if (countdownEndsAt === null || (!isPauseCountdown && gameState.status !== "checkpoint" && gameState.status !== "ready")) return undefined;
 
     const updateCountdown = () => {
       if (document.visibilityState !== "visible" || countdownEndsAtRef.current !== countdownEndsAt) return;
@@ -274,9 +364,24 @@ export function GameScreen({
 
       countdownEndsAtRef.current = null;
       setCountdownEndsAt(null);
-      setGameState((state) => state.status === "checkpoint"
-        ? continueGame(state, actualNowMs)
-        : state.status === "ready" ? startGame(state, actualNowMs) : state);
+      if (activeDialogRef.current === "pause") {
+        const target = pauseResumeTargetRef.current;
+        const pauseOpenedAt = pausedDialogOpenedAtRef.current;
+        pauseResumeTargetRef.current = null;
+        pausedDialogOpenedAtRef.current = null;
+        setPausedGameTime(null);
+        activeDialogRef.current = null;
+        setPauseConfirmation(null);
+        setActiveDialog(null);
+        setGameState((state) => target === "playing" && pauseOpenedAt !== null
+          ? resumeGameAfterPause(state, pauseOpenedAt, actualNowMs)
+          : target === "continue" ? continueGame(state, actualNowMs)
+          : target === "start" ? startGame(state, actualNowMs) : state);
+      } else {
+        setGameState((state) => state.status === "checkpoint"
+          ? continueGame(state, actualNowMs)
+          : state.status === "ready" ? startGame(state, actualNowMs) : state);
+      }
     };
 
     const intervalId = window.setInterval(updateCountdown, 50);
@@ -286,7 +391,7 @@ export function GameScreen({
       document.removeEventListener("visibilitychange", updateCountdown);
       if (countdownEndsAtRef.current === countdownEndsAt) countdownEndsAtRef.current = null;
     };
-  }, [countdownEndsAt, gameState.status]);
+  }, [activeDialog, countdownEndsAt, gameState.status]);
 
   useEffect(() => {
     const climbedSuccessfully = gameState.stepsClimbed > previousStepsRef.current;
@@ -336,6 +441,10 @@ export function GameScreen({
     window.clearTimeout(climbTimeoutRef.current);
     window.clearTimeout(pursuerTimeoutRef.current);
     window.clearTimeout(titleTransitionTimeoutRef.current);
+    countdownEndsAtRef.current = null;
+    pausedDialogOpenedAtRef.current = null;
+    pauseResumeTargetRef.current = null;
+    activeDialogRef.current = null;
   }, []);
 
   const lastMoveIsBonus = gameState.lastMove?.isBonus === true;
@@ -470,10 +579,13 @@ export function GameScreen({
     return () => document.removeEventListener("visibilitychange", onVisibilityChange);
   }, []);
 
+  const displayedGameTime = activeDialog === "pause" && pausedGameTime !== null
+    ? pausedGameTime
+    : nowMs;
   const eventSecondsLeft =
     gameState.eventEndsAt === null
       ? 0
-      : Math.max(0, Math.ceil((gameState.eventEndsAt - (gameState.checkpointEnteredAt ?? nowMs)) / 1000));
+      : Math.max(0, Math.ceil((gameState.eventEndsAt - (gameState.checkpointEnteredAt ?? displayedGameTime)) / 1000));
   const controlsDisabled =
     gameState.status !== "playing" || gameState.recoveryEndsAt !== null || activeDialog !== null;
   const pursuerCatchVisible = gameState.captureEndsAt !== null &&
@@ -490,6 +602,8 @@ export function GameScreen({
       if (!instructionsDialogRef.current?.contains(document.activeElement)) instructionsCloseRef.current?.focus();
     } else if (activeDialog === "leaderboard") {
       if (!leaderboardDialogRef.current?.contains(document.activeElement)) leaderboardCloseRef.current?.focus();
+    } else if (activeDialog === "pause") {
+      // PauseMenuDialog owns initial focus.
     } else if (previousDialogRef.current === "settings") {
       settingsTriggerRef.current?.focus();
     } else if (previousDialogRef.current === "instructions") {
@@ -497,9 +611,12 @@ export function GameScreen({
     } else if (previousDialogRef.current === "leaderboard") {
       leaderboardReturnFocusRef.current?.focus();
       leaderboardReturnFocusRef.current = null;
+    } else if (previousDialogRef.current === "pause") {
+      if (isTitleScreen) titleStartButtonRef.current?.focus();
+      else pauseTriggerRef.current?.focus();
     }
     previousDialogRef.current = activeDialog;
-  }, [activeDialog, autoplayBlocked]);
+  }, [activeDialog, autoplayBlocked, isTitleScreen]);
 
   const onDialogKeyDown = (event: ReactKeyboardEvent<HTMLElement>, onClose: () => void) => {
     if (event.key === "Escape") {
@@ -559,7 +676,7 @@ export function GameScreen({
                 <p className="game-title-tagline">계단을 내려가 1층까지 도착해 퇴근하세요!</p>
               </div>
               <div className="game-title-actions">
-                <button className="game-title-start" type="button" onClick={handleEnterStageSelection}>
+                <button ref={titleStartButtonRef} className="game-title-start" type="button" onClick={handleEnterStageSelection}>
                   단계 모드
                 </button>
                 <button className="game-title-infinite" type="button" onClick={() => setActiveMode("infinite")}>
@@ -597,6 +714,21 @@ export function GameScreen({
               >
                 <PixelIcon name="settings" />
               </button>
+
+              {(gameState.status === "playing" || countdownEndsAt !== null) && !isEnding && !isCaughtPresentationPending && (
+                <button
+                  ref={pauseTriggerRef}
+                  className="game-pause-button"
+                  type="button"
+                  aria-label="일시정지"
+                  aria-haspopup="dialog"
+                  aria-expanded={isPauseOpen}
+                  aria-controls="game-pause-dialog"
+                  onClick={openPauseMenu}
+                >
+                  <PixelIcon name="pause" />
+                </button>
+              )}
 
               {countdownEndsAt !== null && (gameState.status === "ready" || gameState.status === "checkpoint") ? null : gameState.status === "ready" && (!isTitleScreen || isTitleLeaving) ? (
                 <StageSelectPanel selectedStage={gameState.stage} highestClearedStage={Math.max(
@@ -664,7 +796,7 @@ export function GameScreen({
               scoreGain={scoreGain}
               scoreGainIsBonus={scoreGainIsBonus}
               scoreAnimationKey={scoreAnimationKey}
-              stageSecondsLeft={getStageSecondsLeft(gameState, Math.max(0, nowMs))}
+              stageSecondsLeft={getStageSecondsLeft(gameState, Math.max(0, displayedGameTime))}
             />}
             <div className="game-layout" data-game-status={gameState.status}>
               <StairScene
@@ -677,10 +809,27 @@ export function GameScreen({
               />
             </div>
           </div>
-          {(gameState.status === "checkpoint" || gameState.status === "ready") && countdownEndsAt !== null && (
+          {countdownEndsAt !== null && isPauseOpen && (
+            <StageTransitionCountdown
+              label="게임 재개"
+              secondsRemaining={Math.max(1, Math.min(3, Math.ceil((countdownEndsAt - nowMs) / 1000))) as 1 | 2 | 3}
+            />
+          )}
+          {countdownEndsAt !== null && !isPauseOpen && (gameState.status === "checkpoint" || gameState.status === "ready") && (
             <StageTransitionCountdown
               stage={gameState.status === "checkpoint" ? (gameState.stage + 1) as GameStage : gameState.stage}
               secondsRemaining={Math.max(1, Math.min(3, Math.ceil((countdownEndsAt - nowMs) / 1000))) as 1 | 2 | 3}
+            />
+          )}
+          {isPauseOpen && countdownEndsAt === null && (
+            <PauseMenuDialog
+              modeName="단계 모드"
+              confirmation={pauseConfirmation}
+              onResume={beginPausedResumeCountdown}
+              onRequestRestart={() => setPauseConfirmation("restart")}
+              onRequestTitle={() => setPauseConfirmation("title")}
+              onConfirm={pauseConfirmation === "restart" ? confirmPausedRestart : confirmPausedTitleReturn}
+              onCancelConfirmation={() => setPauseConfirmation(null)}
             />
           )}
           {isSettingsOpen && (

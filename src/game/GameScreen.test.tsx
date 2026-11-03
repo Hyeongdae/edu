@@ -1559,6 +1559,95 @@ describe("settings focus after audio retry", () => {
 
 describe("session checkpoints", () => {
   afterEach(() => { cleanup(); localStorage.clear(); vi.useRealTimers(); vi.restoreAllMocks(); });
+  it("pauses stage timers and pursuit through a fresh three-second resume countdown", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(0); seedReadyStage(1);
+    const resume = vi.spyOn(gameEngine, "resumeGameAfterPause");
+    const input = vi.spyOn(gameEngine, "applyInput");
+    const audioController: AudioController = { startBgm: vi.fn().mockResolvedValue(true), stopBgm: vi.fn(),
+      setEventActive: vi.fn(), setPreferences: vi.fn(), playFootstep: vi.fn(), playFall: vi.fn(), dispose: vi.fn() };
+    render(<GameScreen account={account} audioController={audioController} />);
+    startSelectedStageImmediately();
+    fireEvent.click(screen.getByRole("button", { name: "일시정지" }));
+    expect(screen.getByRole("dialog", { name: "단계 모드 일시정지" })).toBeVisible();
+    expect(audioController.stopBgm).toHaveBeenCalledOnce();
+    vi.mocked(audioController.startBgm).mockClear();
+    fireEvent.click(screen.getByRole("button", { name: "게임 재개" }));
+    expect(screen.getByRole("status")).toHaveTextContent("3");
+    expect(resume).not.toHaveBeenCalled();
+    expect(screen.getByTestId("stage-time")).toHaveTextContent("01:30");
+    fireEvent.keyDown(window, { key: "d" });
+    expect(input).not.toHaveBeenCalled();
+    await act(async () => { await vi.advanceTimersByTimeAsync(2999); });
+    expect(resume).not.toHaveBeenCalled();
+    expect(screen.getByRole("status")).toHaveTextContent("1");
+    expect(screen.getByTestId("stage-time")).toHaveTextContent("01:30");
+    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+    expect(resume).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ status: "playing" }), 0, 3000);
+    expect(audioController.startBgm).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("dialog", { name: "단계 모드 일시정지" })).not.toBeInTheDocument();
+  });
+
+  it("pauses and replaces the initial countdown instead of letting its original timer start", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(0);
+    const start = vi.spyOn(gameEngine, "startGame");
+    render(<GameScreen account={account} />);
+    fireEvent.click(document.querySelector<HTMLButtonElement>(".stage-select-start")!);
+    fireEvent.click(screen.getByRole("button", { name: "일시정지" }));
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "게임 재개" }));
+    expect(screen.getByRole("status")).toHaveTextContent("3");
+    await act(async () => { await vi.advanceTimersByTimeAsync(2999); });
+    expect(start).not.toHaveBeenCalled();
+    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+    expect(start).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ status: "ready", stage: 1 }), 3000);
+  });
+
+  it("requires restart confirmation, returns to pause on No, and restarts the same stage at zero", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(0); seedReadyStage(1, { score: 0 });
+    const start = vi.spyOn(gameEngine, "startGame");
+    render(<GameScreen account={account} />);
+    startSelectedStageImmediately(); climbOneStep();
+    fireEvent.click(screen.getByRole("button", { name: "일시정지" }));
+    fireEvent.click(document.querySelector<HTMLButtonElement>(".pause-menu-actions button:nth-child(2)")!);
+    expect(screen.getByRole("dialog")).toHaveTextContent("다시 시작할까요?");
+    fireEvent.click(document.querySelector<HTMLButtonElement>(".pause-menu-confirmation-actions button:nth-child(2)")!);
+    expect(screen.getByRole("dialog", { name: "단계 모드 일시정지" })).toBeVisible();
+    fireEvent.click(document.querySelector<HTMLButtonElement>(".pause-menu-actions button:nth-child(2)")!);
+    fireEvent.click(document.querySelector<HTMLButtonElement>(".pause-menu-confirmation-actions button:nth-child(1)")!);
+    expect(screen.getByRole("status")).toHaveTextContent("3");
+    await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
+    expect(start).toHaveBeenCalledWith(expect.objectContaining({ status: "ready", score: 0, stage: 1 }), 3000);
+  });
+
+  it("targets the next stage when restarting during a checkpoint countdown", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(0); seedReadyStage(1);
+    const start = vi.spyOn(gameEngine, "startGame");
+    render(<GameScreen account={account} />);
+    startSelectedStageImmediately(); climbOneStep();
+    fireEvent.click(document.querySelector<HTMLButtonElement>(".checkpoint-actions button")!);
+    fireEvent.click(screen.getByRole("button", { name: "일시정지" }));
+    fireEvent.click(document.querySelector<HTMLButtonElement>(".pause-menu-actions button:nth-child(2)")!);
+    fireEvent.click(document.querySelector<HTMLButtonElement>(".pause-menu-confirmation-actions button:nth-child(1)")!);
+    await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
+    expect(start).toHaveBeenCalledWith(expect.objectContaining({ status: "ready", score: 0, stage: 2 }), 3000);
+  });
+
+  it("confirms title return and sends No back to the pause actions", () => {
+    vi.useFakeTimers(); vi.setSystemTime(0); seedReadyStage(1);
+    const audioController: AudioController = { startBgm: vi.fn().mockResolvedValue(true), stopBgm: vi.fn(),
+      setEventActive: vi.fn(), setPreferences: vi.fn(), playFootstep: vi.fn(), playFall: vi.fn(), dispose: vi.fn() };
+    render(<GameScreen account={account} audioController={audioController} />);
+    startSelectedStageImmediately();
+    fireEvent.click(screen.getByRole("button", { name: "일시정지" }));
+    fireEvent.click(document.querySelector<HTMLButtonElement>(".pause-menu-actions button:nth-child(3)")!);
+    fireEvent.click(document.querySelector<HTMLButtonElement>(".pause-menu-confirmation-actions button:nth-child(2)")!);
+    expect(screen.getByRole("dialog", { name: "단계 모드 일시정지" })).toBeVisible();
+    fireEvent.click(document.querySelector<HTMLButtonElement>(".pause-menu-actions button:nth-child(3)")!);
+    fireEvent.click(document.querySelector<HTMLButtonElement>(".pause-menu-confirmation-actions button:nth-child(1)")!);
+    expect(document.querySelector(".game-frame")).toHaveAttribute("data-title-screen", "true");
+    expect(audioController.stopBgm).toHaveBeenCalled();
+  });
+
   it("starts the selected stage clock and pursuer only after the initial countdown", async () => {
     vi.useFakeTimers(); vi.setSystemTime(0);
     const start = vi.spyOn(gameEngine, "startGame");

@@ -63,6 +63,7 @@
 }
 
 .stair-game.pixel-theme .game-settings-button,
+.stair-game.pixel-theme .game-pause-button,
 .stair-game.pixel-theme .settings-close-button,
 .stair-game.pixel-theme .instructions-close-button {
   display: grid;
@@ -79,6 +80,7 @@
 }
 
 .stair-game.pixel-theme .game-settings-button { z-index: 6; top: 12px; right: 12px; }
+.stair-game.pixel-theme .game-pause-button { position: absolute; z-index: 6; top: 12px; }
 .stair-game.pixel-theme .game-settings-button:hover { background: #263d50; }
 .stair-game.pixel-theme .game-settings-button:disabled { opacity: 0.5; cursor: default; }
 .stair-game.pixel-theme .game-pause-button { right: 64px; }

@@ -58,7 +58,7 @@ export function PauseMenuDialog({
 
   return (
     <div className="pause-menu-backdrop">
-      <section ref={dialogRef} className="pause-menu-dialog" role="dialog" aria-modal="true"
+      <section ref={dialogRef} id="game-pause-dialog" className="pause-menu-dialog" role="dialog" aria-modal="true"
         aria-labelledby="pause-menu-title" onKeyDown={onKeyDown}>
         <p className="pause-menu-kicker">GAME PAUSED</p>
         <h2 id="pause-menu-title">{title}</h2>
