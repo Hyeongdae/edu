@@ -1,5 +1,7 @@
 import { getHighestUnlockedStage, getStageRule, isClearedStage, isGameStage } from "../src/game/stageRules";
 import type { ClearedStage, GameStage, StageResult } from "../src/game/types";
+import { cloneCharacterAppearance } from "./characterAppearance";
+import type { CharacterAppearance } from "./characterAppearance";
 
 export type ResultInput = Pick<StageResult, "stage" | "score" | "remainingTimeCs" | "outcome">;
 
@@ -27,7 +29,10 @@ export interface SharedProfile {
   highestClearedStage: ClearedStage;
   best: SharedBest | null;
   infiniteBest: SharedInfiniteBest | null;
+  appearance?: CharacterAppearance;
 }
+
+export interface SaveAppearanceResponse { profile: SharedProfile }
 
 export interface AuthenticatedActor {
   accountId: string;
@@ -171,7 +176,8 @@ export function mergeSharedInfiniteScore(
   const changed = !previous || previous.displayName !== actor.displayName || previous.infiniteBest !== infiniteBest;
   if (!changed) return { profile: previous, changed: false };
   return { profile: { ...previous, ...actor, highestClearedStage: previous?.highestClearedStage ?? 0,
-    best: previous?.best ?? null, infiniteBest }, changed: true };
+    best: previous?.best ?? null, infiniteBest,
+    ...(previous?.appearance ? { appearance: cloneCharacterAppearance(previous.appearance) } : {}) }, changed: true };
 }
 
 export function validateResultForProfile(result: ResultInput, highest: ClearedStage): ResultValidation {
@@ -258,7 +264,7 @@ export function mergeSharedResult(
   if (!changed) return { profile: previous, changed: false };
   return {
     profile: { accountId: actor.accountId, displayName: actor.displayName, highestClearedStage, best,
-      infiniteBest },
+      infiniteBest, ...(previous?.appearance ? { appearance: cloneCharacterAppearance(previous.appearance) } : {}) },
     changed: true,
   };
 }

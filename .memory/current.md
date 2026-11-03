@@ -1,22 +1,27 @@
 # Current Context
 
 ## Active Plan
-[Game Pause Menu](./plans/2026-11-03-game-pause-menu.md)
+[Character Customization](./plans/2026-11-03-character-customization.md)
 
 ## Active Phase
-[P01 Pause Flow](./phases/2026-11-03-game-pause-menu/P01-pause-flow/phase.md)
+[P01 Character Customization](./phases/2026-11-03-character-customization/P01-character-customization/phase.md)
 
 ## Active Task
-None — all tasks in this plan are complete.
+[T01 Appearance Contracts](./phases/2026-11-03-character-customization/P01-character-customization/T01-appearance-contracts.md)
 
 ## Status
-- Game Pause Menu is complete (3/3). T02: `b9b95f4`; T03: `ec1c52a`.
+- Character Customization 계획/청사진 작성 완료. done 0/5, Active P01-T01.
+- 계획 단계에서는 구현·테스트·커밋·배포를 수행하지 않았다.
+- 기존 `src/game/pixel-theme.css`의 미커밋 모바일 무한 모드 버튼 간격 변경을 보존한다.
 
 ## Source Decision
-- [Game Pause Menu](./decisions/2026-11-03-game-pause-menu.md)
+- [Character Customization](./decisions/2026-11-03-character-customization.md)
 
 ## Next Step
-No active task. Create a new plan when there is more work.
+T01 청사진을 읽고 `shared/characterAppearance.ts`의 카탈로그/계약과 `shared/companyRecords.ts`의 외형 보존을 구현한다. `/memory-execute` 또는 `current 보고 이어서 해줘`로 Active Task 한 개씩 진행한다.
+
+## Previous Completed Plan
+- [Game Pause Menu](./plans/2026-11-03-game-pause-menu.md) complete 3/3. T02: `b9b95f4`; T03: `ec1c52a`.
 ---
 
 ### Previous Context: Main Game Descent Conversion

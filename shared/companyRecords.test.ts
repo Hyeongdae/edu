@@ -7,6 +7,7 @@ import {
   isSubmitInfiniteScoreRequest, isSubmitResultRequest, mergeSharedInfiniteScore, mergeSharedResult, validateResultForProfile,
 } from "./companyRecords";
 import type { AuthenticatedActor, ResultInput, SharedBest, SharedProfile, SubmitResultRequest } from "./companyRecords";
+import { getDefaultCharacterAppearance } from "./characterAppearance";
 
 const FIRST_TIME = "2026-10-30T01:00:00.000Z";
 const LATER_TIME = "2026-10-30T02:00:00.000Z";
@@ -32,6 +33,85 @@ function best(overrides: Partial<SharedBest> = {}): SharedBest {
 function profile(overrides: Partial<SharedProfile> = {}): SharedProfile {
   return { ...actor, highestClearedStage: 0, best: best(), infiniteBest: null, ...overrides };
 }
+
+describe("appearance preservation across game records", () => {
+  const modes = ["stage", "infinite"] as const;
+
+  it("preserves both custom looks across sequential stage and infinite improvements", () => {
+    const appearance = getDefaultCharacterAppearance();
+    appearance.runner = { ...appearance.runner, gender: "female", hat: "cap", hairStyle: "ponytail", shoeColor: "white" };
+    appearance.pursuer = { ...appearance.pursuer, glasses: "round", outfit: "cardigan", skinTone: "deep" };
+    const previous = profile({ appearance });
+    const cleared = mergeSharedResult(previous, actor, result({ score: 150, outcome: "cleared" }), FIRST_TIME).profile;
+    const infinite = mergeSharedInfiniteScore(cleared, actor, { score: 75 }, LATER_TIME).profile;
+    const nextStage = mergeSharedResult(infinite, actor, result({ stage: 2, score: 20 }), LATER_TIME).profile;
+    expect(nextStage).toMatchObject({
+      appearance, highestClearedStage: 1, best: { bestStage: 2, bestScore: 20 }, infiniteBest: { bestScore: 75 },
+    });
+    expect(nextStage.best).not.toHaveProperty("appearance");
+    expect(nextStage.infiniteBest).not.toHaveProperty("appearance");
+    expect(previous.best?.bestScore).toBe(100);
+    expect(previous.infiniteBest).toBeNull();
+  });
+
+  it.each(modes)("copies the nested appearance during a changed %s merge", (mode) => {
+    const appearance = getDefaultCharacterAppearance();
+    Object.freeze(appearance.runner);
+    Object.freeze(appearance.pursuer);
+    Object.freeze(appearance);
+    const previous = Object.freeze(profile({ appearance }));
+    const before = structuredClone(previous);
+    const merged = mode === "stage"
+      ? mergeSharedResult(previous, actor, result({ score: 101 }), LATER_TIME)
+      : mergeSharedInfiniteScore(previous, actor, { score: 50 }, LATER_TIME);
+    expect(merged.changed).toBe(true);
+    expect(merged.profile.appearance).toEqual(appearance);
+    expect(merged.profile.appearance).not.toBe(appearance);
+    expect(merged.profile.appearance!.runner).not.toBe(appearance.runner);
+    expect(merged.profile.appearance!.pursuer).not.toBe(appearance.pursuer);
+    merged.profile.appearance!.runner.hat = "cap";
+    merged.profile.appearance!.pursuer.hat = "none";
+    expect(previous).toEqual(before);
+  });
+
+  it.each(modes)("keeps appearance and identity on an equal %s retry", (mode) => {
+    const previous = profile({ appearance: getDefaultCharacterAppearance(), infiniteBest: {
+      ...actor, bestScore: 50, achievedAt: FIRST_TIME,
+    } });
+    const merged = mode === "stage"
+      ? mergeSharedResult(previous, actor, result(), LATER_TIME)
+      : mergeSharedInfiniteScore(previous, actor, { score: 50 }, LATER_TIME);
+    expect(merged.changed).toBe(false);
+    expect(merged.profile).toBe(previous);
+    expect(merged.profile.appearance).toBe(previous.appearance);
+  });
+
+  it.each(modes)("preserves appearance when only the verified name changes in %s mode", (mode) => {
+    const previous = profile({ appearance: getDefaultCharacterAppearance(), infiniteBest: {
+      ...actor, bestScore: 50, achievedAt: FIRST_TIME,
+    } });
+    const renamed = { ...actor, displayName: "새 표시 이름" };
+    const merged = mode === "stage"
+      ? mergeSharedResult(previous, renamed, result({ score: 1 }), LATER_TIME)
+      : mergeSharedInfiniteScore(previous, renamed, { score: 1 }, LATER_TIME);
+    expect(merged.changed).toBe(true);
+    expect(merged.profile.displayName).toBe(renamed.displayName);
+    expect(merged.profile.appearance).toEqual(previous.appearance);
+    expect(merged.profile.best).toMatchObject({ bestScore: 100, achievedAt: FIRST_TIME });
+    expect(merged.profile.infiniteBest).toMatchObject({ bestScore: 50, achievedAt: FIRST_TIME });
+    expect(previous.displayName).toBe(actor.displayName);
+  });
+
+  it.each(modes)("does not add default appearance to an existing or new legacy %s profile", (mode) => {
+    for (const previous of [null, profile()]) {
+      const merged = mode === "stage"
+        ? mergeSharedResult(previous, actor, result({ score: 101 }), LATER_TIME)
+        : mergeSharedInfiniteScore(previous, actor, { score: 50 }, LATER_TIME);
+      expect(merged.changed).toBe(true);
+      expect(merged.profile).not.toHaveProperty("appearance");
+    }
+  });
+});
 
 describe("submission structural boundary", () => {
   it("accepts a JSON round trip and an uppercase UUID without any platform dependency", () => {
