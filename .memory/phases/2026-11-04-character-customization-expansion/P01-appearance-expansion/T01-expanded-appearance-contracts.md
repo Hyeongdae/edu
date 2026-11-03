@@ -148,7 +148,7 @@ Task: T01-expanded-appearance-contracts
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: pending
+- commit: `20fbcb6`
 
 ## Validation Results — 2026-11-04
 - 지정한 shared3파일257/257 통과(2.43초). 새13필드/카탈로그, 과거10필드 전체보존, 부분version2 거부, 정확한 key검사, 참조분리와 public version1 유지까지 검증했다.

@@ -1,27 +1,32 @@
 # Current Context
 
 ## Active Plan
-[Character Customization](./plans/2026-11-03-character-customization.md) — complete (5/5)
+[Character Customization Expansion](./plans/2026-11-04-character-customization-expansion.md)
 
 ## Active Phase
-없음 — [P01 Character Customization](./phases/2026-11-03-character-customization/P01-character-customization/phase.md) 완료.
+[P01 Appearance Expansion](./phases/2026-11-04-character-customization-expansion/P01-appearance-expansion/phase.md)
 
 ## Active Task
-없음 — character-customization 구현 완료 (5/5).
+[T02 Expanded Pixel Parts](./phases/2026-11-04-character-customization-expansion/P01-appearance-expansion/T02-expanded-pixel-parts.md)
 
 ## Status
-- T01 (8898b74), T02 (5f98abb), T03 (9e06d5a), T04 (d5489e8), T05 (936e26b) 완료.
-- 타이틀 꾸미기에서 도망자/추격자10개 부위·색상을 독립 선택한다. 실제 두 모드와 모든 엔딩에 전달하며 계정 자동 저장 상태/실패 재시도를 표시한다. 로컬 데모는 이번 접속의 메모리만 사용한다.
-- T05 지정7파일211/211, 전체54파일1474/1474, API4파일186/186, lint/frontend·API build/diff check 통과.
-- 격리 Chrome에서320×568,390×844,768×1024,1440×900의 타이틀5버튼, 편집/스크롤/키보드, 모드 이동과 외형 유지를 확인했다. 증거는 TEMP/character-t05-evidence/에22개PNG 및 결과JSON으로 보존했다.
-- T02 emulator 통합3건은 로컬 실행 환경이 없어 미실행이다. 배포 전 CI 검증 및 배포 후 실제 계정 저장 확인이 남으며, 운영 계정/Cosmos를 변경하지 않았다.
-- 기존 src/game/pixel-theme.css의 미커밋 모바일 무한 모드 버튼 간격 변경은 보존하고 Task 커밋에서 제외했다. 이번 계획은 아직 push/배포하지 않았다.
+- T01 Expanded Appearance Contracts 완료 (`20fbcb6`). done 1/4, Active P01-T02.
+- 기존 version1 코드를 shared/legacyCharacterAppearance.ts에 원본 그대로 보존했고 shared/characterAppearance.ts는 아직 해당 계약을 재노출한다.
+- shared/expandedCharacterAppearance.ts는 version2의13필드/확장카탈로그, strict 저장입력 검증, 정상version1의10필드 보존 정규화와 표시용 기본값을 제공한다.
+- T01 지정shared3파일257/257, 기존API4파일186/186, lint/frontend·API build/diff check 통과. 실제 새 옵션의 렌더링/UI/API 활성화는 아직 수행하지 않았다.
+- T02에서 양쪽 look을 그릴 픽셀 부위를 준비한 뒤 T03에서 public 계약과 계정 저장을version2로 전환하고 T04에서13그룹 UI/전체 장면을 검증한다.
+- 기존 src/game/pixel-theme.css의 미커밋 모바일 버튼 간격 변경을 보존한다. 이번 실행에서 push/배포/운영 Cosmos 수정은 수행하지 않았다.
+- 실제 emulator/운영 계정 저장 확인은 후속 검증 대상이며 이번 순수 계약 Task에서는 실행하지 않았다.
 
 ## Source Decision
-- [Character Customization](./decisions/2026-11-03-character-customization.md)
+- [Character Customization Expansion](./decisions/2026-11-04-character-customization-expansion.md)
 
-## Next Step
-로컬 테스트: http://localhost:5173/ → 캐릭터 꾸미기. 새 Active Task는 없다. 배포 요청 시 기존 CI의 Cosmos emulator 통합 테스트를 통과한 뒤 실제 회사 계정 저장·새 세션 복원을 확인한다.
+## Next Step (IMPORTANT)
+T02 청사진을 읽고 src/game/pixel/officerPalette.ts, OfficerAppearanceParts.tsx, 새 OfficerBagArt.tsx 및 PixelOfficer/OvertimeOfficer에 눈·가방·추가스타일을 구현한다. 새 계약은 shared/expandedCharacterAppearance.ts에서 직접 사용하고 public version1은 유지한다. 발 기준선·clip·좌표·모션을 변경하지 않는다. `/memory-execute`로 Active Task 한 개씩 진행한다.
+
+## Previous Completed Feature
+- [Character Customization](./plans/2026-11-03-character-customization.md): complete5/5. T01 8898b74, T02 5f98abb, T03 9e06d5a, T04 d5489e8, T05 936e26b, 완료 문서 bc5b044.
+- 이전 최종 검증: frontend/shared54파일1474/1474, API186/186, lint/frontend·API build 통과. 브라우저4개크기 확인. 당시 push/배포는 수행하지 않았다.
 
 ## Previous Completed Plan
 - [Game Pause Menu](./plans/2026-11-03-game-pause-menu.md) complete 3/3. T02: `b9b95f4`; T03: `ec1c52a`.
