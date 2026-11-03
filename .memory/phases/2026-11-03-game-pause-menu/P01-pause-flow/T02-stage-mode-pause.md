@@ -1,7 +1,6 @@
 # Task: T02 Stage Mode Pause
 
-## Status: pending
-
+## Status: done
 ## Goal
 Let stage-mode players pause during active play or either start/transition countdown, then resume, restart the relevant stage, or return to title through the shared confirmation flow.
 
@@ -63,14 +62,14 @@ Let stage-mode players pause during active play or either start/transition count
 - Verify BGM `stopBgm` on pause and `startBgm` when countdown begins.
 
 ## Acceptance Criteria
-- [ ] Stage mode can be paused beside settings during gameplay or countdown, with no clock/pursuit advancement until resumed.
-- [ ] Resume preserves current score; restart requires confirmation and starts the proper stage at 0 after 3 seconds.
-- [ ] Title return requires confirmation and restores the title screen.
+- [x] Stage mode can be paused beside settings during gameplay or countdown, with no clock/pursuit advancement until resumed.
+- [x] Resume preserves current score; restart requires confirmation and starts the proper stage at 0 after 3 seconds.
+- [x] Title return requires confirmation and restores the title screen.
 
 ## Validation
-- `npm test -- src/game/GameScreen.test.tsx` — focused stage screen tests pass.
-- `npm run lint` — no ESLint errors.
-- `npm run build` — TypeScript check and production build pass.
+- Pause-flow tests: 5/5 passed; the full GameScreen suite is 106/107 because an existing infinite-mode button-label assertion fails outside T02.
+- `npm run lint` — passed with no ESLint errors.
+- `npm run build` — TypeScript and production build passed (existing >500 kB bundle-size warning).
 
 ## Commit Message
 ```text
@@ -85,6 +84,6 @@ Task: T02-stage-mode-pause
 ```
 
 ## Progress
-- [ ] 구현 완료
-- [ ] 검증 통과
-- commit: pending
+- [x] 구현 완료
+- [x] 검증 통과
+- commit: `b9b95f4`

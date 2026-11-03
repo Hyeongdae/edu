@@ -7,16 +7,16 @@
 [P01 Pause Flow](./phases/2026-11-03-game-pause-menu/P01-pause-flow/phase.md)
 
 ## Active Task
-[T02 Stage Mode Pause](./phases/2026-11-03-game-pause-menu/P01-pause-flow/T02-stage-mode-pause.md)
+[T03 Infinite Mode Pause](./phases/2026-11-03-game-pause-menu/P01-pause-flow/T03-infinite-mode-pause.md)
 
 ## Status
-- T01 Shared Pause Dialog is complete and validated. T02 Stage Mode Pause is active.
+- T01 and T02 are complete. T02 commit: `b9b95f4`. T03 Infinite Mode Pause is active.
 
 ## Source Decision
 - [Game Pause Menu](./decisions/2026-11-03-game-pause-menu.md)
 
 ## Next Step (IMPORTANT)
-Read T02 and implement stage mode pause, timed resume/restart, and title confirmation in `src/game/GameScreen.tsx`.
+Read T03 and implement the matching pause flow in `src/infinite/InfiniteModeScreen.tsx`.
 ---
 
 ### Previous Context: Main Game Descent Conversion
