@@ -12,15 +12,14 @@ describe("InfiniteHud", () => {
     expect(screen.getByTestId("infinite-score")).toHaveTextContent("49");
     expect(screen.getByTestId("infinite-steps")).toHaveTextContent("49칸");
     expect(screen.getByTestId("infinite-distance")).toHaveTextContent("4칸");
-    expect(screen.getByRole("progressbar", { name: "2배 이벤트 진행 게이지" })).toHaveAttribute("value", "49");
+    expect(screen.getByRole("progressbar", { name: "2배 이벤트 진행 게이지" })).toHaveAttribute("aria-valuenow", "49");
   });
 
   it("shows the active bonus timer and a full gauge", () => {
     const state = { ...createInfiniteGameState(() => 0), status: "playing" as const, eventSteps: 0,
       eventEndsAt: 30_000, nextPursuerStepAt: 300 };
     render(<InfiniteHud state={state} nowMs={12_100} />);
-    expect(screen.getByText("점수 2배 이벤트")).toBeVisible();
-    expect(screen.getByText("18초")).toBeVisible();
-    expect(screen.getByRole("progressbar")).toHaveAttribute("value", "50");
+    expect(screen.getByText("2배 점수 · 18초")).toBeVisible();
+    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "50");
   });
 });

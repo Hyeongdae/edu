@@ -10,7 +10,7 @@ afterEach(() => { cleanup(); localStorage.clear(); vi.unstubAllGlobals(); vi.res
 
 function enterSelection() {
   vi.stubGlobal("matchMedia", () => ({ matches: true }));
-  fireEvent.click(screen.getByRole("button", { name: "게임 시작" }));
+  fireEvent.click(screen.getByRole("button", { name: "단계 모드" }));
 }
 
 describe("company profile bootstrap gate", () => {
@@ -21,8 +21,8 @@ describe("company profile bootstrap gate", () => {
       ? companyProfile({ highestClearedStage: 2 }) : { entries: [] })));
     vi.stubGlobal("fetch", fetcher);
     render(<StrictMode><CompanyRecordsGate account={account}>{(records) => <GameScreen account={account} companyRecords={records} />}</CompanyRecordsGate></StrictMode>);
-    expect(screen.queryByRole("button", { name: "게임 시작" })).not.toBeInTheDocument();
-    await screen.findByRole("button", { name: "게임 시작" }); enterSelection();
+    expect(screen.queryByRole("button", { name: "단계 모드" })).not.toBeInTheDocument();
+    await screen.findByRole("button", { name: "단계 모드" }); enterSelection();
     expect(screen.getByRole("button", { name: "3단계 선택" })).toHaveAttribute("aria-pressed", "true");
     expect(read.mock.calls.every(([key]) => key.startsWith("stair-descent:company:production:pending:v1:"))).toBe(true);
   });
@@ -33,7 +33,7 @@ describe("company profile bootstrap gate", () => {
       ? (++profileReads === 1 ? {} : companyProfile({ highestClearedStage: 2 })) : { entries: [] }))));
     render(<CompanyRecordsGate account={account}>{(records) => <GameScreen account={account} companyRecords={records} />}</CompanyRecordsGate>);
     fireEvent.click(await screen.findByRole("button", { name: "다시 시도" }));
-    await screen.findByRole("button", { name: "게임 시작" }); enterSelection();
+    await screen.findByRole("button", { name: "단계 모드" }); enterSelection();
     expect(screen.getByRole("button", { name: "3단계 선택" })).toBeEnabled();
     expect(profileReads).toBe(2);
   });

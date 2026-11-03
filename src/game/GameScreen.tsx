@@ -241,6 +241,13 @@ export function GameScreen({
     }, TITLE_SCENE_TRANSITION_MS);
   };
 
+  const handleReturnToTitleFromStageSelection = () => {
+    if (activeDialogRef.current !== null || gameState.status !== "ready" || countdownEndsAtRef.current !== null || isTitleLeaving) return;
+    setActiveMode("title");
+    setIsTitleLeaving(false);
+    setIsTitleScreen(true);
+  };
+
   const handleStart = () => {
     if (activeDialogRef.current !== null || gameState.status !== "ready" || runStartedRef.current || countdownEndsAtRef.current !== null) return;
     const requestedAt = Date.now();
@@ -734,7 +741,8 @@ export function GameScreen({
                 <StageSelectPanel selectedStage={gameState.stage} highestClearedStage={Math.max(
                   gameState.highestClearedStage, companyRecords?.profile.highestClearedStage ?? 0,
                 ) as ClearedStage}
-                  onSelect={handleSelectStage} onStart={handleStart} onOpenLeaderboard={openLeaderboard}
+                  onSelect={handleSelectStage} onStart={handleStart} onReturnToTitle={handleReturnToTitleFromStageSelection}
+                  onOpenLeaderboard={openLeaderboard}
                   disabled={false} progressUnavailable={progressUnavailable} />
               ) : gameState.status === "playing" ? (
                 <ControlButtons

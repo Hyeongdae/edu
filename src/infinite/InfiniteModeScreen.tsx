@@ -285,6 +285,10 @@ export function InfiniteModeScreen({
     if (event.key === "Escape") closeSettings();
   };
   const closeLeaderboard = () => setLeaderboardOpen(false);
+  const openLeaderboard = (trigger: HTMLButtonElement) => {
+    leaderboardTriggerRef.current = trigger;
+    setLeaderboardOpen(true);
+  };
   const onLeaderboardKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
     if (event.key === "Escape") {
       event.preventDefault();
@@ -318,30 +322,29 @@ export function InfiniteModeScreen({
 
   return (
     <main className="stair-game pixel-theme infinite-mode-screen" data-game-status={gameState.status}>
-      <div className="game-shell"><div className="game-frame infinite-mode-frame" data-game-status={gameState.status} data-infinite-mode="true">
-        <header className="infinite-mode-header">
-          <div><p className="game-title-kicker">STAIRWAY CHALLENGE</p><h1>무한 모드</h1><span className="infinite-account-name">{account.name ?? account.username}</span></div>
-          <button className="game-settings-button" type="button" aria-label="게임 설정" onClick={openSettings} disabled={gameState.status !== "playing"}>
-            <PixelIcon name="settings" />
-          </button>
-          {(gameState.status === "playing" || countdownEndsAt !== null) && <button ref={pauseButtonRef} className="game-pause-button"
-            type="button" aria-label="일시정지" aria-haspopup="dialog" aria-expanded={pauseOpen} aria-controls="game-pause-dialog"
-            onClick={openPauseMenu}><PixelIcon name="pause" /></button>}
-        </header>
-        <InfiniteHud state={gameState} nowMs={gameplayNowMs} />
-        <div className="infinite-mode-scene-wrap">
-          <InfiniteStairScene state={gameState} isMoving={gameState.lastPursuerMove !== null && nowMs < gameState.lastPursuerMove.atMs + 240} />
-        </div>
-        {gameState.status === "ready" && countdownEndsAt === null && <section className="infinite-start-panel" aria-labelledby="infinite-start-title">
-          <div className="infinite-start-copy">
-            <p className="game-title-kicker">ENDLESS CHALLENGE</p>
-            <h2 id="infinite-start-title">무한 모드 준비 완료</h2>
-            <p>D로 올라가고, 계단이 꺾이면 J를 누르세요. 오래 살아남아 최고 점수에 도전하세요!</p>
+      <div className="game-shell"><div className="game-frame" data-game-status={gameState.status} data-infinite-mode="true">
+        <button className="game-settings-button" type="button" aria-label="게임 설정" aria-expanded={settingsOpen}
+          onClick={openSettings} disabled={gameState.status !== "playing"}>
+          <PixelIcon name="settings" />
+        </button>
+        {(gameState.status === "playing" || countdownEndsAt !== null) && <button ref={pauseButtonRef} className="game-pause-button"
+          type="button" aria-label="일시정지" aria-haspopup="dialog" aria-expanded={pauseOpen} aria-controls="game-pause-dialog"
+          onClick={openPauseMenu}><PixelIcon name="pause" /></button>}
+        <div className="game-stage">
+          <h1 className="infinite-mode-accessible-title">무한 모드</h1>
+          <InfiniteHud state={gameState} nowMs={gameplayNowMs} />
+          <div className="game-layout" data-game-status={gameState.status}>
+            <InfiniteStairScene state={gameState} isMoving={gameState.lastPursuerMove !== null && nowMs < gameState.lastPursuerMove.atMs + 240} />
           </div>
+        </div>
+        {gameState.status === "ready" && countdownEndsAt === null && <section className="stage-select-panel infinite-start-panel" aria-labelledby="infinite-start-title">
+          <p className="game-title-kicker">ENDLESS CHALLENGE</p>
+          <h2 id="infinite-start-title">무한 모드 준비 완료</h2>
+          <p>D로 올라가고, 계단이 꺾이면 J를 누르세요. 오래 살아남아 최고 점수에 도전하세요!</p>
           <div className="infinite-start-actions">
-            <button className="start-button" type="button" onClick={startCountdown}>게임 시작</button>
-            <button ref={leaderboardTriggerRef} className="game-title-ranking" type="button" aria-haspopup="dialog"
-              aria-expanded={leaderboardOpen} aria-controls="leaderboard-dialog" onClick={() => setLeaderboardOpen(true)}>랭킹 보기</button>
+            <button className="stage-select-start" type="button" onClick={startCountdown}>게임 시작</button>
+            <button ref={leaderboardTriggerRef} className="stage-select-leaderboard" type="button" aria-haspopup="dialog"
+              aria-expanded={leaderboardOpen} aria-controls="leaderboard-dialog" onClick={(event) => openLeaderboard(event.currentTarget)}>랭킹 보기</button>
             <button className="game-title-guide" type="button" onClick={onReturnToTitle}>타이틀로</button>
           </div>
         </section>}
@@ -360,9 +363,16 @@ export function InfiniteModeScreen({
           {companyRecords && <CompanyRecordsNotice records={companyRecords} />}
           <div className="infinite-result-actions">
             <button className="start-button" type="button" onClick={startCountdown}>다시하기</button>
+            <button ref={leaderboardTriggerRef} className="stage-select-leaderboard" type="button" aria-haspopup="dialog"
+              aria-expanded={leaderboardOpen} aria-controls="leaderboard-dialog"
+              onClick={(event) => openLeaderboard(event.currentTarget)}>랭킹 보기</button>
             <button className="game-title-guide" type="button" onClick={onReturnToTitle}>메인 타이틀로</button>
           </div>
         </section>}
+        <p className="game-footer" aria-hidden={gameState.status !== "playing" || undefined}>
+          <span className="desktop-control-hint"><kbd>D</kbd> 한 칸 올라가기 <span>·</span> <kbd>J</kbd> 방향 바꾸며 올라가기</span>
+          <span className="mobile-control-hint">올라가기 · 방향 바꾸기</span>
+        </p>
         {settingsOpen && <div className="settings-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) closeSettings(); }}>
           <section className="settings-dialog infinite-settings-dialog" role="dialog" aria-modal="true" aria-labelledby="infinite-settings-title" onKeyDown={onDialogKeyDown}>
             <header className="settings-dialog-header"><div><p className="game-title-kicker">GAME AUDIO</p><h2 id="infinite-settings-title">무한 모드 설정</h2></div>

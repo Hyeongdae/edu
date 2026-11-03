@@ -60,7 +60,7 @@ describe("authenticated audio setup", () => {
   });
 
   async function openAudioSettings() {
-    fireEvent.click(screen.getByRole("button", { name: "게임 시작" }));
+    fireEvent.click(screen.getByRole("button", { name: "단계 모드" }));
     await waitFor(() => expect(screen.queryByRole("heading", { name: "덱스 탈출 넘버원" })).not.toBeInTheDocument());
     fireEvent.click(screen.getByRole("button", { name: "시작하기" }));
     await waitFor(() => expect(document.querySelector(".stage-transition-countdown")).not.toBeInTheDocument(), { timeout: 5_000 });

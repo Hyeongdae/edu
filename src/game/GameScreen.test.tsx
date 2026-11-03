@@ -273,7 +273,7 @@ describe("title screen entry", () => {
     renderBase(<GameScreen account={account} />);
     fireEvent.click(screen.getByRole("button", { name: "무한 모드" }));
     expect(screen.getByRole("heading", { name: "무한 모드" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "무한 모드 시작" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "게임 시작" })).toBeVisible();
     expect(screen.queryByRole("region", { name: "단계 선택" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "점프" })).not.toBeInTheDocument();
   });

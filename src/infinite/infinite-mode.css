@@ -1,86 +1,61 @@
-﻿.infinite-mode-frame {
-  display: grid;
-  grid-template-rows: auto auto minmax(240px, 1fr) auto;
-  gap: 10px;
-  padding: clamp(12px, 2vw, 24px);
+.infinite-mode-accessible-title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
   overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
 }
 
-/* The shared pixel skin lays normal-game scenes over the whole frame. Restore flow here. */
-.stair-game.pixel-theme.infinite-mode-screen .game-frame.infinite-mode-frame {
-  position: relative;
-  display: grid;
-  grid-template-rows: auto auto minmax(180px, 1fr) auto;
-  gap: clamp(5px, 1vh, 10px);
-  padding: 0;
-  overflow: hidden;
-}
-
-.stair-game.pixel-theme.infinite-mode-screen .infinite-scene-card {
-  position: relative;
-  inset: auto;
+.infinite-start-panel {
   display: block;
-  width: 100%;
-  height: 100%;
-  min-height: 0;
 }
+.infinite-start-panel > p:not(.game-title-kicker) { margin: 0; line-height: 1.6; }
+.infinite-start-panel .game-title-kicker { margin: 0 0 8px; color: var(--pixel-cyan); }
+.infinite-start-panel h2 { margin: 0 0 14px; color: var(--pixel-gold); font-size: clamp(1.1rem, 3vw, 1.6rem); }
+.infinite-start-actions { display: grid; gap: 8px; margin-top: 18px; }
+.infinite-start-actions .game-title-guide { width: 100%; min-height: 48px; }
 
-.stair-game.pixel-theme.infinite-mode-screen .infinite-scene-card .scene-heading { top: 8px; }
-.stair-game.pixel-theme.infinite-mode-screen .pixel-scene-stage > .infinite-stair-scene {
-  inset: 0;
-  width: min(100%, 780px);
-  height: 100%;
-  min-height: 220px;
-}
-
-.infinite-mode-header,
-.infinite-hud-stats,
-.infinite-event-heading,
-.infinite-result-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.infinite-mode-header h1 { margin: 0; color: #eff4ff; font-size: clamp(1.4rem, 3vw, 2.4rem); }
-.infinite-mode-header .game-title-kicker { margin: 0 0 4px; color: #9badc9; }
-.infinite-hud { display: grid; gap: 8px; }
-.infinite-hud-stats { align-items: stretch; }
-.infinite-stat,
-.infinite-event-card,
-.infinite-start-panel,
-.infinite-result-panel {
-  border: 2px solid #4a5b78;
-  background: #121c32;
-  color: #eff4ff;
-  padding: 10px 14px;
-  box-shadow: 4px 4px 0 #080d19;
-}
-.infinite-stat { flex: 1; display: grid; gap: 3px; }
-.infinite-stat > span,
-.infinite-event-heading { color: #b6c5dc; font-size: .9rem; }
-.infinite-stat strong { color: #ffe07a; font-size: clamp(1.2rem, 3vw, 1.9rem); }
-.infinite-score-stat strong { color: #61e8e1; font-size: clamp(1.6rem, 4vw, 2.6rem); }
-.infinite-event-card { padding-block: 8px; }
-.infinite-event-card progress { width: 100%; height: 12px; accent-color: #61e8e1; }
-.infinite-event-card.is-active { border-color: #ffe07a; box-shadow: 0 0 18px #ffe07a55; }
-.infinite-mode-scene-wrap { min-height: 0; display: grid; }
-.infinite-scene-card { min-height: 0; height: 100%; }
-.infinite-stair-scene { width: min(100%, 780px); height: 100%; min-height: 220px; }
 .infinite-actor { transition: transform 180ms steps(3, end); }
 .infinite-player.is-falling { animation: infinite-fall 500ms steps(4, end) forwards; transform-origin: center bottom; }
 .infinite-pursuer.is-moving { animation: infinite-run 240ms steps(2, end) infinite; }
-.infinite-start-panel { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-.infinite-start-panel p { margin: 0; }
-.infinite-start-copy { display: grid; gap: 5px; }
-.infinite-start-copy .game-title-kicker { color: #61e8e1; }
-.infinite-start-copy h2 { margin: 0; color: #ffe07a; font-size: clamp(1.1rem, 2.4vw, 1.7rem); }
-.infinite-start-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
-.infinite-result-panel { position: absolute; z-index: 7; inset: 16% 12%; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+.infinite-result-panel {
+  position: absolute;
+  z-index: 7;
+  inset: 16% 12%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  overflow: auto;
+  padding: 16px;
+  border: 4px solid var(--pixel-gold);
+  background: #142238;
+  box-shadow: 6px 6px 0 #080e1b;
+  color: var(--pixel-text);
+  text-align: center;
+}
 .infinite-result-panel h2 { margin: 8px 0; font-size: clamp(1.3rem, 3vw, 2.1rem); }
-.infinite-result-score { color: #61e8e1; font-size: clamp(2.5rem, 8vw, 5rem); line-height: 1.1; }
-.infinite-result-actions { margin-top: 12px; justify-content: center; flex-wrap: wrap; }
+.infinite-result-score { color: var(--pixel-cyan); font-size: clamp(2.5rem, 8vw, 5rem); line-height: 1.1; }
+.infinite-result-actions { display: grid; width: min(100%, 640px); gap: 8px; margin-top: 12px; }
+.infinite-result-actions > button {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  min-height: 56px;
+  margin: 0;
+  padding: 10px 16px;
+  border: 3px solid var(--pixel-gold);
+  border-radius: 0;
+  box-shadow: 4px 4px 0 #080e1b;
+  font: inherit;
+  font-weight: 700;
+}
+.infinite-result-actions > .stage-select-leaderboard { border-color: var(--pixel-cyan); }
+.infinite-result-actions > .game-title-guide { border-color: var(--pixel-cyan); }
 .infinite-settings-dialog { display: grid; gap: 14px; }
 
 .mode-tabs { display: flex; gap: 8px; padding: 8px 0; }
@@ -88,25 +63,13 @@
 .mode-tabs [role="tab"][aria-selected="true"] { color: #10182c; background: #ffe07a; border-color: #ffe07a; }
 .leaderboard-mode-label { margin: 0; color: #91a8c9; font-size: .85rem; }
 .infinite-leaderboard-list .leaderboard-row { grid-template-columns: 44px minmax(0, 1fr) auto; }
-
 .game-title-infinite { min-height: 52px; border: 3px solid #4c5c78; background: #141f36; color: #ffe07a; padding: 10px 22px; font: inherit; font-weight: 800; cursor: pointer; box-shadow: 4px 4px 0 #080d19; }
 
 @keyframes infinite-fall { 0% { transform: rotate(0) translateY(0); } 100% { transform: rotate(60deg) translate(28px, 30px); opacity: .65; } }
 @keyframes infinite-run { 50% { translate: 0 -3px; } }
 
 @media (max-width: 720px) {
-  .stair-game.pixel-theme.infinite-mode-screen .game-frame.infinite-mode-frame {
-    grid-template-rows: auto auto minmax(160px, 1fr) auto;
-    gap: 8px;
-    padding: 0 0 var(--pixel-safe-bottom);
-    border-width: 0;
-    box-shadow: none;
-  }
-  .infinite-hud-stats { gap: 6px; }
-  .infinite-stat { padding: 8px; }
-  .infinite-start-panel { padding: 8px; }
-  .infinite-start-actions { width: 100%; justify-content: stretch; }
-  .infinite-start-actions > button { flex: 1 1 auto; }
+  .infinite-start-panel { padding: 14px; }
   .infinite-result-panel { inset: 10% 5%; padding: 12px; }
   .infinite-leaderboard-list .leaderboard-row { grid-template-columns: 28px minmax(0, 1fr) auto; }
 }

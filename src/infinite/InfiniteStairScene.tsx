@@ -24,22 +24,21 @@ export function InfiniteStairScene({ state, isMoving }: { state: InfiniteGameSta
           {model.steps.map((step) => (
             <g key={step.index} data-testid="infinite-stair-step" data-route-index={step.index} data-direction={step.direction}>
               <g className="stair-top" transform={`translate(${step.x} ${step.y})`}><PixelStair face="top" direction={step.direction} /></g>
-              {step.index === model.pursuer.index && model.pursuerVisible && (
-                <g className={`infinite-actor infinite-pursuer${isMoving ? " is-moving" : ""}`} data-testid="infinite-pursuer"
-                  transform={`translate(${model.pursuer.x} ${model.pursuer.y})`}>
-                  <PixelOfficer variant="older" direction={model.pursuer.direction} pose={isMoving ? "climb" : "idle"} />
-                </g>
-              )}
-              {step.index === model.player.index && (
-                <g className={`infinite-actor infinite-player${state.status === "game-over" ? " is-falling" : ""}`}
-                  data-testid="infinite-player" data-route-index={model.player.index} data-direction={model.player.direction}
-                  transform={`translate(${model.player.x} ${model.player.y})`}>
-                  <PixelOfficer variant="young" direction={model.player.direction} pose={state.status === "game-over" ? "fall" : isMoving ? "climb" : "idle"} />
-                </g>
-              )}
               <g className="stair-front" transform={`translate(${step.x} ${step.y})`}><PixelStair face="front" direction={step.direction} /></g>
             </g>
           ))}
+          {/* Draw characters after the whole staircase so the next tread never cuts through them. */}
+          <g className={`infinite-actor infinite-player${state.status === "game-over" ? " is-falling" : ""}`}
+            data-testid="infinite-player" data-route-index={model.player.index} data-direction={model.player.direction}
+            transform={`translate(${model.player.x} ${model.player.y - 12})`}>
+            <PixelOfficer variant="young" direction={model.player.direction} pose={state.status === "game-over" ? "fall" : isMoving ? "climb" : "idle"} />
+          </g>
+          {model.pursuerVisible && (
+            <g className={`infinite-actor infinite-pursuer${isMoving ? " is-moving" : ""}`} data-testid="infinite-pursuer"
+              transform={`translate(${model.pursuer.x} ${model.pursuer.y - 12})`}>
+              <PixelOfficer variant="older" direction={model.pursuer.direction} pose={isMoving ? "climb" : "idle"} />
+            </g>
+          )}
         </svg>
       </div>
       <p className="scene-hint">D로 올라가고, 계단이 꺾일 때 J를 눌러 방향을 바꿔요.</p>

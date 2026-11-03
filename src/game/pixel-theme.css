@@ -186,6 +186,8 @@
 .stair-game.pixel-theme .stage-select-start { width: 100%; border-color: var(--pixel-gold); font-weight: 700; }
 .stair-game.pixel-theme .stage-select-leaderboard { width: 100%; min-height: 48px; border: 2px solid var(--pixel-cyan); border-radius: 0; background: #15243b; color: var(--pixel-cyan); font: inherit; font-weight: 700; cursor: pointer; }
 .stair-game.pixel-theme .stage-select-leaderboard:disabled { opacity: 0.45; cursor: default; }
+.stair-game.pixel-theme .stage-select-title { width: 100%; min-height: 48px; margin-top: 8px; font: inherit; font-weight: 700; cursor: pointer; }
+.stair-game.pixel-theme .stage-select-title:disabled { opacity: 0.45; cursor: default; }
 @media (max-width: 720px) {
   .stair-game.pixel-theme .stage-select-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

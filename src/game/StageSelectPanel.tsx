@@ -7,12 +7,13 @@ interface StageSelectPanelProps {
   highestClearedStage: ClearedStage;
   onSelect: (stage: GameStage) => void;
   onStart: () => void;
+  onReturnToTitle: () => void;
   onOpenLeaderboard: (trigger: HTMLButtonElement) => void;
   disabled: boolean;
   progressUnavailable: boolean;
 }
 
-export function StageSelectPanel({ selectedStage, highestClearedStage, onSelect, onStart, onOpenLeaderboard, disabled, progressUnavailable }: StageSelectPanelProps): ReactElement {
+export function StageSelectPanel({ selectedStage, highestClearedStage, onSelect, onStart, onReturnToTitle, onOpenLeaderboard, disabled, progressUnavailable }: StageSelectPanelProps): ReactElement {
   const selectedButtonRef = useRef<HTMLButtonElement>(null);
   useEffect(() => { selectedButtonRef.current?.focus(); }, []);
   const seconds = getStageRule(selectedStage).durationMs / 1000;
@@ -42,6 +43,7 @@ export function StageSelectPanel({ selectedStage, highestClearedStage, onSelect,
       <button className="stage-select-start" type="button" disabled={disabled} onClick={onStart}>시작하기</button>
       <button className="stage-select-leaderboard" type="button" aria-haspopup="dialog" aria-controls="leaderboard-dialog" disabled={disabled}
         onClick={(event) => onOpenLeaderboard(event.currentTarget)}>랭킹 보기</button>
+      <button className="game-title-guide stage-select-title" type="button" disabled={disabled} onClick={onReturnToTitle}>타이틀로 돌아가기</button>
     </section>
   );
 }
