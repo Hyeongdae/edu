@@ -1,4 +1,6 @@
-import type { ApiErrorCode, SharedBest, SharedInfiniteBest, SharedProfile, SubmitInfiniteScoreRequest, SubmitInfiniteScoreResponse, SubmitResultRequest, SubmitResultResponse } from "../../shared/companyRecords";
+import type { ApiErrorCode, SaveAppearanceResponse, SharedBest, SharedInfiniteBest, SharedProfile, SubmitInfiniteScoreRequest, SubmitInfiniteScoreResponse, SubmitResultRequest, SubmitResultResponse } from "../../shared/companyRecords";
+import { areCharacterAppearancesEqual, cloneCharacterAppearance, isCharacterAppearance, isSaveAppearanceRequest } from "../../shared/characterAppearance";
+import type { SaveAppearanceRequest } from "../../shared/characterAppearance";
 import { getHighestUnlockedStage, getStageRule, isClearedStage, isGameStage } from "../game/stageRules";
 
 type RecordApiErrorCode = ApiErrorCode | "network" | "timeout" | "invalid-response";
@@ -33,7 +35,8 @@ export function isSharedProfile(value: unknown, accountId: string): value is Sha
       (isSharedBest(value.best) && value.best.accountId === accountId &&
         value.best.bestStage <= getHighestUnlockedStage(value.highestClearedStage) &&
         (value.best.bestScore < getStageRule(value.best.bestStage).scoreRequired || value.highestClearedStage >= value.best.bestStage))) &&
-    (value.infiniteBest === null || (isSharedInfiniteBest(value.infiniteBest) && value.infiniteBest.accountId === accountId));
+    (value.infiniteBest === null || (isSharedInfiniteBest(value.infiniteBest) && value.infiniteBest.accountId === accountId)) &&
+    (value.appearance === undefined || isCharacterAppearance(value.appearance));
 }
 
 function canonicalTimestamp(value: unknown): value is string {
@@ -51,7 +54,7 @@ function isEntries(value: unknown): value is SharedBest[] {
     new Set(value.map((entry) => entry.accountId)).size === value.length;
 }
 
-async function request(path: string, signal: AbortSignal, accountId?: string, payload?: SubmitResultRequest | SubmitInfiniteScoreRequest): Promise<unknown> {
+async function request(path: string, signal: AbortSignal, accountId?: string, payload?: SubmitResultRequest | SubmitInfiniteScoreRequest | SaveAppearanceRequest): Promise<unknown> {
   const controller = new AbortController();
   let timedOut = false;
   const abort = () => controller.abort();
@@ -129,12 +132,22 @@ export async function postInfiniteResult(accountId: string, payload: SubmitInfin
   return value as unknown as SubmitInfiniteScoreResponse;
 }
 
+export async function postAppearance(accountId: string, payload: SaveAppearanceRequest, signal: AbortSignal): Promise<SaveAppearanceResponse> {
+  if (!isSaveAppearanceRequest(payload)) throw new RecordApiError("invalid-request");
+  const input = { appearance: cloneCharacterAppearance(payload.appearance) };
+  const value = await request("/api/appearance", signal, accountId, input);
+  if (!object(value) || !isSharedProfile(value.profile, accountId) || !value.profile.appearance ||
+    !areCharacterAppearancesEqual(value.profile.appearance, input.appearance)) throw new RecordApiError("invalid-response");
+  return { profile: value.profile };
+}
+
 export interface CompanyRecordApi {
   fetchProfile: typeof fetchProfile;
   fetchLeaderboard: typeof fetchLeaderboard;
   postResult: typeof postResult;
   fetchInfiniteLeaderboard: typeof fetchInfiniteLeaderboard;
   postInfiniteResult: typeof postInfiniteResult;
+  postAppearance?: typeof postAppearance;
 }
 
-export const companyRecordApi: CompanyRecordApi = { fetchProfile, fetchLeaderboard, postResult, fetchInfiniteLeaderboard, postInfiniteResult };
+export const companyRecordApi: CompanyRecordApi = { fetchProfile, fetchLeaderboard, postResult, fetchInfiniteLeaderboard, postInfiniteResult, postAppearance };

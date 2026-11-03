@@ -1,8 +1,14 @@
 import { compareSharedInfiniteScore, compareSharedPerformance, getSharedTopInfiniteScores, getSharedTopScores, isSubmitInfiniteScoreRequest, isSubmitResultRequest, validateResultForProfile } from "../../shared/companyRecords";
 import type { InfiniteScoreInput, SharedBest, SharedInfiniteBest, SharedProfile } from "../../shared/companyRecords";
+import { areCharacterAppearancesEqual, cloneCharacterAppearance, isCharacterAppearance, resolveCharacterAppearance } from "../../shared/characterAppearance";
+import type { CharacterAppearance } from "../../shared/characterAppearance";
 import type { StageResult } from "../game/types";
 import { companyRecordApi, isSharedProfile, RecordApiError, type CompanyRecordApi } from "./recordApi";
-import type { CompanyStoreSnapshot, PendingResult, SyncStatus } from "./types";
+import type { AppearanceSyncStatus, CompanyStoreSnapshot, PendingResult, SyncStatus } from "./types";
+
+const APPEARANCE_DEBOUNCE_MS = 400;
+const APPEARANCE_SAVE_ERROR = "외형을 저장하지 못했어요. 선택한 모습은 유지돼요. 다시 시도해 주세요.";
+const APPEARANCE_AUTH_ERROR = "외형을 저장하려면 회사 계정으로 다시 로그인해 주세요.";
 
 export function companyPendingKey(accountId: string): string {
   return "stair-descent:company:production:pending:v1:" + encodeURIComponent(accountId);
@@ -39,6 +45,12 @@ export class CompanyRecordStore {
   private syncStatus: SyncStatus = "idle";
   private errorMessage: string | null = null;
   private persistenceWarning: string | null = null;
+  private appearanceDraft: CharacterAppearance | null = null;
+  private appearanceRevision = 0;
+  private appearanceDueAt: number | null = null;
+  private appearanceStatus: AppearanceSyncStatus = "idle";
+  private appearanceErrorMessage: string | null = null;
+  private appearanceTimer: ReturnType<typeof setTimeout> | undefined;
 
   constructor(private readonly accountId: string, private readonly options: StoreOptions = {}) {
     if (!accountId.trim()) throw new Error("A hosted account is required.");
@@ -71,6 +83,12 @@ export class CompanyRecordStore {
     this.running = false;
     clearTimeout(this.timer);
     this.timer = undefined;
+    clearTimeout(this.appearanceTimer);
+    this.appearanceTimer = undefined;
+    if (this.appearanceDraft && this.appearanceStatus === "saving") {
+      this.appearanceStatus = "pending";
+      this.appearanceDueAt = Date.now();
+    }
     this.controller?.abort();
     this.controller = null;
     window.removeEventListener("online", this.onOnline);
@@ -113,6 +131,33 @@ export class CompanyRecordStore {
     this.kick();
   };
 
+  updateAppearance = (next: CharacterAppearance): void => {
+    if (!this.active || !this.profile || !isCharacterAppearance(next)) return;
+    const displayed = this.appearanceDraft ?? resolveCharacterAppearance(this.profile.appearance);
+    if (areCharacterAppearancesEqual(displayed, next)) return;
+    this.appearanceDraft = cloneCharacterAppearance(next);
+    this.appearanceRevision++;
+    const requiresAuth = this.appearanceStatus === "auth-required" || this.syncStatus === "auth-required";
+    this.appearanceStatus = requiresAuth ? "auth-required" : "pending";
+    this.appearanceErrorMessage = requiresAuth ? APPEARANCE_AUTH_ERROR : null;
+    this.appearanceDueAt = requiresAuth ? null : Date.now() + APPEARANCE_DEBOUNCE_MS;
+    this.publish();
+    this.scheduleAppearance();
+  };
+
+  retryAppearance = (): void => {
+    if (!this.active || !this.profile || !this.appearanceDraft) return;
+    if (this.appearanceStatus === "auth-required" || this.syncStatus === "auth-required") {
+      this.retry(); // Verify the account again before sending the retained appearance.
+      return;
+    }
+    this.appearanceStatus = "pending";
+    this.appearanceErrorMessage = null;
+    this.appearanceDueAt = Date.now();
+    this.publish();
+    this.scheduleAppearance();
+  };
+
   retry = (): void => {
     if (!this.active) return;
     clearTimeout(this.timer);
@@ -133,8 +178,31 @@ export class CompanyRecordStore {
   };
 
   private onOnline = (): void => {
-    if (!this.permanent && this.syncStatus !== "auth-required") this.retry();
+    if (!this.permanent && this.syncStatus !== "auth-required") {
+      this.retry();
+      if (this.appearanceStatus === "error") this.retryAppearance();
+    }
   };
+
+  private appearanceIsDue(): boolean {
+    return this.appearanceDraft !== null && this.appearanceStatus === "pending" &&
+      this.appearanceDueAt !== null && this.appearanceDueAt <= Date.now();
+  }
+
+  private scheduleAppearance(): void {
+    clearTimeout(this.appearanceTimer);
+    this.appearanceTimer = undefined;
+    if (!this.active || this.paused || !this.appearanceDraft || this.appearanceStatus !== "pending" || this.appearanceDueAt === null) return;
+    if (this.appearanceIsDue()) {
+      this.kick();
+      return;
+    }
+    const epoch = this.epoch;
+    this.appearanceTimer = setTimeout(() => {
+      this.appearanceTimer = undefined;
+      if (this.active && epoch === this.epoch) this.kick();
+    }, this.appearanceDueAt - Date.now());
+  }
 
   private storage(): Pick<Storage, "getItem" | "setItem"> {
     return this.options.storage?.() ?? window.localStorage;
@@ -190,7 +258,13 @@ export class CompanyRecordStore {
       infiniteBest = { ...previous.infiniteBest, displayName: incoming.displayName };
     }
     this.profile = { ...incoming, best, infiniteBest,
+      ...(incoming.appearance ? { appearance: cloneCharacterAppearance(incoming.appearance) } : {}),
       highestClearedStage: Math.max(previous?.highestClearedStage ?? 0, incoming.highestClearedStage) as SharedProfile["highestClearedStage"] };
+    if (this.appearanceDraft && this.appearanceStatus === "auth-required") {
+      this.appearanceStatus = "pending";
+      this.appearanceErrorMessage = null;
+      this.appearanceDueAt = Date.now();
+    }
   }
 
   private publish(failure?: RecordApiError): void {
@@ -202,6 +276,11 @@ export class CompanyRecordStore {
         profile: this.profile, entries: this.entries, infiniteEntries: this.infiniteEntries, syncStatus: this.syncStatus,
         pendingCount: this.pending.length, errorMessage: [this.errorMessage, this.persistenceWarning].filter(Boolean).join(" ") || null,
         submitResult: this.submitResult, submitInfiniteScore: this.submitInfiniteScore, retry: this.retry, refresh: this.refresh,
+        appearance: {
+          value: this.appearanceDraft ? cloneCharacterAppearance(this.appearanceDraft) : resolveCharacterAppearance(this.profile.appearance),
+          status: this.appearanceStatus, errorMessage: this.appearanceErrorMessage,
+          update: this.updateAppearance, retry: this.retryAppearance,
+        },
       } };
     }
     for (const listener of this.listeners) listener();
@@ -211,14 +290,56 @@ export class CompanyRecordStore {
     if (this.active && !this.running && !this.paused) void this.run(this.epoch);
   }
 
+  private async savePendingAppearance(signal: AbortSignal, current: () => boolean): Promise<void> {
+    const appearance = cloneCharacterAppearance(this.appearanceDraft!);
+    const revision = this.appearanceRevision;
+    this.appearanceStatus = "saving";
+    this.appearanceErrorMessage = null;
+    this.publish();
+    try {
+      if (!current()) return;
+      if (!this.api.postAppearance) throw new RecordApiError("invalid-response");
+      const response = await this.api.postAppearance(this.accountId, { appearance }, signal);
+      if (!current()) return;
+      if (!isSharedProfile(response.profile, this.accountId) || !response.profile.appearance ||
+        !areCharacterAppearancesEqual(response.profile.appearance, appearance)) throw new RecordApiError("invalid-response");
+      this.acceptProfile(response.profile);
+      if (revision === this.appearanceRevision) {
+        this.appearanceDraft = null;
+        this.appearanceDueAt = null;
+        this.appearanceStatus = "saved";
+      } else this.appearanceStatus = "pending";
+      this.appearanceErrorMessage = null;
+      this.publish();
+    } catch (failure) {
+      if (!current()) return;
+      const error = failure instanceof RecordApiError ? failure : new RecordApiError("network");
+      if (error.code === "unauthenticated") {
+        this.appearanceStatus = "auth-required";
+        this.appearanceErrorMessage = APPEARANCE_AUTH_ERROR;
+        this.appearanceDueAt = null;
+        throw error;
+      }
+      if (revision === this.appearanceRevision) {
+        this.appearanceStatus = "error";
+        this.appearanceErrorMessage = APPEARANCE_SAVE_ERROR;
+        this.appearanceDueAt = null;
+      } else {
+        this.appearanceStatus = "pending";
+        this.appearanceErrorMessage = null;
+      }
+      this.publish();
+    }
+  }
+
   private async run(epoch: number): Promise<void> {
     this.running = true;
-    this.syncStatus = "saving";
-    this.errorMessage = null;
-    this.publish();
     const controller = new AbortController();
     this.controller = controller;
     const current = () => this.active && epoch === this.epoch && !controller.signal.aborted;
+    this.syncStatus = "saving";
+    this.errorMessage = null;
+    this.publish();
     try {
       while (current()) {
         if (!this.profile || this.needsRefresh) {
@@ -249,6 +370,8 @@ export class CompanyRecordStore {
           this.persist();
           this.backoff = 0;
           this.publish();
+        } else if (this.appearanceIsDue()) {
+          await this.savePendingAppearance(controller.signal, current);
         } else break;
       }
       if (current()) { this.syncStatus = "idle"; this.publish(); }
@@ -256,6 +379,11 @@ export class CompanyRecordStore {
       if (!current()) return;
       const error = failure instanceof RecordApiError ? failure : new RecordApiError("network");
       this.syncStatus = error.code === "unauthenticated" ? "auth-required" : "error";
+      if (error.code === "unauthenticated" && this.appearanceDraft) {
+        this.appearanceStatus = "auth-required";
+        this.appearanceErrorMessage = APPEARANCE_AUTH_ERROR;
+        this.appearanceDueAt = null;
+      }
       this.errorMessage = error.message;
       this.paused = true;
       this.permanent = ["unauthenticated", "invalid-request", "stage-locked", "invalid-response"].includes(error.code);
@@ -270,7 +398,12 @@ export class CompanyRecordStore {
         }, delays[Math.min(this.backoff++, delays.length - 1)]);
       }
     } finally {
-      if (epoch === this.epoch) { this.running = false; this.controller = null; }
+      if (epoch === this.epoch) {
+        this.running = false;
+        this.controller = null;
+        if (this.active && !this.paused && (!this.profile || this.needsRefresh || this.pending.length)) this.kick();
+        else this.scheduleAppearance();
+      }
     }
   }
 }

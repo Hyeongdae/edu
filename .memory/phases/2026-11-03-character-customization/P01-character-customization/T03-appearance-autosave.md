@@ -1,6 +1,6 @@
 # Task: T03 Appearance Autosave
 
-## Status: pending
+## Status: done
 
 ## Goal
 계정 store에서 새 외형을 즉시 표시하고 마지막 선택400ms 후 자동 저장한다. 지연 응답·점수 저장·계정 전환이 미저장 선택을 되돌리거나 다른 계정에 전송하지 않도록 한다.
@@ -100,11 +100,11 @@
 - 기존 점수 queue의 key/JSON version/내용과 브라우저 저장 실패 처리에 회귀가 없다.
 
 ## Acceptance Criteria
-- [ ] 선택 즉시 binding.value에 반영되고400ms debounce로 저장된다.
-- [ ] 오래된 응답과 되돌리기 선택에서도 마지막 선택이 최종 서버 외형이다.
-- [ ] 저장 실패와 로그인 만료가 화면에 구분되고 재시도가 가능하다.
-- [ ] 계정·점수 대기열·record gate 수명과 충돌하지 않는다.
-- [ ] 기존 fixture가 appearance binding/API 메서드를 생략해도 기존 기능의 타입/테스트가 유지된다.
+- [x] 선택 즉시 binding.value에 반영되고400ms debounce로 저장된다.
+- [x] 오래된 응답과 되돌리기 선택에서도 마지막 선택이 최종 서버 외형이다.
+- [x] 저장 실패와 로그인 만료가 화면에 구분되고 재시도가 가능하다.
+- [x] 계정·점수 대기열·record gate 수명과 충돌하지 않는다.
+- [x] 기존 fixture가 appearance binding/API 메서드를 생략해도 기존 기능의 타입/테스트가 유지된다.
 
 ## Validation
 - `npm test -- --run src/company/recordApi.test.ts src/company/CompanyRecordStore.test.ts src/company/CompanyRecordsGate.test.tsx shared/companyRecords.test.ts --maxWorkers=2` — 신규 경쟁 조건 및 기존 기록 로딩/queue 검증 통과.
@@ -124,6 +124,14 @@ Task: T03-appearance-autosave
 ```
 
 ## Progress
-- [ ] 구현 완료
-- [ ] 검증 통과
+- [x] 구현 완료
+- [x] 검증 통과
 - commit: pending
+
+## Validation Results — 2026-11-03
+- 지정한4개 테스트 파일236/236 통과(7.26초).400ms debounce, 최신 revision/원래 외형으로 되돌리기, 점수 우선 직렬 저장, 실패/온라인 재시도, 세션 만료, 계정 전환과 StrictMode 재연결을 확인했다.
+- HTTP 경계는 저장 응답에 동일 계정·동일 외형이 있어야 성공 처리한다. 기존 외형 없는 profile 응답과 optional API 주입도 호환됨을 확인했다.
+- `npm run lint`: 통과, 오류/경고 없음.
+- `npm run build`: 타입/빌드 통과. JS640.22kB(gzip175.75kB), CSS88.41kB(gzip15.27kB).
+- 실제 꾸미기 dialog 및 캐릭터 장면 연결은 후속 T04/T05 범위다. 운영 API/DB 접근, Git 푸시/배포는 하지 않았다.
+- 기존 모바일 버튼 CSS 변경을 보존했다. 추가 범위가 필요한 발견: 특이사항 없음.

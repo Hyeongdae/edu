@@ -1,7 +1,18 @@
 import type { InfiniteScoreInput, ResultInput, SharedBest, SharedInfiniteBest, SharedProfile } from "../../shared/companyRecords";
 import type { StageResult } from "../game/types";
+import type { CharacterAppearance } from "../../shared/characterAppearance";
 
 export type SyncStatus = "idle" | "saving" | "error" | "auth-required";
+
+export type AppearanceSyncStatus = "idle" | "pending" | "saving" | "saved" | "error" | "auth-required";
+
+export interface AppearanceBinding {
+  value: CharacterAppearance;
+  status: AppearanceSyncStatus;
+  errorMessage: string | null;
+  update(next: CharacterAppearance): void;
+  retry(): void;
+}
 
 export interface CompanyRecordBinding {
   profile: SharedProfile;
@@ -10,6 +21,7 @@ export interface CompanyRecordBinding {
   syncStatus: SyncStatus;
   pendingCount: number;
   errorMessage: string | null;
+  appearance?: AppearanceBinding;
   submitResult(result: StageResult): void;
   submitInfiniteScore(result: InfiniteScoreInput): void;
   retry(): void;

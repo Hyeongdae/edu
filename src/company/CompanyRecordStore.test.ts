@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mergeSharedInfiniteScore, mergeSharedResult } from "../../shared/companyRecords";
-import type { SharedProfile } from "../../shared/companyRecords";
+import type { SaveAppearanceResponse, SharedProfile } from "../../shared/companyRecords";
 import { companyAck, companyProfile, companyResult, companySubmission, deferred } from "../test/companyFixtures";
 import { CompanyRecordStore, companyPendingKey } from "./CompanyRecordStore";
 import { RecordApiError, type CompanyRecordApi } from "./recordApi";
+import { cloneCharacterAppearance, getDefaultCharacterAppearance } from "../../shared/characterAppearance";
+import type { CharacterAppearance, CharacterLook } from "../../shared/characterAppearance";
 
 const stores: CompanyRecordStore[] = [];
 const now = "2026-10-30T07:00:00.000Z";
@@ -27,11 +29,16 @@ function setup(initial = companyProfile(), storage = memory()) {
       server = mergeSharedInfiniteScore(server, { accountId, displayName: server.displayName }, input.result, now).profile;
       return { submissionId: input.submissionId, profile: server, entries: server.infiniteBest ? [server.infiniteBest] : [] };
     }),
+    postAppearance: vi.fn<NonNullable<CompanyRecordApi["postAppearance"]>>().mockImplementation(async (accountId, input) => {
+      if (accountId !== server.accountId) throw new RecordApiError("unauthenticated");
+      server = { ...server, appearance: cloneCharacterAppearance(input.appearance) };
+      return { profile: server };
+    }),
   };
   const store = new CompanyRecordStore(initial.accountId, { api, storage: () => storage,
     now: () => new Date(now), uuid: () => `00000000-0000-4000-8000-${(++sequence).toString(16).padStart(12, "0")}` });
   stores.push(store);
-  return { store, api, storage };
+  return { store, api, storage, readServer: () => structuredClone(server) };
 }
 function binding(store: CompanyRecordStore) {
   const snapshot = store.getSnapshot();
@@ -39,8 +46,344 @@ function binding(store: CompanyRecordStore) {
   return snapshot.binding;
 }
 
+function appearanceBinding(store: CompanyRecordStore) {
+  const appearance = binding(store).appearance;
+  if (!appearance) throw new Error("Expected account appearance binding.");
+  return appearance;
+}
+
+function withRunner(overrides: Partial<CharacterLook>): CharacterAppearance {
+  const appearance = getDefaultCharacterAppearance();
+  return { ...appearance, runner: { ...appearance.runner, ...overrides } };
+}
+
 beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(now); });
 afterEach(() => { stores.splice(0).forEach((store) => store.stop()); vi.useRealTimers(); });
+
+describe("account appearance autosave", () => {
+  it("provides independent defaults without saving on bootstrap or touching the score queue", async () => {
+    const { store, api, storage } = setup();
+    store.updateAppearance(withRunner({ hat: "cap" }));
+    expect(api.fetchProfile).not.toHaveBeenCalled();
+    store.start(); await settle();
+    expect(appearanceBinding(store)).toMatchObject({ value: getDefaultCharacterAppearance(), status: "idle", errorMessage: null });
+    await vi.advanceTimersByTimeAsync(60000);
+    expect(api.postAppearance).not.toHaveBeenCalled();
+    expect(storage.setItem).not.toHaveBeenCalled();
+    expect(binding(store).profile).not.toHaveProperty("appearance");
+  });
+
+  it("shows each choice immediately and saves once 400ms after the final choice", async () => {
+    const { store, api, readServer } = setup(); store.start(); await settle();
+    const first = withRunner({ hat: "cap" });
+    store.updateAppearance(first);
+    expect(appearanceBinding(store)).toMatchObject({ value: first, status: "pending" });
+    await vi.advanceTimersByTimeAsync(100);
+    const second = withRunner({ hat: "cap", hairStyle: "bob" });
+    store.updateAppearance(second);
+    await vi.advanceTimersByTimeAsync(150);
+    const latest = withRunner({ hat: "cap", hairStyle: "bob", outfitColor: "teal" });
+    store.updateAppearance(latest);
+    await vi.advanceTimersByTimeAsync(399);
+    expect(api.postAppearance).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(api.postAppearance).toHaveBeenCalledExactlyOnceWith("employee-a", { appearance: latest }, expect.any(AbortSignal));
+    expect(readServer().appearance).toEqual(latest);
+    expect(appearanceBinding(store)).toMatchObject({ value: latest, status: "saved", errorMessage: null });
+  });
+
+  it("ignores unchanged or invalid choices and isolates the draft from mutable caller/snapshot values", async () => {
+    const { store, api } = setup(); store.start(); await settle();
+    store.updateAppearance(getDefaultCharacterAppearance());
+    store.updateAppearance({ version: 1 } as CharacterAppearance);
+    expect(vi.getTimerCount()).toBe(0);
+    const appearance = withRunner({ hat: "cap" });
+    store.updateAppearance(appearance);
+    appearance.runner.hat = "none";
+    appearanceBinding(store).value.pursuer.hat = "none";
+    await vi.advanceTimersByTimeAsync(400);
+    expect(api.postAppearance.mock.calls[0][1].appearance).toEqual(withRunner({ hat: "cap" }));
+    expect(appearanceBinding(store).value.pursuer.hat).toBe("straw");
+  });
+
+  it("retains the latest draft through an older acknowledgement and serializes the final save", async () => {
+    const { store, api, readServer } = setup(); store.start(); await settle();
+    const gate = deferred<void>();
+    const save = api.postAppearance.getMockImplementation()!;
+    api.postAppearance.mockImplementationOnce(async (...args) => { const response = await save(...args); await gate.promise; return response; });
+    store.updateAppearance(withRunner({ hat: "cap" }));
+    await vi.advanceTimersByTimeAsync(400);
+    expect(appearanceBinding(store).status).toBe("saving");
+    store.updateAppearance(withRunner({ hat: "cap", hairStyle: "bob" }));
+    await vi.advanceTimersByTimeAsync(100);
+    const latest = withRunner({ hat: "straw", hairStyle: "ponytail" });
+    store.updateAppearance(latest);
+    await vi.advanceTimersByTimeAsync(400);
+    expect(api.postAppearance).toHaveBeenCalledTimes(1);
+    const seen: CharacterAppearance[] = [];
+    const unsubscribe = store.subscribe(() => seen.push(appearanceBinding(store).value));
+    gate.resolve(); await settle();
+    unsubscribe();
+    expect(api.postAppearance).toHaveBeenCalledTimes(2);
+    expect(seen.every(value => value.runner.hairStyle === "ponytail")).toBe(true);
+    expect(appearanceBinding(store)).toMatchObject({ value: latest, status: "saved" });
+    expect(readServer().appearance).toEqual(latest);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("saves a return to the original look while a different look is in flight", async () => {
+    const { store, api, readServer } = setup(); store.start(); await settle();
+    const gate = deferred<void>();
+    const save = api.postAppearance.getMockImplementation()!;
+    api.postAppearance.mockImplementationOnce(async (...args) => { await gate.promise; return save(...args); });
+    store.updateAppearance(withRunner({ hat: "cap" }));
+    await vi.advanceTimersByTimeAsync(400);
+    store.updateAppearance(getDefaultCharacterAppearance());
+    await vi.advanceTimersByTimeAsync(400);
+    gate.resolve(); await settle();
+    expect(api.postAppearance).toHaveBeenCalledTimes(2);
+    expect(readServer().appearance).toEqual(getDefaultCharacterAppearance());
+    expect(appearanceBinding(store).status).toBe("saved");
+  });
+
+  it("keeps a newer choice pending when an earlier appearance request fails", async () => {
+    const { store, api, readServer } = setup(); store.start(); await settle();
+    const first = deferred<SaveAppearanceResponse>();
+    api.postAppearance.mockReturnValueOnce(first.promise);
+    store.updateAppearance(withRunner({ hat: "cap" }));
+    await vi.advanceTimersByTimeAsync(400);
+    const latest = withRunner({ hairStyle: "ponytail" });
+    store.updateAppearance(latest);
+    await vi.advanceTimersByTimeAsync(400);
+    first.reject(new RecordApiError("storage-unavailable")); await settle();
+    expect(api.postAppearance).toHaveBeenCalledTimes(2);
+    expect(appearanceBinding(store)).toMatchObject({ value: latest, status: "saved", errorMessage: null });
+    expect(readServer().appearance).toEqual(latest);
+  });
+
+  it("sends ready game results before a due appearance and never submits them in parallel", async () => {
+    const { store, api, storage, readServer } = setup(); store.start(); await settle();
+    const order: string[] = [];
+    const gate = deferred<void>();
+    const saveStage = api.postResult.getMockImplementation()!;
+    const saveInfinite = api.postInfiniteResult.getMockImplementation()!;
+    const saveAppearance = api.postAppearance.getMockImplementation()!;
+    api.postResult.mockImplementationOnce(async (...args) => { order.push("stage"); const response = await saveStage(...args); await gate.promise; return response; });
+    api.postInfiniteResult.mockImplementation(async (...args) => { order.push("infinite"); return saveInfinite(...args); });
+    api.postAppearance.mockImplementation(async (...args) => { order.push("appearance"); return saveAppearance(...args); });
+    const appearance = withRunner({ hat: "cap" });
+    store.updateAppearance(appearance);
+    store.submitResult(companyResult({ score: 150, outcome: "cleared" }));
+    store.submitInfiniteScore({ score: 120 }); await settle();
+    await vi.advanceTimersByTimeAsync(400);
+    expect(order).toEqual(["stage"]);
+    expect(binding(store).pendingCount).toBe(2);
+    gate.resolve(); await settle();
+    expect(order).toEqual(["stage", "infinite", "appearance"]);
+    expect(readServer()).toMatchObject({ appearance, highestClearedStage: 1, best: { bestScore: 150 }, infiniteBest: { bestScore: 120 } });
+    expect(binding(store).pendingCount).toBe(0);
+    expect(appearanceBinding(store).status).toBe("saved");
+    expect(JSON.parse(storage.data.get(companyPendingKey("employee-a"))!)).toEqual({ version: 2, accountId: "employee-a", pending: [] });
+    expect(storage.data.size).toBe(1);
+  });
+
+  it("keeps a draft over score/refresh responses and accepts another device's look when no draft exists", async () => {
+    const { store, api } = setup(); store.start(); await settle();
+    const draft = withRunner({ hat: "cap" });
+    const remote = withRunner({ hairStyle: "bob" });
+    store.updateAppearance(draft);
+    api.fetchProfile.mockResolvedValueOnce(companyProfile({ appearance: remote }));
+    store.refresh(); await settle();
+    expect(appearanceBinding(store).value).toEqual(draft);
+    store.submitResult(companyResult()); await settle();
+    expect(appearanceBinding(store).value).toEqual(draft);
+    await vi.advanceTimersByTimeAsync(400);
+    api.fetchProfile.mockResolvedValueOnce(companyProfile({ appearance: remote }));
+    store.refresh(); await settle();
+    expect(appearanceBinding(store).value).toEqual(remote);
+    expect(binding(store).profile.best?.bestScore).toBe(100);
+  });
+
+  it.each(["storage-unavailable", "timeout", "network", "invalid-response"] as const)("retains a failed %s draft, lets scores save, and confirms only after retry", async (code) => {
+    const { store, api, readServer } = setup(); store.start(); await settle();
+    const appearance = withRunner({ hat: "cap" });
+    api.postAppearance.mockRejectedValueOnce(new RecordApiError(code));
+    store.updateAppearance(appearance);
+    await vi.advanceTimersByTimeAsync(400);
+    expect(appearanceBinding(store)).toMatchObject({ value: appearance, status: "error" });
+    expect(appearanceBinding(store).errorMessage).toContain("외형을 저장하지 못했어요");
+    expect(binding(store)).toMatchObject({ syncStatus: "idle", errorMessage: null });
+    await vi.advanceTimersByTimeAsync(60000);
+    expect(api.postAppearance).toHaveBeenCalledTimes(1);
+    store.submitResult(companyResult({ score: 150, outcome: "cleared" })); await settle();
+    expect(binding(store).profile.highestClearedStage).toBe(1);
+    expect(appearanceBinding(store).value).toEqual(appearance);
+    appearanceBinding(store).retry(); await settle();
+    expect(appearanceBinding(store)).toMatchObject({ value: appearance, status: "saved", errorMessage: null });
+    expect(readServer()).toMatchObject({ appearance, highestClearedStage: 1 });
+  });
+
+  it.each(["missing", "different", "other-account"])("does not falsely confirm an injected %s acknowledgement", async (kind) => {
+    const { store, api } = setup(); store.start(); await settle();
+    const appearance = withRunner({ hat: "cap" });
+    const incoming = kind === "missing" ? companyProfile() : kind === "different"
+      ? companyProfile({ appearance: getDefaultCharacterAppearance() }) : companyProfile({ accountId: "other", appearance });
+    api.postAppearance.mockResolvedValueOnce({ profile: incoming });
+    store.updateAppearance(appearance);
+    await vi.advanceTimersByTimeAsync(400);
+    expect(appearanceBinding(store)).toMatchObject({ value: appearance, status: "error" });
+    expect(binding(store).profile.accountId).toBe("employee-a");
+  });
+
+  it("supports legacy injected APIs without reporting a successful appearance save", async () => {
+    const { api } = setup();
+    const legacyApi: CompanyRecordApi = { ...api };
+    delete legacyApi.postAppearance;
+    const store = new CompanyRecordStore("employee-a", { api: legacyApi, storage: () => memory() });
+    stores.push(store); store.start(); await settle();
+    store.updateAppearance(withRunner({ hat: "cap" }));
+    await vi.advanceTimersByTimeAsync(400);
+    expect(appearanceBinding(store).status).toBe("error");
+    expect(binding(store).syncStatus).toBe("idle");
+  });
+
+  it("retries ordinary appearance errors on online without losing the draft", async () => {
+    const { store, api, readServer } = setup(); store.start(); await settle();
+    api.postAppearance.mockRejectedValueOnce(new RecordApiError("storage-unavailable"));
+    const appearance = withRunner({ hat: "cap" });
+    store.updateAppearance(appearance);
+    await vi.advanceTimersByTimeAsync(400);
+    window.dispatchEvent(new Event("online")); await settle();
+    expect(api.fetchProfile).toHaveBeenCalledTimes(2);
+    expect(api.postAppearance).toHaveBeenCalledTimes(2);
+    expect(appearanceBinding(store).status).toBe("saved");
+    expect(readServer().appearance).toEqual(appearance);
+  });
+
+  it("blocks even newer drafts after a stale request loses authentication and verifies the account on retry", async () => {
+    const { store, api, readServer } = setup(); store.start(); await settle();
+    const first = deferred<SaveAppearanceResponse>();
+    api.postAppearance.mockReturnValueOnce(first.promise);
+    store.updateAppearance(withRunner({ hat: "cap" }));
+    await vi.advanceTimersByTimeAsync(400);
+    const latest = withRunner({ hairStyle: "ponytail" });
+    store.updateAppearance(latest);
+    first.reject(new RecordApiError("unauthenticated")); await settle();
+    expect(binding(store).syncStatus).toBe("auth-required");
+    expect(appearanceBinding(store)).toMatchObject({ value: latest, status: "auth-required" });
+    window.dispatchEvent(new Event("online"));
+    await vi.advanceTimersByTimeAsync(60000);
+    expect(api.postAppearance).toHaveBeenCalledTimes(1);
+    api.fetchProfile.mockRejectedValueOnce(new RecordApiError("unauthenticated"));
+    store.retryAppearance(); await settle();
+    expect(api.postAppearance).toHaveBeenCalledTimes(1);
+    expect(appearanceBinding(store).status).toBe("auth-required");
+    store.retryAppearance(); await settle();
+    expect(api.fetchProfile).toHaveBeenCalledTimes(3);
+    expect(api.postAppearance).toHaveBeenCalledTimes(2);
+    expect(appearanceBinding(store).status).toBe("saved");
+    expect(readServer().appearance).toEqual(latest);
+  });
+
+  it("does not bypass a score authentication failure to save a pending appearance", async () => {
+    const { store, api } = setup(); store.start(); await settle();
+    store.updateAppearance(withRunner({ hat: "cap" }));
+    api.postResult.mockRejectedValueOnce(new RecordApiError("unauthenticated"));
+    store.submitResult(companyResult()); await settle();
+    await vi.advanceTimersByTimeAsync(400);
+    expect(api.postAppearance).not.toHaveBeenCalled();
+    expect(appearanceBinding(store).status).toBe("auth-required");
+    store.retryAppearance(); await settle();
+    expect(api.postResult).toHaveBeenCalledTimes(2);
+    expect(api.postAppearance).toHaveBeenCalledTimes(1);
+    expect(appearanceBinding(store).status).toBe("saved");
+  });
+
+  it("cleans up a pending debounce and restores its draft across StrictMode reconnect", async () => {
+    const { store, api } = setup(); store.start(); await settle();
+    store.updateAppearance(withRunner({ hat: "cap" }));
+    await vi.advanceTimersByTimeAsync(100);
+    store.stop();
+    expect(vi.getTimerCount()).toBe(0);
+    store.start(); await settle();
+    await vi.advanceTimersByTimeAsync(299);
+    expect(api.postAppearance).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(api.postAppearance).toHaveBeenCalledTimes(1);
+    expect(appearanceBinding(store).status).toBe("saved");
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("ignores an aborted generation's late acknowledgement after restarting its in-flight draft", async () => {
+    const { store, api, readServer } = setup(); store.start(); await settle();
+    const first = deferred<SaveAppearanceResponse>();
+    api.postAppearance.mockReturnValueOnce(first.promise);
+    const appearance = withRunner({ hat: "cap" });
+    store.updateAppearance(appearance);
+    await vi.advanceTimersByTimeAsync(400);
+    const signal = api.postAppearance.mock.calls[0][2];
+    store.stop(); expect(signal.aborted).toBe(true);
+    store.start(); await settle();
+    expect(api.postAppearance).toHaveBeenCalledTimes(2);
+    expect(appearanceBinding(store).status).toBe("saved");
+    first.resolve({ profile: companyProfile({ appearance: getDefaultCharacterAppearance() }) }); await settle();
+    expect(appearanceBinding(store)).toMatchObject({ value: appearance, status: "saved" });
+    expect(readServer().appearance).toEqual(appearance);
+  });
+
+  it("does not transfer an old account's draft or late write to a new account", async () => {
+    const storage = memory();
+    const a = setup(companyProfile(), storage); a.store.start(); await settle();
+    const first = deferred<SaveAppearanceResponse>();
+    a.api.postAppearance.mockReturnValueOnce(first.promise);
+    const appearance = withRunner({ hat: "cap" });
+    a.store.updateAppearance(appearance);
+    await vi.advanceTimersByTimeAsync(400);
+    a.store.stop();
+    const b = setup(companyProfile({ accountId: "employee-b" }), storage); b.store.start(); await settle();
+    first.resolve({ profile: companyProfile({ appearance }) }); await settle();
+    expect(b.api.postAppearance).not.toHaveBeenCalled();
+    expect(appearanceBinding(b.store)).toMatchObject({ value: getDefaultCharacterAppearance(), status: "idle" });
+    expect(a.api.postAppearance.mock.calls[0][0]).toBe("employee-a");
+    expect(storage.setItem).not.toHaveBeenCalled();
+  });
+
+  it("continues saving when the editor unsubscribes and keeps callbacks stable", async () => {
+    const { store, api, readServer } = setup(); store.start(); await settle();
+    const original = appearanceBinding(store);
+    const listener = vi.fn();
+    const unsubscribe = store.subscribe(listener);
+    const appearance = withRunner({ hat: "cap" });
+    original.update(appearance);
+    unsubscribe(); listener.mockClear();
+    await vi.advanceTimersByTimeAsync(400);
+    expect(listener).not.toHaveBeenCalled();
+    expect(api.postAppearance).toHaveBeenCalledTimes(1);
+    expect(readServer().appearance).toEqual(appearance);
+    expect(appearanceBinding(store).update).toBe(original.update);
+    expect(appearanceBinding(store).retry).toBe(original.retry);
+  });
+
+  it("does not strand a newer choice queued by a completion subscriber", async () => {
+    const { store, api, readServer } = setup(); store.start(); await settle();
+    const latest = withRunner({ hairStyle: "bob" });
+    let changed = false;
+    const unsubscribe = store.subscribe(() => {
+      if (!changed && appearanceBinding(store).status === "saved" && binding(store).syncStatus === "idle") {
+        changed = true;
+        store.updateAppearance(latest);
+      }
+    });
+    store.updateAppearance(withRunner({ hat: "cap" }));
+    await vi.advanceTimersByTimeAsync(400);
+    expect(appearanceBinding(store).status).toBe("pending");
+    await vi.advanceTimersByTimeAsync(400);
+    unsubscribe();
+    expect(api.postAppearance).toHaveBeenCalledTimes(2);
+    expect(readServer().appearance).toEqual(latest);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+});
 
 describe("account-bound company record store", () => {
   it("constructs without storage/network effects and caches snapshots until a real update", async () => {

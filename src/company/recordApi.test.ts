@@ -1,9 +1,100 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { companyAck, companyProfile, companySubmission } from "../test/companyFixtures";
-import { fetchInfiniteLeaderboard, fetchLeaderboard, fetchProfile, isSharedBest, postInfiniteResult, postResult } from "./recordApi";
+import { companyAck, companyProfile, companySubmission, deferred } from "../test/companyFixtures";
+import { fetchInfiniteLeaderboard, fetchLeaderboard, fetchProfile, isSharedBest, postAppearance, postInfiniteResult, postResult } from "./recordApi";
+import { getDefaultCharacterAppearance } from "../../shared/characterAppearance";
+import type { SaveAppearanceRequest } from "../../shared/characterAppearance";
 
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
+
+describe("appearance HTTP boundary", () => {
+  it("posts only the appearance and validates the matching authenticated acknowledgement", async () => {
+    const appearance = getDefaultCharacterAppearance();
+    appearance.runner.hat = "cap";
+    const profile = companyProfile({ appearance });
+    const fetcher = vi.fn().mockResolvedValue(Response.json({ profile }));
+    vi.stubGlobal("fetch", fetcher);
+    expect(await postAppearance("employee-a", { appearance }, new AbortController().signal)).toEqual({ profile });
+    expect(fetcher).toHaveBeenCalledWith("/api/appearance", expect.objectContaining({
+      method: "POST", credentials: "include", cache: "no-store", redirect: "manual", mode: "same-origin",
+      headers: { Accept: "application/json", "Content-Type": "application/json", "X-Game-Request": "1", "X-Game-Account": "employee-a" },
+      body: JSON.stringify({ appearance }),
+    }));
+    expect(fetcher.mock.calls[0][1].body).not.toMatch(/accountId|displayName|highestClearedStage|bestScore/);
+  });
+
+  it("loads optional appearance from a fresh session while retaining legacy profile support", async () => {
+    const appearance = getDefaultCharacterAppearance();
+    const fetcher = vi.fn().mockResolvedValueOnce(Response.json(companyProfile({ appearance })))
+      .mockResolvedValueOnce(Response.json(companyProfile()));
+    vi.stubGlobal("fetch", fetcher);
+    expect((await fetchProfile("employee-a", new AbortController().signal)).appearance).toEqual(appearance);
+    expect(await fetchProfile("employee-a", new AbortController().signal)).not.toHaveProperty("appearance");
+  });
+
+  it.each([null, {}, { ...getDefaultCharacterAppearance(), version: 2 },
+    { ...getDefaultCharacterAppearance(), runner: { hat: "unknown" } }])("rejects an invalid optional appearance in a profile: %j", async (appearance) => {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ ...companyProfile(), appearance })));
+      await expect(fetchProfile("employee-a", new AbortController().signal)).rejects.toMatchObject({ code: "invalid-response" });
+    });
+
+  it.each(["missing", "different", "other-account"])("does not acknowledge an appearance that is %s", async (kind) => {
+    const appearance = getDefaultCharacterAppearance();
+    appearance.runner.hat = "cap";
+    const profile = kind === "missing" ? companyProfile() : kind === "different"
+      ? companyProfile({ appearance: getDefaultCharacterAppearance() })
+      : companyProfile({ accountId: "other-account", appearance });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ profile })));
+    await expect(postAppearance("employee-a", { appearance }, new AbortController().signal))
+      .rejects.toMatchObject({ code: "invalid-response" });
+  });
+
+  it("captures the posted appearance before a caller edits its mutable input", async () => {
+    const appearance = getDefaultCharacterAppearance();
+    const response = deferred<Response>();
+    const fetcher = vi.fn().mockReturnValueOnce(response.promise);
+    vi.stubGlobal("fetch", fetcher);
+    const saving = postAppearance("employee-a", { appearance }, new AbortController().signal);
+    appearance.runner.hat = "cap";
+    response.resolve(Response.json({ profile: companyProfile({ appearance: getDefaultCharacterAppearance() }) }));
+    expect((await saving).profile.appearance?.runner.hat).toBe("none");
+    expect(JSON.parse(fetcher.mock.calls[0][1].body).appearance.runner.hat).toBe("none");
+  });
+
+  it("rejects invalid save requests before network access", async () => {
+    const fetcher = vi.fn();
+    vi.stubGlobal("fetch", fetcher);
+    for (const payload of [null, {}, { appearance: getDefaultCharacterAppearance(), accountId: "other" }]) {
+      await expect(postAppearance("employee-a", payload as SaveAppearanceRequest, new AbortController().signal))
+        .rejects.toMatchObject({ code: "invalid-request" });
+    }
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it.each([401, 403, 302])("requires login for an appearance HTTP%s failure", async (status) => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("", { status })));
+    await expect(postAppearance("employee-a", { appearance: getDefaultCharacterAppearance() }, new AbortController().signal))
+      .rejects.toMatchObject({ code: "unauthenticated" });
+  });
+
+  it("keeps appearance gateway failures retryable without exposing server details", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("private gateway diagnostic", { status: 503 })));
+    await expect(postAppearance("employee-a", { appearance: getDefaultCharacterAppearance() }, new AbortController().signal))
+      .rejects.toMatchObject({ code: "storage-unavailable" });
+  });
+
+  it("cancels an appearance request with the account lifetime and removes its timeout", async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("fetch", vi.fn((_path, { signal }: { signal: AbortSignal }) => new Promise((_accept, reject) => {
+      signal.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")), { once: true });
+    })));
+    const controller = new AbortController();
+    const outcome = postAppearance("employee-a", { appearance: getDefaultCharacterAppearance() }, controller.signal).catch(error => error);
+    controller.abort();
+    expect(await outcome).toMatchObject({ name: "AbortError" });
+    expect(vi.getTimerCount()).toBe(0);
+  });
+});
 
 describe("company record HTTP boundary", () => {
   it("loads the expected profile only, with same-origin cookies, no cache and account precondition", async () => {
