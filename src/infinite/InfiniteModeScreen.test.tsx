@@ -19,6 +19,94 @@ function audio(): AudioController {
 afterEach(() => { cleanup(); vi.useRealTimers(); });
 
 describe("InfiniteModeScreen", () => {
+  it("shows pause only after starting and resumes an interrupted start countdown after three seconds", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date("2026-11-03T00:00:00.000Z"));
+    const sound = audio();
+    render(<InfiniteModeScreen account={account} audioController={sound} onReturnToTitle={vi.fn()} />);
+    expect(screen.queryByRole("button", { name: "일시정지" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "게임 시작" }));
+    expect(screen.getByRole("button", { name: "일시정지" })).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "일시정지" }));
+    expect(sound.stopBgm).toHaveBeenCalledOnce();
+    expect(screen.getByRole("dialog", { name: "무한 모드 일시정지" })).toBeVisible();
+    vi.mocked(sound.startBgm).mockClear();
+    fireEvent.click(screen.getByRole("button", { name: "게임 재개" }));
+    expect(screen.getByText("게임 재개").closest("section")).toHaveTextContent("3");
+    expect(screen.getByTestId("infinite-score")).toHaveTextContent("0");
+    await act(async () => { await vi.advanceTimersByTimeAsync(2999); });
+    expect(screen.getByTestId("infinite-score")).toHaveTextContent("0");
+    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+    expect(sound.startBgm).toHaveBeenCalledOnce();
+    expect(screen.getByTestId("infinite-distance")).toHaveTextContent("4칸");
+    expect(screen.queryByRole("dialog", { name: "무한 모드 일시정지" })).not.toBeInTheDocument();
+  });
+
+  it("freezes infinite score, event clock, pursuit, and input through pause and resume countdown", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date("2026-11-03T00:00:00.000Z"));
+    const company = records();
+    const sound = audio();
+    render(<InfiniteModeScreen account={account} companyRecords={company} audioController={sound} onReturnToTitle={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "게임 시작" }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
+    fireEvent.keyDown(window, { key: "d" });
+    expect(screen.getByTestId("infinite-score")).toHaveTextContent("1");
+    const distance = screen.getByTestId("infinite-distance").textContent;
+    fireEvent.click(screen.getByRole("button", { name: "일시정지" }));
+    fireEvent.keyDown(window, { key: "d" });
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+    expect(screen.getByTestId("infinite-score")).toHaveTextContent("1");
+    expect(screen.getByTestId("infinite-distance")).toHaveTextContent(distance!);
+    expect(screen.getByTestId("infinite-steps")).toHaveTextContent("계단 1칸 올라옴");
+    expect(company.submitInfiniteScore).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "게임 재개" }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(2999); });
+    expect(screen.getByTestId("infinite-score")).toHaveTextContent("1");
+    expect(screen.getByTestId("infinite-distance")).toHaveTextContent(distance!);
+    expect(company.submitInfiniteScore).not.toHaveBeenCalled();
+    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+    expect(screen.getByTestId("infinite-score")).toHaveTextContent("1");
+    expect(screen.getByTestId("infinite-distance")).toHaveTextContent(distance!);
+  });
+
+  it("confirms restart, returns No to pause actions, and only submits a result after actual game over", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date("2026-11-03T00:00:00.000Z"));
+    const company = records();
+    render(<InfiniteModeScreen account={account} companyRecords={company} onReturnToTitle={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "게임 시작" }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
+    fireEvent.keyDown(window, { key: "d" });
+    expect(screen.getByTestId("infinite-score")).toHaveTextContent("1");
+    fireEvent.click(screen.getByRole("button", { name: "일시정지" }));
+    fireEvent.click(document.querySelector<HTMLButtonElement>(".pause-menu-actions button:nth-child(2)")!);
+    fireEvent.click(document.querySelector<HTMLButtonElement>(".pause-menu-confirmation-actions button:nth-child(2)")!);
+    expect(screen.getByRole("dialog", { name: "무한 모드 일시정지" })).toBeVisible();
+    expect(screen.getByTestId("infinite-score")).toHaveTextContent("1");
+    fireEvent.click(document.querySelector<HTMLButtonElement>(".pause-menu-actions button:nth-child(2)")!);
+    fireEvent.click(document.querySelector<HTMLButtonElement>(".pause-menu-confirmation-actions button:nth-child(1)")!);
+    expect(screen.getByText("게임 재개").closest("section")).toHaveTextContent("3");
+    expect(screen.getByTestId("infinite-score")).toHaveTextContent("0");
+    expect(company.submitInfiniteScore).not.toHaveBeenCalled();
+    await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
+    expect(screen.getByTestId("infinite-score")).toHaveTextContent("0");
+    expect(company.submitInfiniteScore).not.toHaveBeenCalled();
+  });
+
+  it("requires title confirmation and invokes the title callback only for Yes", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date("2026-11-03T00:00:00.000Z"));
+    const onReturnToTitle = vi.fn();
+    render(<InfiniteModeScreen account={account} onReturnToTitle={onReturnToTitle} />);
+    fireEvent.click(screen.getByRole("button", { name: "게임 시작" }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
+    fireEvent.click(screen.getByRole("button", { name: "일시정지" }));
+    fireEvent.click(document.querySelector<HTMLButtonElement>(".pause-menu-actions button:nth-child(3)")!);
+    fireEvent.click(document.querySelector<HTMLButtonElement>(".pause-menu-confirmation-actions button:nth-child(2)")!);
+    expect(onReturnToTitle).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog", { name: "무한 모드 일시정지" })).toBeVisible();
+    fireEvent.click(document.querySelector<HTMLButtonElement>(".pause-menu-actions button:nth-child(3)")!);
+    fireEvent.click(document.querySelector<HTMLButtonElement>(".pause-menu-confirmation-actions button:nth-child(1)")!);
+    expect(onReturnToTitle).toHaveBeenCalledOnce();
+  });
+
   it("starts on a 3-2-1 overlay, ignores countdown input, and omits the jump button", async () => {
     vi.useFakeTimers(); vi.setSystemTime(new Date("2026-11-03T00:00:00.000Z"));
     const sound = audio();
