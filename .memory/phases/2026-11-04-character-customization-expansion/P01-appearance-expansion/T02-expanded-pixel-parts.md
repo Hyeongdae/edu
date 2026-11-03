@@ -1,6 +1,6 @@
 # Task: T02 Expanded Pixel Parts
 
-## Status: pending
+## Status: done
 
 ## Goal
 눈5종·가방5종과 새 머리·옷·소품·신발을 실제 픽셀 도형으로 그리고, 모든 이동/야근 포즈에서 착지 기준을 유지한다. 현재 UI/API의 version1 계약은 유지하며 직접 version2 look을 전달한 렌더링도 가능하게 한다.
@@ -118,11 +118,11 @@
   - 기존4frame, data-motion, 좌우 scale과 모든 신발의 아래끝 y40이 유지되는지 검증한다.
 
 ## Acceptance Criteria
-- [ ] 신/구 look을 모두 그리며 기존 기본 외형을 유지한다.
-- [ ] 추가 스타일과 눈5종·가방5종이 실제 도형과 색상으로 구분된다.
-- [ ] 일반 안경과 상황별 표정에 눈 선택을 올바르게 반영한다.
-- [ ] 모든 pose·방향에서 가방이 표시되고 발 위치·모션·clip을 변경하지 않는다.
-- [ ] public 계약은 version1을 유지하며 API/UI의 새 계약 활성화는 T03에서 한다.
+- [x] 신/구 look을 모두 그리며 기존 기본 외형을 유지한다.
+- [x] 추가 스타일과 눈5종·가방5종이 실제 도형과 색상으로 구분된다.
+- [x] 일반 안경과 상황별 표정에 눈 선택을 올바르게 반영한다.
+- [x] 모든 pose·방향에서 가방이 표시되고 발 위치·모션·clip을 변경하지 않는다.
+- [x] public 계약은 version1을 유지하며 API/UI의 새 계약 활성화는 T03에서 한다.
 
 ## Validation
 - `npm test -- --run src/game/pixel/expandedCharacterArt.test.tsx src/game/pixel/characterAppearanceArt.test.tsx src/game/pixel/pursuerAppearance.test.tsx src/game/StairScene.test.tsx src/infinite/InfiniteStairScene.test.tsx src/game/OfficeExitEnding.test.tsx src/game/OvertimeCaptureEnding.test.tsx --maxWorkers=2` — 새 부위와 기존 장면 회귀 통과.
@@ -144,6 +144,18 @@ Task: T02-expanded-pixel-parts
 ```
 
 ## Progress
-- [ ] 구현 완료
-- [ ] 검증 통과
+- [x] 구현 완료
+- [x] 검증 통과
 - commit: pending
+
+## Validation Results — 2026-11-04
+- 지정7파일289/289 통과(최종32.21초). 신규157개에서 정상눈5종/일반안경/선글라스/상황별표정, 새도형·색, 모든역할/방향/게임frame/야근pose의 가방레이어와 발y40을 확인했다. 기존 부위 회귀 테스트는 수정 없이 통과했다.
+- 초기 신규 테스트는 XML DOMParser가 만든 SVG에 HTML 문서용 jest-dom matcher를 사용하여 실패했다. getAttribute/contains 기반 검사로 수정하고 미사용 type import와 해당 타입 오류를 해소했다. 최종 npm run lint, npm run build, git diff --check 통과.
+- OfficerBagBackArt/FrontArt는 몸 뒤와 옷 위·팔다리 아래에 그린다. 정적 미리보기에서 너무 가려지는 노트북 가방/서류가방의 위치·폭을 보완했다. 원래 팔·다리 좌표와 scene clip은 변경하지 않았다.
+- 정적 SVG renderer로 실제 React 부품25조합을1110×1310 PNG로 렌더링하여 눈5종/안경, 가방/머리/모자/의상, 좌우와 야근·넘어짐을 눈으로 확인했다. C:/Users/DEX/AppData/Local/Temp/character-expansion-t02-evidence/expanded-parts-25.svg 및 .png에 보존했다.
+- 머리6종×모자5종×2역할과 가방5종×3pose×2역할의90조합을 기존 clip(-34,-88,68,84) 적용 전후 PNG pixel 동등성으로 확인했다. 잘림 없음90/90. 결과는 같은 폴더 clip-results.json이다.
+- Chrome headless 실행은 자동 승인 검토에서 blocked by policy로 거절되었고 상세 이유는 제공되지 않았다. 브라우저 실행을 재시도하지 않고 스크립트를 실행하지 않는 정적 SVG 렌더러로 대체했다. 실제 브라우저 애니메이션/모바일 선택 UI는 이번 Task에서 확인하지 않았다.
+- 정적 렌더러(@resvg/resvg-js2.6.2)는 TEMP 전용 폴더에만 설치했고 프로젝트 package/lock 파일은 변경하지 않았다. 검토용 임시 HTML은 제거했다. 브라우저 검토 명령이 실행 전 거절되어 Chrome 검토 프로세스를 새로 띄우지 않았다.
+- 빌드 JS657.08kB(gzip181.19kB), CSS92.97kB(gzip15.88kB). 기존500kB 초과 번들 상태 유지. 성능 개선은 별도 범위다.
+- public version1 계약, shared schema, scene 좌표/clip, motion CSS와 프로젝트 의존성은 HEAD 대비 그대로임을 확인했다. UI/API 활성화와13그룹 편집은 후속Task에 남아 있다. 기존 미커밋 pixel-theme.css 변경은 보존하고 이번 커밋에서 제외한다.
+- 추가 범위가 필요한 발견: 특이사항 없음. 운영 계정/Cosmos 변경 및 배포는 수행하지 않았다.

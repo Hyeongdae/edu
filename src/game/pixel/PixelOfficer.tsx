@@ -1,9 +1,11 @@
 import type { ReactElement } from "react";
 import type { Direction } from "../types";
-import { getDefaultCharacterLook } from "../../../shared/characterAppearance";
-import type { CharacterLook } from "../../../shared/characterAppearance";
+import { resolveCharacterLook } from "../../../shared/expandedCharacterAppearance";
+import type { CharacterLook } from "../../../shared/expandedCharacterAppearance";
 import { OfficerHeadArt, OfficerOutfitArt, OfficerShoeArt } from "./OfficerAppearanceParts";
+import { OfficerBagBackArt, OfficerBagFrontArt } from "./OfficerBagArt";
 import { getOfficerPalette } from "./officerPalette";
+import type { OfficerAppearanceInput } from "./officerPalette";
 
 export type OfficerVariant = "young" | "older";
 export type OfficerPose = "idle" | "climb" | "fall" | "jump";
@@ -13,7 +15,7 @@ interface PixelOfficerProps {
   variant: OfficerVariant;
   direction: Direction;
   pose: OfficerPose;
-  appearance?: CharacterLook;
+  appearance?: OfficerAppearanceInput;
 }
 
 const FRAMES: readonly OfficerFrame[] = ["idle", "run-a", "run-b", "stumble"];
@@ -21,13 +23,18 @@ const FRAMES: readonly OfficerFrame[] = ["idle", "run-a", "run-b", "stumble"];
 function OfficerFrameArt({ variant, frame, appearance }: { variant: OfficerVariant; frame: OfficerFrame; appearance: CharacterLook }): ReactElement {
   const older = variant === "older";
   const stumble = frame === "stumble";
-  const { skin, cloth: sleeve, clothShade: sleeveShade } = getOfficerPalette(appearance);
+  const palette = getOfficerPalette(appearance);
+  const { skin } = palette;
+  const sleeve = appearance.outfit === "vest" ? "#e6f2ed" : palette.cloth;
+  const sleeveShade = appearance.outfit === "vest" ? "#b7cad1" : palette.clothShade;
 
   return (
     <g className={`officer-frame officer-frame--${frame}`} data-officer-frame={frame}>
       {/* All four poses share the same head height and shoe baseline (y=40). */}
+      <OfficerBagBackArt variant={variant} appearance={appearance} pose="normal" />
       <OfficerHeadArt variant={variant} appearance={appearance} expression={stumble ? "stumble" : "normal"} />
       <OfficerOutfitArt variant={variant} appearance={appearance} pose="normal" />
+      <OfficerBagFrontArt variant={variant} appearance={appearance} pose="normal" />
       {frame === "idle" && (
         <g>
           <rect x={older ? 7 : 6} y="24" width={older ? 3 : 4} height="8" fill={sleeveShade} />
@@ -90,7 +97,7 @@ function OfficerFrameArt({ variant, frame, appearance }: { variant: OfficerVaria
 }
 
 export function PixelOfficer({ variant, direction, pose, appearance }: PixelOfficerProps): ReactElement {
-  const look = appearance ?? getDefaultCharacterLook(variant === "young" ? "runner" : "pursuer");
+  const look = resolveCharacterLook(appearance, variant === "young" ? "runner" : "pursuer");
   return (
     <g
       className="pixel-officer" data-officer-variant={variant} data-officer-pose={pose}

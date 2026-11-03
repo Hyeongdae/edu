@@ -1,33 +1,40 @@
 import type { ReactElement } from "react";
 import type { OfficerVariant } from "./PixelOfficer";
-import { getDefaultCharacterLook } from "../../../shared/characterAppearance";
-import type { CharacterLook } from "../../../shared/characterAppearance";
+import { resolveCharacterLook } from "../../../shared/expandedCharacterAppearance";
 import { OfficerHeadArt, OfficerOutfitArt, OfficerShoeArt } from "./OfficerAppearanceParts";
+import { OfficerBagBackArt, OfficerBagFrontArt } from "./OfficerBagArt";
 import { getOfficerPalette } from "./officerPalette";
+import type { OfficerAppearanceInput } from "./officerPalette";
 
 export type OvertimeOfficerPose = "standing" | "grabbing" | "dragged" | "seated";
 
 export interface OvertimeOfficerProps {
   variant: OfficerVariant;
   pose: OvertimeOfficerPose;
-  appearance?: CharacterLook;
+  appearance?: OfficerAppearanceInput;
 }
 
 export function OvertimeOfficer({ variant, pose, appearance }: OvertimeOfficerProps): ReactElement {
   const older = variant === "older", seated = pose === "seated", dragged = pose === "dragged";
-  const look = appearance ?? getDefaultCharacterLook(older ? "pursuer" : "runner");
-  const { skin, skinShade, cloth: sleeve, clothShade: shade } = getOfficerPalette(look);
+  const look = resolveCharacterLook(appearance, older ? "pursuer" : "runner");
+  const palette = getOfficerPalette(look);
+  const { skin, skinShade } = palette;
+  const sleeve = look.outfit === "vest" ? "#e6f2ed" : palette.cloth;
+  const shade = look.outfit === "vest" ? "#b7cad1" : palette.clothShade;
+  const bagPose = dragged ? "dragged" : seated ? "seated" : "normal";
   const ink = "#10182c";
 
   return (
     <g className="overtime-officer" data-officer-variant={variant} data-overtime-pose={pose}
       shapeRendering="crispEdges" aria-hidden="true">
       <g transform="translate(-32 -80) scale(2)">
+        <OfficerBagBackArt variant={variant} appearance={look} pose={bagPose} />
         <g className="overtime-officer-head" transform={seated ? "translate(3 4)" : dragged ? "translate(-2 0)" : undefined}>
           <OfficerHeadArt variant={variant} appearance={look} expression={seated || dragged ? "weary" : "normal"} />
         </g>
         <rect x="16" y="21" width="6" height="4" fill={skin} />
         <OfficerOutfitArt variant={variant} appearance={look} pose={dragged ? "dragged" : "normal"} />
+        <OfficerBagFrontArt variant={variant} appearance={look} pose={bagPose} />
 
         {pose === "grabbing" ? <g className="overtime-officer-grip">
           <path d={older ? "M4 23H10V29H7V27H4Z" : "M3 23H11V29H7V27H3Z"} fill={ink} />
