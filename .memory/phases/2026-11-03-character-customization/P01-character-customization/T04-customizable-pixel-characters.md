@@ -119,7 +119,7 @@ Task: T04-customizable-pixel-characters
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: pending
+- commit: `d5489e8`
 
 ## Validation Results — 2026-11-03
 - 지정한6개 파일126/126 통과(17.79초). 모든 일반 프레임·야근 포즈, 역할/방향, 선택 부위 도형/색상, 발 기준선과 기존 엔딩 회귀를 확인했다.

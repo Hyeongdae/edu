@@ -7,20 +7,20 @@
 [P01 Character Customization](./phases/2026-11-03-character-customization/P01-character-customization/phase.md)
 
 ## Active Task
-[T04 Customizable Pixel Characters](./phases/2026-11-03-character-customization/P01-character-customization/T04-customizable-pixel-characters.md)
+[T05 Title Customizer and Scene Integration](./phases/2026-11-03-character-customization/P01-character-customization/T05-title-customizer-and-scene-integration.md)
 
 ## Status
-- Character Customization T01 (`8898b74`), T02 (`5f98abb`), T03 (`9e06d5a`) 완료. done 3/5, Active P01-T04.
-- T03 지정 테스트236/236, lint/frontend build 통과.400ms 자동 저장, 최신 선택 보존, 실패/재시도와 계정 수명 처리를 구현했다.
+- Character Customization T01 (`8898b74`), T02 (`5f98abb`), T03 (`9e06d5a`), T04 (`d5489e8`) 완료. done 4/5, Active P01-T05.
+- T04 지정 테스트126/126, lint/frontend build 통과. 일반/야근 포즈의 공통 외형 부위와 팔레트를 구현했고 브라우저에서10개 조합을 정적으로 확인했다.
 - T02의 새 emulator 통합3건은 로컬 실행 환경이 없어 미실행이며 배포 전 CI 검증이 필요하다.
-- 다음 작업은 선택 외형을 일반·야근 캐릭터의 모든 픽셀 포즈에 적용하는 공통 렌더러다.
+- 다음 작업은 타이틀 꾸미기 화면, 계정/로컬 편집 상태, 실제 모든 장면과 엔딩의 외형 전달 연결이다.
 - 기존 `src/game/pixel-theme.css`의 미커밋 모바일 무한 모드 버튼 간격 변경을 보존한다.
 
 ## Source Decision
 - [Character Customization](./decisions/2026-11-03-character-customization.md)
 
 ## Next Step
-T04 청사진을 읽고 `src/game/pixel/OfficerAppearanceParts.tsx`와 기존 `PixelOfficer.tsx`, `OvertimeOfficer.tsx`에 성별·머리·옷·소품·피부색 렌더링을 구현한다. `/memory-execute` 또는 `current 보고 이어서 해줘`로 Active Task 한 개씩 진행한다.
+T05 청사진을 읽고 `src/character/CharacterCustomizationDialog.tsx`, `character-customization.css`, `src/game/GameScreen.tsx` 및 실제 장면/엔딩에 꾸미기 UI와 외형 전달을 구현한다. `/memory-execute` 또는 `current 보고 이어서 해줘`로 Active Task 한 개씩 진행한다.
 
 ## Previous Completed Plan
 - [Game Pause Menu](./plans/2026-11-03-game-pause-menu.md) complete 3/3. T02: `b9b95f4`; T03: `ec1c52a`.
