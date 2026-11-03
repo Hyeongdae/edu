@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ACTOR, NOW, principal, submission } from "../test/fixtures";
 import { RecordServiceError } from "./errors";
 import { createRecordHandlers } from "./handlers";
+import { getDefaultCharacterAppearance } from "../../shared/characterAppearance";
 
 const context = new InvocationContext({ functionName: "records-test" });
 const profile = { ...ACTOR, highestClearedStage: 0 as const, best: null, infiniteBest: null };
@@ -12,6 +13,7 @@ const repository = {
   listTopInfiniteScores: vi.fn().mockResolvedValue([]),
   submit: vi.fn().mockResolvedValue(profile),
   submitInfiniteScore: vi.fn().mockResolvedValue(profile),
+  saveAppearance: vi.fn().mockResolvedValue({ ...profile, appearance: getDefaultCharacterAppearance() }),
 };
 const handlers = createRecordHandlers({ repository });
 
@@ -32,6 +34,7 @@ beforeEach(() => {
   repository.listTopInfiniteScores.mockReset().mockResolvedValue([]);
   repository.submit.mockReset().mockResolvedValue(profile);
   repository.submitInfiniteScore.mockReset().mockResolvedValue(profile);
+  repository.saveAppearance.mockReset().mockResolvedValue({ ...profile, appearance: getDefaultCharacterAppearance() });
 });
 
 describe("record handlers", () => {
@@ -42,7 +45,7 @@ describe("record handlers", () => {
     expect(await handlers.results(request({ headers: { "x-game-account": ACTOR.accountId } }), context))
       .toMatchObject({ status: 200 });
   });
-  it.each(["profile", "leaderboard", "results", "infiniteLeaderboard", "infiniteResults"] as const)("authenticates %s before repository access", async (route) => {
+  it.each(["profile", "leaderboard", "results", "infiniteLeaderboard", "infiniteResults", "appearance"] as const)("authenticates %s before repository access", async (route) => {
     const response = await handlers[route](request({ headers: { "x-ms-client-principal": "" } }), context);
     expect(response).toMatchObject({ status: 401, jsonBody: { error: { code: "unauthenticated" } } });
     expect(repository.getProfile).not.toHaveBeenCalled();
@@ -50,6 +53,7 @@ describe("record handlers", () => {
     expect(repository.submit).not.toHaveBeenCalled();
     expect(repository.listTopInfiniteScores).not.toHaveBeenCalled();
     expect(repository.submitInfiniteScore).not.toHaveBeenCalled();
+    expect(repository.saveAppearance).not.toHaveBeenCalled();
   });
 
   it("returns only the current actor's profile, ignoring arbitrary query actor selectors", async () => {
@@ -153,5 +157,100 @@ describe("record handlers", () => {
     repository.listTopScores.mockRejectedValueOnce(new Error("offline"));
     expect(await handlers.results(request(), context)).toMatchObject({ status: 503 });
     expect(repository.submit).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("account appearance handler", () => {
+  const payload = () => ({ appearance: getDefaultCharacterAppearance() });
+
+  it("returns the saved profile using only the authenticated actor and no ranking queries", async () => {
+    const input = payload();
+    input.appearance.runner.hat = "cap";
+    const saved = { ...profile, appearance: input.appearance };
+    repository.saveAppearance.mockResolvedValue(saved);
+    repository.listTopScores.mockRejectedValue(new Error("ranking offline"));
+    repository.listTopInfiniteScores.mockRejectedValue(new Error("ranking offline"));
+    const response = await handlers.appearance(request({ path: "appearance?accountId=other", body: JSON.stringify(input),
+      headers: { "x-game-account": ACTOR.accountId } }), context);
+    expect(response).toMatchObject({ status: 200, jsonBody: { profile: saved }, headers: {
+      "Cache-Control": "no-store", "Content-Type": "application/json; charset=utf-8",
+    } });
+    expect(repository.saveAppearance).toHaveBeenCalledExactlyOnceWith(ACTOR, input.appearance);
+    expect(repository.listTopScores).not.toHaveBeenCalled();
+    expect(repository.listTopInfiniteScores).not.toHaveBeenCalled();
+    expect(repository.submit).not.toHaveBeenCalled();
+    expect(repository.submitInfiniteScore).not.toHaveBeenCalled();
+  });
+
+  it("rejects an appearance queued for another account before writing or reading storage", async () => {
+    const response = await handlers.appearance(request({ body: JSON.stringify(payload()),
+      headers: { "x-game-account": "previous-account" } }), context);
+    expect(response).toMatchObject({ status: 401, jsonBody: { error: { code: "unauthenticated" } } });
+    expect(repository.saveAppearance).not.toHaveBeenCalled();
+    expect(repository.getProfile).not.toHaveBeenCalled();
+  });
+
+  it.each(["accountId", "displayName", "score", "stage"])("rejects a forged %s on the save envelope", async (field) => {
+    expect(await handlers.appearance(request({ body: JSON.stringify({ ...payload(), [field]: "forged" }) }), context))
+      .toMatchObject({ status: 400, jsonBody: { error: { code: "invalid-request" } } });
+    expect(repository.saveAppearance).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { ...getDefaultCharacterAppearance(), version: 2 },
+    { ...getDefaultCharacterAppearance(), runner: { hat: "cap" } },
+    { ...getDefaultCharacterAppearance(), pursuer: null },
+    { ...getDefaultCharacterAppearance(), accountId: "other" },
+    { ...getDefaultCharacterAppearance(), runner: { ...getDefaultCharacterAppearance().runner, hat: "unknown" } },
+    { ...getDefaultCharacterAppearance(), runner: { ...getDefaultCharacterAppearance().runner, skinTone: "#ffffff" } },
+    { ...getDefaultCharacterAppearance(), pursuer: { ...getDefaultCharacterAppearance().pursuer, score: 100 } },
+  ])("rejects invalid nested appearance: %j", async (appearance) => {
+    expect(await handlers.appearance(request({ body: JSON.stringify({ appearance }) }), context))
+      .toMatchObject({ status: 400, jsonBody: { error: { code: "invalid-request" } } });
+    expect(repository.saveAppearance).not.toHaveBeenCalled();
+  });
+
+  it.each(["not-json", "[]", "null", "{}", "", '{"appearance":null}'])("rejects malformed appearance body %s", async (body) => {
+    expect(await handlers.appearance(request({ body }), context)).toMatchObject({ status: 400 });
+    expect(repository.saveAppearance).not.toHaveBeenCalled();
+  });
+
+  it.each<Record<string, string>>([
+    { "content-type": "text/plain" }, { "content-type": "application/x-www-form-urlencoded" },
+    { "content-type": "" }, { "x-game-request": "" }, { "x-game-request": "0" },
+  ])("enforces the same-origin JSON save boundary: %j", async (headers) => {
+    expect(await handlers.appearance(request({ body: JSON.stringify(payload()), headers }), context))
+      .toMatchObject({ status: 400 });
+    expect(repository.saveAppearance).not.toHaveBeenCalled();
+  });
+
+  it("accepts case-insensitive JSON with a charset", async () => {
+    expect(await handlers.appearance(request({ body: JSON.stringify(payload()),
+      headers: { "content-type": "Application/JSON; charset=utf-8" } }), context)).toMatchObject({ status: 200 });
+  });
+
+  it("enforces both advertised and actual streamed body limits", async () => {
+    expect(await handlers.appearance(request({ body: JSON.stringify(payload()), headers: { "content-length": "8193" } }), context))
+      .toMatchObject({ status: 413 });
+    for (const headers of [{}, { "content-length": "1" }] as Record<string, string>[]) {
+      expect(await handlers.appearance(request({ body: JSON.stringify({ appearance: "가".repeat(3000) }), headers }), context))
+        .toMatchObject({ status: 413, jsonBody: { error: { code: "invalid-request" } } });
+    }
+    expect(repository.saveAppearance).not.toHaveBeenCalled();
+  });
+
+  it.each([["invalid-request", 400], ["conflict", 409], ["storage-unavailable", 503]] as const)(
+    "maps appearance %s to HTTP %s", async (code, status) => {
+      repository.saveAppearance.mockRejectedValueOnce(new RecordServiceError(code));
+      expect(await handlers.appearance(request({ body: JSON.stringify(payload()) }), context))
+        .toMatchObject({ status, headers: { "Cache-Control": "no-store" }, jsonBody: { error: { code } } });
+    },
+  );
+
+  it("does not expose storage details when appearance persistence fails", async () => {
+    repository.saveAppearance.mockRejectedValueOnce(new Error("AccountKey=private-appearance-key;_etag=internal"));
+    const response = await handlers.appearance(request({ body: JSON.stringify(payload()) }), context);
+    expect(response).toMatchObject({ status: 503, headers: { "Cache-Control": "no-store" } });
+    expect(JSON.stringify(response)).not.toMatch(/private|AccountKey|_etag|stack|Access-Control-Allow-Origin/);
   });
 });

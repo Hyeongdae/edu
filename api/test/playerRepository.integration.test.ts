@@ -5,6 +5,7 @@ import { createPlayerRepository, getPlayerRowKey } from "../src/playerRepository
 import type { PlayerContainer, PlayerDocument } from "../src/playerRepository";
 import { NOW, submission } from "./fixtures";
 import { createCosmosEmulatorHarness, holdFirstItemReadsTogether } from "./cosmosEmulatorHarness";
+import { getDefaultCharacterAppearance } from "../../shared/characterAppearance";
 
 let emulator: Awaited<ReturnType<typeof createCosmosEmulatorHarness>>;
 let testScope = "";
@@ -55,6 +56,56 @@ describe("real isolated Cosmos DB repository operations", () => {
     expect(await repository().getProfile(other)).toEqual({ ...other, highestClearedStage: 0, best: null, infiniteBest: null });
     expect(await countAccountDocuments(owner.accountId)).toBe(1);
     expect(JSON.stringify(saved)).not.toMatch(/_etag|_rid|_self|_attachments|_ts/);
+  });
+
+  it("round-trips an appearance-only account through a fresh repository and isolates another actor", async () => {
+    const owner = actor("appearance-owner");
+    const other = actor("appearance-other");
+    const appearance = getDefaultCharacterAppearance();
+    appearance.runner.hat = "cap";
+    appearance.pursuer.glasses = "round";
+    const saved = await repository().saveAppearance(owner, appearance);
+    expect(saved).toEqual({ ...owner, highestClearedStage: 0, best: null, infiniteBest: null, appearance });
+    expect(await repository().getProfile(owner)).toEqual(saved);
+    expect(await repository().getProfile(other)).not.toHaveProperty("appearance");
+    await repository().saveAppearance(owner, appearance);
+    expect(await countAccountDocuments(owner.accountId)).toBe(1);
+  });
+
+  it("preserves appearance and both scores across concurrent real 409 creates", async () => {
+    const owner = actor("appearance-create-race");
+    const shared = holdFirstItemReadsTogether(emulator.container as unknown as Container, 3);
+    const appearance = getDefaultCharacterAppearance();
+    appearance.runner = { ...appearance.runner, gender: "female", hairStyle: "ponytail" };
+    await Promise.all([
+      repository(shared).saveAppearance(owner, appearance),
+      repository(shared).submit(owner, submission({ score: 150, outcome: "cleared", remainingTimeCs: 100 })),
+      repository(shared).submitInfiniteScore(owner, { score: 123 }),
+    ]);
+    expect(await repository().getProfile(owner)).toMatchObject({
+      appearance, highestClearedStage: 1, best: { bestScore: 150, remainingTimeCs: 100 }, infiniteBest: { bestScore: 123 },
+    });
+    expect(await countAccountDocuments(owner.accountId)).toBe(1);
+  });
+
+  it("preserves the newest appearance and records across concurrent real 412 replacements", async () => {
+    const owner = actor("appearance-update-race");
+    const initial = repository();
+    await initial.saveAppearance(owner, getDefaultCharacterAppearance());
+    await initial.submit(owner, submission({ score: 100 }));
+    await initial.submitInfiniteScore(owner, { score: 50 });
+    const shared = holdFirstItemReadsTogether(emulator.container as unknown as Container, 3);
+    const appearance = getDefaultCharacterAppearance();
+    appearance.pursuer = { ...appearance.pursuer, hat: "cap", skinTone: "deep" };
+    await Promise.all([
+      repository(shared).saveAppearance(owner, appearance),
+      repository(shared).submit(owner, submission({ score: 150, outcome: "cleared", remainingTimeCs: 100 })),
+      repository(shared).submitInfiniteScore(owner, { score: 123 }),
+    ]);
+    expect(await repository().getProfile(owner)).toMatchObject({
+      appearance, highestClearedStage: 1, best: { bestScore: 150, remainingTimeCs: 100 }, infiniteBest: { bestScore: 123 },
+    });
+    expect(await countAccountDocuments(owner.accountId)).toBe(1);
   });
 
   it("resolves concurrent creates through the real 409 conflict without creating duplicate documents", async () => {

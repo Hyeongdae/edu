@@ -1,6 +1,7 @@
 import type { HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { isSubmitInfiniteScoreRequest, isSubmitResultRequest } from "../../shared/companyRecords";
 import type { AuthenticatedActor } from "../../shared/companyRecords";
+import { isSaveAppearanceRequest } from "../../shared/characterAppearance";
 import { RecordServiceError } from "./errors";
 import type { PlayerRepository } from "./playerRepository";
 import { readAuthenticatedActor } from "./principal";
@@ -45,6 +46,7 @@ export function createRecordHandlers(deps: { repository: PlayerRepository }): {
   infiniteLeaderboard: RecordHandler;
   results: RecordHandler;
   infiniteResults: RecordHandler;
+  appearance: RecordHandler;
 } {
   async function authenticated(
     req: HttpRequest,
@@ -71,6 +73,11 @@ export function createRecordHandlers(deps: { repository: PlayerRepository }): {
     profile: (req) => authenticated(req, (actor) => deps.repository.getProfile(actor)),
     leaderboard: (req) => authenticated(req, async () => ({ entries: await deps.repository.listTopScores() })),
     infiniteLeaderboard: (req) => authenticated(req, async () => ({ entries: await deps.repository.listTopInfiniteScores() })),
+    appearance: (req) => authenticated(req, async (actor) => {
+      const payload = await readResultBody(req);
+      if (!isSaveAppearanceRequest(payload)) throw new RecordServiceError("invalid-request");
+      return { profile: await deps.repository.saveAppearance(actor, payload.appearance) };
+    }),
     results: (req) => authenticated(req, async (actor) => {
       const payload = await readResultBody(req);
       if (!isSubmitResultRequest(payload)) throw new RecordServiceError("invalid-request");

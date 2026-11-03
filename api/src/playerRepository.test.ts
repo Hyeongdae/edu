@@ -4,6 +4,8 @@ import {
   createPlayerRepository, createPlayerRepositoryFromEnvironment, getPlayerRowKey,
 } from "./playerRepository";
 import type { PlayerContainer, PlayerDocument } from "./playerRepository";
+import { getDefaultCharacterAppearance } from "../../shared/characterAppearance";
+import type { CharacterAppearance } from "../../shared/characterAppearance";
 
 const ITEM_ETAG = '"player-version-1"';
 const CONTAINER_ID = "stair-climb-players";
@@ -37,6 +39,25 @@ function repository() {
   });
 }
 
+function useMemoryDocument(initial?: PlayerDocument) {
+  let document = initial ? structuredClone(initial) : undefined;
+  let version = 1;
+  item.read.mockImplementation(async () => document
+    ? { resource: structuredClone(document), etag: `"version-${version}"` }
+    : { statusCode: 404 });
+  container.items.create.mockImplementation(async (next: PlayerDocument) => {
+    if (document) throw { code: 409 };
+    document = structuredClone(next);
+    version++;
+  });
+  item.replace.mockImplementation(async (next: PlayerDocument, options: { accessCondition: { condition: string } }) => {
+    if (options.accessCondition.condition !== `"version-${version}"`) throw { code: 412 };
+    document = structuredClone(next);
+    version++;
+  });
+  return () => document ? structuredClone(document) : undefined;
+}
+
 beforeEach(() => {
   container.read.mockReset().mockResolvedValue({ resource: { id: CONTAINER_ID, partitionKey: { paths: ["/accountId"] } } });
   container.item.mockReset().mockReturnValue(item);
@@ -46,6 +67,173 @@ beforeEach(() => {
   container.items.query.mockReset().mockImplementation(() => ({
     fetchAll: vi.fn().mockResolvedValue({ resources: [] }),
   }));
+});
+
+describe("account character appearance persistence", () => {
+  it("round-trips appearance and preserves stage and infinite records through later saves", async () => {
+    const current = useMemoryDocument(stored({ infiniteBestScore: 40, infiniteAchievedAt: NOW }));
+    const repo = repository();
+    const appearance = getDefaultCharacterAppearance();
+    appearance.runner = { ...appearance.runner, gender: "female", hairStyle: "ponytail", hat: "cap" };
+    appearance.pursuer = { ...appearance.pursuer, glasses: "round", skinTone: "deep" };
+    const saved = await repo.saveAppearance(ACTOR, appearance);
+    expect(saved).toMatchObject({ appearance, highestClearedStage: 0, best: { bestScore: 100 }, infiniteBest: { bestScore: 40 } });
+    const clear = await repo.submit(ACTOR, submission({ score: 150, outcome: "cleared" }));
+    expect(clear.appearance).toEqual(appearance);
+    const infinite = await repo.submitInfiniteScore(ACTOR, { score: 99 });
+    expect(infinite).toMatchObject({ appearance, highestClearedStage: 1, best: { bestScore: 150 }, infiniteBest: { bestScore: 99 } });
+    expect(await repository().getProfile(ACTOR)).toEqual(infinite);
+    expect(current()).toMatchObject({ appearance, schemaVersion: 1, bestScore: 150, infiniteBestScore: 99 });
+    expect(JSON.stringify(saved)).not.toMatch(/_etag|_rid|_self|_ts|schemaVersion/);
+    expect(container.items.query).not.toHaveBeenCalled();
+  });
+
+  it("creates an appearance-only account document and does not create it on a plain read", async () => {
+    const current = useMemoryDocument();
+    const repo = repository();
+    expect(await repo.getProfile(ACTOR)).not.toHaveProperty("appearance");
+    expect(container.items.create).not.toHaveBeenCalled();
+    const appearance = getDefaultCharacterAppearance();
+    expect(await repo.saveAppearance(ACTOR, appearance)).toEqual({
+      ...ACTOR, highestClearedStage: 0, best: null, infiniteBest: null, appearance,
+    });
+    expect(current()).toEqual({
+      id: getPlayerRowKey(ACTOR.accountId), ...ACTOR, schemaVersion: 1, highestClearedStage: 0, appearance,
+    });
+    expect(container.items.create).toHaveBeenCalledTimes(1);
+    expect(item.replace).not.toHaveBeenCalled();
+  });
+
+  it("uses only the requested actor's hash and partition, then keeps another account independent", async () => {
+    const other = { accountId: "employee-b", displayName: "회사원 B" };
+    const appearance = getDefaultCharacterAppearance();
+    item.read.mockRejectedValueOnce(itemNotFound);
+    await repository().saveAppearance(other, appearance);
+    expect(container.item).toHaveBeenCalledWith(getPlayerRowKey(other.accountId), other.accountId);
+    expect(container.items.create).toHaveBeenCalledExactlyOnceWith({
+      id: getPlayerRowKey(other.accountId), ...other, schemaVersion: 1, highestClearedStage: 0, appearance,
+    });
+    expect(await repository().getProfile(ACTOR)).not.toHaveProperty("appearance");
+  });
+
+  it("keeps returned values and the captured request independent from persisted objects", async () => {
+    const appearance = getDefaultCharacterAppearance();
+    const resource = stored({ appearance });
+    item.read.mockResolvedValue({ resource, etag: ITEM_ETAG });
+    const read = await repository().getProfile(ACTOR);
+    read.appearance!.runner.hat = "cap";
+    expect(resource.appearance?.runner.hat).toBe("none");
+    const input = getDefaultCharacterAppearance();
+    const saving = repository().saveAppearance(ACTOR, input);
+    input.runner.hat = "cap";
+    const saved = await saving;
+    expect(saved.appearance?.runner.hat).toBe("none");
+    // The same default was already stored: this retry needs no write.
+    expect(item.replace).not.toHaveBeenCalled();
+  });
+
+  it("does not share the response appearance with the document submitted to Cosmos", async () => {
+    const input = getDefaultCharacterAppearance();
+    const saved = await repository().saveAppearance(ACTOR, input);
+    saved.appearance!.pursuer.hat = "none";
+    input.runner.hat = "cap";
+    const written = item.replace.mock.calls[0][0] as PlayerDocument;
+    expect(written.appearance?.pursuer.hat).toBe("straw");
+    expect(written.appearance?.runner.hat).toBe("none");
+  });
+
+  it.each([undefined, null, {}, [], { version: 2 }, { ...getDefaultCharacterAppearance(), runner: { hat: "unknown" } }])(
+    "omits only invalid legacy appearance without failing profile or rankings: %j", async (appearance) => {
+      const document = stored({ appearance, infiniteBestScore: 50, infiniteAchievedAt: NOW });
+      item.read.mockResolvedValue({ resource: document, etag: ITEM_ETAG });
+      container.items.query.mockReturnValue({ fetchAll: vi.fn().mockResolvedValue({ resources: [document] }) });
+      const repo = repository();
+      expect(await repo.getProfile(ACTOR)).not.toHaveProperty("appearance");
+      expect(await repo.listTopScores()).toHaveLength(1);
+      expect(await repo.listTopInfiniteScores()).toHaveLength(1);
+      expect(item.replace).not.toHaveBeenCalled();
+    },
+  );
+
+  it("continues to reject corrupt scores even if appearance also needs fallback", async () => {
+    item.read.mockResolvedValue({ resource: stored({ appearance: {}, bestScore: 151 }), etag: ITEM_ETAG });
+    await expect(repository().getProfile(ACTOR)).rejects.toMatchObject({ code: "storage-unavailable" });
+  });
+
+  it.each([null, {}, { ...getDefaultCharacterAppearance(), runner: { hat: "cap" } },
+    { ...getDefaultCharacterAppearance(), accountId: "other" }])("rejects an invalid save before any storage access: %j", async (appearance) => {
+      await expect(repository().saveAppearance(ACTOR, appearance as CharacterAppearance))
+        .rejects.toMatchObject({ code: "invalid-request", status: 400 });
+      expect(container.read).not.toHaveBeenCalled();
+      expect(item.read).not.toHaveBeenCalled();
+      expect(item.replace).not.toHaveBeenCalled();
+    });
+
+  it("updates verified names without changing performance values or achievement times", async () => {
+    item.read.mockResolvedValue({ resource: stored({ highestClearedStage: 2, infiniteBestScore: 400, infiniteAchievedAt: NOW }), etag: ITEM_ETAG });
+    const renamed = { ...ACTOR, displayName: "새 이름" };
+    const saved = await repository().saveAppearance(renamed, getDefaultCharacterAppearance());
+    expect(saved).toMatchObject({ displayName: renamed.displayName, highestClearedStage: 2,
+      best: { displayName: renamed.displayName, bestScore: 100, achievedAt: NOW },
+      infiniteBest: { displayName: renamed.displayName, bestScore: 400, achievedAt: NOW } });
+    expect(item.replace).toHaveBeenCalledWith(expect.objectContaining({ displayName: renamed.displayName }),
+      { accessCondition: { type: "IfMatch", condition: ITEM_ETAG } });
+  });
+
+  it.each(["create", "replace"] as const)("rereads after an appearance %s conflict and preserves new game records", async (mode) => {
+    const latest = stored({ highestClearedStage: 2, bestStage: 2, bestScore: 200, infiniteBestScore: 999, infiniteAchievedAt: NOW });
+    if (mode === "create") {
+      item.read.mockRejectedValueOnce(itemNotFound);
+      container.items.create.mockRejectedValueOnce({ code: 409 });
+    } else {
+      item.read.mockResolvedValueOnce({ resource: stored(), etag: ITEM_ETAG });
+      item.replace.mockRejectedValueOnce({ code: 412 });
+    }
+    item.read.mockResolvedValueOnce({ resource: latest, etag: '"latest-version"' });
+    const appearance = getDefaultCharacterAppearance();
+    appearance.runner.hat = "cap";
+    const saved = await repository().saveAppearance(ACTOR, appearance);
+    expect(saved).toMatchObject({ appearance, highestClearedStage: 2, best: { bestStage: 2, bestScore: 200 }, infiniteBest: { bestScore: 999 } });
+    expect(item.replace).toHaveBeenLastCalledWith(expect.objectContaining({
+      appearance, highestClearedStage: 2, bestStage: 2, bestScore: 200, infiniteBestScore: 999,
+    }), { accessCondition: { type: "IfMatch", condition: '"latest-version"' } });
+  });
+
+  it.each(["stage", "infinite"] as const)("preserves a newly committed appearance after a %s score write conflict", async (mode) => {
+    const previous = getDefaultCharacterAppearance();
+    const latest = getDefaultCharacterAppearance();
+    latest.pursuer.hat = "cap";
+    item.read.mockResolvedValueOnce({ resource: stored({ appearance: previous }), etag: ITEM_ETAG })
+      .mockResolvedValueOnce({ resource: stored({ appearance: latest }), etag: '"new-appearance"' });
+    item.replace.mockRejectedValueOnce({ code: 412 });
+    const repo = repository();
+    const saved = mode === "stage" ? await repo.submit(ACTOR, submission({ score: 101 }))
+      : await repo.submitInfiniteScore(ACTOR, { score: 999 });
+    expect(saved.appearance).toEqual(latest);
+    expect(item.replace).toHaveBeenLastCalledWith(expect.objectContaining({ appearance: latest }),
+      { accessCondition: { type: "IfMatch", condition: '"new-appearance"' } });
+  });
+
+  it.each(["create", "replace"] as const)("bounds appearance %s conflicts to five attempts", async (mode) => {
+    if (mode === "create") {
+      item.read.mockRejectedValue(itemNotFound);
+      container.items.create.mockRejectedValue({ code: 409 });
+    } else item.replace.mockRejectedValue({ code: 412 });
+    await expect(repository().saveAppearance(ACTOR, getDefaultCharacterAppearance()))
+      .rejects.toMatchObject({ code: "conflict", status: 409 });
+    expect(item.read).toHaveBeenCalledTimes(5);
+    expect(mode === "create" ? container.items.create : item.replace).toHaveBeenCalledTimes(5);
+  });
+
+  it("maps appearance read and write failures to fixed public errors", async () => {
+    const repo = repository();
+    item.read.mockRejectedValueOnce(new Error("private-read-key"));
+    await expect(repo.saveAppearance(ACTOR, getDefaultCharacterAppearance()))
+      .rejects.toMatchObject({ code: "storage-unavailable", status: 503 });
+    item.replace.mockRejectedValueOnce(new Error("private-write-key"));
+    await expect(repo.saveAppearance(ACTOR, getDefaultCharacterAppearance()))
+      .rejects.toMatchObject({ code: "storage-unavailable", status: 503 });
+  });
 });
 
 describe("Cosmos player repository", () => {

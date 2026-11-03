@@ -2,6 +2,8 @@ import { CosmosClient, type ItemDefinition, type SqlQuerySpec } from "@azure/cos
 import { createHash } from "node:crypto";
 import { getSharedTopInfiniteScores, getSharedTopScores, mergeSharedInfiniteScore, mergeSharedResult, validateResultForProfile } from "../../shared/companyRecords";
 import type { AuthenticatedActor, InfiniteScoreInput, SharedBest, SharedInfiniteBest, SharedProfile, SubmitResultRequest } from "../../shared/companyRecords";
+import { areCharacterAppearancesEqual, cloneCharacterAppearance, isCharacterAppearance } from "../../shared/characterAppearance";
+import type { CharacterAppearance } from "../../shared/characterAppearance";
 import { getHighestUnlockedStage, getStageRule, isClearedStage, isGameStage } from "../../src/game/stageRules";
 import type { ClearedStage, GameStage } from "../../src/game/types";
 import { RecordServiceError } from "./errors";
@@ -12,6 +14,7 @@ export interface PlayerRepository {
   listTopInfiniteScores(): Promise<SharedInfiniteBest[]>;
   submit(actor: AuthenticatedActor, input: SubmitResultRequest): Promise<SharedProfile>;
   submitInfiniteScore(actor: AuthenticatedActor, input: InfiniteScoreInput): Promise<SharedProfile>;
+  saveAppearance(actor: AuthenticatedActor, appearance: CharacterAppearance): Promise<SharedProfile>;
 }
 
 export interface PlayerDocument extends ItemDefinition {
@@ -26,6 +29,7 @@ export interface PlayerDocument extends ItemDefinition {
   achievedAt?: string;
   infiniteBestScore?: number;
   infiniteAchievedAt?: string;
+  appearance?: CharacterAppearance;
 }
 
 interface ItemRead<T> {
@@ -135,6 +139,7 @@ function decodeDocument(document: unknown): SharedProfile {
     highestClearedStage: document.highestClearedStage,
     best,
     infiniteBest,
+    ...(isCharacterAppearance(document.appearance) ? { appearance: cloneCharacterAppearance(document.appearance) } : {}),
   };
 }
 
@@ -155,6 +160,7 @@ function encodeDocument(profile: SharedProfile): PlayerDocument {
       infiniteBestScore: profile.infiniteBest.bestScore,
       infiniteAchievedAt: profile.infiniteBest.achievedAt,
     } : {}),
+    ...(isCharacterAppearance(profile.appearance) ? { appearance: cloneCharacterAppearance(profile.appearance) } : {}),
   };
 }
 
@@ -211,6 +217,40 @@ export function createPlayerRepository(
     getProfile: (actor) => storageBoundary(async () => {
       const stored = await readStored(actor);
       return stored?.profile ?? { ...actor, highestClearedStage: 0, best: null, infiniteBest: null };
+    }),
+
+    saveAppearance: (actor, appearance) => storageBoundary(async () => {
+      if (!isCharacterAppearance(appearance)) throw new RecordServiceError("invalid-request");
+      // Snapshot the request before the first read, including across conflict retries.
+      const requestedAppearance = cloneCharacterAppearance(appearance);
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const stored = await readStored(actor);
+        const previous: SharedProfile = stored?.profile ?? { ...actor, highestClearedStage: 0, best: null, infiniteBest: null };
+        if (previous.appearance && previous.displayName === actor.displayName &&
+          areCharacterAppearancesEqual(previous.appearance, requestedAppearance)) return previous;
+        const profile: SharedProfile = {
+          ...previous,
+          ...actor,
+          best: previous.best ? { ...previous.best, displayName: actor.displayName } : null,
+          infiniteBest: previous.infiniteBest ? { ...previous.infiniteBest, displayName: actor.displayName } : null,
+          appearance: cloneCharacterAppearance(requestedAppearance),
+        };
+        const document = encodeDocument(profile);
+        try {
+          if (stored) {
+            await container.item(getPlayerRowKey(actor.accountId), actor.accountId).replace(document, {
+              accessCondition: { type: "IfMatch", condition: stored.etag },
+            });
+          } else {
+            await container.items.create(document);
+          }
+          return profile;
+        } catch (error) {
+          if ((!stored && statusCode(error) === 409) || (stored && statusCode(error) === 412)) continue;
+          throw error;
+        }
+      }
+      throw new RecordServiceError("conflict");
     }),
 
     listTopScores: () => storageBoundary(async () => {
