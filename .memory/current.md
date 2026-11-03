@@ -7,22 +7,23 @@
 [P01 Appearance Expansion](./phases/2026-11-04-character-customization-expansion/P01-appearance-expansion/phase.md)
 
 ## Active Task
-[T02 Expanded Pixel Parts](./phases/2026-11-04-character-customization-expansion/P01-appearance-expansion/T02-expanded-pixel-parts.md)
+[T03 Versioned Account Appearance](./phases/2026-11-04-character-customization-expansion/P01-appearance-expansion/T03-versioned-account-appearance.md)
 
 ## Status
-- T01 Expanded Appearance Contracts 완료 (`20fbcb6`). done 1/4, Active P01-T02.
-- 기존 version1 코드를 shared/legacyCharacterAppearance.ts에 원본 그대로 보존했고 shared/characterAppearance.ts는 아직 해당 계약을 재노출한다.
-- shared/expandedCharacterAppearance.ts는 version2의13필드/확장카탈로그, strict 저장입력 검증, 정상version1의10필드 보존 정규화와 표시용 기본값을 제공한다.
-- T01 지정shared3파일257/257, 기존API4파일186/186, lint/frontend·API build/diff check 통과. 실제 새 옵션의 렌더링/UI/API 활성화는 아직 수행하지 않았다.
-- T02에서 양쪽 look을 그릴 픽셀 부위를 준비한 뒤 T03에서 public 계약과 계정 저장을version2로 전환하고 T04에서13그룹 UI/전체 장면을 검증한다.
-- 기존 src/game/pixel-theme.css의 미커밋 모바일 버튼 간격 변경을 보존한다. 이번 실행에서 push/배포/운영 Cosmos 수정은 수행하지 않았다.
-- 실제 emulator/운영 계정 저장 확인은 후속 검증 대상이며 이번 순수 계약 Task에서는 실행하지 않았다.
+- T01 완료 (`20fbcb6`), T02 완료 (`ab16a10`). done 2/4, Active P01-T03.
+- T01 version1 계약 보존과 version2의13필드/카탈로그/정규화를 준비했다. shared/characterAppearance.ts는 아직 legacy 계약을 재노출한다.
+- T02에서 새 눈/머리/옷/모자/안경/부츠와 가방 앞뒤 레이어를 구현했다. PixelOfficer/OvertimeOfficer는 양쪽 look을 받아 그리며 기존 기본값·frame·팔/다리 좌표·발y40·motion CSS·scene clip을 유지한다.
+- T02 지정7파일289/289(최종32.21초), lint/build/diff check 통과. 신규157개는 모든역할/방향/pose의 실제도형/색/눈표정/가방레이어를 확인한다.
+- TEMP/character-expansion-t02-evidence/expanded-parts-25.svg와 .png로25표본을 확인했고 clip-results.json의90조합 모두 기존clip 전후 pixel이 동일하다.
+- Chrome headless 실행은 자동 승인 검토에서 blocked by policy로 거절되었다. 우회 재시도 없이 TEMP의 정적SVG renderer로 대체했으며 프로젝트 의존성은 바꾸지 않았다. 실제브라우저 애니메이션/모바일 선택 UI 확인은 미실행이다.
+- 다음 T03에서 public/API/클라이언트를 version2로 전환하고 기존외형을 보존한다. 실제13그룹 편집창 확장은 T04다. 아직 운영 DB/계정·배포를 변경하지 않았다.
+- 기존 src/game/pixel-theme.css의 미커밋 모바일 버튼 간격 변경을 보존한다. emulator/실제 계정 저장 확인은 후속 검증 대상이다.
 
 ## Source Decision
 - [Character Customization Expansion](./decisions/2026-11-04-character-customization-expansion.md)
 
 ## Next Step (IMPORTANT)
-T02 청사진을 읽고 src/game/pixel/officerPalette.ts, OfficerAppearanceParts.tsx, 새 OfficerBagArt.tsx 및 PixelOfficer/OvertimeOfficer에 눈·가방·추가스타일을 구현한다. 새 계약은 shared/expandedCharacterAppearance.ts에서 직접 사용하고 public version1은 유지한다. 발 기준선·clip·좌표·모션을 변경하지 않는다. `/memory-execute`로 Active Task 한 개씩 진행한다.
+T03 청사진을 읽고 shared/characterAppearance.ts의 public export 전환, api/src/playerRepository.ts의 정상version1 읽기/새version2 쓰기와 src/company/recordApi.ts의 실제 응답 정규화를 구현한다. 조회만으로 DB를 수정하지 않고 기존 점수·해금·계정 경계와 지연 저장 draft를 보존한다. `/memory-execute`로 Active Task 한 개씩 진행한다.
 
 ## Previous Completed Feature
 - [Character Customization](./plans/2026-11-03-character-customization.md): complete5/5. T01 8898b74, T02 5f98abb, T03 9e06d5a, T04 d5489e8, T05 936e26b, 완료 문서 bc5b044.

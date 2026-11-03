@@ -146,7 +146,7 @@ Task: T02-expanded-pixel-parts
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: pending
+- commit: `ab16a10`
 
 ## Validation Results — 2026-11-04
 - 지정7파일289/289 통과(최종32.21초). 신규157개에서 정상눈5종/일반안경/선글라스/상황별표정, 새도형·색, 모든역할/방향/게임frame/야근pose의 가방레이어와 발y40을 확인했다. 기존 부위 회귀 테스트는 수정 없이 통과했다.
