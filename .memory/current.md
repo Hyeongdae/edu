@@ -10,10 +10,10 @@
 없음 — Infinite Score Mode 완료 (3/3).
 
 ## Last Completed Task
-[T03 Infinite Mode UI](./phases/2026-11-03-infinite-score-mode/P01-infinite-mode/T03-infinite-mode-ui.md) — commit hash is recorded after commit; focused frontend tests, lint, and both production builds passed.
+[T03 Infinite Mode UI](./phases/2026-11-03-infinite-score-mode/P01-infinite-mode/T03-infinite-mode-ui.md) — `5551b3e`; 128 focused frontend tests, lint, production frontend/API builds, and 98 API tests passed.
 
 ## Status
-- Infinite Score Mode is complete: separate upward endless play, title entry, mode-specific guide and leaderboard tabs, and account-scoped Cosmos best score are implemented. T01 and T02 are complete; T03 validated and committed.
+- Infinite Score Mode is complete: separate upward endless play, title entry, mode-specific guide and leaderboard tabs, and account-scoped Cosmos best score are implemented. T01 and T02 are complete; T03 committed as `5551b3e`.
 - Confirmed boundaries: stage mode remains the existing downward five-stage game; local demo does not persist records; company ranking stores one infinite personal best in the existing `stair-climb/players` container. Equal infinite scores use dense ranks (1, 1, 2).
 - P01 Gameplay Polish is complete (3/3): score cap, the three-second stage transition countdown, and the 30% default BGM preference are implemented and validated.
 - Start Game Countdown is complete: Start shows 3-2-1 over the selected stage; the clock and pursuer begin when it ends.
