@@ -1,5 +1,5 @@
 import type { HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
-import { isSubmitResultRequest } from "../../shared/companyRecords";
+import { isSubmitInfiniteScoreRequest, isSubmitResultRequest } from "../../shared/companyRecords";
 import type { AuthenticatedActor } from "../../shared/companyRecords";
 import { RecordServiceError } from "./errors";
 import type { PlayerRepository } from "./playerRepository";
@@ -42,7 +42,9 @@ type RecordHandler = (req: HttpRequest, ctx: InvocationContext) => Promise<HttpR
 export function createRecordHandlers(deps: { repository: PlayerRepository }): {
   profile: RecordHandler;
   leaderboard: RecordHandler;
+  infiniteLeaderboard: RecordHandler;
   results: RecordHandler;
+  infiniteResults: RecordHandler;
 } {
   async function authenticated(
     req: HttpRequest,
@@ -68,11 +70,18 @@ export function createRecordHandlers(deps: { repository: PlayerRepository }): {
   return {
     profile: (req) => authenticated(req, (actor) => deps.repository.getProfile(actor)),
     leaderboard: (req) => authenticated(req, async () => ({ entries: await deps.repository.listTopScores() })),
+    infiniteLeaderboard: (req) => authenticated(req, async () => ({ entries: await deps.repository.listTopInfiniteScores() })),
     results: (req) => authenticated(req, async (actor) => {
       const payload = await readResultBody(req);
       if (!isSubmitResultRequest(payload)) throw new RecordServiceError("invalid-request");
       const profile = await deps.repository.submit(actor, payload);
       return { submissionId: payload.submissionId, profile, entries: await deps.repository.listTopScores() };
+    }),
+    infiniteResults: (req) => authenticated(req, async (actor) => {
+      const payload = await readResultBody(req);
+      if (!isSubmitInfiniteScoreRequest(payload)) throw new RecordServiceError("invalid-request");
+      const profile = await deps.repository.submitInfiniteScore(actor, payload.result);
+      return { submissionId: payload.submissionId, profile, entries: await deps.repository.listTopInfiniteScores() };
     }),
   };
 }

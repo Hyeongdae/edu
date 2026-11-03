@@ -1,5 +1,5 @@
-import { compareSharedPerformance, getSharedTopScores, isSubmitResultRequest, validateResultForProfile } from "../../shared/companyRecords";
-import type { SharedBest, SharedProfile } from "../../shared/companyRecords";
+import { compareSharedInfiniteScore, compareSharedPerformance, getSharedTopInfiniteScores, getSharedTopScores, isSubmitInfiniteScoreRequest, isSubmitResultRequest, validateResultForProfile } from "../../shared/companyRecords";
+import type { InfiniteScoreInput, SharedBest, SharedInfiniteBest, SharedProfile } from "../../shared/companyRecords";
 import type { StageResult } from "../game/types";
 import { companyRecordApi, isSharedProfile, RecordApiError, type CompanyRecordApi } from "./recordApi";
 import type { CompanyStoreSnapshot, PendingResult, SyncStatus } from "./types";
@@ -20,9 +20,11 @@ export class CompanyRecordStore {
   private snapshot: CompanyStoreSnapshot = { status: "loading" };
   private readonly listeners = new Set<() => void>();
   private readonly submitted = new WeakMap<StageResult, string>();
+  private readonly submittedInfinite = new WeakMap<InfiniteScoreInput, string>();
   private readonly api: CompanyRecordApi;
   private profile: SharedProfile | null = null;
   private entries: SharedBest[] = [];
+  private infiniteEntries: SharedInfiniteBest[] = [];
   private pending: PendingResult[] = [];
   private loadedQueue = false;
   private active = false;
@@ -86,8 +88,27 @@ export class CompanyRecordStore {
     }
     const submissionId = (this.options.uuid ?? (() => crypto.randomUUID()))();
     this.submitted.set(result, submissionId);
-    this.pending.push(Object.freeze({ submissionId, createdAt: (this.options.now?.() ?? new Date()).toISOString(), result: input }));
+    this.pending.push(Object.freeze({ mode: "stage", submissionId, createdAt: (this.options.now?.() ?? new Date()).toISOString(), result: input }));
     this.persist(); // A navigation or lost response must not erase an unacknowledged result.
+    this.publish();
+    this.kick();
+  };
+
+  submitInfiniteScore = (result: InfiniteScoreInput): void => {
+    if (!this.active || !this.profile || this.submittedInfinite.has(result)) return;
+    const input = Object.freeze({ score: result.score });
+    const submissionId = (this.options.uuid ?? (() => crypto.randomUUID()))();
+    const request = { submissionId, result: input };
+    if (!isSubmitInfiniteScoreRequest(request)) {
+      this.syncStatus = "error";
+      this.errorMessage = "무한 모드 점수를 확인하지 못했습니다.";
+      this.publish();
+      return;
+    }
+    this.submittedInfinite.set(result, submissionId);
+    this.pending.push(Object.freeze({ mode: "infinite", submissionId,
+      createdAt: (this.options.now?.() ?? new Date()).toISOString(), result: input }));
+    this.persist();
     this.publish();
     this.kick();
   };
@@ -124,17 +145,24 @@ export class CompanyRecordStore {
       const raw = this.storage().getItem(companyPendingKey(this.accountId));
       if (raw === null) return;
       const value = JSON.parse(raw) as { version?: unknown; accountId?: unknown; pending?: unknown };
-      if (!value || value.version !== 1 || value.accountId !== this.accountId || !Array.isArray(value.pending)) throw new Error();
+      if (!value || (value.version !== 1 && value.version !== 2) || value.accountId !== this.accountId || !Array.isArray(value.pending)) throw new Error();
       const ids = new Set<string>();
+      const pending: PendingResult[] = [];
       for (const item of value.pending) {
-        if (typeof item !== "object" || item === null ||
-          !isSubmitResultRequest({ submissionId: item.submissionId, result: item.result }) ||
-          !validateResultForProfile(item.result, 5).ok || typeof item.createdAt !== "string" ||
-          !Number.isFinite(Date.parse(item.createdAt)) || new Date(item.createdAt).toISOString() !== item.createdAt ||
-          ids.has(item.submissionId)) throw new Error();
+        if (typeof item !== "object" || item === null || typeof item.submissionId !== "string" ||
+          typeof item.createdAt !== "string" || !Number.isFinite(Date.parse(item.createdAt)) ||
+          new Date(item.createdAt).toISOString() !== item.createdAt || ids.has(item.submissionId)) throw new Error();
+        const mode = value.version === 1 && item.mode === undefined ? "stage" : item.mode;
+        if (mode === "stage") {
+          if (!isSubmitResultRequest({ submissionId: item.submissionId, result: item.result }) || !validateResultForProfile(item.result, 5).ok) throw new Error();
+          pending.push({ mode, submissionId: item.submissionId, createdAt: item.createdAt, result: item.result });
+        } else if (mode === "infinite") {
+          if (!isSubmitInfiniteScoreRequest({ submissionId: item.submissionId, result: item.result })) throw new Error();
+          pending.push({ mode, submissionId: item.submissionId, createdAt: item.createdAt, result: item.result });
+        } else throw new Error();
         ids.add(item.submissionId);
       }
-      this.pending = value.pending as PendingResult[];
+      this.pending = pending;
     } catch {
       // Ignore a corrupt/unavailable queue without uploading it or clearing any legacy/account data.
       this.persistenceWarning = "이 브라우저의 대기 기록을 읽지 못했습니다. 새 대기 기록은 새로고침 시 유지되지 않을 수 있어요.";
@@ -143,7 +171,7 @@ export class CompanyRecordStore {
 
   private persist(): void {
     try {
-      this.storage().setItem(companyPendingKey(this.accountId), JSON.stringify({ version: 1, accountId: this.accountId, pending: this.pending }));
+      this.storage().setItem(companyPendingKey(this.accountId), JSON.stringify({ version: 2, accountId: this.accountId, pending: this.pending }));
       this.persistenceWarning = null;
     } catch {
       this.persistenceWarning = "대기 기록을 브라우저에 보관하지 못했습니다. 저장이 끝나기 전에 새로고침하면 기록이 사라질 수 있어요.";
@@ -157,7 +185,11 @@ export class CompanyRecordStore {
     if (previous?.best && (!best || compareSharedPerformance(previous.best, best) <= 0)) {
       best = { ...previous.best, displayName: incoming.displayName };
     }
-    this.profile = { ...incoming, best,
+    let infiniteBest = incoming.infiniteBest;
+    if (previous?.infiniteBest && (!infiniteBest || compareSharedInfiniteScore(previous.infiniteBest, infiniteBest) <= 0)) {
+      infiniteBest = { ...previous.infiniteBest, displayName: incoming.displayName };
+    }
+    this.profile = { ...incoming, best, infiniteBest,
       highestClearedStage: Math.max(previous?.highestClearedStage ?? 0, incoming.highestClearedStage) as SharedProfile["highestClearedStage"] };
   }
 
@@ -167,9 +199,9 @@ export class CompanyRecordStore {
         : { status: "loading" };
     } else {
       this.snapshot = { status: "ready", binding: {
-        profile: this.profile, entries: this.entries, syncStatus: this.syncStatus,
+        profile: this.profile, entries: this.entries, infiniteEntries: this.infiniteEntries, syncStatus: this.syncStatus,
         pendingCount: this.pending.length, errorMessage: [this.errorMessage, this.persistenceWarning].filter(Boolean).join(" ") || null,
-        submitResult: this.submitResult, retry: this.retry, refresh: this.refresh,
+        submitResult: this.submitResult, submitInfiniteScore: this.submitInfiniteScore, retry: this.retry, refresh: this.refresh,
       } };
     }
     for (const listener of this.listeners) listener();
@@ -191,20 +223,28 @@ export class CompanyRecordStore {
       while (current()) {
         if (!this.profile || this.needsRefresh) {
           this.needsRefresh = false;
-          const [profile, entries] = await Promise.all([
+          const [profile, entries, infiniteEntries] = await Promise.all([
             this.api.fetchProfile(this.accountId, controller.signal), this.api.fetchLeaderboard(controller.signal),
+            this.api.fetchInfiniteLeaderboard(controller.signal),
           ]);
           if (!current()) return;
           this.acceptProfile(profile);
           this.entries = getSharedTopScores([...entries, ...(this.profile!.best ? [this.profile!.best] : [])]);
+          this.infiniteEntries = getSharedTopInfiniteScores([...infiniteEntries, ...(this.profile!.infiniteBest ? [this.profile!.infiniteBest] : [])]);
           this.publish();
         } else if (this.pending.length) {
           const next = this.pending[0];
-          const response = await this.api.postResult(this.accountId, { submissionId: next.submissionId, result: next.result }, controller.signal);
+          const response = next.mode === "stage"
+            ? await this.api.postResult(this.accountId, { submissionId: next.submissionId, result: next.result }, controller.signal)
+            : await this.api.postInfiniteResult(this.accountId, { submissionId: next.submissionId, result: next.result }, controller.signal);
           if (!current()) return;
           if (response.submissionId !== next.submissionId) throw new RecordApiError("invalid-response");
           this.acceptProfile(response.profile);
-          this.entries = getSharedTopScores([...response.entries, ...(this.profile!.best ? [this.profile!.best] : [])]);
+          if (next.mode === "stage") {
+            this.entries = getSharedTopScores([...response.entries as SharedBest[], ...(this.profile!.best ? [this.profile!.best] : [])]);
+          } else {
+            this.infiniteEntries = getSharedTopInfiniteScores([...response.entries as SharedInfiniteBest[], ...(this.profile!.infiniteBest ? [this.profile!.infiniteBest] : [])]);
+          }
           this.pending = this.pending.filter((item) => item.submissionId !== response.submissionId);
           this.persist();
           this.backoff = 0;

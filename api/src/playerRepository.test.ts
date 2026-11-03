@@ -59,7 +59,7 @@ describe("Cosmos player repository", () => {
   it.each([itemNotFound, { code: 404 }])(
     "returns a new profile only when the verified container has no matching item: %j", async (error) => {
       item.read.mockRejectedValueOnce(error);
-      expect(await repository().getProfile(ACTOR)).toEqual({ ...ACTOR, highestClearedStage: 0, best: null });
+      expect(await repository().getProfile(ACTOR)).toEqual({ ...ACTOR, highestClearedStage: 0, best: null, infiniteBest: null });
       expect(container.read).toHaveBeenCalledExactlyOnceWith();
       expect(container.item).toHaveBeenCalledExactlyOnceWith(getPlayerRowKey(ACTOR.accountId), ACTOR.accountId);
       expect(container.items.create).not.toHaveBeenCalled();
@@ -68,7 +68,7 @@ describe("Cosmos player repository", () => {
 
   it("treats the SDK's resolved 404 response with no resource as a missing item", async () => {
     item.read.mockResolvedValueOnce({ statusCode: 404 });
-    expect(await repository().getProfile(ACTOR)).toEqual({ ...ACTOR, highestClearedStage: 0, best: null });
+    expect(await repository().getProfile(ACTOR)).toEqual({ ...ACTOR, highestClearedStage: 0, best: null, infiniteBest: null });
     expect(container.items.create).not.toHaveBeenCalled();
   });
 
@@ -100,6 +100,7 @@ describe("Cosmos player repository", () => {
       ...ACTOR,
       highestClearedStage: 0,
       best: { ...ACTOR, bestStage: 1, bestScore: 100, remainingTimeCs: 6000, achievedAt: NOW },
+      infiniteBest: null,
     });
     await repo.getProfile(ACTOR);
     expect(container.read).toHaveBeenCalledExactlyOnceWith();
@@ -112,6 +113,9 @@ describe("Cosmos player repository", () => {
     { bestScore: 151 }, { bestScore: -1 }, { remainingTimeCs: 9001 },
     { remainingTimeCs: 1.5 }, { achievedAt: "bad-time" }, { achievedAt: undefined },
     { bestStage: undefined }, { displayName: "x".repeat(201) }, { best: null },
+    { infiniteBestScore: 10 }, { infiniteAchievedAt: NOW }, { infiniteBestScore: -1, infiniteAchievedAt: NOW },
+    { infiniteBestScore: 1.5, infiniteAchievedAt: NOW }, { infiniteBestScore: Number.MAX_SAFE_INTEGER + 1, infiniteAchievedAt: NOW },
+    { infiniteBestScore: 10, infiniteAchievedAt: "bad-time" },
   ])("fails closed on corrupt persisted documents: %j", async (overrides) => {
     item.read.mockResolvedValueOnce({ resource: stored(overrides), etag: ITEM_ETAG });
     await expect(repository().getProfile(ACTOR)).rejects.toMatchObject({ code: "storage-unavailable" });
@@ -123,9 +127,38 @@ describe("Cosmos player repository", () => {
       delete noBest[key as keyof PlayerDocument];
     }
     item.read.mockResolvedValueOnce({ resource: noBest, etag: ITEM_ETAG });
-    expect(await repository().getProfile(ACTOR)).toEqual({ ...ACTOR, highestClearedStage: 0, best: null });
+    expect(await repository().getProfile(ACTOR)).toEqual({ ...ACTOR, highestClearedStage: 0, best: null, infiniteBest: null });
     item.read.mockResolvedValueOnce({ resource: { ...noBest, bestScore: 10 }, etag: ITEM_ETAG });
     await expect(repository().getProfile(ACTOR)).rejects.toMatchObject({ code: "storage-unavailable" });
+  });
+
+  it("writes an infinite best without changing the stage best or clear progress", async () => {
+    item.read.mockResolvedValueOnce({ resource: stored({ highestClearedStage: 2 }), etag: ITEM_ETAG });
+    const saved = await repository().submitInfiniteScore(ACTOR, { score: 321 });
+    expect(saved).toMatchObject({ highestClearedStage: 2, best: { bestScore: 100 }, infiniteBest: { bestScore: 321, achievedAt: NOW } });
+    expect(item.replace).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
+      highestClearedStage: 2, bestScore: 100, infiniteBestScore: 321, infiniteAchievedAt: NOW,
+    }), { accessCondition: { type: "IfMatch", condition: ITEM_ETAG } });
+  });
+
+  it("keeps a higher infinite score and its original time on lower or equal retries", async () => {
+    item.read.mockResolvedValue({ resource: stored({ infiniteBestScore: 400, infiniteAchievedAt: NOW }), etag: ITEM_ETAG });
+    const repo = repository();
+    expect((await repo.submitInfiniteScore(ACTOR, { score: 300 })).infiniteBest?.bestScore).toBe(400);
+    expect((await repo.submitInfiniteScore(ACTOR, { score: 400 })).infiniteBest?.achievedAt).toBe(NOW);
+    expect(item.replace).not.toHaveBeenCalled();
+  });
+
+  it("queries the separate top-ten infinite list and excludes stage-only rows", async () => {
+    const entries = Array.from({ length: 12 }, (_, score) => stored({
+      accountId: `infinite-${score}`, id: getPlayerRowKey(`infinite-${score}`), displayName: `P${score}`,
+      infiniteBestScore: score, infiniteAchievedAt: NOW,
+    }));
+    container.items.query.mockReturnValue({ fetchAll: vi.fn().mockResolvedValue({ resources: [stored(), ...entries] }) });
+    expect((await repository().listTopInfiniteScores()).map((entry) => entry.bestScore)).toEqual([11, 10, 9, 8, 7, 6, 5, 4, 3, 2]);
+    expect(container.items.query).toHaveBeenCalledWith({
+      query: "SELECT TOP 10 * FROM c WHERE IS_DEFINED(c.infiniteBestScore) ORDER BY c.infiniteBestScore DESC, c.infiniteAchievedAt ASC, c.accountId ASC",
+    }, { maxItemCount: 10 });
   });
 
   it.each([undefined, "", " * ", "*"])("rejects a missing or unsafe response ETag: %j", async (etag) => {

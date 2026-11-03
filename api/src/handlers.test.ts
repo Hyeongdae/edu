@@ -5,11 +5,13 @@ import { RecordServiceError } from "./errors";
 import { createRecordHandlers } from "./handlers";
 
 const context = new InvocationContext({ functionName: "records-test" });
-const profile = { ...ACTOR, highestClearedStage: 0 as const, best: null };
+const profile = { ...ACTOR, highestClearedStage: 0 as const, best: null, infiniteBest: null };
 const repository = {
   getProfile: vi.fn().mockResolvedValue(profile),
   listTopScores: vi.fn().mockResolvedValue([]),
+  listTopInfiniteScores: vi.fn().mockResolvedValue([]),
   submit: vi.fn().mockResolvedValue(profile),
+  submitInfiniteScore: vi.fn().mockResolvedValue(profile),
 };
 const handlers = createRecordHandlers({ repository });
 
@@ -27,7 +29,9 @@ function request(options: { body?: string; headers?: Record<string, string>; pat
 beforeEach(() => {
   repository.getProfile.mockReset().mockResolvedValue(profile);
   repository.listTopScores.mockReset().mockResolvedValue([]);
+  repository.listTopInfiniteScores.mockReset().mockResolvedValue([]);
   repository.submit.mockReset().mockResolvedValue(profile);
+  repository.submitInfiniteScore.mockReset().mockResolvedValue(profile);
 });
 
 describe("record handlers", () => {
@@ -38,12 +42,14 @@ describe("record handlers", () => {
     expect(await handlers.results(request({ headers: { "x-game-account": ACTOR.accountId } }), context))
       .toMatchObject({ status: 200 });
   });
-  it.each(["profile", "leaderboard", "results"] as const)("authenticates %s before repository access", async (route) => {
+  it.each(["profile", "leaderboard", "results", "infiniteLeaderboard", "infiniteResults"] as const)("authenticates %s before repository access", async (route) => {
     const response = await handlers[route](request({ headers: { "x-ms-client-principal": "" } }), context);
     expect(response).toMatchObject({ status: 401, jsonBody: { error: { code: "unauthenticated" } } });
     expect(repository.getProfile).not.toHaveBeenCalled();
     expect(repository.listTopScores).not.toHaveBeenCalled();
     expect(repository.submit).not.toHaveBeenCalled();
+    expect(repository.listTopInfiniteScores).not.toHaveBeenCalled();
+    expect(repository.submitInfiniteScore).not.toHaveBeenCalled();
   });
 
   it("returns only the current actor's profile, ignoring arbitrary query actor selectors", async () => {
@@ -60,6 +66,25 @@ describe("record handlers", () => {
     expect(await handlers.leaderboard(request({ method: "GET" }), context))
       .toMatchObject({ status: 200, jsonBody: { entries } });
   });
+
+  it("serves and submits an authenticated infinite score independently", async () => {
+    const infiniteBest = { accountId: ACTOR.accountId, displayName: ACTOR.displayName, bestScore: 45, achievedAt: NOW };
+    repository.listTopInfiniteScores.mockResolvedValue([infiniteBest]);
+    expect(await handlers.infiniteLeaderboard(request({ method: "GET" }), context))
+      .toMatchObject({ status: 200, jsonBody: { entries: [infiniteBest] } });
+    const payload = { submissionId: submission().submissionId, result: { score: 45 } };
+    repository.submitInfiniteScore.mockResolvedValue({ ...profile, infiniteBest });
+    repository.listTopInfiniteScores.mockResolvedValue([infiniteBest]);
+    expect(await handlers.infiniteResults(request({ body: JSON.stringify(payload) }), context))
+      .toMatchObject({ status: 200, jsonBody: { submissionId: payload.submissionId, entries: [infiniteBest] } });
+    expect(repository.submitInfiniteScore).toHaveBeenCalledExactlyOnceWith(ACTOR, payload.result);
+  });
+
+  it.each([{ score: -1 }, { score: 1.5 }, { score: Number.MAX_SAFE_INTEGER + 1 }, { score: 1, extra: true }])("rejects invalid infinite score payload %j", async (result) => {
+      expect(await handlers.infiniteResults(request({ body: JSON.stringify({ submissionId: submission().submissionId, result }) }), context))
+        .toMatchObject({ status: 400, jsonBody: { error: { code: "invalid-request" } } });
+      expect(repository.submitInfiniteScore).not.toHaveBeenCalled();
+    });
 
   it("submits the verified actor and echoes only the acknowledged request ID", async () => {
     const response = await handlers.results(request(), context);

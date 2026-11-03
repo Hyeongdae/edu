@@ -1,4 +1,4 @@
-import type { ApiErrorCode, SharedBest, SharedProfile, SubmitResultRequest, SubmitResultResponse } from "../../shared/companyRecords";
+import type { ApiErrorCode, SharedBest, SharedInfiniteBest, SharedProfile, SubmitInfiniteScoreRequest, SubmitInfiniteScoreResponse, SubmitResultRequest, SubmitResultResponse } from "../../shared/companyRecords";
 import { getHighestUnlockedStage, getStageRule, isClearedStage, isGameStage } from "../game/stageRules";
 
 type RecordApiErrorCode = ApiErrorCode | "network" | "timeout" | "invalid-response";
@@ -32,7 +32,18 @@ export function isSharedProfile(value: unknown, accountId: string): value is Sha
     isClearedStage(value.highestClearedStage) && (value.best === null ||
       (isSharedBest(value.best) && value.best.accountId === accountId &&
         value.best.bestStage <= getHighestUnlockedStage(value.highestClearedStage) &&
-        (value.best.bestScore < getStageRule(value.best.bestStage).scoreRequired || value.highestClearedStage >= value.best.bestStage)));
+        (value.best.bestScore < getStageRule(value.best.bestStage).scoreRequired || value.highestClearedStage >= value.best.bestStage))) &&
+    (value.infiniteBest === null || (isSharedInfiniteBest(value.infiniteBest) && value.infiniteBest.accountId === accountId));
+}
+
+function canonicalTimestamp(value: unknown): value is string {
+  return typeof value === "string" && Number.isFinite(Date.parse(value)) && new Date(value).toISOString() === value;
+}
+
+export function isSharedInfiniteBest(value: unknown): value is SharedInfiniteBest {
+  return object(value) && typeof value.accountId === "string" && !!value.accountId.trim() &&
+    typeof value.displayName === "string" && typeof value.bestScore === "number" &&
+    Number.isSafeInteger(value.bestScore) && value.bestScore >= 0 && canonicalTimestamp(value.achievedAt);
 }
 
 function isEntries(value: unknown): value is SharedBest[] {
@@ -40,7 +51,7 @@ function isEntries(value: unknown): value is SharedBest[] {
     new Set(value.map((entry) => entry.accountId)).size === value.length;
 }
 
-async function request(path: string, signal: AbortSignal, accountId?: string, payload?: SubmitResultRequest): Promise<unknown> {
+async function request(path: string, signal: AbortSignal, accountId?: string, payload?: SubmitResultRequest | SubmitInfiniteScoreRequest): Promise<unknown> {
   const controller = new AbortController();
   let timedOut = false;
   const abort = () => controller.abort();
@@ -94,6 +105,15 @@ export async function fetchLeaderboard(signal: AbortSignal): Promise<SharedBest[
   return value.entries;
 }
 
+export async function fetchInfiniteLeaderboard(signal: AbortSignal): Promise<SharedInfiniteBest[]> {
+  const value = await request("/api/infinite-leaderboard", signal);
+  if (!object(value) || !Array.isArray(value.entries) || value.entries.length > 10 ||
+    !value.entries.every(isSharedInfiniteBest) || new Set(value.entries.map((entry) => entry.accountId)).size !== value.entries.length) {
+    throw new RecordApiError("invalid-response");
+  }
+  return value.entries;
+}
+
 export async function postResult(accountId: string, payload: SubmitResultRequest, signal: AbortSignal): Promise<SubmitResultResponse> {
   const value = await request("/api/results", signal, accountId, payload);
   if (!object(value) || value.submissionId !== payload.submissionId || !isSharedProfile(value.profile, accountId) ||
@@ -101,10 +121,20 @@ export async function postResult(accountId: string, payload: SubmitResultRequest
   return value as unknown as SubmitResultResponse;
 }
 
+export async function postInfiniteResult(accountId: string, payload: SubmitInfiniteScoreRequest, signal: AbortSignal): Promise<SubmitInfiniteScoreResponse> {
+  const value = await request("/api/infinite-results", signal, accountId, payload);
+  if (!object(value) || value.submissionId !== payload.submissionId || !isSharedProfile(value.profile, accountId) ||
+    !Array.isArray(value.entries) || value.entries.length > 10 || !value.entries.every(isSharedInfiniteBest) ||
+    new Set(value.entries.map((entry) => entry.accountId)).size !== value.entries.length) throw new RecordApiError("invalid-response");
+  return value as unknown as SubmitInfiniteScoreResponse;
+}
+
 export interface CompanyRecordApi {
   fetchProfile: typeof fetchProfile;
   fetchLeaderboard: typeof fetchLeaderboard;
   postResult: typeof postResult;
+  fetchInfiniteLeaderboard: typeof fetchInfiniteLeaderboard;
+  postInfiniteResult: typeof postInfiniteResult;
 }
 
-export const companyRecordApi: CompanyRecordApi = { fetchProfile, fetchLeaderboard, postResult };
+export const companyRecordApi: CompanyRecordApi = { fetchProfile, fetchLeaderboard, postResult, fetchInfiniteLeaderboard, postInfiniteResult };

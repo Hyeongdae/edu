@@ -47,7 +47,7 @@ describe("company profile bootstrap gate", () => {
 
   it("unmounts the old account while loading another account and restores only that account's progress", async () => {
     const second = deferred<Response>();
-    vi.stubGlobal("fetch", vi.fn((path: string, init: RequestInit) => path === "/api/leaderboard"
+    vi.stubGlobal("fetch", vi.fn((path: string, init: RequestInit) => path === "/api/leaderboard" || path === "/api/infinite-leaderboard"
       ? Promise.resolve(Response.json({ entries: [] })) : (init.headers as Record<string, string>)["X-Game-Account"] === "employee-a"
         ? Promise.resolve(Response.json(companyProfile({ highestClearedStage: 2 }))) : second.promise));
     const child = (records: Parameters<Parameters<typeof CompanyRecordsGate>[0]["children"]>[0]) => (

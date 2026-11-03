@@ -20,7 +20,8 @@ import { companyProfile } from "../test/companyFixtures";
 
 function companyBinding(highestClearedStage: CompanyRecordBinding["profile"]["highestClearedStage"] = 0): CompanyRecordBinding {
   return { profile: companyProfile({ accountId: account.homeAccountId, highestClearedStage }), entries: [],
-    syncStatus: "idle", pendingCount: 0, errorMessage: null, submitResult: vi.fn(), retry: vi.fn(), refresh: vi.fn() };
+    infiniteEntries: [], syncStatus: "idle", pendingCount: 0, errorMessage: null,
+    submitResult: vi.fn(), submitInfiniteScore: vi.fn(), retry: vi.fn(), refresh: vi.fn() };
 }
 
 const account = {

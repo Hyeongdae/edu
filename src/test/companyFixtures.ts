@@ -2,7 +2,7 @@ import type { SharedProfile, SubmitResultRequest, SubmitResultResponse } from ".
 import type { StageResult } from "../game/types";
 
 export function companyProfile(overrides: Partial<SharedProfile> = {}): SharedProfile {
-  return { accountId: "employee-a", displayName: "회사원 A", highestClearedStage: 0, best: null, ...overrides };
+  return { accountId: "employee-a", displayName: "회사원 A", highestClearedStage: 0, best: null, infiniteBest: null, ...overrides };
 }
 
 export function companyResult(overrides: Partial<StageResult> = {}): StageResult {

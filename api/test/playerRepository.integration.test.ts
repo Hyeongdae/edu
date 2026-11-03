@@ -39,6 +39,7 @@ describe("real isolated Cosmos DB repository operations", () => {
       ...newActor,
       highestClearedStage: 0,
       best: null,
+      infiniteBest: null,
     });
     expect(await repository().listTopScores()).toEqual([]);
     expect(await countAccountDocuments(newActor.accountId)).toBe(0);
@@ -51,7 +52,7 @@ describe("real isolated Cosmos DB repository operations", () => {
 
     expect(saved.highestClearedStage).toBe(1);
     expect(await repository().getProfile(owner)).toEqual(saved);
-    expect(await repository().getProfile(other)).toEqual({ ...other, highestClearedStage: 0, best: null });
+    expect(await repository().getProfile(other)).toEqual({ ...other, highestClearedStage: 0, best: null, infiniteBest: null });
     expect(await countAccountDocuments(owner.accountId)).toBe(1);
     expect(JSON.stringify(saved)).not.toMatch(/_etag|_rid|_self|_attachments|_ts/);
   });

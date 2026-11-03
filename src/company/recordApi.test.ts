@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { companyAck, companyProfile, companySubmission } from "../test/companyFixtures";
-import { fetchLeaderboard, fetchProfile, isSharedBest, postResult } from "./recordApi";
+import { fetchInfiniteLeaderboard, fetchLeaderboard, fetchProfile, isSharedBest, postInfiniteResult, postResult } from "./recordApi";
 
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
 
@@ -26,6 +26,22 @@ describe("company record HTTP boundary", () => {
     expect(options.headers).toMatchObject({ "Content-Type": "application/json", "X-Game-Request": "1", "X-Game-Account": "employee-a" });
     expect(JSON.parse(options.body)).toEqual(input);
     expect(options.body).not.toMatch(/accountId|displayName|endedAtMs|highestClearedStage/);
+  });
+
+  it("uses the isolated infinite endpoints with the same authenticated request boundary", async () => {
+    const input = { submissionId: "0b220b82-bccc-4b85-b763-d824001bc73b", result: { score: 450 } };
+    const profile = companyProfile({ infiniteBest: { accountId: "employee-a", displayName: "회사원 A", bestScore: 450,
+      achievedAt: "2026-10-30T00:00:00.000Z" } });
+    const fetcher = vi.fn().mockResolvedValueOnce(Response.json({ entries: [profile.infiniteBest] }))
+      .mockResolvedValueOnce(Response.json({ submissionId: input.submissionId, profile, entries: [profile.infiniteBest] }));
+    vi.stubGlobal("fetch", fetcher);
+    expect(await fetchInfiniteLeaderboard(new AbortController().signal)).toEqual([profile.infiniteBest]);
+    expect(await postInfiniteResult("employee-a", input, new AbortController().signal))
+      .toMatchObject({ submissionId: input.submissionId, profile, entries: [profile.infiniteBest] });
+    expect(fetcher.mock.calls[0][0]).toBe("/api/infinite-leaderboard");
+    expect(fetcher.mock.calls[1][0]).toBe("/api/infinite-results");
+    expect(fetcher.mock.calls[1][1]).toMatchObject({ credentials: "include", cache: "no-store", mode: "same-origin" });
+    expect(JSON.parse(fetcher.mock.calls[1][1].body)).toEqual(input);
   });
 
   it.each([401, 403, 302])("requires login on HTTP%s", async (status) => {

@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import { STAGE_RULES, getHighestUnlockedStage } from "../src/game/stageRules";
 import type { ClearedStage } from "../src/game/types";
 import {
-  compareSharedPerformance, getSharedTopScores, isSubmitResultRequest,
-  mergeSharedResult, validateResultForProfile,
+  compareSharedInfiniteScore, compareSharedPerformance, getSharedTopInfiniteScores, getSharedTopScores,
+  isSubmitInfiniteScoreRequest, isSubmitResultRequest, mergeSharedInfiniteScore, mergeSharedResult, validateResultForProfile,
 } from "./companyRecords";
 import type { AuthenticatedActor, ResultInput, SharedBest, SharedProfile, SubmitResultRequest } from "./companyRecords";
 
@@ -30,7 +30,7 @@ function best(overrides: Partial<SharedBest> = {}): SharedBest {
 }
 
 function profile(overrides: Partial<SharedProfile> = {}): SharedProfile {
-  return { ...actor, highestClearedStage: 0, best: best(), ...overrides };
+  return { ...actor, highestClearedStage: 0, best: best(), infiniteBest: null, ...overrides };
 }
 
 describe("submission structural boundary", () => {
@@ -94,6 +94,44 @@ describe("submission structural boundary", () => {
     const excessive = request({ score: 154, outcome: "cleared" });
     expect(isSubmitResultRequest(excessive)).toBe(true);
     expect(validateResultForProfile(excessive.result, 0)).toMatchObject({ ok: false, code: "invalid-request" });
+  });
+});
+
+describe("infinite score contract and ranking", () => {
+  const infiniteRequest = { submissionId: UUID, result: { score: 50 } };
+  const infiniteBest = (overrides: Partial<import("./companyRecords").SharedInfiniteBest> = {}) => ({
+    accountId: actor.accountId, displayName: actor.displayName, bestScore: 50, achievedAt: FIRST_TIME, ...overrides,
+  });
+
+  it("accepts uncapped safe scores and rejects malformed or extra fields", () => {
+    expect(isSubmitInfiniteScoreRequest(infiniteRequest)).toBe(true);
+    expect(isSubmitInfiniteScoreRequest({ ...infiniteRequest, result: { score: Number.MAX_SAFE_INTEGER } })).toBe(true);
+    for (const invalid of [
+      { ...infiniteRequest, accountId: actor.accountId }, { ...infiniteRequest, result: { score: -1 } },
+      { ...infiniteRequest, result: { score: 1.1 } }, { ...infiniteRequest, result: { score: Number.MAX_SAFE_INTEGER + 1 } },
+      { ...infiniteRequest, result: { score: 1, stage: 1 } }, { ...infiniteRequest, submissionId: "bad" },
+    ]) expect(isSubmitInfiniteScoreRequest(invalid)).toBe(false);
+  });
+
+  it("sorts by score, then first-achieved time, then account ID and keeps one row per account", () => {
+    const rows = [
+      infiniteBest({ accountId: "b", achievedAt: LATER_TIME }),
+      infiniteBest({ accountId: "a", achievedAt: FIRST_TIME }),
+      infiniteBest({ accountId: "b", bestScore: 51, achievedAt: LATER_TIME }),
+      infiniteBest({ accountId: "c", bestScore: 51, achievedAt: FIRST_TIME }),
+    ];
+    expect(getSharedTopInfiniteScores(rows).map(({ accountId, bestScore }) => [accountId, bestScore]))
+      .toEqual([["c", 51], ["b", 51], ["a", 50]]);
+    expect(compareSharedInfiniteScore(infiniteBest({ accountId: "a" }), infiniteBest({ accountId: "b" }))).toBeLessThan(0);
+  });
+
+  it("updates only a strictly higher score while stage merges preserve the infinite best", () => {
+    const initial = mergeSharedInfiniteScore(null, actor, { score: 50 }, FIRST_TIME).profile;
+    expect(mergeSharedInfiniteScore(initial, actor, { score: 50 }, LATER_TIME).profile.infiniteBest?.achievedAt).toBe(FIRST_TIME);
+    const higher = mergeSharedInfiniteScore(initial, actor, { score: 55 }, LATER_TIME).profile;
+    expect(higher.infiniteBest?.bestScore).toBe(55);
+    expect(mergeSharedResult(higher, actor, result({ score: 150, outcome: "cleared" }), LATER_TIME).profile.infiniteBest)
+      .toEqual(higher.infiniteBest);
   });
 });
 

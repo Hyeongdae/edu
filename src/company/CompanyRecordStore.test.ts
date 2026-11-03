@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { mergeSharedResult } from "../../shared/companyRecords";
+import { mergeSharedInfiniteScore, mergeSharedResult } from "../../shared/companyRecords";
 import type { SharedProfile } from "../../shared/companyRecords";
 import { companyAck, companyProfile, companyResult, companySubmission, deferred } from "../test/companyFixtures";
 import { CompanyRecordStore, companyPendingKey } from "./CompanyRecordStore";
@@ -18,9 +18,14 @@ function setup(initial = companyProfile(), storage = memory()) {
   const api = {
     fetchProfile: vi.fn<CompanyRecordApi["fetchProfile"]>().mockImplementation(async () => server),
     fetchLeaderboard: vi.fn<CompanyRecordApi["fetchLeaderboard"]>().mockResolvedValue([]),
+    fetchInfiniteLeaderboard: vi.fn<CompanyRecordApi["fetchInfiniteLeaderboard"]>().mockResolvedValue([]),
     postResult: vi.fn<CompanyRecordApi["postResult"]>().mockImplementation(async (accountId, input) => {
       server = mergeSharedResult(server, { accountId, displayName: server.displayName }, input.result, now).profile;
       return companyAck(input, server);
+    }),
+    postInfiniteResult: vi.fn<CompanyRecordApi["postInfiniteResult"]>().mockImplementation(async (accountId, input) => {
+      server = mergeSharedInfiniteScore(server, { accountId, displayName: server.displayName }, input.result, now).profile;
+      return { submissionId: input.submissionId, profile: server, entries: server.infiniteBest ? [server.infiniteBest] : [] };
     }),
   };
   const store = new CompanyRecordStore(initial.accountId, { api, storage: () => storage,
@@ -71,6 +76,18 @@ describe("account-bound company record store", () => {
     expect(api.postResult).toHaveBeenCalledTimes(1);
     expect(binding(store).pendingCount).toBe(0);
     expect(binding(store).profile.best?.bestScore).toBe(100);
+    expect(JSON.parse(storage.data.get(companyPendingKey("employee-a"))!).version).toBe(2);
+  });
+
+  it("stores infinite scores in the v2 queue and updates only the infinite personal best", async () => {
+    const { store, api } = setup();
+    store.start(); await settle();
+    store.submitInfiniteScore(Object.freeze({ score: 75 })); await settle();
+    expect(api.postInfiniteResult).toHaveBeenCalledOnce();
+    expect(api.postInfiniteResult.mock.calls[0][1].result).toEqual({ score: 75 });
+    expect(binding(store).profile.infiniteBest).toMatchObject({ bestScore: 75 });
+    expect(binding(store).profile.best).toBeNull();
+    expect(binding(store).infiniteEntries).toHaveLength(1);
   });
 
   it("serializes a clear before the following unlocked stage despite immediate continued play", async () => {

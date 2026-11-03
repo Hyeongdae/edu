@@ -12,11 +12,21 @@ export interface SharedBest {
   achievedAt: string;
 }
 
+export interface SharedInfiniteBest {
+  accountId: string;
+  displayName: string;
+  bestScore: number;
+  achievedAt: string;
+}
+
+export interface InfiniteScoreInput { score: number }
+
 export interface SharedProfile {
   accountId: string;
   displayName: string;
   highestClearedStage: ClearedStage;
   best: SharedBest | null;
+  infiniteBest: SharedInfiniteBest | null;
 }
 
 export interface AuthenticatedActor {
@@ -39,6 +49,17 @@ export interface LeaderboardResponse {
   entries: SharedBest[];
 }
 
+export interface SubmitInfiniteScoreRequest {
+  submissionId: string;
+  result: InfiniteScoreInput;
+}
+
+export interface SubmitInfiniteScoreResponse {
+  submissionId: string;
+  profile: SharedProfile;
+  entries: SharedInfiniteBest[];
+}
+
 export type ApiErrorCode = "unauthenticated" | "invalid-request" | "stage-locked"
   | "conflict" | "storage-unavailable";
 
@@ -55,6 +76,8 @@ export type ResultValidation = { ok: true } | {
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const REQUEST_KEYS = ["submissionId", "result"];
 const RESULT_KEYS = ["stage", "score", "remainingTimeCs", "outcome"];
+const INFINITE_REQUEST_KEYS = ["submissionId", "result"];
+const INFINITE_RESULT_KEYS = ["score"];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -79,6 +102,76 @@ export function isSubmitResultRequest(value: unknown): value is SubmitResultRequ
   return isRecord(value) && hasExactOwnKeys(value, REQUEST_KEYS) &&
     typeof value.submissionId === "string" && UUID_PATTERN.test(value.submissionId) &&
     isRecord(value.result) && hasExactOwnKeys(value.result, RESULT_KEYS) && hasResultFields(value.result);
+}
+
+function hasInfiniteScore(value: unknown): value is InfiniteScoreInput {
+  return isRecord(value) && hasExactOwnKeys(value, INFINITE_RESULT_KEYS) &&
+    typeof value.score === "number" && Number.isSafeInteger(value.score) && value.score >= 0;
+}
+
+export function validateInfiniteScoreInput(value: unknown): value is InfiniteScoreInput {
+  return hasInfiniteScore(value);
+}
+
+export function isSubmitInfiniteScoreRequest(value: unknown): value is SubmitInfiniteScoreRequest {
+  return isRecord(value) && hasExactOwnKeys(value, INFINITE_REQUEST_KEYS) &&
+    typeof value.submissionId === "string" && UUID_PATTERN.test(value.submissionId) && hasInfiniteScore(value.result);
+}
+
+function normalizeServerTime(value: string): string {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value)) {
+    throw new RangeError("serverNowIso must be a valid UTC ISO timestamp.");
+  }
+  const milliseconds = Date.parse(value);
+  if (!Number.isFinite(milliseconds)) throw new RangeError("serverNowIso must be a valid UTC ISO timestamp.");
+  const normalized = new Date(milliseconds).toISOString();
+  if (normalized !== (value.includes(".") ? value : value.replace("Z", ".000Z"))) {
+    throw new RangeError("serverNowIso must be a valid UTC ISO timestamp.");
+  }
+  return normalized;
+}
+
+export function compareSharedInfiniteScore(a: SharedInfiniteBest, b: SharedInfiniteBest): number {
+  return b.bestScore - a.bestScore || Date.parse(a.achievedAt) - Date.parse(b.achievedAt) ||
+    (a.accountId < b.accountId ? -1 : a.accountId > b.accountId ? 1 : 0);
+}
+
+export const compareInfinitePerformance = compareSharedInfiniteScore;
+
+export function getSharedTopInfiniteScores(entries: readonly SharedInfiniteBest[], limit = 10): SharedInfiniteBest[] {
+  if (!Number.isSafeInteger(limit) || limit <= 0) throw new RangeError("limit must be a positive safe integer.");
+  const unique = new Map<string, SharedInfiniteBest>();
+  for (const entry of entries) {
+    const previous = unique.get(entry.accountId);
+    if (!previous || compareSharedInfiniteScore(entry, previous) < 0) unique.set(entry.accountId, entry);
+  }
+  return [...unique.values()].sort(compareSharedInfiniteScore).slice(0, limit);
+}
+
+export function mergeSharedInfiniteScore(
+  previous: SharedProfile | null,
+  actor: AuthenticatedActor,
+  input: InfiniteScoreInput,
+  serverNowIso: string,
+): { profile: SharedProfile; changed: boolean } {
+  if (typeof actor.accountId !== "string" || !actor.accountId.trim() || typeof actor.displayName !== "string" ||
+    !hasInfiniteScore(input)) throw new RangeError("A verified actor and valid infinite score are required.");
+  if (previous && (previous.accountId !== actor.accountId ||
+    (previous.best && previous.best.accountId !== actor.accountId) ||
+    (previous.infiniteBest && previous.infiniteBest.accountId !== actor.accountId))) {
+    throw new RangeError("The previous profile must belong to the authenticated actor.");
+  }
+  const timestamp = normalizeServerTime(serverNowIso);
+  const candidate: SharedInfiniteBest = {
+    accountId: actor.accountId, displayName: actor.displayName, bestScore: input.score, achievedAt: timestamp,
+  };
+  let infiniteBest = previous?.infiniteBest ?? null;
+  if (!infiniteBest || candidate.bestScore > infiniteBest.bestScore) infiniteBest = candidate;
+  else if (infiniteBest.displayName !== actor.displayName) infiniteBest = { ...infiniteBest, displayName: actor.displayName };
+  const changed = !previous || previous.displayName !== actor.displayName || previous.infiniteBest !== infiniteBest;
+  if (!changed) return { profile: previous, changed: false };
+  return { profile: { ...previous, ...actor, highestClearedStage: previous?.highestClearedStage ?? 0,
+    best: previous?.best ?? null, infiniteBest }, changed: true };
 }
 
 export function validateResultForProfile(result: ResultInput, highest: ClearedStage): ResultValidation {
@@ -125,20 +218,6 @@ export function getSharedTopScores(entries: readonly SharedBest[], limit = 10): 
   return [...unique.values()].sort(compareSharedPerformance).slice(0, limit);
 }
 
-function normalizeServerTime(value: string): string {
-  // Accept UTC ISO seconds or milliseconds, but not permissive Date.parse inputs or normalized invalid dates.
-  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value)) {
-    throw new RangeError("serverNowIso must be a valid UTC ISO timestamp.");
-  }
-  const milliseconds = Date.parse(value);
-  if (!Number.isFinite(milliseconds)) throw new RangeError("serverNowIso must be a valid UTC ISO timestamp.");
-  const normalized = new Date(milliseconds).toISOString();
-  if (normalized !== (value.includes(".") ? value : value.replace("Z", ".000Z"))) {
-    throw new RangeError("serverNowIso must be a valid UTC ISO timestamp.");
-  }
-  return normalized;
-}
-
 /** Caller must validate the result against the latest stored profile before every conditional-write attempt. */
 export function mergeSharedResult(
   previous: SharedProfile | null,
@@ -150,7 +229,8 @@ export function mergeSharedResult(
     throw new RangeError("A verified actor with a non-empty accountId is required.");
   }
   if (previous && (previous.accountId !== actor.accountId ||
-    (previous.best !== null && previous.best.accountId !== actor.accountId))) {
+    (previous.best !== null && previous.best.accountId !== actor.accountId) ||
+    (previous.infiniteBest !== null && previous.infiniteBest.accountId !== actor.accountId))) {
     throw new RangeError("The previous profile must belong to the authenticated actor.");
   }
   const achievedAt = normalizeServerTime(serverNowIso);
@@ -171,11 +251,14 @@ export function mergeSharedResult(
     previous?.highestClearedStage ?? 0,
     input.outcome === "cleared" ? input.stage : 0,
   ) as ClearedStage;
+  const infiniteBest = previous?.infiniteBest && previous.infiniteBest.displayName !== actor.displayName
+    ? { ...previous.infiniteBest, displayName: actor.displayName } : previous?.infiniteBest ?? null;
   const changed = !previous || previous.displayName !== actor.displayName ||
-    previous.highestClearedStage !== highestClearedStage || previous.best !== best;
+    previous.highestClearedStage !== highestClearedStage || previous.best !== best || previous.infiniteBest !== infiniteBest;
   if (!changed) return { profile: previous, changed: false };
   return {
-    profile: { accountId: actor.accountId, displayName: actor.displayName, highestClearedStage, best },
+    profile: { accountId: actor.accountId, displayName: actor.displayName, highestClearedStage, best,
+      infiniteBest },
     changed: true,
   };
 }
