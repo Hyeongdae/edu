@@ -23,7 +23,16 @@ describe("InfiniteModeScreen", () => {
     vi.useFakeTimers(); vi.setSystemTime(new Date("2026-11-03T00:00:00.000Z"));
     const sound = audio();
     render(<InfiniteModeScreen account={account} audioController={sound} onReturnToTitle={vi.fn()} />);
-    fireEvent.click(screen.getByRole("button", { name: "무한 모드 시작" }));
+    expect(screen.getByRole("heading", { name: "무한 모드 준비 완료" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "게임 시작" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "랭킹 보기" })).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "랭킹 보기" }));
+    expect(screen.getByRole("dialog", { name: "최고 기록 랭킹" })).toBeVisible();
+    fireEvent.click(screen.getByRole("tab", { name: "무한 모드" }));
+    expect(screen.getByText("회사 계정으로 접속하면 무한 모드 랭킹이 기록됩니다.")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "랭킹 닫기" }));
+    expect(screen.getByRole("button", { name: "랭킹 보기" })).toHaveFocus();
+    fireEvent.click(screen.getByRole("button", { name: "게임 시작" }));
     expect(sound.startBgm).toHaveBeenCalledOnce();
     expect(screen.getByText("무한 모드 시작").closest("section")).toHaveAttribute("aria-live", "assertive");
     fireEvent.keyDown(window, { key: "d" });
@@ -41,7 +50,7 @@ describe("InfiniteModeScreen", () => {
     const company = records();
     const onReturnToTitle = vi.fn();
     render(<InfiniteModeScreen account={account} companyRecords={company} onReturnToTitle={onReturnToTitle} />);
-    fireEvent.click(screen.getByRole("button", { name: "무한 모드 시작" }));
+    fireEvent.click(screen.getByRole("button", { name: "게임 시작" }));
     await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
     fireEvent.keyDown(window, { key: "j" });
     expect(company.submitInfiniteScore).toHaveBeenCalledExactlyOnceWith({ score: 0 });

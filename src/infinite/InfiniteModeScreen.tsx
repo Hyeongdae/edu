@@ -8,6 +8,7 @@ import type { AudioPreferences } from "../audio/audioPreferences";
 import { StageTransitionCountdown } from "../game/StageTransitionCountdown";
 import { PixelIcon } from "../game/pixel/PixelIcon";
 import { ControlButtons } from "../game/ControlButtons";
+import { LeaderboardDialog } from "../leaderboard/LeaderboardDialog";
 import { applyInfiniteInput, createInfiniteGameState, startInfiniteGame, tickInfiniteGame } from "./infiniteEngine";
 import type { InfiniteGameState, InfiniteInput } from "./types";
 import { InfiniteHud } from "./InfiniteHud";
@@ -40,7 +41,11 @@ export function InfiniteModeScreen({
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [countdownEndsAt, setCountdownEndsAt] = useState<number | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [leaderboardOpen, setLeaderboardOpen] = useState(false);
   const pausedAtRef = useRef<number | null>(null);
+  const leaderboardTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const leaderboardCloseRef = useRef<HTMLButtonElement | null>(null);
+  const leaderboardDialogRef = useRef<HTMLElement | null>(null);
   const previousStepsRef = useRef(0);
   const previousEventRef = useRef(false);
   const terminalHandledRef = useRef(false);
@@ -170,6 +175,32 @@ export function InfiniteModeScreen({
   const onDialogKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
     if (event.key === "Escape") closeSettings();
   };
+  const closeLeaderboard = () => setLeaderboardOpen(false);
+  const onLeaderboardKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeLeaderboard();
+      return;
+    }
+    if (event.key !== "Tab") return;
+    const focusable = event.currentTarget.querySelectorAll<HTMLElement>(
+      'button:not([disabled]):not([tabindex="-1"]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+    );
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last?.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first?.focus();
+    }
+  };
+
+  useEffect(() => {
+    if (leaderboardOpen) leaderboardCloseRef.current?.focus();
+    else leaderboardTriggerRef.current?.focus();
+  }, [leaderboardOpen]);
 
   return (
     <main className="stair-game pixel-theme infinite-mode-screen" data-game-status={gameState.status}>
@@ -184,10 +215,19 @@ export function InfiniteModeScreen({
         <div className="infinite-mode-scene-wrap">
           <InfiniteStairScene state={gameState} isMoving={gameState.lastPursuerMove !== null && nowMs < gameState.lastPursuerMove.atMs + 240} />
         </div>
-        {gameState.status === "ready" && countdownEndsAt === null && <div className="infinite-start-panel">
-          <p>끝없이 계단을 올라 최고 점수에 도전하세요.</p>
-          <button className="start-button" type="button" onClick={startCountdown}>무한 모드 시작</button>
-        </div>}
+        {gameState.status === "ready" && countdownEndsAt === null && <section className="infinite-start-panel" aria-labelledby="infinite-start-title">
+          <div className="infinite-start-copy">
+            <p className="game-title-kicker">ENDLESS CHALLENGE</p>
+            <h2 id="infinite-start-title">무한 모드 준비 완료</h2>
+            <p>D로 올라가고, 계단이 꺾이면 J를 누르세요. 오래 살아남아 최고 점수에 도전하세요!</p>
+          </div>
+          <div className="infinite-start-actions">
+            <button className="start-button" type="button" onClick={startCountdown}>게임 시작</button>
+            <button ref={leaderboardTriggerRef} className="game-title-ranking" type="button" aria-haspopup="dialog"
+              aria-expanded={leaderboardOpen} aria-controls="leaderboard-dialog" onClick={() => setLeaderboardOpen(true)}>랭킹 보기</button>
+            <button className="game-title-guide" type="button" onClick={onReturnToTitle}>타이틀로</button>
+          </div>
+        </section>}
         {gameState.status === "playing" && <ControlButtons onForward={() => handleInput("forward")} onTurn={() => handleInput("turn")}
           onJump={() => undefined} showJump={false} direction="up" disabled={settingsOpen || countdownEndsAt !== null} />}
         {secondsRemaining !== null && <StageTransitionCountdown label="무한 모드 시작" secondsRemaining={secondsRemaining} />}
@@ -211,6 +251,9 @@ export function InfiniteModeScreen({
             <button className="start-button" type="button" onClick={closeSettings}>계속하기</button>
           </section>
         </div>}
+        {leaderboardOpen && <LeaderboardDialog entries={companyRecords?.entries ?? []} infiniteEntries={companyRecords?.infiniteEntries ?? []}
+          currentAccountId={account.homeAccountId} scope={companyRecords ? "company" : "browser"} onClose={closeLeaderboard}
+          closeButtonRef={leaderboardCloseRef} dialogRef={leaderboardDialogRef} onKeyDown={onLeaderboardKeyDown} />}
       </div></div>
     </main>
   );
