@@ -7,19 +7,19 @@
 [P01 Character Customization](./phases/2026-11-03-character-customization/P01-character-customization/phase.md)
 
 ## Active Task
-[T02 Account Appearance API](./phases/2026-11-03-character-customization/P01-character-customization/T02-account-appearance-api.md)
+[T03 Appearance Autosave](./phases/2026-11-03-character-customization/P01-character-customization/T03-appearance-autosave.md)
 
 ## Status
-- Character Customization T01 완료 (`8898b74`). done 1/5, Active P01-T02.
-- T01 shared 테스트205/205, lint, frontend/API build 통과. 기존500kB bundle 경고 유지.
-- 외형 카탈로그·계약과 점수 병합 보존까지 구현했다. 다음 작업은 실제 계정 저장 API다.
+- Character Customization T01 (`8898b74`), T02 (`5f98abb`) 완료. done 2/5, Active P01-T03.
+- T02 API 테스트186/186, shared 테스트205/205, lint/API build 통과. 새 emulator 통합3건은 로컬 실행 환경이 없어 미실행이며 배포 전 CI 검증이 필요하다.
+- 인증된 `/api/appearance`와 기존 기록을 보존하는 Cosmos 저장을 구현했다. 다음 작업은 클라이언트 자동 저장과 응답 순서 제어다.
 - 기존 `src/game/pixel-theme.css`의 미커밋 모바일 무한 모드 버튼 간격 변경을 보존한다.
 
 ## Source Decision
 - [Character Customization](./decisions/2026-11-03-character-customization.md)
 
 ## Next Step
-T02 청사진을 읽고 `api/src/playerRepository.ts`의 외형 저장·기록 보존과 `api/src/handlers.ts`, `api/src/index.ts`의 인증된 `/api/appearance` 경로를 구현한다. `/memory-execute` 또는 `current 보고 이어서 해줘`로 Active Task 한 개씩 진행한다.
+T03 청사진을 읽고 `src/company/recordApi.ts`, `src/company/types.ts`, `src/company/CompanyRecordStore.ts`의400ms 외형 자동 저장·최신 선택 보존·실패/재시도를 구현한다. `/memory-execute` 또는 `current 보고 이어서 해줘`로 Active Task 한 개씩 진행한다.
 
 ## Previous Completed Plan
 - [Game Pause Menu](./plans/2026-11-03-game-pause-menu.md) complete 3/3. T02: `b9b95f4`; T03: `ec1c52a`.

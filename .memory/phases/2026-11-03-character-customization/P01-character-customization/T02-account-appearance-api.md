@@ -103,7 +103,7 @@ Task: T02-account-appearance-api
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: pending
+- commit: `5f98abb`
 
 ## Validation Results — 2026-11-03
 - `npm --prefix api test`: 4파일186/186 통과(3.01초). 외형 왕복/기록 보존, 계정 경계, 신규409·갱신412 재시도, 입력/크기 경계, 공개 오류 응답을 확인했다.
