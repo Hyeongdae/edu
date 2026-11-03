@@ -81,6 +81,9 @@
 .stair-game.pixel-theme .game-settings-button { z-index: 6; top: 12px; right: 12px; }
 .stair-game.pixel-theme .game-settings-button:hover { background: #263d50; }
 .stair-game.pixel-theme .game-settings-button:disabled { opacity: 0.5; cursor: default; }
+.stair-game.pixel-theme .game-pause-button { right: 64px; }
+.stair-game.pixel-theme .game-pause-button:hover { background: #263d50; }
+.stair-game.pixel-theme .game-pause-button:focus-visible { outline: 3px solid var(--pixel-gold); outline-offset: 3px; }
 
 .stair-game.pixel-theme .game-title-screen {
   border: 8px solid #202d49;
@@ -417,6 +420,19 @@
 .stair-game.pixel-theme[data-game-status="game-over"] .game-footer { display: none; }
 
 .stair-game.pixel-theme .settings-backdrop { z-index: 8; padding: 20px; overflow: hidden; background: rgb(3 8 20 / 82%); backdrop-filter: none; }
+.stair-game.pixel-theme .pause-menu-backdrop { position: absolute; z-index: 9; inset: 0; display: grid; place-items: center; overflow: auto; padding: 20px; background: rgb(3 8 20 / 82%); }
+.stair-game.pixel-theme .pause-menu-dialog { width: min(100%, 460px); max-height: 100%; overflow: auto; padding: 24px; border: 4px solid var(--pixel-cyan); border-radius: 0; background: #142238; box-shadow: 6px 6px 0 #030815; color: var(--pixel-text); }
+.stair-game.pixel-theme .pause-menu-kicker { margin: 0 0 8px; color: var(--pixel-cyan); font: 800 0.7rem ui-monospace, Consolas, monospace; letter-spacing: 0.16em; }
+.stair-game.pixel-theme .pause-menu-dialog h2 { margin: 0 0 20px; color: var(--pixel-gold); font-size: clamp(1.2rem, 4vw, 1.8rem); }
+.stair-game.pixel-theme .pause-menu-actions,
+.stair-game.pixel-theme .pause-menu-confirmation-actions { display: grid; gap: 8px; }
+.stair-game.pixel-theme .pause-menu-confirmation-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.stair-game.pixel-theme .pause-menu-confirmation-copy { margin: 0 0 18px; color: var(--pixel-muted); line-height: 1.6; }
+.stair-game.pixel-theme .pause-menu-button { min-width: 0; min-height: 52px; padding: 10px 14px; border: 3px solid var(--pixel-edge); border-radius: 0; background: #263d50; box-shadow: 3px 3px 0 #080e1b; color: var(--pixel-text); font: inherit; font-weight: 700; cursor: pointer; }
+.stair-game.pixel-theme .pause-menu-button.is-primary { border-color: var(--pixel-gold); background: #354854; color: var(--pixel-gold); }
+.stair-game.pixel-theme .pause-menu-button.is-title { border-color: var(--pixel-cyan); color: var(--pixel-cyan); }
+.stair-game.pixel-theme .pause-menu-button:hover { filter: brightness(1.15); }
+.stair-game.pixel-theme .pause-menu-button:focus-visible { outline: 3px solid var(--pixel-gold); outline-offset: 3px; }
 .stair-game.pixel-theme .instructions-backdrop { z-index: 8; padding: 20px; overflow: hidden; background: rgb(3 8 20 / 82%); }
 .stair-game.pixel-theme .instructions-dialog { width: min(100%, 860px); max-height: 100%; border: 2px solid var(--pixel-edge); border-radius: 0; background: var(--pixel-panel); box-shadow: 6px 6px 0 #030815; }
 .stair-game.pixel-theme .instructions-dialog-header { flex: 0 0 auto; padding: 14px; border-bottom: 2px solid var(--pixel-edge); background: #151f37; color: var(--pixel-text); }
@@ -575,6 +591,7 @@
   .stair-game.pixel-theme .pixel-scene-stage { overflow: visible; }
   .stair-game.pixel-theme .office-backdrop { top: auto; bottom: 0; height: 100dvh; }
   .stair-game.pixel-theme .game-settings-button { top: 8px; right: 8px; }
+  .stair-game.pixel-theme .game-pause-button { top: 8px; right: 60px; }
   .stair-game.pixel-theme .game-hud { position: relative; top: auto; left: auto; right: auto; width: calc(100% - 68px); margin-left: 8px; grid-template-columns: minmax(0, 1fr); gap: 4px; }
   .stair-game.pixel-theme .hud-card { min-height: 64px; padding: 7px 6px; }
   .stair-game.pixel-theme .score-card { grid-column: 1 / -1; min-height: 80px; gap: 8px; }
@@ -604,6 +621,8 @@
   .stair-game.pixel-theme .desktop-control-hint { display: none; }
   .stair-game.pixel-theme .mobile-control-hint { display: inline; }
   .stair-game.pixel-theme .settings-backdrop { padding: 12px; }
+  .stair-game.pixel-theme .pause-menu-backdrop { padding: 12px; }
+  .stair-game.pixel-theme .pause-menu-dialog { padding: 16px; }
   .stair-game.pixel-theme .instructions-backdrop { padding: 12px; }
   .stair-game.pixel-theme .leaderboard-dialog-backdrop { padding: 12px; }
   .stair-game.pixel-theme .leaderboard-dialog-header { padding: 10px; }

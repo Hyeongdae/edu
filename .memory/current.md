@@ -1,36 +1,22 @@
 # Current Context
 
 ## Active Plan
-[Infinite Score Mode](./plans/2026-11-03-infinite-score-mode.md) — 완료.
+[Game Pause Menu](./plans/2026-11-03-game-pause-menu.md)
 
 ## Active Phase
-없음 — [P01 Infinite Score Mode](./phases/2026-11-03-infinite-score-mode/P01-infinite-mode/phase.md) 완료 (3/3).
+[P01 Pause Flow](./phases/2026-11-03-game-pause-menu/P01-pause-flow/phase.md)
 
 ## Active Task
-없음 — Infinite Score Mode 완료 (3/3).
-
-## Last Completed Task
-[T03 Infinite Mode UI](./phases/2026-11-03-infinite-score-mode/P01-infinite-mode/T03-infinite-mode-ui.md) — `5551b3e`; 128 focused frontend tests, lint, production frontend/API builds, and 98 API tests passed.
+[T02 Stage Mode Pause](./phases/2026-11-03-game-pause-menu/P01-pause-flow/T02-stage-mode-pause.md)
 
 ## Status
-- Infinite Score Mode is complete: separate upward endless play, title entry, mode-specific guide and leaderboard tabs, and account-scoped Cosmos best score are implemented. T01 and T02 are complete; T03 committed as `5551b3e`.
-- Confirmed boundaries: stage mode remains the existing downward five-stage game; local demo does not persist records; company ranking stores one infinite personal best in the existing `stair-climb/players` container. Equal infinite scores use dense ranks (1, 1, 2).
-- P01 Gameplay Polish is complete (3/3): score cap, the three-second stage transition countdown, and the 30% default BGM preference are implemented and validated.
-- Start Game Countdown is complete: Start shows 3-2-1 over the selected stage; the clock and pursuer begin when it ends.
-- P01-T01 score cap is implemented and validated: new in-game scores and result/API/Cosmos validation stop at the per-stage target. Existing Cosmos records were not changed; the user will edit previous over-target data. Web/API unit tests, lint, and both builds pass; emulator integration was skipped because its connection string is not configured.
-- P03 Azure cutover is complete: company-account Cosmos persistence was verified before deleting the legacy Storage account; after cleanup the user confirmed the ranking records remained.
-- P02-T02 is complete. GitHub Actions verified the Cosmos emulator integration suite and the production artifact staging; local Docker was not required.
-- Azure target is live at `stair-climb/players` with `/accountId` and shared 400 RU/s database throughput. The deployed SWA has Cosmos server settings only; legacy Table settings and the dedicated Storage account have been removed.
-- Parked prior pointer: [Azure Company Game Deployment P02-T03](./phases/2026-10-30-azure-company-game-deployment/P02-azure-release/T03-release-and-verify-url.md). Its real Entra login/save verification was superseded by the Cosmos-backed verification in P03-T02.
-- Confirmed boundaries: Cosmos `auth`/`game` containers remain untouched; local game runs save no ranking/progress records but retain in-memory unlocks for the current session; production records keep the current rank ordering; the old table history is not migrated.
-- Existing `maze-rescue` containers and throughput are untouched. The new `stair-climb` database has a separate shared 400 RU/s pool; `players` has no dedicated throughput.
+- T01 Shared Pause Dialog is complete and validated. T02 Stage Mode Pause is active.
 
-## Source Decisions
-- [Pursuer straw-hat design](./decisions/2026-10-30-pursuer-straw-hat-design.md)
-- [Cosmos ranking storage migration](./decisions/2026-10-30-cosmos-ranking-storage-migration.md)
+## Source Decision
+- [Game Pause Menu](./decisions/2026-11-03-game-pause-menu.md)
 
 ## Next Step (IMPORTANT)
-No active task. Infinite Score Mode is complete. Start a new interview and plan for any follow-up changes.
+Read T02 and implement stage mode pause, timed resume/restart, and title confirmation in `src/game/GameScreen.tsx`.
 ---
 
 ### Previous Context: Main Game Descent Conversion

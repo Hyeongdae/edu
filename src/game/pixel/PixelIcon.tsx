@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
 
 export type PixelIconName = "forward" | "turn" | "jump" | "settings" | "close"
-  | "heart" | "flag" | "restart" | "stair";
+  | "heart" | "flag" | "restart" | "stair" | "pause";
 
 interface PixelIconProps {
   name: PixelIconName;
@@ -19,6 +19,7 @@ const ICON_PATHS: Record<PixelIconName, string> = {
   flag: "M2 0h2v1h10v8H4v7H2Zm2 3v2h2V3Zm4 0v2h2V3Zm4 0v2h2V3ZM6 5v2h2V5Zm4 0v2h2V5Z",
   restart: "M6 1h6v2h2v2h2v6h-2v2h-2v2H6v-2H4v-2H2V9h2v2h2v2h6v-2h2V5h-2V3H6v2h2v2H0V0h2v3h2V1Z",
   stair: "M10 1h5v4h-4v4H7v4H3v2H1v-4h4V7h4V3h1Z",
+  pause: "M3 1h3v14H3Zm7 0h3v14h-3Z",
 };
 
 export function PixelIcon({ name, size = 24, className = "" }: PixelIconProps): ReactElement {
