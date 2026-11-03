@@ -1,7 +1,6 @@
 # Task: T03 Infinite Mode Pause
 
-## Status: pending
-
+## Status: done
 ## Goal
 Add the same pause menu, countdown, confirmations, and BGM behavior to infinite mode without losing its score or pursuit state when resuming.
 
@@ -56,14 +55,14 @@ Add the same pause menu, countdown, confirmations, and BGM behavior to infinite 
 - Verify BGM stop/start ordering and that pause never submits a ranking result.
 
 ## Acceptance Criteria
-- [ ] Infinite mode pause uses the same menu and modal behavior as stage mode.
-- [ ] Resume preserves the current infinite run and keeps pursuer/event deadlines frozen until countdown completion.
-- [ ] Restart and title return require confirmation and `아니오` returns to the pause menu.
+- [x] Infinite mode pause uses the same menu and modal behavior as stage mode.
+- [x] Resume preserves the current infinite run and keeps pursuer/event deadlines frozen until countdown completion.
+- [x] Restart and title return require confirmation and `아니오` returns to the pause menu.
 
 ## Validation
-- `npm test -- src/infinite/InfiniteModeScreen.test.tsx` — focused infinite mode tests pass.
-- `npm run lint` — no ESLint errors.
-- `npm run build` — TypeScript check and production build pass.
+- `npm test -- src/infinite/InfiniteModeScreen.test.tsx` — 6 tests passed.
+- `npm run lint` — passed with no ESLint errors.
+- `npm run build` — TypeScript and production build passed (existing >500 kB bundle-size warning).
 
 ## Commit Message
 ```text
@@ -78,6 +77,6 @@ Task: T03-infinite-mode-pause
 ```
 
 ## Progress
-- [ ] 구현 완료
-- [ ] 검증 통과
-- commit: pending
+- [x] 구현 완료
+- [x] 검증 통과
+- commit: `ec1c52a`

@@ -7,16 +7,16 @@
 [P01 Pause Flow](./phases/2026-11-03-game-pause-menu/P01-pause-flow/phase.md)
 
 ## Active Task
-[T03 Infinite Mode Pause](./phases/2026-11-03-game-pause-menu/P01-pause-flow/T03-infinite-mode-pause.md)
+None — all tasks in this plan are complete.
 
 ## Status
-- T01 and T02 are complete. T02 commit: `b9b95f4`. T03 Infinite Mode Pause is active.
+- Game Pause Menu is complete (3/3). T02: `b9b95f4`; T03: `ec1c52a`.
 
 ## Source Decision
 - [Game Pause Menu](./decisions/2026-11-03-game-pause-menu.md)
 
-## Next Step (IMPORTANT)
-Read T03 and implement the matching pause flow in `src/infinite/InfiniteModeScreen.tsx`.
+## Next Step
+No active task. Create a new plan when there is more work.
 ---
 
 ### Previous Context: Main Game Descent Conversion
