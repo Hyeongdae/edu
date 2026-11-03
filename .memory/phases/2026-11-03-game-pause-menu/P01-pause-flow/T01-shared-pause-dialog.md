@@ -84,4 +84,4 @@ Task: T01-shared-pause-dialog
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: pending
+- commit: `8342980`
