@@ -34,7 +34,15 @@
 - [Character Gender Visual Distinction](./decisions/2026-11-04-character-gender-visual-distinction.md)
 
 ## Next Step (IMPORTANT)
-계획 구현/자동 검증은3/3 완료하여 다음 Active Task는 없다. 로컬 http://127.0.0.1:5173/의 타이틀→캐릭터 꾸미기에서 성별만 전환해 얼굴/체형을 비교한다. 출시 전 실제 브라우저4개크기의 모바일 스크롤/터치/native keyboard/애니메이션과 이전 Cosmos CI/실제 계정 복원을 확인한다. push/배포는 별도 사용자 요청 범위다.
+계획 구현/자동 검증은3/3 완료하여 다음 Active Task는 없다. 2026-11-04 사용자 요청으로 아래 배포를 완료했다. 운영 페이지를 새로고침한 뒤 타이틀→캐릭터 꾸미기에서 성별/새 옵션을 확인한다. 실제 브라우저4개크기의 모바일 스크롤/터치/native keyboard/애니메이션과 회사 계정의 외형 저장/복원은 이번 출시에서 수동 검증하지 않았다. 로컬 데모 http://127.0.0.1:5173/도 유지한다.
+
+## Latest Release — 2026-11-04
+- 사용자 요청: GitHub 업데이트 및 배포. 기존 캐릭터 꾸미기/옵션 확장/성별 차이 강화와 보존 중이던 모바일 버튼 간격2줄을 함께 출시했다. 모바일 간격 커밋은 `ae9d9b1`이다.
+- 코드 커밋 `ae9d9b175a97f73cacc50d3f1d0180bafb3b7be8`을 `origin/main` 및 `origin/codex/cosmos-emulator-ci`에 atomic fast-forward push 완료.
+- [GitHub Actions 41782715701](https://github.com/Hyeongdae/edu/actions/runs/41782715701): verify/deploy 모두 success. frontend/shared1784/1784, API198/198, 실제 Cosmos emulator 통합13/13, 배포 검사26/26 및 lint/클라이언트·API build 통과.
+- 운영 https://ashy-cliff-0e5e4b600.1.azurestaticapps.net/ 배포 완료. Azure 운영 환경 Ready, lastUpdatedOn `2026-11-04T06:04:59.747872+00:00` 확인. 배포 job 완료는 15:05 KST.
+- 익명 요청의 `/`, `/api/profile`, `/api/leaderboard`는 Entra 로그인으로302, `/.auth/me`는200으로 로그인 보호 확인. 실제 로그인 플레이/기기 간 외형 복원은 이번 확인 범위에 포함하지 않았다.
+- 기존 메모의 “push/배포 미수행”, “로컬 emulator 미실행”, “모바일 간격 미커밋”은 각 개발 Task 당시의 기록이다. 이번 CI의 emulator 검증/동시 배포로 해당 출시 대기 항목을 완료했다. 이전 untracked 사용자 파일은 보존했다.
 
 ## Previous Completed Feature: Character Customization Expansion
 - T01 (`20fbcb6`), T02 (`ab16a10`), T03 (`445e014`), T04 (`b5b989e`) 완료. done 4/4, Active Task 없음.
