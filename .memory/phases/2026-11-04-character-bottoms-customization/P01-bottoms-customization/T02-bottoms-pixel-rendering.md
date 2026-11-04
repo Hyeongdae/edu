@@ -123,7 +123,7 @@ Task: T02-bottoms-pixel-rendering
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: pending
+- commit: `e30fea8`
 
 ## Execution Result — 2026-11-04
 - OfficerBottomsArt를 추가해 원래 다리/신발 좌표를 공통 표로 옮겼다. PixelOfficer의4프레임과 OvertimeOfficer의4포즈가 이 부품을 사용한다. 상의/머리/팔/손/가방/외부 transform/신발 바닥 y=40과 야근의 앞뒤 다리 CSS 그룹을 보존했다.
