@@ -1,6 +1,6 @@
 # Task: T02 Gender Body and Pose Fit
 
-## Status: in_progress
+## Status: done
 
 ## Goal
 선택한 옷과 소품을 유지하면서 두 나이대 모두 남녀 어깨/몸통 윤곽이 구분된다. 게임4프레임과 야근4포즈에서 팔·목·가방이 자연스럽게 연결되고 기존 손/발 기준점은 유지된다.
@@ -99,11 +99,11 @@
 - 가능하면 TEMP 정적 SVG 렌더러로 얼굴/몸통/손·가방의 실제 표본을 확인한다. 기존 도구 `%TEMP%/character-expansion-t02-renderer/node_modules/@resvg/resvg-js`, `%TEMP%/character-expansion-t04-static.cjs`를 재사용할 수 있으나 Task용 새 표본은 별도 TEMP 폴더에 둔다. 예전 geometry의 정적 결과를 이번 검증으로 재사용하지 않는다. 새 의존성을 repo에 추가하거나 차단된 Chrome 실행을 우회하지 않는다. 종합 시각 비교는 T03에서 마무리한다.
 
 ## Acceptance Criteria
-- [ ] 같은 옷에서 두 나이대 모두 성별에 따른 어깨/몸통이 실제로 구분된다.
-- [ ] 게임/야근의 모든 포즈에서 목·팔·손·몸통·가방이 연결된다.
-- [ ] 옷5종 디테일과 색상, 조끼 소매, 가방 종류/색상/레이어가 유지된다.
-- [ ] 손/신발 기준점, 전체 변환/clip/모션과 기존 남성 기본 도형이 보존된다.
-- [ ] 신규 저장 필드/API/UI/게임 규칙 변경 없이 집중 검증을 통과한다.
+- [x] 같은 옷에서 두 나이대 모두 성별에 따른 어깨/몸통이 실제로 구분된다.
+- [x] 게임/야근의 모든 포즈에서 목·팔·손·몸통·가방이 연결된다.
+- [x] 옷5종 디테일과 색상, 조끼 소매, 가방 종류/색상/레이어가 유지된다.
+- [x] 손/신발 기준점, 전체 변환/clip/모션과 기존 남성 기본 도형이 보존된다.
+- [x] 신규 저장 필드/API/UI/게임 규칙 변경 없이 집중 검증을 통과한다.
 
 ## Validation
 - `npm test -- --run src/game/pixel/genderAppearanceArt.test.tsx src/game/pixel/characterAppearanceArt.test.tsx src/game/pixel/expandedCharacterArt.test.tsx src/game/pixel/pursuerAppearance.test.tsx src/game/StairScene.test.tsx src/infinite/InfiniteStairScene.test.tsx src/game/OfficeExitEnding.test.tsx src/game/OvertimeCaptureEnding.test.tsx --maxWorkers=2` — 도형/포즈/가방/기존 장면 기준점 회귀 통과.
@@ -125,7 +125,17 @@ Task: T02-gender-body-and-pose-fit
 ```
 
 ## Progress
-- [ ] 구현 완료
-- [ ] 검증 통과
+- [x] 구현 완료
+- [x] 검증 통과
 - commit: pending
 - Next after successful commit: T03-editor-and-scene-validation. phase/plan/current를 done2/3 및 Active T03으로 동기화한다. 기존 pixel-theme.css와 무관한 파일은 커밋에서 제외한다.
+
+## Validation Results — 2026-11-04
+- OfficerOutfitArt에 성별별 .officer-torso-outline/cloth 도형을 연결했다. 여성은 young/older·normal/dragged에서 어깨/몸통 옆선을 좁혔고 옷5종의 디테일/패널/음영/사원증/벨트를 외곽 안으로 맞췄다. 남성 기본 몸통/cloth rect와 저장된 선택은 유지했다. 새 clip/scale은 추가하지 않았다.
+- PixelOfficer/OvertimeOfficer에서 여성 소매 뿌리를 맞추고 손과 연결되는 작은 소매 도형을 추가했다. 손 좌표와 신발/다리·표정·기존 그룹/모션/변환은 유지했다. 포즈 연결 검사 과정에서 기존 older 남성 run-b의 들린 손과 소매 사이1px 틈도 확인해 동일한 연결 범위에서 보완했다. 남성 기본 몸통/손/발은 바뀌지 않았다.
+- OfficerBagArt의 전체 placement/케이스/손잡이 도형은 그대로 두고 여성 어깨·몸통에 맞는 백팩/노트북/크로스백 끈과 백팩 연결부만 조정했다. 가방 종류/색상 및 앞뒤 순서를 유지한다.
+- 지정8파일362/362 통과(19.50초). 이후 게임 손 좌표와 백팩 연결 검사까지 보강해 genderAppearanceArt64/64를 재검증했다(6.33초). 새 body 사례32개는 실제 수평 단면의 여성 폭, 옷 도형의 외곽 이탈0, 두 나이대/성별의 모든 게임·야근 포즈에서4방향 픽셀 연결로 손과 소매가 몸통에 붙는지, 원래 손 좌표/발 y=40, 가방끈/백팩의 연결·케이스/placement/색상/선택 보존을 확인한다.
+- 초기 기존3파일 실행은 여성 cloth의 과거 rect width와 소매 과거좌표를 가정한26개가 실패했다. 새 여성 cloth의 실제 어깨 폭과 의미 있는 소매 selector로 갱신했다. 원래 손/신발/색상·옷 구분/가방 단언을 삭제하지 않았고 남성 기본 도형의 기존 검사는 그대로 통과했다.
+- npm run lint 최종 통과(초기 픽셀 검사 helper의 미사용 xs 변수1개 제거), npm run build, git diff --check 통과. 집중 테스트→lint→build 순으로 검증했고 timeout/skip/config·패키지는 변경하지 않았다. 기존500kB chunk 경고는 유지한다.
+- 현재 실제 컴포넌트의 정적 비교64표본(옷20/포즈24/가방20)을 새로 생성해 outfits.png/poses.png/bags.png를 육안 확인했다. 같은 머리/색상에서 남녀 어깨·몸통이 구분되고 움직임/야근/가방 연결이 유지된다. TEMP/character-gender-visual-distinction-2026-11-04/t02/의 SVG/PNG/samples.json에 보존했다. 기존 TEMP esbuild/resvg만 사용했고 브라우저/모바일/애니메이션 확인으로 간주하지 않는다. Chrome 차단을 우회하지 않았다.
+- 로그 TEMP/gender-body-t02-{baseline,focused,anchors,lint,lint-final,build}.log 보존. 실제 편집→두 모드/엔딩 전달과 전체 회귀·종합 비교는 T03에 남긴다. API/DB/랭킹/규칙/장면 좌표/clip/모션 CSS와 기존 미커밋 pixel-theme.css2줄은 그대로다. 별도 범위가 필요한 발견: 특이사항 없음. push/배포는 수행하지 않았다.

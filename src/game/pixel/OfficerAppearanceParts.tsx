@@ -191,42 +191,55 @@ export function OfficerOutfitArt({ variant, appearance: input, pose }: {
   const older = variant === "older", dragged = pose === "dragged";
   const appearance = resolveCharacterLook(input, older ? "pursuer" : "runner");
   const palette = getOfficerPalette(appearance);
+  const female = appearance.gender === "female";
+  const femaleOutline = dragged
+    ? older ? "M9 22H21V25H24V29H23V32H24V34H12V32H13V29H10V26H9Z"
+      : "M8 22H22V25H25V29H24V32H25V34H11V32H12V29H9V26H8Z"
+    : older ? "M11 22H25V25H24V29H23V32H24V34H12V32H13V29H12V25H11Z"
+      : "M10 22H26V25H25V29H24V32H25V34H11V32H12V29H11V25H10Z";
+  const femaleCloth = dragged
+    ? older ? "M10 23H20V26H23V29H22V32H23V33H13V32H14V29H11V26H10Z"
+      : "M9 23H21V26H24V29H23V32H24V33H12V32H13V29H10V26H9Z"
+    : older ? "M12 23H24V25H23V29H22V32H23V33H13V32H14V29H13V25H12Z"
+      : "M11 23H25V25H24V29H23V32H24V33H12V32H13V29H12V25H11Z";
   return (
-    <g className={`officer-outfit officer-outfit--${appearance.outfit}`}>
-      <path d={dragged
+    <g className={`officer-outfit officer-outfit--${appearance.outfit}`} data-appearance-gender={appearance.gender}>
+      <path className="officer-torso-outline" d={female ? femaleOutline : dragged
         ? older ? "M8 22H22V25H25V34H11V30H8Z" : "M7 22H23V25H27V34H10V30H7Z"
         : older ? "M10 22H26V34H10Z" : "M9 22H27V34H9Z"} fill={INK} />
-      {dragged ? <path className="officer-cloth" d={older ? "M9 23H21V26H24V32H12V29H9Z" : "M8 23H22V26H26V32H11V29H8Z"} fill={palette.cloth} />
+      {female ? <path className="officer-cloth" d={femaleCloth} fill={palette.cloth} />
+        : dragged ? <path className="officer-cloth" d={older ? "M9 23H21V26H24V32H12V29H9Z" : "M8 23H22V26H26V32H11V29H8Z"} fill={palette.cloth} />
         : <rect className="officer-cloth" x={older ? 11 : 10} y="23" width={older ? 14 : 16} height="9" fill={palette.cloth} />}
-      <rect x={older ? 11 : 10} y="24" width={older ? 2 : 3} height="8" fill={palette.clothShade} />
-      <rect x="16" y="23" width={older ? 7 : 8} height="9" fill={appearance.outfit === "hoodie" ? palette.cloth : "#e6f2ed"} />
+      {female ? <path d={`M${older ? 12 : 11} 24H14V26H15V29H16V32H14V29H13V26H${older ? 12 : 11}Z`} fill={palette.clothShade} />
+        : <rect x={older ? 11 : 10} y="24" width={older ? 2 : 3} height="8" fill={palette.clothShade} />}
+      <rect x={female && dragged ? 15 : 16} y="23" width={female ? older ? 5 : 6 : older ? 7 : 8} height="9" fill={appearance.outfit === "hoodie" ? palette.cloth : "#e6f2ed"} />
       {appearance.outfit === "shirt" && <g className="officer-shirt-details">
-        <path d="M16 23H18V25H16ZM22 23H24V25H22Z" fill="#b7cad1" />
+        <path d={female ? "M15 23H17V24H18V25H16V24H15ZM19 23H21V24H20V25H19Z" : "M16 23H18V25H16ZM22 23H24V25H22Z"} fill="#b7cad1" />
         <path d="M20 26H21V27H20ZM20 29H21V30H20ZM20 31H21V32H20Z" fill={INK} />
       </g>}
       {appearance.outfit === "suit" && <g className="officer-suit-details">
-        <path d="M14 23H16V25H19V28H18V29H16V30H14V28H16V26H14ZM24 23H25V27H23V29H21V27H23V25H24Z" fill={palette.clothShade} />
-        <rect x="19" y="24" width="3" height="2" fill={older ? "#61e8e1" : "#f07c9f"} />
-        <rect x="20" y="26" width="2" height="4" fill={older ? "#36a2aa" : "#c84e76"} />
+        <path d={female ? "M14 23H16V25H18V27H19V29H17V30H15V28H16V26H14ZM19 23H21V25H22V27H21V29H20V27H19Z" : "M14 23H16V25H19V28H18V29H16V30H14V28H16V26H14ZM24 23H25V27H23V29H21V27H23V25H24Z"} fill={palette.clothShade} />
+        <rect x={female ? 18 : 19} y="24" width={female ? 2 : 3} height="2" fill={older ? "#61e8e1" : "#f07c9f"} />
+        <rect x={female ? 19 : 20} y="26" width={female ? 1 : 2} height="4" fill={older ? "#36a2aa" : "#c84e76"} />
       </g>}
       {appearance.outfit === "cardigan" && <g className="officer-cardigan-details">
-        <path d="M14 23H16V25H18V27H20V32H17V28H15V26H14ZM23 23H25V26H23V28H21V32H20V27H21V25H23Z" fill={palette.clothShade} />
+        <path d={female ? "M14 23H16V25H18V27H20V32H18V28H16V26H14ZM19 23H21V25H22V27H21V32H20V27H19Z" : "M14 23H16V25H18V27H20V32H17V28H15V26H14ZM23 23H25V26H23V28H21V32H20V27H21V25H23Z"} fill={palette.clothShade} />
         <path d="M19 28H20V29H19ZM19 30H20V31H19Z" fill="#ffd27a" />
       </g>}
       {appearance.outfit === "hoodie" && <g className="officer-hoodie-details">
-        <path d="M14 22H17V24H22V22H25V24H23V26H16V24H14ZM17 28H24V31H17Z" fill={palette.clothShade} />
-        <path d="M17 25H18V28H17ZM22 25H23V28H22Z" fill="#e6f2ed" />
+        <path d={female ? "M14 22H16V24H19V22H21V24H20V26H16V24H14ZM16 28H22V31H16Z" : "M14 22H17V24H22V22H25V24H23V26H16V24H14ZM17 28H24V31H17Z"} fill={palette.clothShade} />
+        <path d={female ? "M16 25H17V28H16ZM20 25H21V28H20Z" : "M17 25H18V28H17ZM22 25H23V28H22Z"} fill="#e6f2ed" />
         <path d="M19 29H22V30H19Z" fill={palette.cloth} />
       </g>}
       {appearance.outfit === "vest" && <g className="officer-vest-details">
-        <path d="M14 23H16V25H18V27H20V32H15V31H14ZM24 23H25V31H23V32H21V27H22V25H24Z" fill={palette.clothShade} />
+        <path d={female ? "M14 23H16V25H18V27H19V32H15V30H14ZM19 23H21V25H22V30H21V32H20V27H19Z" : "M14 23H16V25H18V27H20V32H15V31H14ZM24 23H25V31H23V32H21V27H22V25H24Z"} fill={palette.clothShade} />
         <path d="M20 28H21V29H20ZM20 30H21V31H20Z" fill="#ffd27a" />
       </g>}
-      <rect x="13" y="24" width="1" height="4" fill="#ffd27a" />
-      <rect x="12" y="27" width="4" height="5" fill={INK} />
-      <rect x="13" y="28" width="2" height="3" fill="#eef7ff" />
-      <rect x="13" y="28" width="2" height="1" fill="#61e8e1" />
-      <rect x={older ? 12 : 11} y="32" width={older ? 13 : 15} height="2" fill={INK} />
+      <rect x={female ? 14 : 13} y="24" width="1" height="4" fill="#ffd27a" />
+      <rect x={female ? 13 : 12} y="27" width="4" height="5" fill={INK} />
+      <rect x={female ? 14 : 13} y="28" width="2" height="3" fill="#eef7ff" />
+      <rect x={female ? 14 : 13} y="28" width="2" height="1" fill="#61e8e1" />
+      <rect x={female ? older ? 13 : 12 : older ? 12 : 11} y="32" width={female ? older ? 10 : 12 : older ? 13 : 15} height="2" fill={INK} />
       <rect x="19" y="32" width="2" height="1" fill="#b8c8d3" />
     </g>
   );

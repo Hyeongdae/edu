@@ -150,7 +150,7 @@ describe("expanded shapes and palettes", () => {
   it.each(APPEARANCE_OPTIONS.outfitColor)("uses $label torso and matching hoodie sleeves", ({ value: outfitColor, swatch }) => {
     const root = art(<PixelOfficer variant="young" direction="right" pose="idle" appearance={look({ outfitColor })} />);
     attribute(root.querySelector(".officer-cloth"), "fill", swatch);
-    attribute(root.querySelector('.officer-frame--idle rect[x="26"][y="24"]'), "fill", swatch);
+    attribute(root.querySelector(".officer-frame--idle .officer-arm-front"), "fill", swatch);
     expect(getOfficerPalette(look({ outfitColor })).clothShade).toMatch(/^#[0-9a-f]{6}$/);
   });
 
@@ -169,8 +169,8 @@ describe("expanded shapes and palettes", () => {
       attribute(root.querySelector(".officer-cloth"), "fill", "#d58b43");
       attribute(root.querySelector(".officer-bag-fill"), "fill", "#c8b38b");
     }
-    attribute(main.querySelector('.officer-frame--idle rect[x="26"][y="24"]'), "fill", "#e6f2ed");
-    attribute(overtime.querySelector('.overtime-officer > g > rect[x="26"][y="24"]'), "fill", "#e6f2ed");
+    attribute(main.querySelector(".officer-frame--idle .officer-arm-front"), "fill", "#e6f2ed");
+    attribute(overtime.querySelector(".overtime-officer .officer-arm-front"), "fill", "#e6f2ed");
   });
 
   it("normalizes valid legacy looks while rejecting malformed palette input", () => {

@@ -91,10 +91,10 @@ describe("shared pixel appearance parts", () => {
       const main = art(<PixelOfficer variant={variant} direction="right" pose="idle" appearance={look} />);
       const overtime = art(<OvertimeOfficer variant={variant} pose="standing" appearance={look} />);
       expectFill(main, ".officer-cloth", swatch!);
-      expectFill(main, `.officer-frame--idle rect[x="${variant === "older" ? 25 : 26}"][y="24"]`, swatch!);
-      expectFill(main, `.officer-frame--idle rect[x="${variant === "older" ? 7 : 6}"][y="24"]`, getOfficerPalette(look).clothShade);
+      expectFill(main, ".officer-frame--idle .officer-arm-front", swatch!);
+      expectFill(main, ".officer-frame--idle .officer-arm-back", getOfficerPalette(look).clothShade);
       expectFill(overtime, ".officer-cloth", swatch!);
-      expectFill(overtime, `.overtime-officer > g > rect[x="${variant === "older" ? 25 : 26}"][y="24"]`, swatch!);
+      expectFill(overtime, ".overtime-officer .officer-arm-front", swatch!);
     }
   });
 
@@ -153,7 +153,8 @@ describe("appearance across gameplay and overtime poses", () => {
       expect(frame.querySelector(".officer-cardigan-details path")).not.toBeNull();
       expect(frame.querySelector(".officer-cap-hat path")).not.toBeNull();
       expect(frame.querySelector(".officer-glasses--round path")).not.toBeNull();
-      expect(frame.querySelector(".officer-cloth")!.getAttribute("width")).toBe(variant === "older" ? "14" : "16");
+      const shoulder = frame.querySelector(".officer-cloth")!.getAttribute("d")!.match(/^M(\d+) 23H(\d+)/)!;
+      expect(Number(shoulder[2]) - Number(shoulder[1])).toBe(variant === "older" ? 12 : 14);
       expectFill(frame, ".officer-face-skin", "#86533a");
       expectFeet(frame, 2);
     }
