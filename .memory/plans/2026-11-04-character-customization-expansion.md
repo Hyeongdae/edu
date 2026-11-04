@@ -1,7 +1,7 @@
 # Plan: Character Customization Expansion
 
 - Date: 2026-11-04
-- Status: in_progress
+- Status: complete
 - Decision: [Character Customization Expansion](../decisions/2026-11-04-character-customization-expansion.md)
 
 ## Goal
@@ -10,7 +10,7 @@
 ## Phases
 | Phase | Status | Summary | Blueprint |
 | :--- | :--- | :--- | :--- |
-| P01 | `in_progress` | 기존 외형 호환, 픽셀 확장, 계정 연결과 편집 화면 | [P01](../phases/2026-11-04-character-customization-expansion/P01-appearance-expansion/phase.md) |
+| P01 | `complete` | 기존 외형 호환, 픽셀 확장, 계정 연결과 편집 화면 구현/자동 검증 완료 | [P01](../phases/2026-11-04-character-customization-expansion/P01-appearance-expansion/phase.md) |
 
 ## Tasks and Order
 | Task | Outcome | Principal files |
@@ -82,10 +82,12 @@
 - 클라이언트/API를 함께 출시한 뒤 이미 열린 구버전 탭은 새로고침한다. 구버전 실행 코드에 새 옵션을 제공하는 별도 호환 API는 만들지 않는다.
 
 ## Progress
-- done: 3/4
-- Active: P01-T04
+- done: 4/4 (구현/자동 검증 완료; 미검증 영역은 아래 기록)
+- Active: 없음
 - T01 완료 (`20fbcb6`): 지정shared257/257, API186/186, lint/frontend·API build 통과. 과거 계약을 그대로 보존하고 version2 정규화와 카탈로그를 준비했다. 새 옵션의 화면/저장 활성화와 렌더링은 후속 Task에서 수행한다.
 
 - T02 완료 (`ab16a10`): 지정7파일289/289, lint/build 통과. 새 스타일·눈·가방을 모든 포즈에 연결하고 정적25표본/90개 clip 비교를 확인했다. Chrome 실행은 자동 승인 검토에서 차단되어 정적 SVG 렌더링으로 대체했다. public 계약은 아직version1이다.
 
 - T03 완료 (`445e014`): public/API/클라이언트 계약을version2로 전환하고 정상v1 읽기/13필드 저장/기록 보존을 검증했다. 지정584/584·API198/198·lint/frontend·API build 통과. emulator 통합3건을 추가했으나 로컬 readiness 미준비로 실행하지 않았으며 배포 전 CI 통합 확인이 필요하다.
+
+- T04 완료 (`b5b989e`): 편집창13개 그룹과 두 역할/모드/모든 엔딩을 연결했다. 지정214/214·GameScreen112/112·최종 전체56파일1714/1714·API198/198·lint/frontend·API build/diff check 통과. 기존 반응형 CSS와 장면 좌표/모션/게임 규칙을 보존했다. 정적 장면 표본을 확인했고 Chrome 실행 차단에 따른4개크기 실제 브라우저 확인과 emulator/실제 계정 검증은 미완료로 남긴다. 배포 전 수동 UI 확인과 CI 통합 통과가 필요하다. 기존 미커밋 pixel-theme.css는 제외했으며 push/배포는 하지 않았다. 로컬 데모 http://127.0.0.1:5173/ 유지.

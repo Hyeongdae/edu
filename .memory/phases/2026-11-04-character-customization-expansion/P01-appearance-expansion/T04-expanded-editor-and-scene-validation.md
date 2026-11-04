@@ -125,7 +125,7 @@ Task: T04-expanded-editor-and-scene-validation
 ## Progress
 - [x] 구현 완료
 - [x] 자동 검증 통과 (실제 브라우저/Cosmos 미검증 영역은 아래 기록)
-- commit: pending
+- commit: `b5b989e`
 
 ## Validation Results — 2026-11-04
 - FIELDS에 eyeStyle/눈 모양, bag/가방, bagColor/가방 색상을 연결하여13개 그룹을 제공한다. 기존 controlled binding/clone/update와 공통 카탈로그를 재사용하고 별도 상태·저장 로직을 만들지 않았다. 추가 머리/옷/소품/색상도 같은 카탈로그에서 표시된다.
