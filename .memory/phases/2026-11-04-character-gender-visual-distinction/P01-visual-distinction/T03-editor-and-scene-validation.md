@@ -1,6 +1,6 @@
 # Task: T03 Editor and Scene Validation
 
-## Status: pending
+## Status: in_progress
 
 ## Goal
 사용자가 꾸미기 창에서 gender만 전환했을 때 얼굴/체형이 즉시 바뀌고 나머지 선택이 유지된다. 두 역할/모드/엔딩의 전달과 같은 조건의 남녀 비교 표본을 확인하고 최종 자동 검증 및 남은 수동 검증을 기록한다.
