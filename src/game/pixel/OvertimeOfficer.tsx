@@ -1,7 +1,8 @@
 import type { ReactElement } from "react";
 import type { OfficerVariant } from "./PixelOfficer";
-import { resolveCharacterLook } from "../../../shared/expandedCharacterAppearance";
-import { OfficerHeadArt, OfficerOutfitArt, OfficerShoeArt } from "./OfficerAppearanceParts";
+import { resolveCharacterLook } from "../../../shared/bottomsCharacterAppearance";
+import { OfficerHeadArt, OfficerOutfitArt } from "./OfficerAppearanceParts";
+import { OfficerBottomsArt } from "./OfficerBottomsArt";
 import { OfficerBagBackArt, OfficerBagFrontArt } from "./OfficerBagArt";
 import { getOfficerPalette } from "./officerPalette";
 import type { OfficerAppearanceInput } from "./officerPalette";
@@ -66,26 +67,7 @@ export function OvertimeOfficer({ variant, pose, appearance }: OvertimeOfficerPr
           <rect className="officer-hand" x={older ? 25 : 26} y="31" width={older ? 3 : 4} height="4" fill={skin} />
         </>}
 
-        {seated ? <g className="overtime-officer-seated-legs">
-          <path d={older ? "M13 33H28V36H24V35H13Z" : "M12 33H29V36H24V35H12Z"} fill="#2c3b59" />
-          <path d={older ? "M19 32H30V34H32V39H28V35H19Z" : "M19 32H31V34H33V39H28V35H19Z"} fill="#354766" />
-          <path d="M23 35H27V39H23Z" fill="#22304c" />
-          <OfficerShoeArt appearance={look} x={21} y={38} width={8} />
-          <OfficerShoeArt appearance={look} x={28} y={38} width={7} />
-        </g> : <g className="overtime-officer-walking-legs">
-          <g className="overtime-officer-leg-back">
-            <path d={dragged
-              ? older ? "M12 33H17V36H14V39H9V37H12Z" : "M11 33H17V36H13V39H8V37H11Z"
-              : older ? "M13 33H17V39H13Z" : "M12 33H17V39H12Z"} fill="#2c3b59" />
-            <OfficerShoeArt appearance={look} x={dragged ? (older ? 7 : 6) : (older ? 11 : 10)} y={38} width={older ? 7 : 8} />
-          </g>
-          <g className="overtime-officer-leg-front">
-            <path d={dragged
-              ? older ? "M21 33H25V36H28V39H24V37H21Z" : "M21 33H26V36H29V39H24V37H21Z"
-              : older ? "M21 33H25V39H21Z" : "M21 33H26V39H21Z"} fill="#354766" />
-            <OfficerShoeArt appearance={look} x={dragged ? 24 : 20} y={38} width={older ? 8 : 9} />
-          </g>
-        </g>}
+        <OfficerBottomsArt variant={variant} appearance={look} pose={pose} />
       </g>
     </g>
   );

@@ -1,8 +1,9 @@
-import { APPEARANCE_OPTIONS, normalizeCharacterLook } from "../../../shared/expandedCharacterAppearance";
+import { APPEARANCE_OPTIONS, normalizeCharacterLook } from "../../../shared/bottomsCharacterAppearance";
+import type { CharacterLook as BottomsLook } from "../../../shared/bottomsCharacterAppearance";
 import type { AppearanceOption, CharacterLook as ExpandedLook } from "../../../shared/expandedCharacterAppearance";
 import type { CharacterLook as LegacyLook } from "../../../shared/legacyCharacterAppearance";
 
-export type OfficerAppearanceInput = ExpandedLook | LegacyLook;
+export type OfficerAppearanceInput = BottomsLook | ExpandedLook | LegacyLook;
 
 export interface OfficerPalette {
   skin: string;
@@ -16,6 +17,9 @@ export interface OfficerPalette {
   shoeSole: string;
   bag: string;
   bagShade: string;
+  bottoms: string;
+  bottomsShade: string;
+  bottomsDeepShade: string;
 }
 
 const SKIN_DETAILS = {
@@ -28,6 +32,10 @@ const HAIR_HIGHLIGHTS = { black: "#41516c", brown: "#976346", gray: "#89909e", b
 const CLOTH_SHADES = { ivory: "#91b6c6", navy: "#1e2e4e", purple: "#4b425f", teal: "#255357", rose: "#82475f",
   black: "#161e2f", sky: "#49849e", orange: "#965c2b", beige: "#95815f" };
 const BAG_SHADES = { black: "#141d2f", brown: "#4d3325", navy: "#1e2e4e", beige: "#95815f" };
+const BOTTOMS_SHADES = {
+  black: ["#161e2f", "#10182c"], navy: ["#2c3b59", "#22304c"], gray: ["#525f71", "#394657"],
+  beige: ["#95815f", "#6f6048"], brown: ["#4d3325", "#34251d"], white: ["#b1bfcc", "#8092a4"],
+};
 
 function swatch<T extends string>(options: readonly AppearanceOption<T>[], value: T): string {
   const color = options.find(option => option.value === value)?.swatch;
@@ -50,5 +58,8 @@ export function getOfficerPalette(input: OfficerAppearanceInput): OfficerPalette
     shoeSole: appearance.shoeColor === "white" ? "#52617b" : "#748398",
     bag: swatch(APPEARANCE_OPTIONS.bagColor, appearance.bagColor),
     bagShade: BAG_SHADES[appearance.bagColor],
+    bottoms: swatch(APPEARANCE_OPTIONS.bottomsColor, appearance.bottomsColor),
+    bottomsShade: BOTTOMS_SHADES[appearance.bottomsColor][0],
+    bottomsDeepShade: BOTTOMS_SHADES[appearance.bottomsColor][1],
   };
 }

@@ -1,6 +1,6 @@
 # Task: T02 Bottoms Pixel Rendering
 
-## Status: pending
+## Status: done
 
 ## Goal
 하의4종/색6종을 두 역할의 모든 게임·야근 포즈에 그린다. 남색 긴바지는 기존 다리/신발 위치를 유지하고 새 하의만 실제 모양으로 구분하며, public v2/UI/저장 계약은 유지한다.
@@ -98,10 +98,10 @@
 - 기존 머리/눈/손/상의/가방 검사를 삭제하지 않는다. DOM 계층이 달라진 검사만 새 하의 부품의 의미 있는 selector로 좁힌다.
 
 ## Acceptance Criteria
-- [ ] 4종이 실제 도형으로 구분되고 모든 색/피부/신발/포즈에 연결된다.
-- [ ] 기본 남색 긴바지와 발 y=40, 기존 모션/야근 다리 그룹 및 기타 선택이 유지된다.
-- [ ] 정상 v1/v2/v3를 표시하고 public/API/UI는 여전히 v2다.
-- [ ] 정적 비교와 자동 검증의 범위를 기록한다. 실제 브라우저 실행 차단을 우회하지 않는다.
+- [x] 4종이 실제 도형으로 구분되고 모든 색/피부/신발/포즈에 연결된다.
+- [x] 기본 남색 긴바지와 발 y=40, 기존 모션/야근 다리 그룹 및 기타 선택이 유지된다.
+- [x] 정상 v1/v2/v3를 표시하고 public/API/UI는 여전히 v2다.
+- [x] 정적 비교와 자동 검증의 범위를 기록한다. 실제 브라우저 실행 차단을 우회하지 않는다.
 
 ## Validation
 - `npm run test -- --run src/game/pixel/bottomsAppearanceArt.test.tsx src/game/pixel/characterAppearanceArt.test.tsx src/game/pixel/expandedCharacterArt.test.tsx src/game/pixel/genderAppearanceArt.test.tsx src/game/pixel/pursuerAppearance.test.tsx src/game/OfficeExitEnding.test.tsx src/game/OvertimeCaptureEnding.test.tsx src/game/StairScene.test.tsx src/infinite/InfiniteStairScene.test.tsx --maxWorkers=2` — 기존 불변조건과 새 하의 검증 통과.
@@ -121,6 +121,17 @@ Task: T02-bottoms-pixel-rendering
 ```
 
 ## Progress
-- [ ] 구현 완료
-- [ ] 검증 통과
+- [x] 구현 완료
+- [x] 검증 통과
 - commit: pending
+
+## Execution Result — 2026-11-04
+- OfficerBottomsArt를 추가해 원래 다리/신발 좌표를 공통 표로 옮겼다. PixelOfficer의4프레임과 OvertimeOfficer의4포즈가 이 부품을 사용한다. 상의/머리/팔/손/가방/외부 transform/신발 바닥 y=40과 야근의 앞뒤 다리 CSS 그룹을 보존했다.
+- officerPalette에6색의 앞/뒤/깊은 명암을 더하고 표시 계층의 resolve를v3로 연결했다. 고정 v1/v2와 public v2, API/DB/편집 화면/게임 규칙은 바꾸지 않았다. OfficerBagArt는 기존 공통13필드 타입과 배치를 그대로 사용한다.
+- 청바지는 clip 내부의1px 솔기/주머니/대비되는 밑단, 반바지는y35부터 피부색 다리, 치마는 연결된y33~36 밑단과y36부터 피부색 다리다. 부츠는 다리 위에 마지막으로 그린다. 필요한 하의에만 useId 기반 clipPath를 만들고 기본 긴바지는 추가 clip 정의가 없다.
+- 기존4개 픽셀 테스트278/278 통과. 첫 지정9파일 실행은460통과/3실패: 기본 긴바지에도 만든 불필요한 clip 정의가 기존 장면의 clip 개수 검사에 걸렸다. 테스트를 느슨하게 바꾸지 않고 불필요한 정의 생성을 제거해463/463을 통과했다.
+- 테스트 helper를 강화한 뒤 옷/가방 조합을 한 테스트에서50번씩 검사하던2건이5초를 넘었다. timeout/skip/config를 늘리지 않고 같은 전체 조합을 나이대·성별·상의별 사례로 분리했다. 최종 지정9파일481/481(30.80초), 고정 v2 fixture import를 명확히 한 뒤 새 하의 검사115/115(10.75초) 통과. 기존 테스트 파일은 수정하지 않았다.
+- lint/프런트엔드 타입·빌드/diff check 통과. JS667.92kB(gzip184.06kB)/CSS92.97kB(gzip15.88kB), 기존500kB chunk 경고 유지. 마지막 테스트 fixture import 조정 후 해당 파일 ESLint도 통과했다.
+- TEMP/character-bottoms-customization-2026-11-04/t02/에 실제 SSR SVG와 PNG 표본을 생성·육안 확인했다. styles16/movement16/office16/colors24/boots8의80조건을 원래 표시 크기/2배로 비교했다. 별도로 기준커밋097c26c의 기존 부품과 현재 부품을 나이대2×성별2×포즈8, 백팩/부츠 포함32조건에서 렌더링하여 PNG 바이트32/32 일치를 확인했다. baseline-summary.json, baseline-results.json과 각 before/after 파일에 보존했다.
+- 초기 TEMP 표본 생성기는 프리뷰 메타데이터를 appearance에 섞어 잘못된 입력으로 만든 실수가 있었다. 생성기를 수정한 뒤 정상15필드/과거13필드로 다시 생성해 위 결과를 확인했다. 제품 코드의 입력 검증을 완화하지 않았다.
+- 실제 브라우저/모바일 레이아웃/애니메이션 재생 및 회사 계정/Cosmos 확인은 실행하지 않았다. 이전 Chrome 실행 차단을 우회하지 않았다. 정적/DOM 검사와 실제 브라우저 확인을 구분한다. push/배포 없음. 별도 범위 결함은 특이사항 없음.

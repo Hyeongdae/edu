@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import { resolveCharacterLook } from "../../../shared/expandedCharacterAppearance";
+import { resolveCharacterLook } from "../../../shared/bottomsCharacterAppearance";
 import type { CharacterLook as ExpandedLook } from "../../../shared/expandedCharacterAppearance";
 import type { OfficerVariant } from "./PixelOfficer";
 import { getOfficerPalette } from "./officerPalette";
