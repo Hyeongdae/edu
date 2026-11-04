@@ -30,9 +30,14 @@ afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.use
 
 it.each(["animated", "complete"] as const)("uses the runner's chosen look in the %s exit", variant => {
   const appearance = getDefaultCharacterLook("runner"); appearance.hat = "cap"; appearance.outfitColor = "rose";
+  appearance.bag = "laptop"; appearance.bagColor = "beige"; appearance.eyeStyle = "smile";
   const { container } = render(<OfficeExitEnding variant={variant} appearance={appearance} />);
   expect(container.querySelector(".officer-cap-hat")).not.toBeNull();
   expect(container.querySelector(".officer-cloth")).toHaveAttribute("fill", "#b66a87");
+  expect(container.querySelector('[data-bag-kind="laptop"] .officer-bag-fill')).toHaveAttribute("fill", "#c8b38b");
+  expect(container.querySelector(".officer-eyes")).toHaveAttribute("data-eye-style", "smile");
+  expect(container.querySelector(".officer-eyes")).toHaveAttribute("data-expression", "normal");
+  expect(appearance.eyeStyle).toBe("smile");
 });
 
 describe("office exit lifecycle", () => {

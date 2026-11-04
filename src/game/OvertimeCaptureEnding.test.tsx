@@ -9,18 +9,28 @@ import { getDefaultCharacterAppearance } from "../../shared/characterAppearance"
 it.each(["animated", "complete"] as const)("keeps both chosen looks in all four %s overtime poses", variant => {
   const appearance = getDefaultCharacterAppearance(); appearance.runner.hat = "cap"; appearance.runner.outfitColor = "rose";
   appearance.pursuer.hat = "none"; appearance.pursuer.glasses = "round"; appearance.pursuer.skinTone = "deep";
+  appearance.runner.bag = "backpack"; appearance.runner.bagColor = "navy"; appearance.runner.eyeStyle = "round";
+  appearance.pursuer.bag = "briefcase"; appearance.pursuer.bagColor = "brown"; appearance.pursuer.eyeStyle = "sharp";
   const { container } = render(<OvertimeCaptureEnding variant={variant} appearance={appearance} />);
   for (const pose of ["dragged", "seated"]) {
     const officer = container.querySelector(`[data-overtime-pose="${pose}"]`)!;
     expect(officer.querySelector(".officer-cap-hat")).not.toBeNull();
     expect(officer.querySelector(".officer-cloth")).toHaveAttribute("fill", "#b66a87");
+    expect(officer.querySelector('[data-bag-kind="backpack"] .officer-bag-fill')).toHaveAttribute("fill", "#30466d");
+    expect(officer.querySelector(".officer-eyes")).toHaveAttribute("data-eye-style", "round");
+    expect(officer.querySelector(".officer-eyes")).toHaveAttribute("data-expression", "weary");
   }
   for (const pose of ["grabbing", "standing"]) {
     const officer = container.querySelector(`[data-overtime-pose="${pose}"]`)!;
     expect(officer.querySelector(".officer-straw-hat")).toBeNull();
     expect(officer.querySelector(".officer-glasses--round")).not.toBeNull();
     expect(officer.querySelector(".officer-face-skin")).toHaveAttribute("fill", "#86533a");
+    expect(officer.querySelector('[data-bag-kind="briefcase"] .officer-bag-fill')).toHaveAttribute("fill", "#785039");
+    expect(officer.querySelector(".officer-eyes")).toHaveAttribute("data-eye-style", "sharp");
+    expect(officer.querySelector(".officer-eyes")).toHaveAttribute("data-expression", "normal");
   }
+  expect(appearance.runner.eyeStyle).toBe("round");
+  expect(appearance.pursuer.eyeStyle).toBe("sharp");
 });
 
 const caught = (endedAtMs = 0, stage: GameStage = 1): StageResult => Object.freeze({

@@ -1,6 +1,6 @@
 # Task: T04 Expanded Editor and Scene Validation
 
-## Status: pending
+## Status: done
 
 ## Goal
 꾸미기 창에서 눈·가방·가방 색상을 포함한13개 항목을 골라 실제 게임에 적용한다. 두 역할의 선택을 독립적으로 보존하고 모바일·키보드·계정 저장 상태와 모든 장면을 검증하여 확장 계획을 완료한다.
@@ -95,12 +95,12 @@
 7. 모든 구현검증 성공 후 Task done/커밋, phase done4/4, plan complete, current ActiveTask없음으로 동기화한다. emulator/실제계정 미검증을 숨기거나 운영 배포 완료로 표시하지 않는다. push/배포는 별도 요청 범위다.
 
 ## Acceptance Criteria
-- [ ] 13개 그룹에서 양 역할의 모든 선택과 색상이 독립적으로 동작한다.
-- [ ] 즉시 preview와 실제 두 모드·타이틀·모든 엔딩에 새 외형이 전달된다.
-- [ ] 가방 없음/색상 유지, 눈 선택과 상황별 표정, 일반 안경/선글라스 조합이 의도대로다.
-- [ ] 모바일/키보드·초점·저장 상태·실패 재시도·로컬 메모리 규칙을 유지한다.
-- [ ] 기존 계단·발 위치·모션·판정·조작·점수·추격·시간·랭킹을 보존한다.
-- [ ] 검증 결과/미검증 영역을 기록하고 계획 포인터를 완료 상태로 갱신한다.
+- [x] 13개 그룹에서 양 역할의 모든 선택과 색상이 독립적으로 동작한다.
+- [x] 즉시 preview와 실제 두 모드·타이틀·모든 엔딩에 새 외형이 전달된다.
+- [x] 가방 없음/색상 유지, 눈 선택과 상황별 표정, 일반 안경/선글라스 조합이 의도대로다.
+- [x] 기존 모바일 CSS를 유지하고 키보드·초점·저장 상태·실패 재시도·로컬 메모리 규칙을 DOM 테스트로 검증했다. 실제 모바일/네이티브 키보드 확인은 아래 환경 제약으로 미완료다.
+- [x] 기존 계단·발 위치·모션·판정·조작·점수·추격·시간·랭킹을 보존한다.
+- [x] 검증 결과/미검증 영역을 기록하고 계획 포인터를 완료 상태로 갱신한다.
 
 ## Validation
 - `npm test -- --run src/character/CharacterCustomizationDialog.test.tsx src/game/GameScreen.test.tsx src/infinite/InfiniteModeScreen.test.tsx src/game/StairScene.test.tsx src/infinite/InfiniteStairScene.test.tsx src/game/OfficeExitEnding.test.tsx src/game/OvertimeCaptureEnding.test.tsx --maxWorkers=2` — 새 선택과 실제 연결 회귀 통과.
@@ -123,6 +123,18 @@ Task: T04-expanded-editor-and-scene-validation
 ```
 
 ## Progress
-- [ ] 구현 완료
-- [ ] 검증 통과
+- [x] 구현 완료
+- [x] 자동 검증 통과 (실제 브라우저/Cosmos 미검증 영역은 아래 기록)
 - commit: pending
+
+## Validation Results — 2026-11-04
+- FIELDS에 eyeStyle/눈 모양, bag/가방, bagColor/가방 색상을 연결하여13개 그룹을 제공한다. 기존 controlled binding/clone/update와 공통 카탈로그를 재사용하고 별도 상태·저장 로직을 만들지 않았다. 추가 머리/옷/소품/색상도 같은 카탈로그에서 표시된다.
+- 지정7파일214/214 통과(74.14초). 전체 카탈로그/13그룹, 역할 독립성, 성별 변경 시 다른 선택 보존, 가방 none에서도 색상 선택·유지, 네 가방의 실제 도형·색상, 선글라스 제거/일반 안경의 눈 복원, 저장 상태/초점/재시도 및 로컬 세션을 검증했다.
+- GameScreen 단독112/112 재검증 통과(56.35초). 실제 꾸미기→단계 시작3초→플레이→일시정지/타이틀→무한 시작3초→플레이→타이틀 왕복과 선택 보존을 확인했다. 계정 외형 응답이 카운트다운/진행 중 도착해도 시작 시각·점수·추격 위치가 초기화되지 않는다.
+- 최종 전체 frontend/shared56파일1714/1714 통과(154.75초, maxWorkers=2). 최초 전체 실행은3개 테스트의5000ms 시간 초과 및 후속 정리 영향으로38개가 실패했다. 새 통합 테스트의 탐색 범위를 실제 dialog 안으로 줄이고 다른 검증 작업이 종료된 뒤 단독 및 전체를 재실행했다. timeout/skip/worker 설정과 게임 구현은 변경하지 않았다. 최초 실패 로그도 보존했다.
+- API4파일198/198 통과(2.57초). lint, frontend build, API build, git diff --check 통과. frontend JS657.73kB(gzip181.34kB)/CSS92.97kB(gzip15.88kB), API36.4kB. 기존500kB chunk 경고 유지.
+- 실제 StairScene/InfiniteStairScene/OfficeExitEnding/OvertimeCaptureEnding의 SSR SVG를 TEMP의 기존 정적 렌더러로 PNG 변환하여 두 역할의 가방/눈·계단 착지·엔딩을 육안 확인했다. 퇴근/야근 complete 상태의 CSS 최종 위치는 정적 표본에 명시 적용했으며 애니메이션 검증으로 간주하지 않는다. 실제 모달 SSR에는13개 fieldset이 있다.
+- T02에서 Chrome 자동 실행이 자동 승인 검토에 의해 blocked by policy로 거절되었으므로 다른 실행 경로로 재시도하지 않았다. 이 환경에는 허용된 브라우저 도구가 없어320×568/390×844/768×1024/1440×900의 실제 레이아웃, 스크롤·터치·native radio 키보드 및 애니메이션은 미검증이다. 기존 반응형/44px CSS와 좌표/clip/motion은 그대로 보존했다. 브라우저 수동 확인은 배포 전 후속 검증으로 남긴다.
+- T03의 실제 Cosmos emulator 통합3건은 readiness 미준비로 미실행 상태다. 기존 CI 통합 통과가 배포 전 필요하며 운영 Cosmos/회사 계정으로 테스트를 대체하지 않았다. 프런트/API는 함께 출시해야 한다.
+- HTTP200 확인한 기존 로컬 데모 http://127.0.0.1:5173/ (PID11840)을 유지했다. 로그 TEMP/character-expansion-t04-{focused,game-recheck,all,all-final,api,lint-final,build-final,api-build}.log, 정적 증거 TEMP/character-expansion-t04-evidence/ 아래에 보존했다. 임시 도구/그림은 저장소에 추가하지 않았다.
+- 본체 변경은 편집창 FIELDS 세 항목뿐이다. 장면/모드/엔딩 구현에는 전달 누락이 없어 테스트를 보강했다. 기존 미커밋 src/game/pixel-theme.css 모바일 버튼 간격 변경은 보존하고 이번 커밋에서 제외한다. 추가 범위가 필요한 발견: 특이사항 없음. push/배포는 하지 않았다.

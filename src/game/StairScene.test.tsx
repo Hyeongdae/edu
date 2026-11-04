@@ -30,12 +30,18 @@ describe("main downward staircase scene", () => {
     const appearance = getDefaultCharacterAppearance();
     appearance.runner.hat = "cap"; appearance.runner.outfitColor = "rose";
     appearance.pursuer.hat = "none"; appearance.pursuer.glasses = "round"; appearance.pursuer.skinTone = "deep";
+    appearance.runner.bag = "crossbody"; appearance.runner.bagColor = "beige"; appearance.runner.eyeStyle = "sleepy";
+    appearance.pursuer.bag = "briefcase"; appearance.pursuer.bagColor = "brown"; appearance.pursuer.eyeStyle = "sharp";
     const view = render(<StairScene {...props(initial())} appearance={appearance} />);
     expect(screen.getByTestId("runner").querySelector(".officer-cap-hat")).not.toBeNull();
     expect(screen.getByTestId("runner").querySelector(".officer-cloth")).toHaveAttribute("fill", "#b66a87");
     expect(screen.getByTestId("pursuer").querySelector(".officer-straw-hat")).toBeNull();
     expect(screen.getByTestId("pursuer").querySelector(".officer-glasses--round")).not.toBeNull();
     expect(screen.getByTestId("pursuer").querySelector(".officer-face-skin")).toHaveAttribute("fill", "#86533a");
+    expect(screen.getByTestId("runner").querySelector('[data-bag-kind="crossbody"] .officer-bag-fill')).toHaveAttribute("fill", "#c8b38b");
+    expect(screen.getByTestId("runner").querySelector(".officer-eyes")).toHaveAttribute("data-eye-style", "sleepy");
+    expect(screen.getByTestId("pursuer").querySelector('[data-bag-kind="briefcase"] .officer-bag-fill')).toHaveAttribute("fill", "#785039");
+    expect(screen.getByTestId("pursuer").querySelector(".officer-eyes")).toHaveAttribute("data-eye-style", "sharp");
     expect(screen.getByTestId("runner")).toHaveAttribute("transform", "translate(260 216)");
     expect(view.container.querySelector("clipPath rect")).toHaveAttribute("height", "84");
   });

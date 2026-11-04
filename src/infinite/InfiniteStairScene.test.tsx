@@ -10,11 +10,17 @@ describe("InfiniteStairScene", () => {
   it("shows independent custom looks above the stairs while preserving the original feet anchors", () => {
     const appearance = getDefaultCharacterAppearance(); appearance.runner.hat = "cap";
     appearance.pursuer.glasses = "round"; appearance.pursuer.outfitColor = "teal";
+    appearance.runner.bag = "backpack"; appearance.runner.bagColor = "navy"; appearance.runner.eyeStyle = "round";
+    appearance.pursuer.bag = "laptop"; appearance.pursuer.bagColor = "black"; appearance.pursuer.eyeStyle = "sharp";
     const { container } = render(<InfiniteStairScene state={createInfiniteGameState(() => 0)} isMoving={false} appearance={appearance} />);
     const player = screen.getByTestId("infinite-player"), pursuer = screen.getByTestId("infinite-pursuer");
     expect(player.querySelector(".officer-cap-hat")).not.toBeNull();
     expect(pursuer.querySelector(".officer-glasses--round")).not.toBeNull();
     expect(pursuer.querySelector(".officer-cloth")).toHaveAttribute("fill", "#397f82");
+    expect(player.querySelector('[data-bag-kind="backpack"] .officer-bag-fill')).toHaveAttribute("fill", "#30466d");
+    expect(player.querySelector(".officer-eyes")).toHaveAttribute("data-eye-style", "round");
+    expect(pursuer.querySelector('[data-bag-kind="laptop"] .officer-bag-fill')).toHaveAttribute("fill", "#263247");
+    expect(pursuer.querySelector(".officer-eyes")).toHaveAttribute("data-eye-style", "sharp");
     const lastStair = container.querySelectorAll('[data-testid="infinite-stair-step"]');
     expect(lastStair[lastStair.length - 1].compareDocumentPosition(player) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(player).toHaveAttribute("transform", "translate(260 204)");

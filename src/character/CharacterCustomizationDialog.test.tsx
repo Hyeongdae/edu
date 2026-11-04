@@ -1,7 +1,7 @@
 import { StrictMode, useState } from "react";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getDefaultCharacterAppearance } from "../../shared/characterAppearance";
+import { APPEARANCE_OPTIONS, getDefaultCharacterAppearance } from "../../shared/characterAppearance";
 import type { AppearanceBinding } from "../company/types";
 import { CharacterCustomizationDialog } from "./CharacterCustomizationDialog";
 
@@ -14,6 +14,53 @@ function choose(group: string, option: string) {
 }
 
 describe("character editor", () => {
+  it("offers the complete catalog in thirteen labelled groups for either role", () => {
+    render(<CharacterCustomizationDialog binding={binding()} storageMode="session" onClose={vi.fn()} />);
+    const labels = ["성별", "머리스타일", "머리색", "피부색", "눈 모양", "옷", "옷 색상", "모자", "안경", "신발", "신발 색상", "가방", "가방 색상"];
+    const fields = ["gender", "hairStyle", "hairColor", "skinTone", "eyeStyle", "outfit", "outfitColor", "hat", "glasses", "shoes", "shoeColor", "bag", "bagColor"] as const;
+    for (const role of ["도망자", "추격자"]) {
+      fireEvent.click(screen.getByRole("tab", { name: role }));
+      const groups = screen.getAllByRole("group");
+      expect(groups).toHaveLength(labels.length);
+      groups.forEach((group, index) => {
+        expect(group).toHaveAccessibleName(labels[index]);
+        const radios = within(group).getAllByRole("radio");
+        expect(radios).toHaveLength(APPEARANCE_OPTIONS[fields[index]].length);
+        APPEARANCE_OPTIONS[fields[index]].forEach(option => {
+          expect(within(group).getByRole("radio", { name: option.label })).toHaveAttribute("value", option.value);
+        });
+        expect(radios.filter(radio => (radio as HTMLInputElement).checked)).toHaveLength(1);
+      });
+    }
+  });
+
+  it("retains bag color while unequipped and restores selected eyes after removing sunglasses", () => {
+    function Harness() {
+      const [value, setValue] = useState(getDefaultCharacterAppearance);
+      return <CharacterCustomizationDialog binding={binding({ value, update: setValue })} storageMode="session" onClose={vi.fn()} />;
+    }
+    render(<Harness />);
+    const preview = screen.getByRole("img");
+    const color = within(screen.getByRole("group", { name: "가방 색상" })).getByRole("radio", { name: "베이지" });
+    expect(color).toBeEnabled(); fireEvent.click(color); expect(color).toBeChecked();
+    expect(preview.querySelector("[data-bag-kind]")).toBeNull();
+    for (const [label, kind] of [["백팩", "backpack"], ["노트북 가방", "laptop"], ["크로스백", "crossbody"], ["서류가방", "briefcase"]]) {
+      choose("가방", label);
+      expect(preview.querySelector(`[data-bag-kind="${kind}"] .officer-bag-fill`)).toHaveAttribute("fill", "#c8b38b");
+      choose("가방", "없음"); expect(preview.querySelector("[data-bag-kind]")).toBeNull();
+      expect(color).toBeChecked(); expect(color).toBeEnabled();
+    }
+    choose("눈 모양", "웃는 눈"); choose("안경", "선글라스");
+    expect(preview.querySelector(".officer-sunglass-lenses")).not.toBeNull();
+    expect(preview.querySelector(".officer-eyes")).toHaveAttribute("data-eye-style", "smile");
+    choose("안경", "없음");
+    expect(preview.querySelector(".officer-sunglass-lenses")).toBeNull();
+    expect(preview.querySelector(".officer-eyes")).toHaveAttribute("data-expression", "normal");
+    expect(preview.querySelector(".officer-eyes")).toHaveAttribute("data-eye-style", "smile");
+    choose("안경", "사각 안경");
+    expect(preview.querySelector(".officer-glasses--square .officer-eyes")).toHaveAttribute("data-eye-style", "smile");
+  });
+
   it("edits independent parts and roles using the latest controlled value, with immediate real SVG previews", () => {
     const update = vi.fn();
     function Harness() {
@@ -21,24 +68,37 @@ describe("character editor", () => {
       return <CharacterCustomizationDialog binding={binding({ value, update: next => { update(next); setValue(next); } })} storageMode="session" onClose={vi.fn()} />;
     }
     render(<StrictMode><Harness /></StrictMode>);
-    expect(screen.getAllByRole("group")).toHaveLength(10);
+    expect(screen.getAllByRole("group")).toHaveLength(13);
     choose("모자", "캡 모자"); choose("성별", "여성"); choose("머리스타일", "묶은 머리");
-    choose("옷", "카디건"); choose("옷 색상", "청록"); choose("신발", "운동화"); choose("신발 색상", "흰색");
+    choose("옷", "후드티"); choose("옷 색상", "청록"); choose("신발", "부츠"); choose("신발 색상", "흰색");
+    choose("머리스타일", "장발"); choose("눈 모양", "동그란 눈"); choose("가방", "백팩"); choose("가방 색상", "남색");
+    choose("성별", "남성"); choose("성별", "여성");
     const runner = screen.getByRole("img", { name: "도망자 미리보기" });
     expect(runner.querySelector(".officer-cap-hat")).not.toBeNull();
     expect(runner.querySelector(".officer-hair-back")).not.toBeNull();
     expect(runner.querySelector(".officer-head-art")).toHaveAttribute("data-appearance-gender", "female");
     expect(runner.querySelector(".officer-cloth")).toHaveAttribute("fill", "#397f82");
-    expect(runner.querySelector(".officer-shoe--sneakers .officer-shoe-base")).toHaveAttribute("fill", "#e6ecef");
+    expect(runner.querySelector(".officer-shoe--boots .officer-shoe-base")).toHaveAttribute("fill", "#e6ecef");
+    expect(runner.querySelector(".officer-hoodie-details")).not.toBeNull();
+    expect(runner.querySelector(".officer-eyes")).toHaveAttribute("data-eye-style", "round");
+    expect(runner.querySelector('[data-bag-kind="backpack"] .officer-bag-fill')).toHaveAttribute("fill", "#30466d");
     fireEvent.click(screen.getByRole("tab", { name: "추격자" }));
     choose("안경", "둥근 안경"); choose("피부색", "짙은 피부");
+    choose("머리스타일", "곱슬머리"); choose("옷", "조끼"); choose("모자", "베레모");
+    choose("눈 모양", "날카로운 눈"); choose("가방", "서류가방"); choose("가방 색상", "갈색");
     const preview = screen.getByRole("img", { name: "추격자 미리보기" });
-    expect(preview.querySelector(".officer-straw-hat")).not.toBeNull();
+    expect(preview.querySelector(".officer-beret-hat")).not.toBeNull();
     expect(preview.querySelector(".officer-glasses--round")).not.toBeNull();
     expect(preview.querySelector(".officer-face-skin")).toHaveAttribute("fill", "#86533a");
+    expect(preview.querySelector(".officer-hair--curly")).not.toBeNull();
+    expect(preview.querySelector(".officer-vest-details")).not.toBeNull();
+    expect(preview.querySelector('.officer-glasses--round .officer-eyes')).toHaveAttribute("data-eye-style", "sharp");
+    expect(preview.querySelector('[data-bag-kind="briefcase"] .officer-bag-fill')).toHaveAttribute("fill", "#785039");
     fireEvent.click(screen.getByRole("tab", { name: "도망자" }));
     expect(within(screen.getByRole("group", { name: "모자" })).getByRole("radio", { name: "캡 모자" })).toBeChecked();
-    expect(update.mock.lastCall![0]).toMatchObject({ runner: { gender: "female", hat: "cap", outfit: "cardigan", shoeColor: "white" }, pursuer: { glasses: "round", skinTone: "deep", gender: "male", hat: "straw" } });
+    expect(update.mock.lastCall![0]).toMatchObject({ version: 2,
+      runner: { gender: "female", hairStyle: "long", hat: "cap", outfit: "hoodie", shoeColor: "white", eyeStyle: "round", bag: "backpack", bagColor: "navy" },
+      pursuer: { glasses: "round", skinTone: "deep", gender: "male", hat: "beret", hairStyle: "curly", outfit: "vest", eyeStyle: "sharp", bag: "briefcase", bagColor: "brown" } });
     expect(screen.getByRole("status")).toHaveTextContent("이번 접속에서만 유지돼요");
   });
 
@@ -82,7 +142,7 @@ describe("character editor", () => {
     render(<CharacterCustomizationDialog binding={binding()} storageMode="session" onClose={onClose} />);
     const close = screen.getByRole("button", { name: "꾸미기 닫기" }); expect(close).toHaveFocus();
     fireEvent.keyDown(close, { key: "Tab", shiftKey: true });
-    const last = within(screen.getByRole("group", { name: "신발 색상" })).getByRole("radio", { name: "검정" });
+    const last = within(screen.getByRole("group", { name: "가방 색상" })).getByRole("radio", { name: "검정" });
     expect(last).toHaveFocus();
     fireEvent.keyDown(last, { key: "Tab" }); expect(close).toHaveFocus();
     fireEvent.click(screen.getByRole("dialog")); expect(onClose).not.toHaveBeenCalled();
