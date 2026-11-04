@@ -112,7 +112,7 @@ Task: T03-editor-and-scene-validation
 - [x] 구현/연결 검증 완료
 - [x] 자동 검증 통과
 - [x] 비교 표본 확인 및 실제 브라우저/모바일 확인 여부 기록
-- commit: pending
+- commit: `05356a7`
 - Next after successful commit: 없음. phase/plan/current를 done3/3 및 Active Task없음으로 동기화하고 전체 구현 결과·미검증 사항·로컬 링크를 보고한다.
 
 ## Validation Results — 2026-11-04

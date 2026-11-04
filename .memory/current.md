@@ -4,35 +4,37 @@
 [Character Gender Visual Distinction](./plans/2026-11-04-character-gender-visual-distinction.md)
 
 ## Active Phase
-[P01 Visual Distinction](./phases/2026-11-04-character-gender-visual-distinction/P01-visual-distinction/phase.md)
+없음 — [P01 Visual Distinction](./phases/2026-11-04-character-gender-visual-distinction/P01-visual-distinction/phase.md) 완료.
 
 ## Active Task
-[T03 Editor and Scene Validation](./phases/2026-11-04-character-gender-visual-distinction/P01-visual-distinction/T03-editor-and-scene-validation.md)
+없음 — character-gender-visual-distinction 구현/자동 검증 완료 (3/3).
 
 ## Last Completed Task
-[T02 Gender Body and Pose Fit](./phases/2026-11-04-character-gender-visual-distinction/P01-visual-distinction/T02-gender-body-and-pose-fit.md) — `34f0944` (2026-11-04).
+[T03 Editor and Scene Validation](./phases/2026-11-04-character-gender-visual-distinction/P01-visual-distinction/T03-editor-and-scene-validation.md) — `05356a7` (2026-11-04).
 
 ## Previous Completed Task
 [T04 Expanded Editor and Scene Validation](./phases/2026-11-04-character-customization-expansion/P01-appearance-expansion/T04-expanded-editor-and-scene-validation.md) — `b5b989e` (2026-11-04).
 
 ## Status
-- character-gender-visual-distinction T01 (`8e2f3a8`), T02 (`34f0944`) 완료, done2/3, Active P01-T03. 이번 실행은 T02만 구현·검증·커밋했다. push/배포는 수행하지 않았다.
-- T01에서 공통 얼굴/피부/턱/목과 눈썹·속눈썹을 개선했다. 눈 본체를 .officer-eye-shape로 분리하고 안경/표정/눈5종을 유지한다. T02에서 어깨/몸통과 옷5종, 게임/야근 소매 및 가방끈을 연결했다. 마지막 T03은 실제 편집·두 모드·엔딩 전달 및 종합 비교/최종 검증이다. `/memory-execute`는 Active Task 한 개만 진행한다.
+- character-gender-visual-distinction T01 (`8e2f3a8`), T02 (`34f0944`), T03 (`05356a7`) 완료, done3/3, Active Task 없음. 이번 실행은 T03만 검증·커밋했다. push/배포는 수행하지 않았다.
+- T01에서 공통 얼굴/피부/턱/목과 눈썹·속눈썹을 개선했다. 눈 본체를 .officer-eye-shape로 분리하고 안경/표정/눈5종을 유지한다. T02에서 어깨/몸통과 옷5종, 게임/야근 소매 및 가방끈을 연결했고 T03에서 실제 편집·두 모드·모든 엔딩 전달/종합 비교/최종 자동 검증을 완료했다.
 - T01 지정4파일246/246(14.41초, 새32사례), lint/build/diff check 통과. 턱/피부/목의 실제 도형 단면, 눈5종·안경·임시 표정 복원·선택/나이대/legacy fallback을 확인했다. 당시 JS659.15kB(gzip181.74kB)/CSS92.97kB(gzip15.88kB), 기존 chunk 경고 유지.
 - 실제 현재 OfficerHeadArt의 정적28표본을 TEMP/character-gender-visual-distinction-2026-11-04/t01/에 생성·확인했다. 로그 TEMP/gender-face-t01-{tests,lint,build}.log 보존.
 - T02 지정8파일362/362(19.50초), 추가 손/백팩 검사 후 genderAppearanceArt64/64(6.33초), lint/build/diff check 통과. 원래 손 좌표/발 y40·남성 기본 몸통을 유지하면서 픽셀4방향 연결과 여성 옷의 외곽 이탈0을 확인했다. 기존 여성 rect/소매 좌표 가정의 검사26개는 실제 새 어깨 폭/의미 있는 selector로 갱신했다. 기존 색/손/발 검사는 유지했다.
-- T02 정적64표본(옷20/포즈24/가방20)을 TEMP/character-gender-visual-distinction-2026-11-04/t02/에 생성·확인했다. 실제 브라우저/모바일/애니메이션 검증은 아니며 종합/실제 장면 전달은 T03에 남긴다. 로그 TEMP/gender-body-t02-{baseline,focused,anchors,lint,lint-final,build}.log 보존. JS663.62kB(gzip182.84kB)/CSS92.97kB(gzip15.88kB), 기존 chunk 경고 유지.
+- T02 정적64표본(옷20/포즈24/가방20)을 TEMP/character-gender-visual-distinction-2026-11-04/t02/에 생성·확인했다. 로그 TEMP/gender-body-t02-{baseline,focused,anchors,lint,lint-final,build}.log 보존. JS663.62kB(gzip182.84kB)/CSS92.97kB(gzip15.88kB), 기존 chunk 경고 유지.
+- T03 지정11파일498/498(64.50초), 전체 frontend/shared57파일1784/1784(139.43초), lint/build/diff check 통과. 실제 radio의 남성→여성→남성, 다른12필드/반대 역할·저장상태/초점 보존, 단계/무한 플레이 왕복, 계정 gender-only 응답의 진행/카운트다운 보존, 두 모드/모든 엔딩 실제 도형 변화를 확인했다. 본체 누락이 없어 테스트7파일만 보강했다.
+- T03에서 원래 크기에 가까운 표시/2배 확대76조건과 실제 계단·두 엔딩 SVG4개를 새 정적 표본으로 확인했다. TEMP/character-gender-visual-distinction-2026-11-04/t03/ 및 TEMP/gender-scenes-t03-{focused,all,lint,build}.log에 보존했다. 실제 모바일/브라우저/native keyboard/애니메이션 검증은 아니며 수동 확인은 출시 전 남아 있다.
 - 같은 머리·눈·옷·소품에서 gender만 바꾸어 차이를 강화한다. 나머지12필드와 반대 역할/나이대는 유지한다. 기존 CharacterAppearance version2/13필드, API/DB/저장 동작을 변경하지 않는다.
 - OfficerHeadArt/OfficerEyeArt는 공통이다. OfficerOutfitArt와 별도로 PixelOfficer/OvertimeOfficer의 소매를 함께 맞췄다. 기존 older 남성 run-b의1px 손-소매 틈도 동일 포즈 연결 범위에서 보완했다. 새 clipPath/전체 scale 없이 손·신발 y=40, 외부 변환·장면 좌표·게임 규칙을 보존한다.
 - framed default 눈의 첫 path 검사는 T01에서 .officer-eye-shape로, 여성 소매의 과거좌표 검사는 T02에서 실제 도형/소매 selector로 갱신했다. 기존 남성 기본 몸통/손/발 단언과 눈/표정/가방 검증은 유지한다.
 - 이전 Chrome 실행 차단을 우회하지 않는다. 허용된 브라우저 도구가 없으면 기존 TEMP 정적 SVG 도구/DOM으로 확인하고 실제 모바일·native keyboard·애니메이션 미검증을 명시한다. 이전 Cosmos/실제 계정 검증은 별도 출시 전 확인으로 인계한다.
-- 기존 미커밋 src/game/pixel-theme.css 모바일 조작 버튼 간격 변경과 무관한 untracked 파일을 보존하고 각 Task 커밋에서 제외한다. 새 별도 범위가 필요한 발견은 없다.
+- 기존 미커밋 src/game/pixel-theme.css 모바일 조작 버튼 간격2줄과 무관한 untracked 파일을 보존하고 커밋에서 제외했다. 기존 로컬5173 데모 HTTP200/PID11840 및 최신 렌더러 제공을 확인했다. 새 별도 범위가 필요한 발견은 없다.
 
 ## Source Decision
 - [Character Gender Visual Distinction](./decisions/2026-11-04-character-gender-visual-distinction.md)
 
 ## Next Step (IMPORTANT)
-T03-editor-and-scene-validation.md만 읽고 실제 성별 radio 입력으로 나머지12필드/반대 역할이 보존되면서 얼굴/몸통이 바뀌는지 확인한다. 두 모드/모든 엔딩에 gender가 전달되고 진행/카운트다운이 초기화되지 않는지 검증한다. 종합 비교와 지정 집중 테스트 후 전체 회귀를 lint/build와 겹치지 않게 실행하고 결과/미검증 범위를 기록한다. 검증/커밋 후 phase/plan/current를 done3/3 및 Active Task없음으로 완료한다. T03 구현은 다음 실행에서 시작한다.
+계획 구현/자동 검증은3/3 완료하여 다음 Active Task는 없다. 로컬 http://127.0.0.1:5173/의 타이틀→캐릭터 꾸미기에서 성별만 전환해 얼굴/체형을 비교한다. 출시 전 실제 브라우저4개크기의 모바일 스크롤/터치/native keyboard/애니메이션과 이전 Cosmos CI/실제 계정 복원을 확인한다. push/배포는 별도 사용자 요청 범위다.
 
 ## Previous Completed Feature: Character Customization Expansion
 - T01 (`20fbcb6`), T02 (`ab16a10`), T03 (`445e014`), T04 (`b5b989e`) 완료. done 4/4, Active Task 없음.

@@ -1,7 +1,7 @@
 # Plan: Character Gender Visual Distinction
 
 - Date: 2026-11-04
-- Status: in_progress
+- Status: complete
 - Decision: [Character Gender Visual Distinction](../decisions/2026-11-04-character-gender-visual-distinction.md)
 
 ## Goal
@@ -10,7 +10,7 @@
 ## Phases
 | Phase | Status | Summary | Blueprint |
 | :--- | :--- | :--- | :--- |
-| P01 | `in_progress` | 공통 얼굴 개선, 모든 포즈의 체형 연결, 편집/장면 통합 확인 | [P01](../phases/2026-11-04-character-gender-visual-distinction/P01-visual-distinction/phase.md) |
+| P01 | `complete` | 공통 얼굴·체형 개선과 편집/장면 자동 검증 완료; 실제 모바일 미검증 기록 | [P01](../phases/2026-11-04-character-gender-visual-distinction/P01-visual-distinction/phase.md) |
 
 ## Tasks and Order
 | Task | Observable outcome | Principal files |
@@ -61,8 +61,9 @@ T01 → T02 → T03 순서의 단일 Phase다. 얼굴은 양 렌더러가 공유
 - 추가 Task가 필요한 새 인접 결함은 발견하지 않았다. 이전 계획에서 미완료로 남긴 실제 모바일/계정/Cosmos 통합 확인은 인계하되 이번 계획에서 Azure 작업으로 확장하지 않는다.
 
 ## Progress
-- done: 2/3
-- Active: P01-T03
+- done: 3/3 (구현/자동 검증 완료; 수동 미검증은 아래 기록)
+- Active: 없음
 - T01 완료 (`8e2f3a8`): 공통 얼굴형·눈썹·속눈썹을 개선했다. 지정4파일246/246(14.41초), lint/build/diff check 통과. 정적28개 얼굴 표본을 확인했고 실제 브라우저/모바일/애니메이션은 미검증이다. 선택 눈5종과 안경/표정/기존 나이대/선택을 보존한다.
 - T02 완료 (`34f0944`): 여성 어깨·몸통/옷 디테일과 모든 포즈의 소매·가방끈 연결을 조정했다. 지정8파일362/362(19.50초), 손/백팩 검사 보강 후64/64(6.33초), lint/build/diff check 통과. 픽셀 연결·외곽 이탈0·손 좌표·발 y40/기존 모션을 검증하고 정적64표본을 확인했다. 기존 older 남성 run-b의1px 손-소매 틈도 동일 포즈 연결 범위에서 보완했다.
-- 실제 편집/모드/엔딩 전달과 종합 비교/전체 회귀는 T03에서 진행한다. 브라우저/모바일/애니메이션 미검증 및 기존 pixel-theme.css 변경을 보존했으며 push/배포는 수행하지 않았다.
+- T03 완료 (`05356a7`): 실제 편집과 두 모드/모든 엔딩의 gender 전달·다른 선택/진행 보존을 확인했다. 지정498/498, 전체57파일1784/1784(139.43초), lint/build/diff check 통과. 같은 조건 남녀76표본을 원래 크기에 가까운 표시와2배 확대로 비교했고 실제 장면 정적 SVG4개도 확인했다. 본체 전달 누락이 없어 테스트7파일만 보강했다.
+- 허용된 브라우저 도구가 없어 실제4개크기 모바일 레이아웃/스크롤/터치/native keyboard/애니메이션은 미검증이다. 이전 Chrome 차단을 우회하지 않았으며 기존 Cosmos/계정 통합 확인은 출시 전 필요하다. 기존 pixel-theme.css 미커밋 변경 및 로컬 http://127.0.0.1:5173/ 데모를 보존했다. push/배포는 수행하지 않았다.

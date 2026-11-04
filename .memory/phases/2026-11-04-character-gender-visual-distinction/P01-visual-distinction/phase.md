@@ -1,6 +1,6 @@
 # Phase: P01 Visual Distinction
 
-- Status: in_progress
+- Status: complete
 - Plan: [Character Gender Visual Distinction](../../../plans/2026-11-04-character-gender-visual-distinction.md)
 - Decision: [Confirmed decisions](../../../decisions/2026-11-04-character-gender-visual-distinction.md)
 
@@ -9,13 +9,15 @@
 | :--- | :--- | :--- | :--- |
 | T01 | `done` ✅ | 얼굴형·눈썹·속눈썹과 눈/안경/표정 호환 (`8e2f3a8`) | [T01](./T01-distinct-face-and-eyes.md) |
 | T02 | `done` ✅ | 체형·모든 포즈의 팔 접점·가방끈 연결 (`34f0944`) | [T02](./T02-gender-body-and-pose-fit.md) |
-| T03 | `in_progress` 🔵 | 편집/두 모드/엔딩 전달, 비교 표본, 최종 회귀 | [T03](./T03-editor-and-scene-validation.md) |
+| T03 | `done` ✅ | 편집/두 모드/엔딩 전달 및 최종 자동 검증 (`05356a7`); 실제 모바일 미검증 | [T03](./T03-editor-and-scene-validation.md) |
 
 ## Progress
-- done: 2/3 (active: T03)
+- done: 3/3 (active: 없음; 구현/자동 검증 완료)
 - T01 완료 (`8e2f3a8`): 지정4파일246/246(새32사례), lint/build/diff check 통과. 실제 도형의 턱/목 단면, 눈5종·안경·임시 표정/복원·나이대·선택 보존을 확인했다. 현재 공통 얼굴의 정적28표본을 확인했으며 실제 브라우저/모바일/애니메이션 검증은 아니다.
 - T02 완료 (`34f0944`): 여성 어깨/몸통과 옷5종을 맞추고 모든 게임/야근 포즈의 소매·손, 필요한 가방끈/백팩 연결을 보완했다. 지정8파일362/362, 추가 손/백팩 검사64/64, lint/build/diff check 통과. 원래 손·발·변환·clip/모션과 남성 기본 몸통을 보존했다.
-- 정적64표본(옷20/포즈24/가방20)을 확인했다. 기존 older 남성 run-b의1px 손-소매 틈도 같은 포즈 연결 범위에서 보완했다. 종합 비교/실제 편집·장면 전달과 전체 회귀는 T03에 남긴다. 기존 pixel-theme.css 변경과 dev 서버는 보존하고 push/배포는 수행하지 않았다.
+- T02 정적64표본(옷20/포즈24/가방20)을 확인했다. 기존 older 남성 run-b의1px 손-소매 틈도 같은 포즈 연결 범위에서 보완했다.
+- T03 완료 (`05356a7`): 지정11파일498/498, 최종 frontend/shared57파일1784/1784(139.43초), lint/build/diff check 통과. 실제 gender radio/다른12필드·역할 보존/저장상태/초점과 두 모드·모든 엔딩의 실제 도형 전달, 진행/카운트다운/좌표/clip 보존을 확인했다. 원래 크기에 가까운 표시와2배 확대의76조건 표본 및 실제 장면 SVG4개를 정적으로 확인했다.
+- 실제 브라우저 도구가 없어4개 화면 크기의 모바일 레이아웃/터치/스크롤/native keyboard/애니메이션은 미검증이다. 이전 Chrome 차단을 우회하지 않았고 실제 계정/Cosmos 통합은 별도 출시 전 확인으로 인계한다. 기존 pixel-theme.css와 로컬5173 데모를 보존했으며 push/배포는 하지 않았다.
 
 ## Execution Rules
 - .memory/current.md의 Active Task 하나만 읽어 구현·검증·커밋한 뒤 phase/plan/current를 동기화한다.
