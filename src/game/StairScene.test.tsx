@@ -32,7 +32,8 @@ describe("main downward staircase scene", () => {
     appearance.pursuer.hat = "none"; appearance.pursuer.glasses = "round"; appearance.pursuer.skinTone = "deep";
     appearance.runner.bag = "crossbody"; appearance.runner.bagColor = "beige"; appearance.runner.eyeStyle = "sleepy";
     appearance.pursuer.bag = "briefcase"; appearance.pursuer.bagColor = "brown"; appearance.pursuer.eyeStyle = "sharp";
-    const view = render(<StairScene {...props(initial())} appearance={appearance} />);
+    const state = initial();
+    const view = render(<StairScene {...props(state)} appearance={appearance} />);
     expect(screen.getByTestId("runner").querySelector(".officer-cap-hat")).not.toBeNull();
     expect(screen.getByTestId("runner").querySelector(".officer-cloth")).toHaveAttribute("fill", "#b66a87");
     expect(screen.getByTestId("pursuer").querySelector(".officer-straw-hat")).toBeNull();
@@ -44,6 +45,18 @@ describe("main downward staircase scene", () => {
     expect(screen.getByTestId("pursuer").querySelector(".officer-eyes")).toHaveAttribute("data-eye-style", "sharp");
     expect(screen.getByTestId("runner")).toHaveAttribute("transform", "translate(260 216)");
     expect(view.container.querySelector("clipPath rect")).toHaveAttribute("height", "84");
+    const actors = [screen.getByTestId("runner"), screen.getByTestId("pursuer")];
+    const before = actors.map(actor => [actor.querySelector(".officer-face-outline")!.getAttribute("d"), actor.querySelector(".officer-torso-outline")!.getAttribute("d")]);
+    const changed = { ...appearance, runner: { ...appearance.runner, gender: "female" as const }, pursuer: { ...appearance.pursuer, gender: "female" as const } };
+    view.rerender(<StairScene {...props(state)} appearance={changed} />);
+    actors.forEach((actor, index) => {
+      expect(actor.querySelector(".officer-face-outline")!.getAttribute("d")).not.toBe(before[index][0]);
+      expect(actor.querySelector(".officer-torso-outline")!.getAttribute("d")).not.toBe(before[index][1]);
+    });
+    expect(screen.getByTestId("runner")).toHaveAttribute("transform", "translate(260 216)");
+    expect(view.container.querySelectorAll("clipPath")).toHaveLength(1);
+    expect(view.container.querySelector("clipPath rect")).toHaveAttribute("height", "84");
+    expect(appearance.runner.gender).toBe("male"); expect(appearance.pursuer.gender).toBe("male");
   });
   it.each([1, 2, 3, 4, 5] as const)("uses downward geometry with upright pixel art in stage %s", (stage) => {
     const state = initial(stage);

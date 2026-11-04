@@ -28,16 +28,25 @@ function media(initial = false) {
 beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(0); });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 
-it.each(["animated", "complete"] as const)("uses the runner's chosen look in the %s exit", variant => {
+it.each((["animated", "complete"] as const).flatMap(variant => (["male", "female"] as const).map(gender => ({ variant, gender }))))("uses the runner's chosen look in the $variant/$gender exit", ({ variant, gender }) => {
   const appearance = getDefaultCharacterLook("runner"); appearance.hat = "cap"; appearance.outfitColor = "rose";
+  appearance.gender = gender;
   appearance.bag = "laptop"; appearance.bagColor = "beige"; appearance.eyeStyle = "smile";
-  const { container } = render(<OfficeExitEnding variant={variant} appearance={appearance} />);
+  const { container, rerender } = render(<OfficeExitEnding variant={variant} appearance={appearance} />);
   expect(container.querySelector(".officer-cap-hat")).not.toBeNull();
   expect(container.querySelector(".officer-cloth")).toHaveAttribute("fill", "#b66a87");
   expect(container.querySelector('[data-bag-kind="laptop"] .officer-bag-fill')).toHaveAttribute("fill", "#c8b38b");
   expect(container.querySelector(".officer-eyes")).toHaveAttribute("data-eye-style", "smile");
   expect(container.querySelector(".officer-eyes")).toHaveAttribute("data-expression", "normal");
   expect(appearance.eyeStyle).toBe("smile");
+  const face = container.querySelector(".officer-face-outline")!.getAttribute("d");
+  const torso = container.querySelector(".officer-torso-outline")!.getAttribute("d");
+  rerender(<OfficeExitEnding variant={variant} appearance={{ ...appearance, gender: gender === "female" ? "male" : "female" }} />);
+  expect(container.querySelector(".officer-face-outline")!.getAttribute("d")).not.toBe(face);
+  expect(container.querySelector(".officer-torso-outline")!.getAttribute("d")).not.toBe(torso);
+  expect(container.querySelector(".officer-eyes")).toHaveAttribute("data-expression", "normal");
+  expect(container.querySelector('[data-bag-kind="laptop"] .officer-bag-fill')).toHaveAttribute("fill", "#c8b38b");
+  expect(appearance.gender).toBe(gender);
 });
 
 describe("office exit lifecycle", () => {

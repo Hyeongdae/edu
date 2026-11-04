@@ -6,12 +6,13 @@ import { OVERTIME_CAPTURE_DURATION_MS, OVERTIME_STAIR_CAPTURE_MS, useOvertimeCap
 import type { GameStage, StageResult } from "./types";
 import { getDefaultCharacterAppearance } from "../../shared/characterAppearance";
 
-it.each(["animated", "complete"] as const)("keeps both chosen looks in all four %s overtime poses", variant => {
+it.each((["animated", "complete"] as const).flatMap(variant => (["male", "female"] as const).map(gender => ({ variant, gender }))))("keeps both chosen looks in all four $variant/$gender overtime poses", ({ variant, gender }) => {
   const appearance = getDefaultCharacterAppearance(); appearance.runner.hat = "cap"; appearance.runner.outfitColor = "rose";
   appearance.pursuer.hat = "none"; appearance.pursuer.glasses = "round"; appearance.pursuer.skinTone = "deep";
   appearance.runner.bag = "backpack"; appearance.runner.bagColor = "navy"; appearance.runner.eyeStyle = "round";
   appearance.pursuer.bag = "briefcase"; appearance.pursuer.bagColor = "brown"; appearance.pursuer.eyeStyle = "sharp";
-  const { container } = render(<OvertimeCaptureEnding variant={variant} appearance={appearance} />);
+  appearance.runner.gender = gender; appearance.pursuer.gender = gender;
+  const { container, rerender } = render(<OvertimeCaptureEnding variant={variant} appearance={appearance} />);
   for (const pose of ["dragged", "seated"]) {
     const officer = container.querySelector(`[data-overtime-pose="${pose}"]`)!;
     expect(officer.querySelector(".officer-cap-hat")).not.toBeNull();
@@ -31,6 +32,21 @@ it.each(["animated", "complete"] as const)("keeps both chosen looks in all four 
   }
   expect(appearance.runner.eyeStyle).toBe("round");
   expect(appearance.pursuer.eyeStyle).toBe("sharp");
+  const poses = ["dragged", "seated", "grabbing", "standing"];
+  const before = poses.map(pose => {
+    const actor = container.querySelector(`[data-overtime-pose="${pose}"]`)!;
+    return [actor.querySelector(".officer-face-outline")!.getAttribute("d"), actor.querySelector(".officer-torso-outline")!.getAttribute("d")];
+  });
+  const nextGender = gender === "female" ? "male" : "female";
+  rerender(<OvertimeCaptureEnding variant={variant} appearance={{ ...appearance,
+    runner: { ...appearance.runner, gender: nextGender }, pursuer: { ...appearance.pursuer, gender: nextGender } }} />);
+  poses.forEach((pose, index) => {
+    const actor = container.querySelector(`[data-overtime-pose="${pose}"]`)!;
+    expect(actor.querySelector(".officer-face-outline")!.getAttribute("d")).not.toBe(before[index][0]);
+    expect(actor.querySelector(".officer-torso-outline")!.getAttribute("d")).not.toBe(before[index][1]);
+    expect(actor.querySelector(".officer-eyes")).toHaveAttribute("data-expression", index < 2 ? "weary" : "normal");
+  });
+  expect(appearance.runner.gender).toBe(gender); expect(appearance.pursuer.gender).toBe(gender);
 });
 
 const caught = (endedAtMs = 0, stage: GameStage = 1): StageResult => Object.freeze({

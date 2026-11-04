@@ -39,6 +39,15 @@ describe("InfiniteModeScreen", () => {
     expect(screen.getByTestId("infinite-pursuer").querySelector('[data-bag-kind="briefcase"] .officer-bag-fill')).toHaveAttribute("fill", "#30466d");
     expect(screen.getByTestId("infinite-pursuer").querySelector(".officer-eyes")).toHaveAttribute("data-eye-style", "sharp");
     expect(screen.getByTestId("infinite-score")).toHaveTextContent("1");
+    const actors = [screen.getByTestId("infinite-player"), screen.getByTestId("infinite-pursuer")];
+    const before = actors.map(actor => [actor.querySelector(".officer-face-outline")!.getAttribute("d"), actor.querySelector(".officer-torso-outline")!.getAttribute("d")]);
+    view.rerender(<InfiniteModeScreen account={account} appearance={{ ...next,
+      runner: { ...next.runner, gender: "female" }, pursuer: { ...next.pursuer, gender: "female" } }} onReturnToTitle={vi.fn()} />);
+    actors.forEach((actor, index) => {
+      expect(actor.querySelector(".officer-face-outline")!.getAttribute("d")).not.toBe(before[index][0]);
+      expect(actor.querySelector(".officer-torso-outline")!.getAttribute("d")).not.toBe(before[index][1]);
+    });
+    expect(screen.getByTestId("infinite-score")).toHaveTextContent("1");
   });
   it("shows pause only after starting and resumes an interrupted start countdown after three seconds", async () => {
     vi.useFakeTimers(); vi.setSystemTime(new Date("2026-11-03T00:00:00.000Z"));

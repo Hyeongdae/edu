@@ -12,7 +12,8 @@ describe("InfiniteStairScene", () => {
     appearance.pursuer.glasses = "round"; appearance.pursuer.outfitColor = "teal";
     appearance.runner.bag = "backpack"; appearance.runner.bagColor = "navy"; appearance.runner.eyeStyle = "round";
     appearance.pursuer.bag = "laptop"; appearance.pursuer.bagColor = "black"; appearance.pursuer.eyeStyle = "sharp";
-    const { container } = render(<InfiniteStairScene state={createInfiniteGameState(() => 0)} isMoving={false} appearance={appearance} />);
+    const state = createInfiniteGameState(() => 0);
+    const { container, rerender } = render(<InfiniteStairScene state={state} isMoving={false} appearance={appearance} />);
     const player = screen.getByTestId("infinite-player"), pursuer = screen.getByTestId("infinite-pursuer");
     expect(player.querySelector(".officer-cap-hat")).not.toBeNull();
     expect(pursuer.querySelector(".officer-glasses--round")).not.toBeNull();
@@ -24,6 +25,16 @@ describe("InfiniteStairScene", () => {
     const lastStair = container.querySelectorAll('[data-testid="infinite-stair-step"]');
     expect(lastStair[lastStair.length - 1].compareDocumentPosition(player) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(player).toHaveAttribute("transform", "translate(260 204)");
+    const actors = [player, pursuer];
+    const before = actors.map(actor => [actor.querySelector(".officer-face-outline")!.getAttribute("d"), actor.querySelector(".officer-torso-outline")!.getAttribute("d")]);
+    const changed = { ...appearance, runner: { ...appearance.runner, gender: "female" as const }, pursuer: { ...appearance.pursuer, gender: "female" as const } };
+    rerender(<InfiniteStairScene state={state} isMoving={false} appearance={changed} />);
+    actors.forEach((actor, index) => {
+      expect(actor.querySelector(".officer-face-outline")!.getAttribute("d")).not.toBe(before[index][0]);
+      expect(actor.querySelector(".officer-torso-outline")!.getAttribute("d")).not.toBe(before[index][1]);
+    });
+    expect(player).toHaveAttribute("transform", "translate(260 204)");
+    expect(lastStair[lastStair.length - 1].compareDocumentPosition(player) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
   it("renders pixel stairs ascending upward with both office characters and no obstacles", () => {
     let state = startInfiniteGame(createInfiniteGameState(() => 0), 0);

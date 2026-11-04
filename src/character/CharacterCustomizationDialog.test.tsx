@@ -14,6 +14,50 @@ function choose(group: string, option: string) {
 }
 
 describe("character editor", () => {
+  it.each([{ role: "runner", label: "도망자" }, { role: "pursuer", label: "추격자" }] as const)(
+    "changes only $role gender, updates real geometry and keeps the draft through save states", ({ role, label }) => {
+      const initial = getDefaultCharacterAppearance();
+      Object.assign(initial.runner, { hairStyle: "long", hairColor: "pink", skinTone: "tan", outfit: "hoodie", outfitColor: "sky",
+        hat: "beanie", glasses: "round", shoes: "boots", shoeColor: "navy", eyeStyle: "smile", bag: "backpack", bagColor: "beige" });
+      Object.assign(initial.pursuer, { hairStyle: "curly", hairColor: "gray", skinTone: "deep", outfit: "vest", outfitColor: "orange",
+        hat: "beret", glasses: "square", shoes: "sneakers", shoeColor: "red", eyeStyle: "sharp", bag: "briefcase", bagColor: "brown" });
+      const update = vi.fn(), retry = vi.fn();
+      function Harness({ status }: { status: AppearanceBinding["status"] }) {
+        const [value, setValue] = useState(initial);
+        return <CharacterCustomizationDialog binding={binding({ value, status, retry,
+          errorMessage: status === "error" ? "저장 연결 오류" : null,
+          update: next => { update(next); setValue(next); } })} storageMode="account" onClose={vi.fn()} />;
+      }
+      const view = render(<Harness status="idle" />);
+      const editor = within(screen.getByRole("dialog"));
+      fireEvent.click(editor.getByRole("tab", { name: label }));
+      const preview = editor.getByRole("img");
+      const selectors = [".officer-face-outline", ".officer-eyebrows path", ".officer-torso-outline"];
+      const original = selectors.map(selector => preview.querySelector(selector)!.getAttribute("d"));
+      const female = editor.getByRole("radio", { name: "여성" });
+      fireEvent.click(female); female.focus();
+      const expected = { ...initial, [role]: { ...initial[role], gender: "female" } };
+      expect(update).toHaveBeenCalledExactlyOnceWith(expected);
+      selectors.forEach((selector, i) => expect(preview.querySelector(selector)!.getAttribute("d")).not.toBe(original[i]));
+      expect(preview.querySelector(".officer-eyelashes path")).not.toBeNull();
+      for (const status of ["pending", "saving", "saved", "error", "auth-required"] as const) {
+        view.rerender(<Harness status={status} />);
+        expect(female).toBeChecked(); expect(female).toHaveFocus();
+        expect(preview.querySelector(".officer-eyes")).toHaveAttribute("data-eye-style", initial[role].eyeStyle);
+        expect(preview.querySelector(".officer-outfit")).toHaveAttribute("data-appearance-gender", "female");
+        if (status === "error") {
+          expect(screen.getByRole("status")).toHaveTextContent("저장 연결 오류");
+          fireEvent.click(editor.getByRole("button", { name: "다시 시도" }));
+          expect(retry).toHaveBeenCalledOnce();
+        }
+      }
+      expect(update).toHaveBeenCalledOnce();
+      fireEvent.click(editor.getByRole("radio", { name: "남성" }));
+      expect(update).toHaveBeenLastCalledWith(initial);
+      selectors.forEach((selector, i) => expect(preview.querySelector(selector)!.getAttribute("d")).toBe(original[i]));
+      expect(preview.querySelector(".officer-eyelashes")).toBeNull();
+    });
+
   it("offers the complete catalog in thirteen labelled groups for either role", () => {
     render(<CharacterCustomizationDialog binding={binding()} storageMode="session" onClose={vi.fn()} />);
     const labels = ["성별", "머리스타일", "머리색", "피부색", "눈 모양", "옷", "옷 색상", "모자", "안경", "신발", "신발 색상", "가방", "가방 색상"];
