@@ -58,6 +58,8 @@ describe("appearance preservation across game records", () => {
 
   it.each(modes)("copies the nested appearance during a changed %s merge", (mode) => {
     const appearance = getDefaultCharacterAppearance();
+    Object.assign(appearance.runner, { bottoms: "skirt", bottomsColor: "beige" });
+    Object.assign(appearance.pursuer, { bottoms: "shorts", bottomsColor: "white" });
     Object.freeze(appearance.runner);
     Object.freeze(appearance.pursuer);
     Object.freeze(appearance);

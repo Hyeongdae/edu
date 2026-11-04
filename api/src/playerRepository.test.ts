@@ -8,6 +8,16 @@ import { getDefaultCharacterAppearance } from "../../shared/characterAppearance"
 import type { CharacterAppearance } from "../../shared/characterAppearance";
 import { normalizeCharacterAppearance } from "../../shared/characterAppearance";
 import { getDefaultCharacterAppearance as getLegacyAppearance } from "../../shared/legacyCharacterAppearance";
+import { getDefaultCharacterAppearance as getExpandedAppearance } from "../../shared/expandedCharacterAppearance";
+
+function expandedSavedAppearance() {
+  const value = getExpandedAppearance();
+  Object.assign(value.runner, { gender: "female", hairStyle: "long", eyeStyle: "smile", bag: "crossbody", bagColor: "beige" });
+  Object.assign(value.pursuer, { hairStyle: "curly", glasses: "round", eyeStyle: "sharp", bag: "laptop", bagColor: "navy" });
+  return value;
+}
+const previousSchemas = [{ name: "v1", make: getLegacyAppearance }, { name: "v2", make: expandedSavedAppearance }];
+const previousScoreCases = previousSchemas.flatMap(schema => ["stage", "infinite"].map(mode => ({ ...schema, mode })));
 
 const ITEM_ETAG = '"player-version-1"';
 const CONTAINER_ID = "stair-climb-players";
@@ -72,17 +82,17 @@ beforeEach(() => {
 });
 
 describe("account character appearance persistence", () => {
-  it("normalizes old looks on reads and rankings without rewriting or exposing migration metadata", async () => {
-    const appearance = getLegacyAppearance();
-    appearance.runner = { gender: "female", hairStyle: "ponytail", hairColor: "blond", skinTone: "deep",
+  it.each(previousSchemas)("normalizes $name looks without rewriting or exposing migration metadata", async ({ make }) => {
+    const appearance = make();
+    appearance.runner = { ...appearance.runner, gender: "female", hairStyle: "ponytail", hairColor: "blond", skinTone: "deep",
       outfit: "cardigan", outfitColor: "teal", hat: "cap", glasses: "round", shoes: "sneakers", shoeColor: "white" };
     const document = stored({ appearance, highestClearedStage: 1, bestScore: 150,
       infiniteBestScore: 60, infiniteAchievedAt: NOW });
     const readCurrent = useMemoryDocument(document);
     container.items.query.mockReturnValue({ fetchAll: vi.fn().mockResolvedValue({ resources: [document] }) });
     const repo = repository(), profile = await repo.getProfile(ACTOR);
-    expect(profile).toMatchObject({ appearance: { version: 2, runner: { ...appearance.runner,
-      eyeStyle: "default", bag: "none", bagColor: "black" } }, highestClearedStage: 1,
+    expect(profile).toMatchObject({ appearance: { version: 3, runner: { ...appearance.runner,
+      bottoms: "trousers", bottomsColor: "navy" } }, highestClearedStage: 1,
       best: { bestScore: 150, remainingTimeCs: 6000 }, infiniteBest: { bestScore: 60 } });
     expect(profile.appearance).toEqual(normalizeCharacterAppearance(appearance));
     expect(await repo.listTopScores()).toHaveLength(1); expect(await repo.listTopInfiniteScores()).toHaveLength(1);
@@ -93,22 +103,22 @@ describe("account character appearance persistence", () => {
     expect(readCurrent()?.appearance).toEqual(appearance);
   });
 
-  it("upgrades an identical legacy appearance only on an explicit save and then resumes no-op saves", async () => {
-    const old = getLegacyAppearance(); old.pursuer.hat = "cap";
+  it.each(previousSchemas)("upgrades an identical $name appearance only on an explicit save", async ({ make }) => {
+    const old = make(); old.pursuer.hat = "cap";
     const readCurrent = useMemoryDocument(stored({ appearance: old, infiniteBestScore: 60, infiniteAchievedAt: NOW }));
     const repo = repository(); const profile = await repo.getProfile(ACTOR);
     const saved = await repo.saveAppearance(ACTOR, profile.appearance!);
     expect(item.replace).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ appearance: profile.appearance,
       schemaVersion: 1, bestScore: 100, remainingTimeCs: 6000, infiniteBestScore: 60 }),
     { accessCondition: { type: "IfMatch", condition: '"version-1"' } });
-    expect(readCurrent()?.appearance?.version).toBe(2);
+    expect(readCurrent()?.appearance?.version).toBe(3);
     expect(await repository().getProfile(ACTOR)).toEqual(saved);
     await repo.saveAppearance(ACTOR, profile.appearance!);
     expect(item.replace).toHaveBeenCalledTimes(1);
   });
 
-  it.each(["stage", "infinite"] as const)("preserves old selections when a real %s improvement writes version two", async mode => {
-    const old = getLegacyAppearance(); old.runner.hat = "straw"; old.pursuer.hairStyle = "bob";
+  it.each(previousScoreCases)("preserves $name selections when a real $mode improvement writes version three", async ({ make, mode }) => {
+    const old = make(); old.runner.hat = "straw"; old.pursuer.hairStyle = "bob";
     const readCurrent = useMemoryDocument(stored({ appearance: old, infiniteBestScore: 50, infiniteAchievedAt: NOW }));
     const repo = repository();
     const profile = mode === "stage" ? await repo.submit(ACTOR, submission({ score: 101 }))
@@ -116,20 +126,22 @@ describe("account character appearance persistence", () => {
     expect(profile.appearance).toEqual(normalizeCharacterAppearance(old));
     expect(readCurrent()).toMatchObject({ schemaVersion: 1, appearance: profile.appearance,
       bestScore: mode === "stage" ? 101 : 100, infiniteBestScore: mode === "infinite" ? 51 : 50 });
-    expect(readCurrent()?.appearance?.version).toBe(2);
+    expect(readCurrent()?.appearance?.version).toBe(3);
     expect(item.replace).toHaveBeenCalledTimes(1);
   });
 
-  it.each(["stage", "infinite"] as const)("does not upgrade a legacy document merely for an unchanged %s score", async mode => {
-    const document = stored({ appearance: getLegacyAppearance(), infiniteBestScore: 50, infiniteAchievedAt: NOW });
+  it.each(previousScoreCases)("does not upgrade a $name document for an unchanged $mode score", async ({ make, mode }) => {
+    const document = stored({ appearance: make(), infiniteBestScore: 50, infiniteAchievedAt: NOW });
     const readCurrent = useMemoryDocument(document), repo = repository();
     const profile = mode === "stage" ? await repo.submit(ACTOR, submission({ score: 100 }))
       : await repo.submitInfiniteScore(ACTOR, { score: 50 });
-    expect(profile.appearance?.version).toBe(2); expect(readCurrent()).toEqual(document);
+    expect(profile.appearance?.version).toBe(3); expect(readCurrent()).toEqual(document);
     expect(item.replace).not.toHaveBeenCalled(); expect(container.items.create).not.toHaveBeenCalled();
   });
 
-  it.each([getLegacyAppearance(), { ...getDefaultCharacterAppearance(), version: 3 },
+  it.each([getLegacyAppearance(), getExpandedAppearance(), { ...getDefaultCharacterAppearance(), version: 4 },
+    { ...getDefaultCharacterAppearance(), runner: { ...getDefaultCharacterAppearance().runner, bottoms: "unknown" } },
+    { ...getDefaultCharacterAppearance(), pursuer: { ...getDefaultCharacterAppearance().pursuer, bottomsColor: "#ffffff" } },
     { ...getDefaultCharacterAppearance(), runner: getLegacyAppearance().runner }])("rejects old or incomplete versioned saves before storage: %j", async appearance => {
     await expect(repository().saveAppearance(ACTOR, appearance as unknown as CharacterAppearance))
       .rejects.toMatchObject({ code: "invalid-request", status: 400 });
@@ -141,9 +153,9 @@ describe("account character appearance persistence", () => {
     const repo = repository();
     const appearance = getDefaultCharacterAppearance();
     appearance.runner = { ...appearance.runner, gender: "female", hairStyle: "long", hat: "beanie",
-      eyeStyle: "round", bag: "backpack", bagColor: "navy" };
+      eyeStyle: "round", bag: "backpack", bagColor: "navy", bottoms: "skirt", bottomsColor: "beige" };
     appearance.pursuer = { ...appearance.pursuer, glasses: "sunglasses", skinTone: "deep",
-      eyeStyle: "sharp", bag: "briefcase", bagColor: "brown" };
+      eyeStyle: "sharp", bag: "briefcase", bagColor: "brown", bottoms: "shorts", bottomsColor: "white" };
     const saved = await repo.saveAppearance(ACTOR, appearance);
     expect(saved).toMatchObject({ appearance, highestClearedStage: 0, best: { bestScore: 100 }, infiniteBest: { bestScore: 40 } });
     const clear = await repo.submit(ACTOR, submission({ score: 150, outcome: "cleared" }));
@@ -259,7 +271,7 @@ describe("account character appearance persistence", () => {
     }
     item.read.mockResolvedValueOnce({ resource: latest, etag: '"latest-version"' });
     const appearance = getDefaultCharacterAppearance();
-    appearance.runner.hat = "cap";
+    appearance.runner = { ...appearance.runner, hat: "cap", bottoms: "skirt", bottomsColor: "beige" };
     const saved = await repository().saveAppearance(ACTOR, appearance);
     expect(saved).toMatchObject({ appearance, highestClearedStage: 2, best: { bestStage: 2, bestScore: 200 }, infiniteBest: { bestScore: 999 } });
     expect(item.replace).toHaveBeenLastCalledWith(expect.objectContaining({
@@ -270,7 +282,7 @@ describe("account character appearance persistence", () => {
   it.each(["stage", "infinite"] as const)("preserves a newly committed appearance after a %s score write conflict", async (mode) => {
     const previous = getDefaultCharacterAppearance();
     const latest = getDefaultCharacterAppearance();
-    latest.pursuer = { ...latest.pursuer, hat: "beret", eyeStyle: "sleepy", bag: "laptop", bagColor: "beige" };
+    latest.pursuer = { ...latest.pursuer, hat: "beret", eyeStyle: "sleepy", bag: "laptop", bagColor: "beige", bottoms: "jeans", bottomsColor: "white" };
     item.read.mockResolvedValueOnce({ resource: stored({ appearance: previous }), etag: ITEM_ETAG })
       .mockResolvedValueOnce({ resource: stored({ appearance: latest }), etag: '"new-appearance"' });
     item.replace.mockRejectedValueOnce({ code: 412 });

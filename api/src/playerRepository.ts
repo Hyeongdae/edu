@@ -6,6 +6,8 @@ import { areCharacterAppearancesEqual, cloneCharacterAppearance, isCharacterAppe
 import type { CharacterAppearance } from "../../shared/characterAppearance";
 import { isCharacterAppearance as isLegacyCharacterAppearance } from "../../shared/legacyCharacterAppearance";
 import type { CharacterAppearance as LegacyCharacterAppearance } from "../../shared/legacyCharacterAppearance";
+import { isCharacterAppearance as isExpandedCharacterAppearance } from "../../shared/expandedCharacterAppearance";
+import type { CharacterAppearance as ExpandedCharacterAppearance } from "../../shared/expandedCharacterAppearance";
 import { getHighestUnlockedStage, getStageRule, isClearedStage, isGameStage } from "../../src/game/stageRules";
 import type { ClearedStage, GameStage } from "../../src/game/types";
 import { RecordServiceError } from "./errors";
@@ -31,7 +33,7 @@ export interface PlayerDocument extends ItemDefinition {
   achievedAt?: string;
   infiniteBestScore?: number;
   infiniteAchievedAt?: string;
-  appearance?: CharacterAppearance | LegacyCharacterAppearance;
+  appearance?: CharacterAppearance | ExpandedCharacterAppearance | LegacyCharacterAppearance;
 }
 
 interface ItemRead<T> {
@@ -215,7 +217,8 @@ export function createPlayerRepository(
       !response.etag || response.etag.trim() !== response.etag || response.etag === "*") {
       throw new RecordServiceError("storage-unavailable");
     }
-    return { profile, etag: response.etag, appearanceNeedsUpgrade: isLegacyCharacterAppearance(response.resource.appearance) };
+    return { profile, etag: response.etag, appearanceNeedsUpgrade:
+      isLegacyCharacterAppearance(response.resource.appearance) || isExpandedCharacterAppearance(response.resource.appearance) };
   }
 
   return {

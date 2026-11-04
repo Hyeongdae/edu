@@ -18,7 +18,7 @@ function art(children: ReactNode): Element {
 function customLook(): CharacterLook {
   return {
     gender: "female", hairStyle: "ponytail", hairColor: "blond", skinTone: "deep",
-    outfit: "cardigan", outfitColor: "teal", hat: "cap", glasses: "round", shoes: "sneakers", shoeColor: "white", eyeStyle: "default", bag: "none", bagColor: "black",
+    outfit: "cardigan", outfitColor: "teal", hat: "cap", glasses: "round", shoes: "sneakers", shoeColor: "white", eyeStyle: "default", bag: "none", bagColor: "black", bottoms: "trousers", bottomsColor: "navy",
   };
 }
 

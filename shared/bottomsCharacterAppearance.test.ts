@@ -45,7 +45,7 @@ function savedExpandedAppearance(): expanded.CharacterAppearance {
 }
 
 describe("bottoms catalog and strict version-three boundary", () => {
-  it("prepares fifteen fields without activating the new public contract or changing old catalogs", () => {
+  it("exposes fifteen fields publicly without changing the fixed old catalogs", () => {
     expect(Object.fromEntries(fields.map(field => [field, APPEARANCE_OPTIONS[field].length]))).toEqual({
       gender: 2, hairStyle: 6, hairColor: 6, skinTone: 4, outfit: 5, outfitColor: 9,
       hat: 5, glasses: 4, shoes: 3, shoeColor: 6, eyeStyle: 5, bag: 5, bagColor: 4, bottoms: 4, bottomsColor: 6,
@@ -59,8 +59,8 @@ describe("bottoms catalog and strict version-three boundary", () => {
       { value: "gray", label: "회색", swatch: "#788394" }, { value: "beige", label: "베이지", swatch: "#c8b38b" },
       { value: "brown", label: "갈색", swatch: "#785039" }, { value: "white", label: "흰색", swatch: "#e6edf2" },
     ]);
-    expect(current.APPEARANCE_OPTIONS).toBe(expanded.APPEARANCE_OPTIONS);
-    expect(current.getDefaultCharacterAppearance().version).toBe(2);
+    expect(current.APPEARANCE_OPTIONS).toBe(APPEARANCE_OPTIONS);
+    expect(current.getDefaultCharacterAppearance().version).toBe(3);
     expect(Object.keys(expanded.APPEARANCE_OPTIONS)).toHaveLength(13);
     expect(Object.keys(legacy.APPEARANCE_OPTIONS)).toHaveLength(10);
     expect(expanded.isCharacterAppearance(getDefaultCharacterAppearance())).toBe(false);

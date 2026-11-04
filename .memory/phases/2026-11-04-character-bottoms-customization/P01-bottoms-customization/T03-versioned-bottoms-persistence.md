@@ -1,6 +1,6 @@
 # Task: T03 Versioned Bottoms Persistence
 
-## Status: pending
+## Status: done
 
 ## Goal
 T01/T02의 v3 하의 계약을 public/API/클라이언트에 연결한다. 기존 v1/v2 외형을 손실 없이 읽고 하의 포함15필드 저장·재접속·두 모드 점수 갱신을 지원하되 기존 점수·해금·계정 격리를 유지한다. 새 편집 그룹의 노출은 T04다.
@@ -99,11 +99,11 @@ T01/T02의 v3 하의 계약을 public/API/클라이언트에 연결한다. 기�
 - Emulator endpoint는 `http://127.0.0.1:8081/`, readiness는 `http://127.0.0.1:8080/ready`다. 기존 harness는 운영 GAME_RECORDS_* 설정이 하나라도 있으면 실행을 거부하고 test_UUID DB만 지운다. 이 보호를 완화하지 않는다. 미준비 시 실행하지 않고 원인/타입 검증과 CI 필수 조건을 기록한다.
 
 ## Acceptance Criteria
-- [ ] public/API/클라이언트가 모두 v3이며 정상 v1/v2의 기존 선택을 보존한다.
-- [ ] GET/점수 no-op는 쓰지 않고 최초 명시 저장/실제 점수 쓰기는 v3 하의를 보존한다.
-- [ ] 잘못된 요청/저장 응답을 성공으로 처리하지 않고 기존 auth/ETag/직렬화/계정 분리를 유지한다.
-- [ ] 편집 그룹 노출은 아직13개이며 T03 타입/단위 검증이 독립적으로 통과한다.
-- [ ] emulator 검증의 실행/미실행 상태를 명시하고 운영 기록을 수정하지 않는다.
+- [x] public/API/클라이언트가 모두 v3이며 정상 v1/v2의 기존 선택을 보존한다.
+- [x] GET/점수 no-op는 쓰지 않고 최초 명시 저장/실제 점수 쓰기는 v3 하의를 보존한다.
+- [x] 잘못된 요청/저장 응답을 성공으로 처리하지 않고 기존 auth/ETag/직렬화/계정 분리를 유지한다.
+- [x] 편집 그룹 노출은 아직13개이며 T03 타입/단위 검증이 독립적으로 통과한다.
+- [x] emulator 검증의 실행/미실행 상태를 명시하고 운영 기록을 수정하지 않는다.
 
 ## Validation
 - `npm run test -- --run shared/characterAppearance.test.ts shared/bottomsCharacterAppearance.test.ts shared/expandedCharacterAppearance.test.ts shared/companyRecords.test.ts src/company/recordApi.test.ts src/company/CompanyRecordStore.test.ts src/character/CharacterCustomizationDialog.test.tsx --maxWorkers=2` — public 계약/계정 저장/기존 편집 회귀 통과.
@@ -124,6 +124,17 @@ Task: T03-versioned-bottoms-persistence
 ```
 
 ## Progress
-- [ ] 구현 완료
-- [ ] 검증 통과
+- [x] 구현 완료
+- [x] 검증 통과 (조건부 emulator 실행은 아래 미실행 기록 참조)
 - commit: pending
+
+## Execution Result — 2026-11-04
+- public characterAppearance.ts를 bottomsCharacterAppearance의v3로 전환했다. repository의 PlayerDocument는 v1/v2/v3를 읽고 appearanceNeedsUpgrade는 원본이 정확한 v1 또는 v2일 때만 true다. 정상화한 값이 요청과 같아도 최초 명시 저장은 v3로 실제 쓰며 이후 같은 v3 저장은 no-op다.
+- 기존 normalizeSharedProfile/HTTP 저장 확인/CompanyRecordStore/공통 점수 merge가 public 계약을 사용하므로 본체 변경 없이15필드에 연결되었다. 읽기는 구버전을 정상화하지만 외형 저장 성공은 원본부터 strict v3이고 요청과 같을 때만 인정한다. 기존 auth/ETag5회 충돌 재시도/400ms debounce/revision/점수 직렬화/계정 격리는 유지했다.
+- v1/v2의 GET·랭킹 읽기와 두 점수 no-op가 원본 문서를 쓰지 않는지, 명시 저장/실제 점수 개선이 원래 선택과 하의를 보존하는지 API 단위로 검증했다. 409create/412replace 이후에도 최신 하의/점수/해금이 남는 사례를 포함했다.
+- 실제 fetch mock을 거친 v1/v2 프로필/두 점수 응답, v3의 비기본 하의15필드 POST와 응답 확인, 잘못되거나 누락된 하의/색상·구버전 echo 거부를 검사했다. store의 빠른 선택/지연 응답/실패 재시도/401복구/점수 큐/계정 전환에 비기본 하의를 연결하고 새 HTTP-backed store 세션 복원을 추가했다.
+- 편집 그룹은13개와 옷/옷 색상 라벨을 그대로 유지했다. public 버전 기대를3으로 바꾸고 수동13필드 CharacterLook fixture에 기본 하의2필드를 보완했다. 고정 v1/v2 모듈 자체는 변경하지 않았고 고정 v2 validator의 version3 거부 검사는 유지했다. 점수 대기열 version2/계정 문서 schemaVersion1은 유지한다.
+- 초기 프런트엔드 타입 검사에서 버전2 literal과 수동13필드 픽셀 fixture2곳의 타입 오류를 확인해 새 public 계약에 맞게 갱신했다. 테스트/config/timeout/skip 완화는 없다.
+- 지정7파일450/450(10.92초), 최종 관련 픽셀2파일을 포함한9파일662/662(21.12초), API4파일211/211(최종2.81초), lint/프런트엔드·API 타입·빌드/diff check 통과. 프런트엔드 JS668.23kB(gzip184.06kB)/CSS92.97kB(gzip15.88kB), API39.3kB. 기존500kB chunk 경고 유지.
+- Cosmos readiness http://127.0.0.1:8080/ready가 응답하지 않아 실제 emulator 통합은 실행하지 않았다. 기존v1 쓰기 기대를v3로 갱신하고 v2의 GET/ETag 보존·첫 명시 저장·두 점수 no-op/실제 쓰기 통합3사례를 추가했다. 기존 동시 쓰기/새 세션 사례도 비기본 하의를 사용하며 API tsc로 통합 파일을 검증했다. 전체 통합16사례의 실제 실행은 로컬 emulator 준비 후 또는 배포 전 기존 CI에서 필수다. 운영 연결로 대체하거나 harness 보호를 완화하지 않았다.
+- 실제 회사 계정/운영 Cosmos/브라우저/모바일 확인과 push/배포는 수행하지 않았다. DB/컨테이너/인덱스/Auth/게임 규칙/그림·모바일 버튼 간격을 변경하지 않았다. 별도 범위 결함은 특이사항 없음.

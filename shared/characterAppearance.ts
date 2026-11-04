@@ -1,1 +1,1 @@
-export * from "./expandedCharacterAppearance";
+export * from "./bottomsCharacterAppearance";

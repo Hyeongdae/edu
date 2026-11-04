@@ -140,7 +140,7 @@ describe("character editor", () => {
     expect(preview.querySelector('[data-bag-kind="briefcase"] .officer-bag-fill')).toHaveAttribute("fill", "#785039");
     fireEvent.click(screen.getByRole("tab", { name: "도망자" }));
     expect(within(screen.getByRole("group", { name: "모자" })).getByRole("radio", { name: "캡 모자" })).toBeChecked();
-    expect(update.mock.lastCall![0]).toMatchObject({ version: 2,
+    expect(update.mock.lastCall![0]).toMatchObject({ version: 3,
       runner: { gender: "female", hairStyle: "long", hat: "cap", outfit: "hoodie", shoeColor: "white", eyeStyle: "round", bag: "backpack", bagColor: "navy" },
       pursuer: { glasses: "round", skinTone: "deep", gender: "male", hat: "beret", hairStyle: "curly", outfit: "vest", eyeStyle: "sharp", bag: "briefcase", bagColor: "brown" } });
     expect(screen.getByRole("status")).toHaveTextContent("이번 접속에서만 유지돼요");

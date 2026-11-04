@@ -87,9 +87,9 @@ describe("character appearance input boundary", () => {
     expect(isSaveAppearanceRequest({ appearance: value })).toBe(false);
   });
 
-  it("requires version two and both complete roles", () => {
+  it("requires version three and both complete roles", () => {
     const appearance = getDefaultCharacterAppearance();
-    for (const version of [undefined, null, 0, 1, 3, "2"]) {
+    for (const version of [undefined, null, 0, 1, 2, 4, "3"]) {
       expect(isCharacterAppearance({ ...appearance, version })).toBe(false);
     }
     for (const field of ["version", "runner", "pursuer"] as const) {
@@ -165,11 +165,11 @@ describe("appearance value isolation and comparison", () => {
     const reordered: CharacterAppearance = {
       pursuer: { ...original.pursuer },
       runner: Object.fromEntries(Object.entries(original.runner).reverse()) as unknown as CharacterLook,
-      version: 2,
+      version: 3,
     };
     expect(JSON.stringify(reordered)).not.toBe(JSON.stringify(original));
     expect(areCharacterAppearancesEqual(original, reordered)).toBe(true);
-    expect(areCharacterAppearancesEqual(original, { ...original, version: 3 } as unknown as CharacterAppearance)).toBe(false);
+    expect(areCharacterAppearancesEqual(original, { ...original, version: 4 } as unknown as CharacterAppearance)).toBe(false);
   });
 
   it.each(fields)("detects a different %s on either role", (field) => {

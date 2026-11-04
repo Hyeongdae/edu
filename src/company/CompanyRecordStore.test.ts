@@ -7,6 +7,7 @@ import { fetchProfile, normalizeSharedProfile, RecordApiError, type CompanyRecor
 import { cloneCharacterAppearance, getDefaultCharacterAppearance } from "../../shared/characterAppearance";
 import type { CharacterAppearance, CharacterLook } from "../../shared/characterAppearance";
 import { getDefaultCharacterAppearance as getLegacyAppearance } from "../../shared/legacyCharacterAppearance";
+import { getDefaultCharacterAppearance as getExpandedAppearance } from "../../shared/expandedCharacterAppearance";
 
 const stores: CompanyRecordStore[] = [];
 const now = "2026-10-30T07:00:00.000Z";
@@ -62,23 +63,25 @@ beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(now); });
 afterEach(() => { stores.splice(0).forEach((store) => store.stop()); vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 describe("account appearance autosave", () => {
-  it("bootstraps a real legacy HTTP profile into the store without an automatic migration write", async () => {
-    const appearance = getLegacyAppearance(); appearance.runner.hairStyle = "ponytail";
+  it.each([{ name: "v1", make: getLegacyAppearance }, { name: "v2", make: getExpandedAppearance }])(
+    "bootstraps a real $name HTTP profile without an automatic migration write", async ({ make }) => {
+    const appearance = make(); appearance.runner.hairStyle = "ponytail";
+    if (appearance.version === 2) Object.assign(appearance.runner, { eyeStyle: "sharp", bag: "laptop", bagColor: "beige" });
     const wire = { ...companyProfile(), appearance };
     const fetcher = vi.fn().mockResolvedValue(Response.json(wire)); vi.stubGlobal("fetch", fetcher);
     const { store, api, storage } = setup();
     api.fetchProfile.mockImplementationOnce(fetchProfile);
     store.start(); await vi.advanceTimersByTimeAsync(0);
-    expect(appearanceBinding(store)).toMatchObject({ status: "idle", value: {
-      version: 2, runner: { hairStyle: "ponytail", eyeStyle: "default", bag: "none", bagColor: "black" } } });
+    expect(appearanceBinding(store)).toMatchObject({ status: "idle", value: normalizeSharedProfile(wire, "employee-a")!.appearance });
+    expect(appearanceBinding(store).value.runner).toMatchObject({ bottoms: "trousers", bottomsColor: "navy" });
     await vi.advanceTimersByTimeAsync(1000);
     expect(api.postAppearance).not.toHaveBeenCalled(); expect(fetcher).toHaveBeenCalledTimes(1);
-    expect(storage.setItem).not.toHaveBeenCalled(); expect(wire.appearance.version).toBe(1);
+    expect(storage.setItem).not.toHaveBeenCalled(); expect(wire.appearance.version).toBe(make().version);
   });
 
   it("retains new bag and eye choices when a legacy score or refresh response is normalized", async () => {
     const { store, api } = setup(); store.start(); await settle();
-    const draft = withRunner({ bag: "laptop", bagColor: "navy", eyeStyle: "sharp" });
+    const draft = withRunner({ bag: "laptop", bagColor: "navy", eyeStyle: "sharp", bottoms: "skirt", bottomsColor: "beige" });
     store.updateAppearance(draft);
     const old = { ...companyProfile(), appearance: getLegacyAppearance() };
     api.fetchProfile.mockResolvedValueOnce(normalizeSharedProfile(old, "employee-a")!);
@@ -109,14 +112,14 @@ describe("account appearance autosave", () => {
 
   it("shows each choice immediately and saves once 400ms after the final choice", async () => {
     const { store, api, readServer } = setup(); store.start(); await settle();
-    const first = withRunner({ hat: "cap" });
+    const first = withRunner({ hat: "cap", bottoms: "trousers", bottomsColor: "gray" });
     store.updateAppearance(first);
     expect(appearanceBinding(store)).toMatchObject({ value: first, status: "pending" });
     await vi.advanceTimersByTimeAsync(100);
-    const second = withRunner({ hat: "cap", hairStyle: "bob" });
+    const second = withRunner({ hat: "cap", hairStyle: "bob", bottoms: "jeans", bottomsColor: "navy" });
     store.updateAppearance(second);
     await vi.advanceTimersByTimeAsync(150);
-    const latest = withRunner({ hat: "cap", hairStyle: "bob", outfitColor: "teal" });
+    const latest = withRunner({ hat: "cap", hairStyle: "bob", outfitColor: "teal", bottoms: "shorts", bottomsColor: "white" });
     store.updateAppearance(latest);
     await vi.advanceTimersByTimeAsync(399);
     expect(api.postAppearance).not.toHaveBeenCalled();
@@ -145,12 +148,12 @@ describe("account appearance autosave", () => {
     const gate = deferred<void>();
     const save = api.postAppearance.getMockImplementation()!;
     api.postAppearance.mockImplementationOnce(async (...args) => { const response = await save(...args); await gate.promise; return response; });
-    store.updateAppearance(withRunner({ hat: "cap", bag: "backpack", eyeStyle: "round" }));
+    store.updateAppearance(withRunner({ hat: "cap", bag: "backpack", eyeStyle: "round", bottoms: "skirt", bottomsColor: "gray" }));
     await vi.advanceTimersByTimeAsync(400);
     expect(appearanceBinding(store).status).toBe("saving");
     store.updateAppearance(withRunner({ hat: "cap", hairStyle: "bob" }));
     await vi.advanceTimersByTimeAsync(100);
-    const latest = withRunner({ hat: "straw", hairStyle: "ponytail", bag: "laptop", bagColor: "navy", eyeStyle: "sharp" });
+    const latest = withRunner({ hat: "straw", hairStyle: "ponytail", bag: "laptop", bagColor: "navy", eyeStyle: "sharp", bottoms: "shorts", bottomsColor: "white" });
     store.updateAppearance(latest);
     await vi.advanceTimersByTimeAsync(400);
     expect(api.postAppearance).toHaveBeenCalledTimes(1);
@@ -159,7 +162,8 @@ describe("account appearance autosave", () => {
     gate.resolve(); await settle();
     unsubscribe();
     expect(api.postAppearance).toHaveBeenCalledTimes(2);
-    expect(seen.every(value => value.runner.hairStyle === "ponytail" && value.runner.bag === "laptop" && value.runner.eyeStyle === "sharp")).toBe(true);
+    expect(seen.every(value => value.runner.hairStyle === "ponytail" && value.runner.bag === "laptop" && value.runner.eyeStyle === "sharp" &&
+      value.runner.bottoms === "shorts" && value.runner.bottomsColor === "white")).toBe(true);
     expect(appearanceBinding(store)).toMatchObject({ value: latest, status: "saved" });
     expect(readServer().appearance).toEqual(latest);
     expect(vi.getTimerCount()).toBe(0);
@@ -205,7 +209,8 @@ describe("account appearance autosave", () => {
     api.postResult.mockImplementationOnce(async (...args) => { order.push("stage"); const response = await saveStage(...args); await gate.promise; return response; });
     api.postInfiniteResult.mockImplementation(async (...args) => { order.push("infinite"); return saveInfinite(...args); });
     api.postAppearance.mockImplementation(async (...args) => { order.push("appearance"); return saveAppearance(...args); });
-    const appearance = withRunner({ hat: "cap" });
+    const appearance = withRunner({ hat: "cap", bottoms: "skirt", bottomsColor: "beige" });
+    appearance.pursuer = { ...appearance.pursuer, bottoms: "shorts", bottomsColor: "white" };
     store.updateAppearance(appearance);
     store.submitResult(companyResult({ score: 150, outcome: "cleared" }));
     store.submitInfiniteScore({ score: 120 }); await settle();
@@ -240,7 +245,7 @@ describe("account appearance autosave", () => {
 
   it.each(["storage-unavailable", "timeout", "network", "invalid-response"] as const)("retains a failed %s draft, lets scores save, and confirms only after retry", async (code) => {
     const { store, api, readServer } = setup(); store.start(); await settle();
-    const appearance = withRunner({ hat: "cap", bag: "crossbody", bagColor: "beige", eyeStyle: "sleepy" });
+    const appearance = withRunner({ hat: "cap", bag: "crossbody", bagColor: "beige", eyeStyle: "sleepy", bottoms: "shorts", bottomsColor: "brown" });
     api.postAppearance.mockRejectedValueOnce(new RecordApiError(code));
     store.updateAppearance(appearance);
     await vi.advanceTimersByTimeAsync(400);
@@ -300,7 +305,7 @@ describe("account appearance autosave", () => {
     api.postAppearance.mockReturnValueOnce(first.promise);
     store.updateAppearance(withRunner({ hat: "cap" }));
     await vi.advanceTimersByTimeAsync(400);
-    const latest = withRunner({ hairStyle: "ponytail" });
+    const latest = withRunner({ hairStyle: "ponytail", bottoms: "jeans", bottomsColor: "white" });
     store.updateAppearance(latest);
     first.reject(new RecordApiError("unauthenticated")); await settle();
     expect(binding(store).syncStatus).toBe("auth-required");
@@ -370,7 +375,7 @@ describe("account appearance autosave", () => {
     const a = setup(companyProfile(), storage); a.store.start(); await settle();
     const first = deferred<SaveAppearanceResponse>();
     a.api.postAppearance.mockReturnValueOnce(first.promise);
-    const appearance = withRunner({ hat: "cap" });
+    const appearance = withRunner({ hat: "cap", bottoms: "skirt", bottomsColor: "beige" });
     a.store.updateAppearance(appearance);
     await vi.advanceTimersByTimeAsync(400);
     a.store.stop();
@@ -380,6 +385,27 @@ describe("account appearance autosave", () => {
     expect(appearanceBinding(b.store)).toMatchObject({ value: getDefaultCharacterAppearance(), status: "idle" });
     expect(a.api.postAppearance.mock.calls[0][0]).toBe("employee-a");
     expect(storage.setItem).not.toHaveBeenCalled();
+  });
+
+  it("restores saved bottoms through a new HTTP-backed store session without writing them again", async () => {
+    const first = setup(); first.store.start(); await settle();
+    first.store.submitResult(companyResult({ score: 150, outcome: "cleared" }));
+    first.store.submitInfiniteScore({ score: 120 }); await settle();
+    const appearance = withRunner({ bottoms: "skirt", bottomsColor: "beige", bag: "backpack" });
+    appearance.pursuer = { ...appearance.pursuer, bottoms: "shorts", bottomsColor: "white", eyeStyle: "sharp" };
+    first.store.updateAppearance(appearance); await vi.advanceTimersByTimeAsync(400);
+    const persisted = first.readServer(); first.store.stop();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json(persisted)));
+    const next = setup(); next.api.fetchProfile.mockImplementationOnce(fetchProfile);
+    next.store.start(); await vi.advanceTimersByTimeAsync(0);
+    expect(appearanceBinding(next.store)).toMatchObject({ value: appearance, status: "idle" });
+    expect(binding(next.store).profile).toEqual(persisted);
+    expect(binding(next.store).profile).toMatchObject({ highestClearedStage: 1,
+      best: { bestScore: 150 }, infiniteBest: { bestScore: 120 } });
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(next.api.postAppearance).not.toHaveBeenCalled();
+    const other = setup(companyProfile({ accountId: "employee-b" })); other.store.start(); await settle();
+    expect(appearanceBinding(other.store).value).toEqual(getDefaultCharacterAppearance());
   });
 
   it("continues saving when the editor unsubscribes and keeps callbacks stable", async () => {

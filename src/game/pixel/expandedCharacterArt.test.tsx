@@ -174,7 +174,7 @@ describe("expanded shapes and palettes", () => {
   });
 
   it("normalizes valid legacy looks while rejecting malformed palette input", () => {
-    expect(current.getDefaultCharacterAppearance().version).toBe(2);
+    expect(current.getDefaultCharacterAppearance().version).toBe(3);
     for (const variant of variants) {
       const old = legacy.getDefaultCharacterLook(variant === "older" ? "pursuer" : "runner");
       const modern = normalizeCharacterLook(old)!;
