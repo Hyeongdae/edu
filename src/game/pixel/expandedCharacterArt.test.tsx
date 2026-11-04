@@ -98,7 +98,7 @@ describe("selectable eyes and expression precedence", () => {
 
   it("keeps the original framed default pupils and places opaque sunglasses in front of selected eyes", () => {
     const old = art(<OfficerEyeArt variant="older" appearance={look({ eyeStyle: "default", glasses: "square" })} expression="normal" />);
-    attribute(old.querySelector("path"), "d", "M16 12H18V14H16ZM25 12H27V14H25Z");
+    attribute(old.querySelector(".officer-eye-shape > path"), "d", "M16 12H18V14H16ZM25 12H27V14H25Z");
     const root = art(<OfficerHeadArt variant="older" appearance={look({ glasses: "sunglasses", eyeStyle: "smile" })} expression="normal" />);
     expect(root.querySelectorAll(".officer-eyes")).toHaveLength(1);
     attribute(root.querySelector(".officer-eyes"), "data-eye-style", "smile");

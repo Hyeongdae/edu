@@ -17,6 +17,14 @@ const FRONT_HAIR = {
   curly: "M9 2H13V1H18V2H23V3H27V6H29V9H26V7H23V9H20V7H17V9H14V7H11V11H7V7H6V4H9Z",
 };
 
+const NORMAL_LASHES = {
+  default: "M13 10H14V11H15V12H13ZM24 11H25V10H26V12H24Z",
+  round: "M12 10H14V12H13V11H12ZM26 10H28V11H27V12H26Z",
+  smile: "M12 11H13V12H14V13H13V12H12ZM26 12H27V11H28V12H27V13H26Z",
+  sleepy: "M12 11H14V13H13V12H12ZM26 11H28V12H27V13H26Z",
+  sharp: "M14 11H16V13H15V12H14ZM26 11H28V12H27V13H26Z",
+};
+
 export function OfficerEyeArt({ variant, appearance, expression }: {
   variant: OfficerVariant;
   appearance: ExpandedLook;
@@ -31,7 +39,6 @@ export function OfficerEyeArt({ variant, appearance, expression }: {
     eyes = <>
       <rect x={framed ? 15 : 14} y={10} width={framed || female ? 2 : 3} height={framed ? 4 : 5} />
       <rect x={framed ? 24 : 23} y={10} width={framed || female ? 2 : 3} height={framed ? 4 : 5} />
-      <path d={female ? "M12 10H15V11H12ZM24 10H27V11H24Z" : "M13 9H17V10H13ZM23 9H27V10H23Z"} />
     </>;
   } else if (appearance.eyeStyle === "round") {
     eyes = <>{[13, 22].map(x => <g key={x}>
@@ -47,18 +54,39 @@ export function OfficerEyeArt({ variant, appearance, expression }: {
       <path d="M14 14H18V15H14ZM23 14H27V15H23Z" fill={getOfficerPalette(appearance).skinShade} />
     </>;
   } else if (appearance.eyeStyle === "sharp") {
-    eyes = <path d="M13 9H15V10H18V11H16V10H13ZM22 10H25V9H27V10H26V11H22ZM15 12H18V13H15ZM24 12H27V13H24Z" />;
+    eyes = <path d="M15 12H18V13H15ZM24 12H27V13H24Z" />;
   } else if (framed) {
     eyes = <path d="M16 12H18V14H16ZM25 12H27V14H25Z" />;
   } else {
     eyes = <>
       <rect x="14" y="11" width={female ? 2 : 3} height="3" />
       <rect x="23" y="11" width={female ? 2 : 3} height="3" />
-      <path d={female ? "M12 10H15V11H12ZM24 10H27V11H24Z" : "M13 9H17V10H13ZM23 9H27V10H23Z"} />
     </>;
   }
+  // Brows are separate from the selected pupils, including the sharp eye style.
+  const brows = expression === "stumble"
+    ? female ? "M13 7H17V8H13ZM23 7H27V8H23Z" : "M13 7H18V9H13ZM23 7H28V9H23Z"
+    : expression === "weary"
+      ? female ? "M13 9H16V10H18V11H16V10H13ZM22 10H24V9H27V10H24V11H22Z"
+        : "M13 8H16V9H18V11H15V10H13ZM22 9H24V8H28V10H25V11H22Z"
+      : appearance.eyeStyle === "sharp"
+        ? female ? "M13 9H15V10H18V11H16V10H13ZM22 10H25V9H27V10H26V11H22Z"
+          : "M13 8H15V9H18V11H16V10H13ZM22 9H25V8H28V10H26V11H22Z"
+        : female ? "M13 8H17V9H13ZM23 8H27V9H23Z" : "M13 8H18V10H13ZM23 8H28V10H23Z";
+  const lashes = expression === "weary"
+    ? framed ? "M13 12H15V14H14V13H13ZM26 12H28V13H27V14H26Z"
+      : "M12 11H14V13H13V12H12ZM26 12H28V13H27V14H26Z"
+    : expression === "stumble"
+      ? framed ? "M14 9H16V11H15V10H14ZM25 9H27V10H26V11H25Z"
+        : "M13 9H15V11H14V10H13ZM24 9H26V10H25V11H24Z"
+      : appearance.eyeStyle === "default" && framed
+        ? "M15 11H17V13H16V12H15ZM26 11H28V12H27V13H26Z" : NORMAL_LASHES[appearance.eyeStyle];
   return <g className="officer-eyes" data-eye-style={appearance.eyeStyle} data-expression={expression}
-    data-eye-variant={variant} fill={INK}>{eyes}</g>;
+    data-eye-variant={variant} data-appearance-gender={appearance.gender} fill={INK}>
+    <g className="officer-eye-shape">{eyes}</g>
+    <g className="officer-eyebrows"><path d={brows} /></g>
+    {female && <g className="officer-eyelashes"><path d={lashes} /></g>}
+  </g>;
 }
 
 export function OfficerHeadArt({ variant, appearance: input, expression }: {
@@ -87,15 +115,17 @@ export function OfficerHeadArt({ variant, appearance: input, expression }: {
         <path d="M8 17H9V27H8ZM25 15H26V25H25Z" fill={palette.hairHighlight} />
       </g>}
       <path className="officer-face-outline" d={female
-        ? "M10 2H24V4H27V17H25V20H22V22H13V20H10V18H7V5H10Z"
+        ? "M10 2H24V4H27V16H26V18H24V20H22V21H21V22H15V21H13V20H11V18H9V16H7V5H10Z"
         : "M10 2H25V4H28V19H25V22H10V19H7V4H10Z"} fill={INK} />
-      {female ? <path className="officer-face-skin" d="M9 7H26V16H25V18H23V20H14V19H11V17H9Z" fill={palette.skin} />
+      {female ? <path className="officer-face-skin" d="M9 7H26V15H25V17H23V19H21V20H15V19H13V18H11V16H9Z" fill={palette.skin} />
         : <rect className="officer-face-skin" x="9" y="7" width="17" height="12" fill={palette.skin} />}
-      <rect x={female ? 13 : 12} y="19" width={female ? 10 : 12} height="2" fill={palette.skin} />
-      <rect x="26" y="11" width="3" height="4" fill={palette.skin} />
-      <rect x="7" y="11" width="4" height="6" fill={palette.skinShade} />
-      <rect x="9" y="12" width="2" height="3" fill={palette.skin} />
-      <rect x="16" y="21" width="6" height="3" fill={palette.skin} />
+      {female ? <path className="officer-jaw-skin" d="M15 19H22V20H21V21H16V20H15Z" fill={palette.skin} />
+        : <rect className="officer-jaw-skin" x="12" y="19" width="12" height="2" fill={palette.skin} />}
+      <rect x="26" y="11" width={female ? 2 : 3} height={female ? 3 : 4} fill={palette.skin} />
+      <rect x="7" y="11" width={female ? 3 : 4} height={female ? 4 : 6} fill={palette.skinShade} />
+      <rect x="9" y="12" width={female ? 1 : 2} height={female ? 2 : 3} fill={palette.skin} />
+      {female ? <path className="officer-neck-skin" d="M17 21H21V22H22V24H16V22H17Z" fill={palette.skin} />
+        : <rect className="officer-neck-skin" x="16" y="21" width="6" height="3" fill={palette.skin} />}
       <g className={`officer-hair-front officer-hair--${appearance.hairStyle}`}>
         <path d={FRONT_HAIR[appearance.hairStyle]} fill={palette.hair} />
         <rect x={appearance.hairStyle === "side-part" ? 11 : 12} y="4" width={appearance.hairStyle === "side-part" ? 7 : 10} height="1" fill={palette.hairHighlight} />
@@ -106,9 +136,11 @@ export function OfficerHeadArt({ variant, appearance: input, expression }: {
       </g>}
       {(appearance.glasses === "none" || appearance.glasses === "sunglasses") &&
         <OfficerEyeArt variant={variant} appearance={appearance} expression={expression} />}
-      <rect x="12" y="16" width="3" height="2" fill={palette.skinShade} fillOpacity="0.5" />
-      <rect x="24" y="16" width="2" height="1" fill={palette.skinHighlight} />
-      <path d={weary ? "M18 19H23V20H18Z" : stumble ? "M19 18H22V20H19Z" : "M19 18H24V19H19ZM23 17H25V18H23Z"} fill="#874e56" />
+      <rect x="12" y="16" width={female ? 2 : 3} height={female ? 1 : 2} fill={palette.skinShade} fillOpacity="0.5" />
+      <rect x={female ? 23 : 24} y="16" width="2" height="1" fill={palette.skinHighlight} />
+      <path className="officer-mouth" d={female
+        ? weary ? "M18 19H21V20H18Z" : stumble ? "M19 18H21V20H19Z" : "M18 18H22V19H18ZM22 17H23V18H22Z"
+        : weary ? "M18 19H23V20H18Z" : stumble ? "M19 18H22V20H19Z" : "M19 18H24V19H19ZM23 17H25V18H23Z"} fill="#874e56" />
       {(appearance.glasses === "square" || appearance.glasses === "round") && <g className={`officer-glasses officer-glasses--${appearance.glasses}`}>
         {appearance.glasses === "square" ? <>
           <path d="M12 10H19V16H12ZM21 10H28V16H21Z" fill={INK} />
