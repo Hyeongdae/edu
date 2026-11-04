@@ -126,7 +126,7 @@ Task: T03-versioned-bottoms-persistence
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과 (조건부 emulator 실행은 아래 미실행 기록 참조)
-- commit: pending
+- commit: `d7b6e24`
 
 ## Execution Result — 2026-11-04
 - public characterAppearance.ts를 bottomsCharacterAppearance의v3로 전환했다. repository의 PlayerDocument는 v1/v2/v3를 읽고 appearanceNeedsUpgrade는 원본이 정확한 v1 또는 v2일 때만 true다. 정상화한 값이 요청과 같아도 최초 명시 저장은 v3로 실제 쓰며 이후 같은 v3 저장은 no-op다.

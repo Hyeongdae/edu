@@ -7,23 +7,27 @@
 [P01 Bottoms Customization](./phases/2026-11-04-character-bottoms-customization/P01-bottoms-customization/phase.md)
 
 ## Active Task
-[T03 Versioned Bottoms Persistence](./phases/2026-11-04-character-bottoms-customization/P01-bottoms-customization/T03-versioned-bottoms-persistence.md)
+[T04 Bottoms Editor and Scenes](./phases/2026-11-04-character-bottoms-customization/P01-bottoms-customization/T04-bottoms-editor-and-scenes.md)
 
 ## Last Completed Task
-[T02 Bottoms Pixel Rendering](./phases/2026-11-04-character-bottoms-customization/P01-bottoms-customization/T02-bottoms-pixel-rendering.md) — `e30fea8` (2026-11-04).
+[T03 Versioned Bottoms Persistence](./phases/2026-11-04-character-bottoms-customization/P01-bottoms-customization/T03-versioned-bottoms-persistence.md) — `d7b6e24` (2026-11-04).
 
 ## Previous Completed Task
-[T01 Bottoms Appearance Contract](./phases/2026-11-04-character-bottoms-customization/P01-bottoms-customization/T01-bottoms-appearance-contract.md) — `2d6b996` (2026-11-04).
+[T02 Bottoms Pixel Rendering](./phases/2026-11-04-character-bottoms-customization/P01-bottoms-customization/T02-bottoms-pixel-rendering.md) — `e30fea8` (2026-11-04).
 
 ## Status
-- character-bottoms-customization T01 (`2d6b996`), T02 (`e30fea8`) 완료, done2/4. 현재 Active Task는 T03다. 이번 실행은 T02만 구현/검증/커밋했다.
+- character-bottoms-customization T01 (`2d6b996`), T02 (`e30fea8`), T03 (`d7b6e24`) 완료, done3/4. 현재 Active Task는 T04다. 이번 실행은 T03만 구현/검증/커밋했다.
 - 하의4종(긴바지/청바지/반바지/치마)과 색6종을 추가한다. 고정 v1/v2를 유지하고 독립 v3 계약→모든 포즈 렌더링→public/API 저장 전환→15개 편집 그룹/장면 검증 순서다.
 - T01: shared/bottomsCharacterAppearance.ts 및 테스트를 추가했다. 정상 v1/v2를 기존 선택 그대로 읽고 기본 긴바지/남색만 보완한다. strict v3 저장 검증과 표시 기본값을 분리한다. 정확한13필드 standalone look는 과거형으로 허용하지만 누락된 version3 envelope/14필드/여분·Symbol 키는 거부한다.
 - 지정4파일328/328(3.65초), lint/프런트엔드·API 타입 검사와 빌드/diff check 통과. JS663.62kB(gzip182.84kB)/CSS92.97kB(gzip15.88kB), 기존500kB chunk 경고 유지. API36.4kB.
 - T02: OfficerBottomsArt/팔레트와 두 렌더러를 연결했다. 하의4종/6색과 피부 노출/청바지 솔기·밑단/치마 연결부를 게임4프레임·야근4포즈에 적용한다. 기본 긴바지의 추가 clip 정의는 생성하지 않으며 발 y=40·외부 transform·야근 앞뒤 다리 CSS 그룹·기존 외형을 유지한다.
 - T02 최종 지정9파일481/481(30.80초), 새 하의115/115(10.75초), lint/build/diff check 통과. JS667.92kB(gzip184.06kB)/CSS92.97kB(gzip15.88kB), 기존500kB chunk 경고 유지. 최초 clip 개수3실패는 불필요한 정의 제거로, 조합 검사2건의 timeout은 같은 전체 조합을 작은 사례로 나누어 해결했다. 기존 테스트/config/timeout/skip을 완화하지 않았다.
 - TEMP/character-bottoms-customization-2026-11-04/t02/에80조건 원래 크기/2배 SVG·PNG를 육안 확인했다. 기본 긴바지32조건은 이전097c26c와 PNG 바이트가 동일하다. 초기 TEMP 생성기의 외형/메타데이터 혼입을 고친 뒤 정상 입력으로 다시 확인했다. 실제 브라우저4크기/터치/native keyboard/애니메이션 및 실제 계정/Cosmos 확인은 실행하지 않았다.
-- public characterAppearance.ts는 아직 expandedCharacterAppearance의 v2를 노출한다. 고정 v1/v2/API/DB/편집 화면/기존 모바일 버튼 간격을 변경하지 않았다. 새 하의의 사용자 선택/계정 저장 활성화는 후속 T03~T04다. push/배포 없음. 별도 범위 결함은 특이사항 없음. 무관한 untracked 파일/이전 출시 기록은 보존했다.
+- T03: public characterAppearance.ts는 이제 bottomsCharacterAppearance의 v3를 노출한다. repository의 원본 v1/v2 판정으로 최초 명시 저장을 실제 v3 쓰기로 연결했다. 고정 v1/v2 모듈/기존 선택·점수·해금/DB·컨테이너·인덱스/Auth/점수 대기열 version2는 유지한다. 클라이언트/계정 store는 기존 public 정규화·clone·동등 비교/400ms 자동 저장 경로를 그대로 사용한다.
+- T03 검증: 지정7파일450/450(10.92초), 최종 픽셀 관련2파일 포함9파일662/662(21.12초), API4파일211/211(최종2.81초), lint/프런트엔드·API 타입·build/diff check 통과. JS668.23kB(gzip184.06kB)/CSS92.97kB(gzip15.88kB), API39.3kB. 기존500kB chunk 경고 유지. 초기 수동13필드/버전2 fixture의 타입 오류2곳은 최신 계약에 맞게 수정했다.
+- T03은 v1/v2 GET·두 점수 no-op의 문서 무변경, 명시 저장/실제 점수 개선·409/412 보존, 실제 fetch mock 응답 정규화/strict v3 저장 확인, 지연 응답/401/실패 재시도·점수 큐/계정 전환과 새 HTTP-backed store 세션 복원을 검증했다. 구버전 저장 echo나 누락/다른 하의는 성공으로 인정하지 않는다.
+- 로컬 Cosmos http://127.0.0.1:8080/ready 미준비로 실제 통합 검사는 실행하지 않았다. v2 원본의 GET/ETag 보존·첫 명시 저장·두 점수 no-op/개선3사례를 추가하고 API tsc(test 포함)를 통과했다. 전체16사례는 배포 전 기존 CI에서 실제 실행이 필수다. 운영 연결/테스트 쓰기로 대체하지 않았다.
+- 편집 UI는 아직 기존13그룹/옷 라벨이다. 하의4종/색상6종의 사용자 선택 노출은 마지막 T04에서 수행한다. 실제 브라우저/모바일/회사 계정 확인 및 push/배포 없음. 별도 범위 결함은 특이사항 없음. 기존 게임/그림·모바일 버튼 간격, 무관한 untracked 파일/이전 출시 기록을 보존했다.
 
 ## Previous Feature Status — Gender Visual Distinction
 - character-gender-visual-distinction T01 (`8e2f3a8`), T02 (`34f0944`), T03 (`05356a7`) 완료, done3/3, Active Task 없음. 이번 실행은 T03만 검증·커밋했다. push/배포는 수행하지 않았다.
@@ -45,7 +49,7 @@
 - Previous: [Character Gender Visual Distinction](./decisions/2026-11-04-character-gender-visual-distinction.md)
 
 ## Next Step (IMPORTANT)
-`/memory-execute` 또는 “current 보고 이어서 해줘” 요청 시 Active Task T03 청사진 하나만 읽고 public `shared/characterAppearance.ts`를 bottomsCharacterAppearance의 v3로 전환한다. API repository의 v1/v2 읽기/최초 명시 저장 및 클라이언트 HTTP 응답/계정 store를 함께 연결한다. 기존 외형13선택·두 모드 점수/해금·ETag·쓰기 직렬화를 보존하고 읽기/점수 no-op로 DB를 쓰지 않는다. 편집 그룹은 T04까지 기존13개를 유지한다. T03 검증·커밋 후 task/phase/plan/current를 동기화한다. 실제 계정 기록을 테스트용으로 수정하거나 별도 요청 없이 배포하지 않는다.
+`/memory-execute` 또는 “current 보고 이어서 해줘” 요청 시 Active Task T04 청사진 하나만 읽고 `src/character/CharacterCustomizationDialog.tsx`의 FIELDS에 하의/하의 색상 그룹을 추가하고 옷/옷 색상을 상의/상의 색상으로 표시한다. 두 역할/성별의 독립 선택·실제 미리보기/두 모드/모든 엔딩을 연결·검증하고 최종 전체 회귀를 실행한다. 브라우저 차단을 우회하지 않으며 실제 모바일/정적 표본을 구분한다. public v3와 기존 저장/게임 규칙/발 기준은 유지한다. T04 완료 후 task/phase/plan/current를 동기화하고 Active Task 없음으로 종료한다. 로컬 emulator 미준비에 따른16사례 CI 검증 및 실제 계정 복원은 출시 전 확인으로 인계한다. 별도 요청 없이 push/배포하지 않는다.
 
 ## Latest Release — 2026-11-04
 - 사용자 요청: GitHub 업데이트 및 배포. 기존 캐릭터 꾸미기/옵션 확장/성별 차이 강화와 보존 중이던 모바일 버튼 간격2줄을 함께 출시했다. 모바일 간격 커밋은 `ae9d9b1`이다.
