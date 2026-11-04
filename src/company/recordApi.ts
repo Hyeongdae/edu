@@ -1,5 +1,5 @@
 import type { ApiErrorCode, SaveAppearanceResponse, SharedBest, SharedInfiniteBest, SharedProfile, SubmitInfiniteScoreRequest, SubmitInfiniteScoreResponse, SubmitResultRequest, SubmitResultResponse } from "../../shared/companyRecords";
-import { areCharacterAppearancesEqual, cloneCharacterAppearance, isCharacterAppearance, isSaveAppearanceRequest } from "../../shared/characterAppearance";
+import { areCharacterAppearancesEqual, cloneCharacterAppearance, isCharacterAppearance, isSaveAppearanceRequest, normalizeCharacterAppearance } from "../../shared/characterAppearance";
 import type { SaveAppearanceRequest } from "../../shared/characterAppearance";
 import { getHighestUnlockedStage, getStageRule, isClearedStage, isGameStage } from "../game/stageRules";
 
@@ -37,6 +37,15 @@ export function isSharedProfile(value: unknown, accountId: string): value is Sha
         (value.best.bestScore < getStageRule(value.best.bestStage).scoreRequired || value.highestClearedStage >= value.best.bestStage))) &&
     (value.infiniteBest === null || (isSharedInfiniteBest(value.infiniteBest) && value.infiniteBest.accountId === accountId)) &&
     (value.appearance === undefined || isCharacterAppearance(value.appearance));
+}
+
+/** Convert legacy wire data before exposing a canonical profile to the account store. */
+export function normalizeSharedProfile(value: unknown, accountId: string): SharedProfile | null {
+  if (!object(value)) return null;
+  const appearance = value.appearance === undefined ? undefined : normalizeCharacterAppearance(value.appearance);
+  if (appearance === null) return null;
+  const profile = { ...value, ...(appearance ? { appearance } : {}) };
+  return isSharedProfile(profile, accountId) ? profile : null;
 }
 
 function canonicalTimestamp(value: unknown): value is string {
@@ -98,8 +107,9 @@ async function request(path: string, signal: AbortSignal, accountId?: string, pa
 
 export async function fetchProfile(accountId: string, signal: AbortSignal): Promise<SharedProfile> {
   const value = await request("/api/profile", signal, accountId);
-  if (!isSharedProfile(value, accountId)) throw new RecordApiError("invalid-response");
-  return value;
+  const profile = normalizeSharedProfile(value, accountId);
+  if (!profile) throw new RecordApiError("invalid-response");
+  return profile;
 }
 
 export async function fetchLeaderboard(signal: AbortSignal): Promise<SharedBest[]> {
@@ -119,17 +129,21 @@ export async function fetchInfiniteLeaderboard(signal: AbortSignal): Promise<Sha
 
 export async function postResult(accountId: string, payload: SubmitResultRequest, signal: AbortSignal): Promise<SubmitResultResponse> {
   const value = await request("/api/results", signal, accountId, payload);
-  if (!object(value) || value.submissionId !== payload.submissionId || !isSharedProfile(value.profile, accountId) ||
+  if (!object(value) || value.submissionId !== payload.submissionId ||
     !isEntries(value.entries)) throw new RecordApiError("invalid-response");
-  return value as unknown as SubmitResultResponse;
+  const profile = normalizeSharedProfile(value.profile, accountId);
+  if (!profile) throw new RecordApiError("invalid-response");
+  return { submissionId: payload.submissionId, profile, entries: value.entries };
 }
 
 export async function postInfiniteResult(accountId: string, payload: SubmitInfiniteScoreRequest, signal: AbortSignal): Promise<SubmitInfiniteScoreResponse> {
   const value = await request("/api/infinite-results", signal, accountId, payload);
-  if (!object(value) || value.submissionId !== payload.submissionId || !isSharedProfile(value.profile, accountId) ||
+  if (!object(value) || value.submissionId !== payload.submissionId ||
     !Array.isArray(value.entries) || value.entries.length > 10 || !value.entries.every(isSharedInfiniteBest) ||
     new Set(value.entries.map((entry) => entry.accountId)).size !== value.entries.length) throw new RecordApiError("invalid-response");
-  return value as unknown as SubmitInfiniteScoreResponse;
+  const profile = normalizeSharedProfile(value.profile, accountId);
+  if (!profile) throw new RecordApiError("invalid-response");
+  return { submissionId: payload.submissionId, profile, entries: value.entries };
 }
 
 export async function postAppearance(accountId: string, payload: SaveAppearanceRequest, signal: AbortSignal): Promise<SaveAppearanceResponse> {

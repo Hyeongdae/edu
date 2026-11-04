@@ -3,9 +3,10 @@ import { mergeSharedInfiniteScore, mergeSharedResult } from "../../shared/compan
 import type { SaveAppearanceResponse, SharedProfile } from "../../shared/companyRecords";
 import { companyAck, companyProfile, companyResult, companySubmission, deferred } from "../test/companyFixtures";
 import { CompanyRecordStore, companyPendingKey } from "./CompanyRecordStore";
-import { RecordApiError, type CompanyRecordApi } from "./recordApi";
+import { fetchProfile, normalizeSharedProfile, RecordApiError, type CompanyRecordApi } from "./recordApi";
 import { cloneCharacterAppearance, getDefaultCharacterAppearance } from "../../shared/characterAppearance";
 import type { CharacterAppearance, CharacterLook } from "../../shared/characterAppearance";
+import { getDefaultCharacterAppearance as getLegacyAppearance } from "../../shared/legacyCharacterAppearance";
 
 const stores: CompanyRecordStore[] = [];
 const now = "2026-10-30T07:00:00.000Z";
@@ -58,9 +59,42 @@ function withRunner(overrides: Partial<CharacterLook>): CharacterAppearance {
 }
 
 beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(now); });
-afterEach(() => { stores.splice(0).forEach((store) => store.stop()); vi.useRealTimers(); });
+afterEach(() => { stores.splice(0).forEach((store) => store.stop()); vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 describe("account appearance autosave", () => {
+  it("bootstraps a real legacy HTTP profile into the store without an automatic migration write", async () => {
+    const appearance = getLegacyAppearance(); appearance.runner.hairStyle = "ponytail";
+    const wire = { ...companyProfile(), appearance };
+    const fetcher = vi.fn().mockResolvedValue(Response.json(wire)); vi.stubGlobal("fetch", fetcher);
+    const { store, api, storage } = setup();
+    api.fetchProfile.mockImplementationOnce(fetchProfile);
+    store.start(); await vi.advanceTimersByTimeAsync(0);
+    expect(appearanceBinding(store)).toMatchObject({ status: "idle", value: {
+      version: 2, runner: { hairStyle: "ponytail", eyeStyle: "default", bag: "none", bagColor: "black" } } });
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(api.postAppearance).not.toHaveBeenCalled(); expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(storage.setItem).not.toHaveBeenCalled(); expect(wire.appearance.version).toBe(1);
+  });
+
+  it("retains new bag and eye choices when a legacy score or refresh response is normalized", async () => {
+    const { store, api } = setup(); store.start(); await settle();
+    const draft = withRunner({ bag: "laptop", bagColor: "navy", eyeStyle: "sharp" });
+    store.updateAppearance(draft);
+    const old = { ...companyProfile(), appearance: getLegacyAppearance() };
+    api.fetchProfile.mockResolvedValueOnce(normalizeSharedProfile(old, "employee-a")!);
+    store.refresh(); await settle();
+    api.postResult.mockImplementationOnce(async (_accountId, input) => companyAck(input, normalizeSharedProfile({
+      ...old, best: { accountId: "employee-a", displayName: "회사원 A", bestStage: 1, bestScore: 100,
+        remainingTimeCs: 6000, achievedAt: now },
+    }, "employee-a")!));
+    store.submitResult(companyResult()); await settle();
+    expect(appearanceBinding(store).value).toEqual(draft);
+    await vi.advanceTimersByTimeAsync(400);
+    expect(api.postAppearance).toHaveBeenCalledExactlyOnceWith("employee-a", { appearance: draft }, expect.any(AbortSignal));
+    expect(appearanceBinding(store)).toMatchObject({ status: "saved", value: draft });
+    expect(binding(store).profile.best?.bestScore).toBe(100);
+  });
+
   it("provides independent defaults without saving on bootstrap or touching the score queue", async () => {
     const { store, api, storage } = setup();
     store.updateAppearance(withRunner({ hat: "cap" }));
@@ -95,7 +129,7 @@ describe("account appearance autosave", () => {
   it("ignores unchanged or invalid choices and isolates the draft from mutable caller/snapshot values", async () => {
     const { store, api } = setup(); store.start(); await settle();
     store.updateAppearance(getDefaultCharacterAppearance());
-    store.updateAppearance({ version: 1 } as CharacterAppearance);
+    store.updateAppearance({ version: 1 } as unknown as CharacterAppearance);
     expect(vi.getTimerCount()).toBe(0);
     const appearance = withRunner({ hat: "cap" });
     store.updateAppearance(appearance);
@@ -111,12 +145,12 @@ describe("account appearance autosave", () => {
     const gate = deferred<void>();
     const save = api.postAppearance.getMockImplementation()!;
     api.postAppearance.mockImplementationOnce(async (...args) => { const response = await save(...args); await gate.promise; return response; });
-    store.updateAppearance(withRunner({ hat: "cap" }));
+    store.updateAppearance(withRunner({ hat: "cap", bag: "backpack", eyeStyle: "round" }));
     await vi.advanceTimersByTimeAsync(400);
     expect(appearanceBinding(store).status).toBe("saving");
     store.updateAppearance(withRunner({ hat: "cap", hairStyle: "bob" }));
     await vi.advanceTimersByTimeAsync(100);
-    const latest = withRunner({ hat: "straw", hairStyle: "ponytail" });
+    const latest = withRunner({ hat: "straw", hairStyle: "ponytail", bag: "laptop", bagColor: "navy", eyeStyle: "sharp" });
     store.updateAppearance(latest);
     await vi.advanceTimersByTimeAsync(400);
     expect(api.postAppearance).toHaveBeenCalledTimes(1);
@@ -125,7 +159,7 @@ describe("account appearance autosave", () => {
     gate.resolve(); await settle();
     unsubscribe();
     expect(api.postAppearance).toHaveBeenCalledTimes(2);
-    expect(seen.every(value => value.runner.hairStyle === "ponytail")).toBe(true);
+    expect(seen.every(value => value.runner.hairStyle === "ponytail" && value.runner.bag === "laptop" && value.runner.eyeStyle === "sharp")).toBe(true);
     expect(appearanceBinding(store)).toMatchObject({ value: latest, status: "saved" });
     expect(readServer().appearance).toEqual(latest);
     expect(vi.getTimerCount()).toBe(0);
@@ -206,7 +240,7 @@ describe("account appearance autosave", () => {
 
   it.each(["storage-unavailable", "timeout", "network", "invalid-response"] as const)("retains a failed %s draft, lets scores save, and confirms only after retry", async (code) => {
     const { store, api, readServer } = setup(); store.start(); await settle();
-    const appearance = withRunner({ hat: "cap" });
+    const appearance = withRunner({ hat: "cap", bag: "crossbody", bagColor: "beige", eyeStyle: "sleepy" });
     api.postAppearance.mockRejectedValueOnce(new RecordApiError(code));
     store.updateAppearance(appearance);
     await vi.advanceTimersByTimeAsync(400);

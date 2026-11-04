@@ -5,7 +5,8 @@ import { createPlayerRepository, getPlayerRowKey } from "../src/playerRepository
 import type { PlayerContainer, PlayerDocument } from "../src/playerRepository";
 import { NOW, submission } from "./fixtures";
 import { createCosmosEmulatorHarness, holdFirstItemReadsTogether } from "./cosmosEmulatorHarness";
-import { getDefaultCharacterAppearance } from "../../shared/characterAppearance";
+import { getDefaultCharacterAppearance, normalizeCharacterAppearance } from "../../shared/characterAppearance";
+import { getDefaultCharacterAppearance as getLegacyAppearance } from "../../shared/legacyCharacterAppearance";
 
 let emulator: Awaited<ReturnType<typeof createCosmosEmulatorHarness>>;
 let testScope = "";
@@ -58,12 +59,52 @@ describe("real isolated Cosmos DB repository operations", () => {
     expect(JSON.stringify(saved)).not.toMatch(/_etag|_rid|_self|_attachments|_ts/);
   });
 
+  it("reads a real legacy document without changing its ETag, then upgrades on an explicit save", async () => {
+    const owner = actor("legacy-appearance"), appearance = getLegacyAppearance();
+    appearance.runner = { ...appearance.runner, gender: "female", hairStyle: "ponytail", hat: "cap", outfitColor: "teal" };
+    const document: PlayerDocument = { id: getPlayerRowKey(owner.accountId), ...owner, schemaVersion: 1,
+      highestClearedStage: 0, bestStage: 1, bestScore: 100, remainingTimeCs: 6000, achievedAt: NOW,
+      infiniteBestScore: 60, infiniteAchievedAt: NOW, appearance };
+    await emulator.container.items.create(document);
+    const item = (emulator.container as unknown as Container).item(document.id, owner.accountId);
+    const before = await item.read<PlayerDocument>();
+    const profile = await repository().getProfile(owner);
+    const afterRead = await item.read<PlayerDocument>();
+    expect(profile.appearance).toEqual(normalizeCharacterAppearance(appearance));
+    expect(afterRead.etag).toBe(before.etag); expect(afterRead.resource?.appearance).toEqual(appearance);
+    await repository().saveAppearance(owner, profile.appearance!);
+    const upgraded = await item.read<PlayerDocument>();
+    expect(upgraded.etag).not.toBe(before.etag); expect(upgraded.resource).toMatchObject({ schemaVersion: 1,
+      appearance: profile.appearance, bestScore: 100, remainingTimeCs: 6000, infiniteBestScore: 60 });
+    expect(upgraded.resource?.appearance?.version).toBe(2);
+    expect(await repository().getProfile(owner)).toEqual(profile);
+    await repository().saveAppearance(owner, profile.appearance!);
+    expect((await item.read<PlayerDocument>()).etag).toBe(upgraded.etag);
+    expect(await repository().getProfile(actor("legacy-other"))).not.toHaveProperty("appearance");
+    expect(await countAccountDocuments(owner.accountId)).toBe(1);
+  });
+
+  it.each(["stage", "infinite"] as const)("preserves legacy choices when a real %s improvement upgrades the document", async mode => {
+    const owner = actor(`legacy-${mode}`), appearance = getLegacyAppearance(); appearance.pursuer.hairStyle = "bob";
+    const document: PlayerDocument = { id: getPlayerRowKey(owner.accountId), ...owner, schemaVersion: 1,
+      highestClearedStage: 0, bestStage: 1, bestScore: 100, remainingTimeCs: 6000, achievedAt: NOW,
+      infiniteBestScore: 60, infiniteAchievedAt: NOW, appearance };
+    await emulator.container.items.create(document);
+    const saved = mode === "stage" ? await repository().submit(owner, submission({ score: 101 }))
+      : await repository().submitInfiniteScore(owner, { score: 61 });
+    expect(saved.appearance).toEqual(normalizeCharacterAppearance(appearance));
+    const raw = await (emulator.container as unknown as Container).item(document.id, owner.accountId).read<PlayerDocument>();
+    expect(raw.resource).toMatchObject({ schemaVersion: 1, appearance: saved.appearance,
+      bestScore: mode === "stage" ? 101 : 100, infiniteBestScore: mode === "infinite" ? 61 : 60 });
+    expect(raw.resource?.appearance?.version).toBe(2);
+  });
+
   it("round-trips an appearance-only account through a fresh repository and isolates another actor", async () => {
     const owner = actor("appearance-owner");
     const other = actor("appearance-other");
     const appearance = getDefaultCharacterAppearance();
-    appearance.runner.hat = "cap";
-    appearance.pursuer.glasses = "round";
+    appearance.runner = { ...appearance.runner, hat: "beanie", hairStyle: "long", eyeStyle: "round", bag: "backpack", bagColor: "navy" };
+    appearance.pursuer = { ...appearance.pursuer, glasses: "round", eyeStyle: "sharp", bag: "briefcase", bagColor: "brown" };
     const saved = await repository().saveAppearance(owner, appearance);
     expect(saved).toEqual({ ...owner, highestClearedStage: 0, best: null, infiniteBest: null, appearance });
     expect(await repository().getProfile(owner)).toEqual(saved);
@@ -76,7 +117,7 @@ describe("real isolated Cosmos DB repository operations", () => {
     const owner = actor("appearance-create-race");
     const shared = holdFirstItemReadsTogether(emulator.container as unknown as Container, 3);
     const appearance = getDefaultCharacterAppearance();
-    appearance.runner = { ...appearance.runner, gender: "female", hairStyle: "ponytail" };
+    appearance.runner = { ...appearance.runner, gender: "female", hairStyle: "long", eyeStyle: "smile", bag: "crossbody", bagColor: "navy" };
     await Promise.all([
       repository(shared).saveAppearance(owner, appearance),
       repository(shared).submit(owner, submission({ score: 150, outcome: "cleared", remainingTimeCs: 100 })),
@@ -96,7 +137,7 @@ describe("real isolated Cosmos DB repository operations", () => {
     await initial.submitInfiniteScore(owner, { score: 50 });
     const shared = holdFirstItemReadsTogether(emulator.container as unknown as Container, 3);
     const appearance = getDefaultCharacterAppearance();
-    appearance.pursuer = { ...appearance.pursuer, hat: "cap", skinTone: "deep" };
+    appearance.pursuer = { ...appearance.pursuer, hat: "beret", skinTone: "deep", eyeStyle: "sleepy", bag: "laptop", bagColor: "beige" };
     await Promise.all([
       repository(shared).saveAppearance(owner, appearance),
       repository(shared).submit(owner, submission({ score: 150, outcome: "cleared", remainingTimeCs: 100 })),

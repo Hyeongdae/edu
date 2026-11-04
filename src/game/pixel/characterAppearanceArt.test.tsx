@@ -18,7 +18,7 @@ function art(children: ReactNode): Element {
 function customLook(): CharacterLook {
   return {
     gender: "female", hairStyle: "ponytail", hairColor: "blond", skinTone: "deep",
-    outfit: "cardigan", outfitColor: "teal", hat: "cap", glasses: "round", shoes: "sneakers", shoeColor: "white",
+    outfit: "cardigan", outfitColor: "teal", hat: "cap", glasses: "round", shoes: "sneakers", shoeColor: "white", eyeStyle: "default", bag: "none", bagColor: "black",
   };
 }
 
@@ -56,15 +56,15 @@ describe("shared pixel appearance parts", () => {
     }
   });
 
-  it("draws four different hair shapes, including visible long back hair", () => {
+  it("draws six different hair shapes, including visible long back hair", () => {
     const shapes = new Set<string>();
     for (const { value: hairStyle } of APPEARANCE_OPTIONS.hairStyle) {
       const root = art(<OfficerHeadArt variant="young" appearance={{ ...customLook(), hairStyle, hat: "none" }} expression="normal" />);
       shapes.add(root.querySelector(".officer-hair-front > path")!.getAttribute("d")!);
-      expect(Boolean(root.querySelector(".officer-hair-back"))).toBe(hairStyle === "bob" || hairStyle === "ponytail");
+      expect(Boolean(root.querySelector(".officer-hair-back"))).toBe(hairStyle === "bob" || hairStyle === "ponytail" || hairStyle === "long");
       expect(root.querySelector(".officer-face-skin")).not.toBeNull();
     }
-    expect(shapes.size).toBe(4);
+    expect(shapes.size).toBe(6);
   });
 
   it.each(APPEARANCE_OPTIONS.hairColor)("uses selected $label hair in the front and back layers", ({ value: hairColor, swatch }) => {
@@ -106,7 +106,7 @@ describe("shared pixel appearance parts", () => {
       expect(detail?.querySelector("path")).not.toBeNull();
       details.add(detail!.innerHTML);
     }
-    expect(details.size).toBe(3);
+    expect(details.size).toBe(5);
   });
 
   it.each(variants)("removes preset hat and glasses for %s and draws each chosen accessory", variant => {
@@ -128,6 +128,7 @@ describe("shared pixel appearance parts", () => {
       const root = art(<OfficerShoeArt appearance={{ ...customLook(), shoes, shoeColor }} x={8} y={38} width={9} />);
       expectFill(root, ".officer-shoe-base", swatch!);
       expectFeet(root, 1);
+      if (shoes === "boots") expect(Number(root.querySelector(".officer-boot-upper")!.getAttribute("y"))).toBeLessThan(38);
       expect(Boolean(root.querySelector(".officer-shoe-sole"))).toBe(shoes === "sneakers");
       if (shoes === "sneakers") {
         expect(root.querySelector(".officer-shoe-sole")!.getAttribute("y")).toBe("39");

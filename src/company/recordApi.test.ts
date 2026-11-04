@@ -1,16 +1,88 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { companyAck, companyProfile, companySubmission, deferred } from "../test/companyFixtures";
-import { fetchInfiniteLeaderboard, fetchLeaderboard, fetchProfile, isSharedBest, postAppearance, postInfiniteResult, postResult } from "./recordApi";
+import { fetchInfiniteLeaderboard, fetchLeaderboard, fetchProfile, isSharedBest, isSharedProfile, normalizeSharedProfile, postAppearance, postInfiniteResult, postResult } from "./recordApi";
 import { getDefaultCharacterAppearance } from "../../shared/characterAppearance";
 import type { SaveAppearanceRequest } from "../../shared/characterAppearance";
+import { getDefaultCharacterAppearance as getLegacyAppearance } from "../../shared/legacyCharacterAppearance";
 
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
+
+function legacyWireProfile() {
+  const appearance = getLegacyAppearance();
+  appearance.runner = { gender: "female", hairStyle: "ponytail", hairColor: "blond", skinTone: "deep",
+    outfit: "cardigan", outfitColor: "teal", hat: "cap", glasses: "round", shoes: "sneakers", shoeColor: "white" };
+  return { ...companyProfile({ highestClearedStage: 1,
+    best: { accountId: "employee-a", displayName: "회사원 A", bestStage: 1, bestScore: 150,
+      remainingTimeCs: 6000, achievedAt: "2026-11-04T00:00:00.000Z" },
+    infiniteBest: { accountId: "employee-a", displayName: "회사원 A", bestScore: 300, achievedAt: "2026-11-04T00:00:00.000Z" },
+  }), appearance };
+}
+
+describe("versioned profile normalization", () => {
+  it("returns an independent canonical value without claiming the raw legacy value has the new type", () => {
+    const wire = legacyWireProfile(), before = structuredClone(wire);
+    expect(isSharedProfile(wire, "employee-a")).toBe(false);
+    const normalized = normalizeSharedProfile(wire, "employee-a")!;
+    expect(isSharedProfile(normalized, "employee-a")).toBe(true);
+    expect(normalized.appearance).toEqual({ version: 2,
+      runner: { ...wire.appearance.runner, eyeStyle: "default", bag: "none", bagColor: "black" },
+      pursuer: { ...wire.appearance.pursuer, eyeStyle: "default", bag: "none", bagColor: "black" } });
+    expect(normalized.best).toEqual(wire.best); expect(normalized.infiniteBest).toEqual(wire.infiniteBest);
+    expect(wire).toEqual(before); expect(normalized).not.toBe(wire);
+    normalized.appearance!.runner.hat = "none"; expect(wire.appearance.runner.hat).toBe("cap");
+    expect(normalizeSharedProfile(wire, "another-account")).toBeNull();
+  });
+
+  it.each(["profile", "stage", "infinite"] as const)("normalizes the actual %s HTTP response before returning it", async mode => {
+    const wire = legacyWireProfile(), input = companySubmission();
+    const json = mode === "profile" ? wire : { submissionId: input.submissionId, profile: wire, entries: [] };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json(json)));
+    const signal = new AbortController().signal;
+    const profile = mode === "profile" ? await fetchProfile("employee-a", signal) : mode === "stage"
+      ? (await postResult("employee-a", input, signal)).profile
+      : (await postInfiniteResult("employee-a", { submissionId: input.submissionId, result: { score: 300 } }, signal)).profile;
+    expect(profile.appearance).toEqual(normalizeSharedProfile(wire, "employee-a")!.appearance);
+    expect(profile.appearance?.version).toBe(2); expect(profile.best).toEqual(wire.best);
+    expect(profile.highestClearedStage).toBe(1); expect(wire.appearance.version).toBe(1);
+  });
+
+  it.each(["stage", "infinite"] as const)("does not normalize away account, score or appearance corruption in a %s acknowledgement", async mode => {
+    const wire = legacyWireProfile(), input = companySubmission();
+    const invalidProfiles = [
+      { ...wire, accountId: "other" }, { ...wire, best: { ...wire.best!, bestScore: 151 } },
+      { ...wire, appearance: { version: 2, runner: wire.appearance.runner, pursuer: wire.appearance.pursuer } },
+      { ...wire, appearance: { ...getDefaultCharacterAppearance(), version: 3 } },
+      { ...wire, appearance: { ...wire.appearance, runner: { ...wire.appearance.runner, hat: "unknown" } } },
+    ];
+    for (const profile of invalidProfiles) {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ submissionId: input.submissionId, profile, entries: [] })));
+      const call = mode === "stage" ? postResult("employee-a", input, new AbortController().signal)
+        : postInfiniteResult("employee-a", { submissionId: input.submissionId, result: { score: 300 } }, new AbortController().signal);
+      await expect(call).rejects.toMatchObject({ code: "invalid-response" });
+    }
+  });
+
+  it("does not acknowledge a legacy echo even when its upgraded defaults would equal the requested look", async () => {
+    const profile = { ...companyProfile(), appearance: getLegacyAppearance() };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ profile })));
+    await expect(postAppearance("employee-a", { appearance: getDefaultCharacterAppearance() }, new AbortController().signal))
+      .rejects.toMatchObject({ code: "invalid-response" });
+  });
+
+  it("rejects legacy save payloads before any HTTP request", async () => {
+    const fetcher = vi.fn(); vi.stubGlobal("fetch", fetcher);
+    await expect(postAppearance("employee-a", { appearance: getLegacyAppearance() } as unknown as SaveAppearanceRequest, new AbortController().signal))
+      .rejects.toMatchObject({ code: "invalid-request" });
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+});
 
 describe("appearance HTTP boundary", () => {
   it("posts only the appearance and validates the matching authenticated acknowledgement", async () => {
     const appearance = getDefaultCharacterAppearance();
-    appearance.runner.hat = "cap";
+    appearance.runner = { ...appearance.runner, hairStyle: "long", eyeStyle: "smile", bag: "backpack", bagColor: "navy" };
+    appearance.pursuer = { ...appearance.pursuer, eyeStyle: "sharp", bag: "briefcase", bagColor: "brown" };
     const profile = companyProfile({ appearance });
     const fetcher = vi.fn().mockResolvedValue(Response.json({ profile }));
     vi.stubGlobal("fetch", fetcher);
@@ -21,6 +93,8 @@ describe("appearance HTTP boundary", () => {
       body: JSON.stringify({ appearance }),
     }));
     expect(fetcher.mock.calls[0][1].body).not.toMatch(/accountId|displayName|highestClearedStage|bestScore/);
+    const sent = JSON.parse(fetcher.mock.calls[0][1].body).appearance;
+    expect(sent.version).toBe(2); expect(Object.keys(sent.runner)).toHaveLength(13);
   });
 
   it("loads optional appearance from a fresh session while retaining legacy profile support", async () => {
@@ -32,7 +106,7 @@ describe("appearance HTTP boundary", () => {
     expect(await fetchProfile("employee-a", new AbortController().signal)).not.toHaveProperty("appearance");
   });
 
-  it.each([null, {}, { ...getDefaultCharacterAppearance(), version: 2 },
+  it.each([null, {}, { ...getDefaultCharacterAppearance(), version: 3 },
     { ...getDefaultCharacterAppearance(), runner: { hat: "unknown" } }])("rejects an invalid optional appearance in a profile: %j", async (appearance) => {
       vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ ...companyProfile(), appearance })));
       await expect(fetchProfile("employee-a", new AbortController().signal)).rejects.toMatchObject({ code: "invalid-response" });

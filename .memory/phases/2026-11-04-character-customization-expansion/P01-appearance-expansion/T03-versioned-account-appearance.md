@@ -1,6 +1,6 @@
 # Task: T03 Versioned Account Appearance
 
-## Status: pending
+## Status: done
 
 ## Goal
 기본 외형 계약을 version2로 전환하고, 정상 version1 문서/프로필 응답을 기존 선택 손실 없이 읽어 새 눈·가방을 계정에 저장한다. 프로필 읽기만으로 DB를 수정하지 않고 점수·해금·동시 쓰기·계정 분리를 보존한다.
@@ -119,11 +119,11 @@
   - 회사계정 profile없음/appearance없음도 기존처럼 게임이 준비되고, 로컬모드 fallback이 version2라는 점을 확인한다.
 
 ## Acceptance Criteria
-- [ ] public 계약과 새 저장/확인 응답이 엄격한 version2다.
-- [ ] 정상 과거 문서/프로필은 기존 선택과 기록을 보존하여 정규화된다.
-- [ ] read는 DB를 수정하지 않고 실제 write와 명시적 최초 외형 저장만 새 형식을 쓴다.
-- [ ] 인증·계정 경계·동시 점수 보존·지연 응답·재시도와 no-op 규칙을 유지한다.
-- [ ] 계정 문서 버전/점수 대기열/DB/컨테이너/랭킹 기준은 변경하지 않는다.
+- [x] public 계약과 새 저장/확인 응답이 엄격한 version2다.
+- [x] 정상 과거 문서/프로필은 기존 선택과 기록을 보존하여 정규화된다.
+- [x] read는 DB를 수정하지 않고 실제 write와 명시적 최초 외형 저장만 새 형식을 쓴다.
+- [x] 인증·계정 경계·동시 점수 보존·지연 응답·재시도와 no-op 규칙을 유지한다.
+- [x] 계정 문서 버전/점수 대기열/DB/컨테이너/랭킹 기준은 변경하지 않는다.
 
 ## Validation
 - `npm test -- --run shared/characterAppearance.test.ts shared/expandedCharacterAppearance.test.ts shared/companyRecords.test.ts src/company/recordApi.test.ts src/company/CompanyRecordStore.test.ts src/company/CompanyRecordsGate.test.tsx src/game/pixel/characterAppearanceArt.test.tsx src/game/pixel/expandedCharacterArt.test.tsx src/character/CharacterCustomizationDialog.test.tsx --maxWorkers=2` — 전환과 기존 UI10그룹/렌더러 회귀 통과.
@@ -145,6 +145,18 @@ Task: T03-versioned-account-appearance
 ```
 
 ## Progress
-- [ ] 구현 완료
-- [ ] 검증 통과
+- [x] 구현 완료
+- [x] 검증 통과
 - commit: pending
+
+## Validation Results — 2026-11-04
+- 지정9파일584/584 통과(36.06초). public version2 전환, 기존v1 HTTP응답의 실제값 변환, 엄격한 저장확인 응답, 새로운 눈·가방 draft의 지연응답/실패재시도/계정격리 및 기존UI10그룹을 확인했다.
+- API4파일198/198 통과(3.49초). 정상v1 문서 조회 무변경, 첫명시적동일값저장만 v2전환, 후속동일값no-op, 두모드 실제쓰기/무변경쓰기 구분, 점수/시간/해금/새13필드 보존과 충돌 재시도를 확인했다.
+- npm run lint, npm run build, npm --prefix api run build, git diff --check 통과. 초기 부츠 테스트의 nullable query 결과 타입만 명시한 뒤 모든 타입 검증이 통과했다.
+- 실제 Cosmos emulator 통합 테스트3건(v1읽기ETag불변/명시저장업그레이드, 단계쓰기업그레이드, 무한쓰기업그레이드)을 추가하고 기존409/412 및 새세션 외형 테스트를 새필드로 갱신했다. API tsc는 test 디렉터리를 포함하므로 이 테스트들도 타입검증을 통과했다.
+- 로컬 readiness http://127.0.0.1:8080/ready가 준비되지 않아 emulator 통합 실행은 미실행이다. 기존 CI 통합 검증을 배포 전 필수로 남긴다. 운영 Cosmos/회사 계정을 테스트에 쓰거나 변경하지 않았다.
+- readStored의 appearanceNeedsUpgrade는 repository 내부에만 둔다. 조회는 쓰지 않고 명시외형저장/실제점수갱신 때만 새형식을 쓴다. 전체문서schemaVersion1, 점수대기열version2, DB/컨테이너/랭킹 및 인증경계는 유지했다.
+- CompanyRecordStore의 본체를 수정하지 않고 HTTP에서 실제canonical객체로 변환해 전달했다. strict type guard가 legacy원본을 version2로 단언하지 않고, 외형 저장확인은 raw version2만 인정한다.
+- public 전환 때문에 과거준비단계의 테스트(publicv1기대), 새카탈로그 머리6/옷5/부츠 및 literal13필드 fixture를 의미에 맞게 갱신했다. legacy/expanded 계약 구현 자체와 실제 픽셀도형/scene좌표/모션은 변경하지 않았다.
+- 빌드 JS657.65kB(gzip181.31kB), CSS92.97kB(gzip15.88kB); API bundle36.4kB. 기존500kB chunk 경고 유지. 검증로그는 TEMP/character-expansion-t03-{focused,api,build,api-build,lint}.log에 보존했다.
+- 기존 미커밋 pixel-theme.css 변경은 보존하고 커밋에서 제외했다. 추가범위가 필요한 발견: 특이사항 없음. 새13그룹 편집 및 전체장면/브라우저 검증은 T04에 남겨 두고 push/배포는 수행하지 않았다.

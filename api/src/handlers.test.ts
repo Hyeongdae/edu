@@ -4,6 +4,7 @@ import { ACTOR, NOW, principal, submission } from "../test/fixtures";
 import { RecordServiceError } from "./errors";
 import { createRecordHandlers } from "./handlers";
 import { getDefaultCharacterAppearance } from "../../shared/characterAppearance";
+import { getDefaultCharacterAppearance as getLegacyAppearance } from "../../shared/legacyCharacterAppearance";
 
 const context = new InvocationContext({ functionName: "records-test" });
 const profile = { ...ACTOR, highestClearedStage: 0 as const, best: null, infiniteBest: null };
@@ -165,7 +166,7 @@ describe("account appearance handler", () => {
 
   it("returns the saved profile using only the authenticated actor and no ranking queries", async () => {
     const input = payload();
-    input.appearance.runner.hat = "cap";
+    input.appearance.runner = { ...input.appearance.runner, hat: "beanie", eyeStyle: "round", bag: "backpack", bagColor: "navy" };
     const saved = { ...profile, appearance: input.appearance };
     repository.saveAppearance.mockResolvedValue(saved);
     repository.listTopScores.mockRejectedValue(new Error("ranking offline"));
@@ -197,7 +198,10 @@ describe("account appearance handler", () => {
   });
 
   it.each([
-    { ...getDefaultCharacterAppearance(), version: 2 },
+    { ...getDefaultCharacterAppearance(), version: 3 },
+    getLegacyAppearance(),
+    { ...getDefaultCharacterAppearance(), runner: getLegacyAppearance().runner },
+    { ...getDefaultCharacterAppearance(), runner: { ...getDefaultCharacterAppearance().runner, bagColor: "#ffffff" } },
     { ...getDefaultCharacterAppearance(), runner: { hat: "cap" } },
     { ...getDefaultCharacterAppearance(), pursuer: null },
     { ...getDefaultCharacterAppearance(), accountId: "other" },

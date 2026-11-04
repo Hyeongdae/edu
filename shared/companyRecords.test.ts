@@ -39,8 +39,10 @@ describe("appearance preservation across game records", () => {
 
   it("preserves both custom looks across sequential stage and infinite improvements", () => {
     const appearance = getDefaultCharacterAppearance();
-    appearance.runner = { ...appearance.runner, gender: "female", hat: "cap", hairStyle: "ponytail", shoeColor: "white" };
-    appearance.pursuer = { ...appearance.pursuer, glasses: "round", outfit: "cardigan", skinTone: "deep" };
+    appearance.runner = { ...appearance.runner, gender: "female", hat: "cap", hairStyle: "long", shoeColor: "white",
+      eyeStyle: "smile", bag: "crossbody", bagColor: "navy" };
+    appearance.pursuer = { ...appearance.pursuer, glasses: "round", outfit: "vest", skinTone: "deep",
+      eyeStyle: "sharp", bag: "briefcase", bagColor: "brown" };
     const previous = profile({ appearance });
     const cleared = mergeSharedResult(previous, actor, result({ score: 150, outcome: "cleared" }), FIRST_TIME).profile;
     const infinite = mergeSharedInfiniteScore(cleared, actor, { score: 75 }, LATER_TIME).profile;

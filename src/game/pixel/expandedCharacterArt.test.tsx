@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { APPEARANCE_OPTIONS, getDefaultCharacterLook, normalizeCharacterLook } from "../../../shared/expandedCharacterAppearance";
 import type { CharacterLook } from "../../../shared/expandedCharacterAppearance";
 import * as current from "../../../shared/characterAppearance";
+import * as legacy from "../../../shared/legacyCharacterAppearance";
 import { OfficerEyeArt, OfficerHeadArt, OfficerOutfitArt, OfficerShoeArt } from "./OfficerAppearanceParts";
 import { OfficerBagBackArt, OfficerBagFrontArt } from "./OfficerBagArt";
 import { PixelOfficer, type OfficerPose } from "./PixelOfficer";
@@ -173,9 +174,9 @@ describe("expanded shapes and palettes", () => {
   });
 
   it("normalizes valid legacy looks while rejecting malformed palette input", () => {
-    expect(current.getDefaultCharacterAppearance().version).toBe(1);
+    expect(current.getDefaultCharacterAppearance().version).toBe(2);
     for (const variant of variants) {
-      const old = current.getDefaultCharacterLook(variant === "older" ? "pursuer" : "runner");
+      const old = legacy.getDefaultCharacterLook(variant === "older" ? "pursuer" : "runner");
       const modern = normalizeCharacterLook(old)!;
       expect(getOfficerPalette(old)).toEqual(getOfficerPalette(modern));
       expect(renderToStaticMarkup(<PixelOfficer variant={variant} direction="right" pose="idle" appearance={old} />))

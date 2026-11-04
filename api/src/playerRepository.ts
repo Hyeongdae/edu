@@ -2,8 +2,10 @@ import { CosmosClient, type ItemDefinition, type SqlQuerySpec } from "@azure/cos
 import { createHash } from "node:crypto";
 import { getSharedTopInfiniteScores, getSharedTopScores, mergeSharedInfiniteScore, mergeSharedResult, validateResultForProfile } from "../../shared/companyRecords";
 import type { AuthenticatedActor, InfiniteScoreInput, SharedBest, SharedInfiniteBest, SharedProfile, SubmitResultRequest } from "../../shared/companyRecords";
-import { areCharacterAppearancesEqual, cloneCharacterAppearance, isCharacterAppearance } from "../../shared/characterAppearance";
+import { areCharacterAppearancesEqual, cloneCharacterAppearance, isCharacterAppearance, normalizeCharacterAppearance } from "../../shared/characterAppearance";
 import type { CharacterAppearance } from "../../shared/characterAppearance";
+import { isCharacterAppearance as isLegacyCharacterAppearance } from "../../shared/legacyCharacterAppearance";
+import type { CharacterAppearance as LegacyCharacterAppearance } from "../../shared/legacyCharacterAppearance";
 import { getHighestUnlockedStage, getStageRule, isClearedStage, isGameStage } from "../../src/game/stageRules";
 import type { ClearedStage, GameStage } from "../../src/game/types";
 import { RecordServiceError } from "./errors";
@@ -29,7 +31,7 @@ export interface PlayerDocument extends ItemDefinition {
   achievedAt?: string;
   infiniteBestScore?: number;
   infiniteAchievedAt?: string;
-  appearance?: CharacterAppearance;
+  appearance?: CharacterAppearance | LegacyCharacterAppearance;
 }
 
 interface ItemRead<T> {
@@ -133,13 +135,14 @@ function decodeDocument(document: unknown): SharedProfile {
       bestScore: document.infiniteBestScore, achievedAt: document.infiniteAchievedAt };
   }
 
+  const appearance = normalizeCharacterAppearance(document.appearance);
   return {
     accountId: document.accountId,
     displayName: document.displayName,
     highestClearedStage: document.highestClearedStage,
     best,
     infiniteBest,
-    ...(isCharacterAppearance(document.appearance) ? { appearance: cloneCharacterAppearance(document.appearance) } : {}),
+    ...(appearance ? { appearance } : {}),
   };
 }
 
@@ -193,7 +196,9 @@ export function createPlayerRepository(
     return containerReadiness;
   }
 
-  async function readStored(actor: AuthenticatedActor): Promise<{ profile: SharedProfile; etag: string } | null> {
+  async function readStored(actor: AuthenticatedActor): Promise<{
+    profile: SharedProfile; etag: string; appearanceNeedsUpgrade: boolean;
+  } | null> {
     await ensureContainer();
     const id = getPlayerRowKey(actor.accountId);
     let response: ItemRead<PlayerDocument>;
@@ -210,7 +215,7 @@ export function createPlayerRepository(
       !response.etag || response.etag.trim() !== response.etag || response.etag === "*") {
       throw new RecordServiceError("storage-unavailable");
     }
-    return { profile, etag: response.etag };
+    return { profile, etag: response.etag, appearanceNeedsUpgrade: isLegacyCharacterAppearance(response.resource.appearance) };
   }
 
   return {
@@ -226,7 +231,7 @@ export function createPlayerRepository(
       for (let attempt = 0; attempt < 5; attempt++) {
         const stored = await readStored(actor);
         const previous: SharedProfile = stored?.profile ?? { ...actor, highestClearedStage: 0, best: null, infiniteBest: null };
-        if (previous.appearance && previous.displayName === actor.displayName &&
+        if (!stored?.appearanceNeedsUpgrade && previous.appearance && previous.displayName === actor.displayName &&
           areCharacterAppearancesEqual(previous.appearance, requestedAppearance)) return previous;
         const profile: SharedProfile = {
           ...previous,

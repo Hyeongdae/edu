@@ -28,7 +28,7 @@ function savedLegacyAppearance(): legacy.CharacterAppearance {
 }
 
 describe("expanded catalog and strict input boundary", () => {
-  it("provides all thirteen groups while keeping the current public contract on version one", () => {
+  it("provides all thirteen groups while exposing version two publicly and preserving the fixed legacy contract", () => {
     expect(fields).toHaveLength(13);
     expect(Object.fromEntries(fields.map(field => [field, APPEARANCE_OPTIONS[field].length]))).toEqual({
       gender: 2, hairStyle: 6, hairColor: 6, skinTone: 4, outfit: 5, outfitColor: 9,
@@ -36,12 +36,12 @@ describe("expanded catalog and strict input boundary", () => {
     });
     expect(APPEARANCE_OPTIONS.eyeStyle.map(option => option.value)).toEqual(["default", "round", "smile", "sleepy", "sharp"]);
     expect(APPEARANCE_OPTIONS.bag.map(option => option.label)).toEqual(["없음", "백팩", "노트북 가방", "크로스백", "서류가방"]);
-    expect(current.APPEARANCE_OPTIONS).toBe(legacy.APPEARANCE_OPTIONS);
-    expect(current.getDefaultCharacterAppearance().version).toBe(1);
-    expect(Object.keys(current.APPEARANCE_OPTIONS)).toHaveLength(10);
-    expect(current.APPEARANCE_OPTIONS.hairStyle.map(option => option.value)).toEqual(["short", "side-part", "bob", "ponytail"]);
-    expect(current.isCharacterAppearance(getDefaultCharacterAppearance())).toBe(false);
-    expect(isCharacterAppearance(current.getDefaultCharacterAppearance())).toBe(false);
+    expect(current.APPEARANCE_OPTIONS).toBe(APPEARANCE_OPTIONS);
+    expect(current.getDefaultCharacterAppearance().version).toBe(2);
+    expect(Object.keys(legacy.APPEARANCE_OPTIONS)).toHaveLength(10);
+    expect(legacy.APPEARANCE_OPTIONS.hairStyle.map(option => option.value)).toEqual(["short", "side-part", "bob", "ponytail"]);
+    expect(current.isCharacterAppearance(getDefaultCharacterAppearance())).toBe(true);
+    expect(isCharacterAppearance(legacy.getDefaultCharacterAppearance())).toBe(false);
   });
 
   it("preserves all existing labels and swatches and freezes each catalog layer", () => {
