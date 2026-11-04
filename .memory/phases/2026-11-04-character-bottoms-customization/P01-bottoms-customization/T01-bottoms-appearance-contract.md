@@ -106,7 +106,7 @@ Task: T01-bottoms-appearance-contract
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: pending
+- commit: `2d6b996`
 
 ## Execution Result — 2026-11-04
 - `shared/bottomsCharacterAppearance.ts`와 테스트만 추가했다. 고정 v1/v2, public export, API/DB/그림/편집 화면은 변경하지 않았다.

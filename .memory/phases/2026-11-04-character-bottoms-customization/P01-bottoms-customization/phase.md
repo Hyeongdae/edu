@@ -7,13 +7,14 @@
 ## Tasks
 | Task | Status | Summary | Blueprint |
 | :--- | :--- | :--- | :--- |
-| T01 | `pending` | 고정 v1/v2와 별도 v3 하의 계약/정규화 | [T01](./T01-bottoms-appearance-contract.md) |
-| T02 | `pending` | 공통 하의/신발 연결과 모든 게임·엔딩 포즈 | [T02](./T02-bottoms-pixel-rendering.md) |
+| T01 | `done` ✅ | 고정 v1/v2와 별도 v3 하의 계약/정규화 (`2d6b996`) | [T01](./T01-bottoms-appearance-contract.md) |
+| T02 | `in_progress` 🔵 | 공통 하의/신발 연결과 모든 게임·엔딩 포즈 — 다음 실행 대상 | [T02](./T02-bottoms-pixel-rendering.md) |
 | T03 | `pending` | v3 계정/API/프로필 전환 및 기존 점수/외형 보존 | [T03](./T03-versioned-bottoms-persistence.md) |
 | T04 | `pending` | 하의 편집/장면 통합과 최종 검증 | [T04](./T04-bottoms-editor-and-scenes.md) |
 
 ## Progress
-- done: 0/4 (active: T01)
+- done: 1/4 (active: T02)
+- T01 완료 (`2d6b996`): 새 v3 계약/15필드/하의4종·색6종과 정상 v1/v2 읽기 변환을 추가했다. 지정4파일328/328(3.65초), lint/프런트엔드·API 타입 검사/빌드/diff check 통과. 고정 v1/v2와 public v2/API/그림/UI는 변경하지 않았다. 기존500kB chunk 경고 유지. 실제 저장/렌더링/편집은 후속 Task다.
 
 ## Execution Rules
 - `.memory/current.md`의 Active Task 한 개만 구현·검증·커밋한 뒤 task/phase/plan/current를 동기화한다.

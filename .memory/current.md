@@ -1,21 +1,28 @@
 # Current Context
 
 ## Active Plan
-[Character Gender Visual Distinction](./plans/2026-11-04-character-gender-visual-distinction.md)
+[Character Bottoms Customization](./plans/2026-11-04-character-bottoms-customization.md)
 
 ## Active Phase
-없음 — [P01 Visual Distinction](./phases/2026-11-04-character-gender-visual-distinction/P01-visual-distinction/phase.md) 완료.
+[P01 Bottoms Customization](./phases/2026-11-04-character-bottoms-customization/P01-bottoms-customization/phase.md)
 
 ## Active Task
-없음 — character-gender-visual-distinction 구현/자동 검증 완료 (3/3).
+[T02 Bottoms Pixel Rendering](./phases/2026-11-04-character-bottoms-customization/P01-bottoms-customization/T02-bottoms-pixel-rendering.md)
 
 ## Last Completed Task
-[T03 Editor and Scene Validation](./phases/2026-11-04-character-gender-visual-distinction/P01-visual-distinction/T03-editor-and-scene-validation.md) — `05356a7` (2026-11-04).
+[T01 Bottoms Appearance Contract](./phases/2026-11-04-character-bottoms-customization/P01-bottoms-customization/T01-bottoms-appearance-contract.md) — `2d6b996` (2026-11-04).
 
 ## Previous Completed Task
-[T04 Expanded Editor and Scene Validation](./phases/2026-11-04-character-customization-expansion/P01-appearance-expansion/T04-expanded-editor-and-scene-validation.md) — `b5b989e` (2026-11-04).
+[T03 Editor and Scene Validation](./phases/2026-11-04-character-gender-visual-distinction/P01-visual-distinction/T03-editor-and-scene-validation.md) — `05356a7` (2026-11-04).
 
 ## Status
+- character-bottoms-customization T01 (`2d6b996`) 완료, done1/4. 현재 Active Task는 T02다. 이번 실행은 T01만 구현/검증/커밋했다.
+- 하의4종(긴바지/청바지/반바지/치마)과 색6종을 추가한다. 고정 v1/v2를 유지하고 독립 v3 계약→모든 포즈 렌더링→public/API 저장 전환→15개 편집 그룹/장면 검증 순서다.
+- T01: shared/bottomsCharacterAppearance.ts 및 테스트를 추가했다. 정상 v1/v2를 기존 선택 그대로 읽고 기본 긴바지/남색만 보완한다. strict v3 저장 검증과 표시 기본값을 분리한다. 정확한13필드 standalone look는 과거형으로 허용하지만 누락된 version3 envelope/14필드/여분·Symbol 키는 거부한다.
+- 지정4파일328/328(3.65초), lint/프런트엔드·API 타입 검사와 빌드/diff check 통과. JS663.62kB(gzip182.84kB)/CSS92.97kB(gzip15.88kB), 기존500kB chunk 경고 유지. API36.4kB.
+- public characterAppearance.ts는 아직 expandedCharacterAppearance의 v2를 노출한다. 고정 v1/v2/API/DB/그림/편집 화면/기존 모바일 버튼 간격을 변경하지 않았다. 하의가 게임에 표시/저장되는 연결은 후속 T02~T04다. UI·실제 계정/Cosmos 검증 및 push/배포는 이번 Task에서 수행하지 않았다. 별도 범위 결함은 특이사항 없음. 무관한 untracked 파일/이전 출시 기록은 보존했다.
+
+## Previous Feature Status — Gender Visual Distinction
 - character-gender-visual-distinction T01 (`8e2f3a8`), T02 (`34f0944`), T03 (`05356a7`) 완료, done3/3, Active Task 없음. 이번 실행은 T03만 검증·커밋했다. push/배포는 수행하지 않았다.
 - T01에서 공통 얼굴/피부/턱/목과 눈썹·속눈썹을 개선했다. 눈 본체를 .officer-eye-shape로 분리하고 안경/표정/눈5종을 유지한다. T02에서 어깨/몸통과 옷5종, 게임/야근 소매 및 가방끈을 연결했고 T03에서 실제 편집·두 모드·모든 엔딩 전달/종합 비교/최종 자동 검증을 완료했다.
 - T01 지정4파일246/246(14.41초, 새32사례), lint/build/diff check 통과. 턱/피부/목의 실제 도형 단면, 눈5종·안경·임시 표정 복원·선택/나이대/legacy fallback을 확인했다. 당시 JS659.15kB(gzip181.74kB)/CSS92.97kB(gzip15.88kB), 기존 chunk 경고 유지.
@@ -31,10 +38,11 @@
 - 기존 미커밋 src/game/pixel-theme.css 모바일 조작 버튼 간격2줄과 무관한 untracked 파일을 보존하고 커밋에서 제외했다. 기존 로컬5173 데모 HTTP200/PID11840 및 최신 렌더러 제공을 확인했다. 새 별도 범위가 필요한 발견은 없다.
 
 ## Source Decision
-- [Character Gender Visual Distinction](./decisions/2026-11-04-character-gender-visual-distinction.md)
+- [Character Bottoms Customization](./decisions/2026-11-04-character-bottoms-customization.md)
+- Previous: [Character Gender Visual Distinction](./decisions/2026-11-04-character-gender-visual-distinction.md)
 
 ## Next Step (IMPORTANT)
-계획 구현/자동 검증은3/3 완료하여 다음 Active Task는 없다. 2026-11-04 사용자 요청으로 아래 배포를 완료했다. 운영 페이지를 새로고침한 뒤 타이틀→캐릭터 꾸미기에서 성별/새 옵션을 확인한다. 실제 브라우저4개크기의 모바일 스크롤/터치/native keyboard/애니메이션과 회사 계정의 외형 저장/복원은 이번 출시에서 수동 검증하지 않았다. 로컬 데모 http://127.0.0.1:5173/도 유지한다.
+`/memory-execute` 또는 “current 보고 이어서 해줘” 요청 시 Active Task T02 청사진 하나만 읽고 `src/game/pixel/OfficerBottomsArt.tsx`와 팔레트/두 Officer 렌더러의 하의 연결을 구현한다. public `shared/characterAppearance.ts`는 T03까지 v2로 유지한다. 기본 남색 긴바지/신발 y=40/야근의 앞뒤 다리 CSS 그룹/기존 외형 선택을 보존하고 실제 도형을 검증한다. T02 검증·커밋 후 task/phase/plan/current를 동기화한다. 로컬 http://127.0.0.1:5173/와 기존 운영 배포는 이번 계약 Task로 변경하지 않았다.
 
 ## Latest Release — 2026-11-04
 - 사용자 요청: GitHub 업데이트 및 배포. 기존 캐릭터 꾸미기/옵션 확장/성별 차이 강화와 보존 중이던 모바일 버튼 간격2줄을 함께 출시했다. 모바일 간격 커밋은 `ae9d9b1`이다.
