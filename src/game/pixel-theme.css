@@ -620,6 +620,8 @@
   .stair-game.pixel-theme .direction-pill { gap: 4px; padding: 6px; font-size: 0.65rem; }
   .stair-game.pixel-theme .scene-hint { bottom: 8px; font-size: 0.75rem; }
   .stair-game.pixel-theme .game-controls { position: static; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); margin: 0 auto; }
+  .stair-game.pixel-theme.infinite-mode-screen .game-controls { grid-template-columns: auto auto; justify-content: space-between; column-gap: clamp(24px, 9vw, 48px); width: 100%; }
+  .stair-game.pixel-theme.infinite-mode-screen .control-actions { justify-self: end; grid-template-columns: auto; }
   .stair-game.pixel-theme .control-button { flex-direction: column; padding: 8px; gap: 4px; font-size: 0.85rem; }
   .stair-game.pixel-theme .game-footer { position: static; margin: 0 12px 2px; font-size: 0.6rem; }
   .stair-game.pixel-theme .desktop-control-hint { display: none; }
