@@ -86,13 +86,13 @@ Task: T01-distinct-face-and-eyes
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: pending
+- commit: `8e2f3a8`
 - Next after successful commit: T02-gender-body-and-pose-fit. phase/plan/current를 done1/3 및 Active T02로 동기화한다. 기존 미커밋 pixel-theme.css와 무관한 파일은 스테이징하지 않는다.
 
 ## Validation Results — 2026-11-04
 - 공통 OfficerHeadArt에서 여성 얼굴 외곽/피부/턱/목과 귀/볼/입을 정수 도형으로 맞췄다. 좁힌 턱 위에 기존 넓은 피부 rect를 덮지 않도록 함께 수정했고 목 아래쪽 x16..22/y23.5의 접점을 보존했다. 남성 얼굴 기본 외곽과 기존 나이대/선택 팔레트는 유지했다.
 - OfficerEyeArt의 선택 눈 본체를 .officer-eye-shape로 분리하고 성별/표정에 따른 .officer-eyebrows 및 여성 .officer-eyelashes를 연결했다. 기존 sharp/default/stumble 내부의 눈썹 선을 중복 그리지 않게 정리했다. 안경 속 default pupil 좌표는 유지하고 기존 검사 selector만 새 wrapper에 맞췄다.
 - 지정4파일246/246 통과(14.41초). 새32개 사례에서 실제 contour의 수평 단면을 검사하여 여성 턱/피부가 더 좁고 목이 연결되는지 확인했다. 두 나이대·성별·일반 안경에서 눈5종과 단일 눈, 눈썹/속눈썹의 실제 도형, 임시 표정의 eyeStyle 독립성/복원, 선택 객체 무변경, 피부4색·머리·소품·나이선·legacy/missing fallback을 확인했다. 기존 눈/가방/몸통/포즈/발 회귀도 통과했다.
-- npm run lint, npm run build, git diff --check 통과. 검증은 집중 테스트→lint→build 순으로 수행했다. 기존 chunk 용량 경고는 유지하며 새로운 패키지나 설정은 추가하지 않았다.
+- npm run lint, npm run build, git diff --check 통과. 검증은 집중 테스트→lint→build 순으로 수행했다. frontend JS659.15kB(gzip181.74kB)/CSS92.97kB(gzip15.88kB). 기존 chunk 용량 경고는 유지하며 새로운 패키지나 설정은 추가하지 않았다.
 - 기존 TEMP 렌더러로 현재 OfficerHeadArt의 남녀/young·older/눈5종/안경/놀람·지침28개 정적 표본을 생성하고 faces.png를 육안 확인했다. 같은 짧은 머리·색상에서도 턱선과 눈 주변이 구분된다. TEMP/character-gender-visual-distinction-2026-11-04/t01/{faces.svg,faces.png,samples.json}에 보존했다. 브라우저/모바일/애니메이션 검증은 아니며 종합 비교와 실제 장면 검증은 T03에 남긴다. 차단된 Chrome 실행은 재시도하지 않았다.
 - 검증 로그 TEMP/gender-face-t01-{tests,lint,build}.log 보존. 원래 몸통/팔/가방/신발/전체 transform/clip/모션/저장 모델은 수정하지 않았다. 기존 pixel-theme.css의2줄 사용자 변경과 무관한 파일은 보존하고 이번 커밋에서 제외했다. 추가 범위 발견: 특이사항 없음. push/배포는 수행하지 않았다.

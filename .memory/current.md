@@ -1,18 +1,38 @@
 # Current Context
 
 ## Active Plan
-[Character Customization Expansion](./plans/2026-11-04-character-customization-expansion.md)
+[Character Gender Visual Distinction](./plans/2026-11-04-character-gender-visual-distinction.md)
 
 ## Active Phase
-없음 — [P01 Appearance Expansion](./phases/2026-11-04-character-customization-expansion/P01-appearance-expansion/phase.md) 완료.
+[P01 Visual Distinction](./phases/2026-11-04-character-gender-visual-distinction/P01-visual-distinction/phase.md)
 
 ## Active Task
-없음 — character-customization-expansion 구현/자동 검증 완료 (4/4).
+[T02 Gender Body and Pose Fit](./phases/2026-11-04-character-gender-visual-distinction/P01-visual-distinction/T02-gender-body-and-pose-fit.md)
 
 ## Last Completed Task
+[T01 Distinct Face and Eyes](./phases/2026-11-04-character-gender-visual-distinction/P01-visual-distinction/T01-distinct-face-and-eyes.md) — `8e2f3a8` (2026-11-04).
+
+## Previous Completed Task
 [T04 Expanded Editor and Scene Validation](./phases/2026-11-04-character-customization-expansion/P01-appearance-expansion/T04-expanded-editor-and-scene-validation.md) — `b5b989e` (2026-11-04).
 
 ## Status
+- character-gender-visual-distinction T01 완료 (`8e2f3a8`), done1/3, Active P01-T02. 이번 실행은 T01만 구현·검증·커밋했다. push/배포는 수행하지 않았다.
+- T01에서 공통 얼굴/피부/턱/목과 눈썹·속눈썹을 개선했다. 눈 본체를 .officer-eye-shape로 분리하고 안경/표정/눈5종을 유지한다. T02 체형/포즈별 소매/가방끈 → T03 편집·두 모드·엔딩 전달 및 종합 비교/최종 검증 순서다. `/memory-execute`는 Active Task 한 개만 진행한다.
+- 지정4파일246/246(14.41초, 새32사례), lint/build/diff check 통과. 턱/피부/목의 실제 도형 단면, 눈5종·안경·임시 표정 복원·선택/나이대/legacy fallback을 확인했다. JS659.15kB(gzip181.74kB)/CSS92.97kB(gzip15.88kB), 기존 chunk 경고 유지.
+- 실제 현재 OfficerHeadArt의 정적28표본을 TEMP/character-gender-visual-distinction-2026-11-04/t01/에 생성·확인했다. 브라우저/모바일/애니메이션 검증이 아니며 종합 표본은 T03에 남긴다. 로그 TEMP/gender-face-t01-{tests,lint,build}.log 보존. 몸통/팔/가방/신발/좌표/clip은 아직 기존 도형이다.
+- 같은 머리·눈·옷·소품에서 gender만 바꾸어 차이를 강화한다. 나머지12필드와 반대 역할/나이대는 유지한다. 기존 CharacterAppearance version2/13필드, API/DB/저장 동작을 변경하지 않는다.
+- OfficerHeadArt/OfficerEyeArt는 공통이다. OfficerOutfitArt와 별도로 PixelOfficer/OvertimeOfficer의 소매를 함께 맞춰야 팔이 떨어지지 않는다. 새로운 clipPath/전체 scale 없이 손·신발 y=40, 외부 변환·장면 좌표·게임 규칙을 보존한다.
+- framed default 눈의 첫 path 검사는 T01에서 .officer-eye-shape로 갱신했다. 여성 소매 과거좌표 selector는 T02에서 필요한 부분만 의미에 맞게 갱신한다. 기존 남성 기본 몸통/손/발 단언과 눈/표정/가방 검증은 유지한다.
+- 이전 Chrome 실행 차단을 우회하지 않는다. 허용된 브라우저 도구가 없으면 기존 TEMP 정적 SVG 도구/DOM으로 확인하고 실제 모바일·native keyboard·애니메이션 미검증을 명시한다. 이전 Cosmos/실제 계정 검증은 별도 출시 전 확인으로 인계한다.
+- 기존 미커밋 src/game/pixel-theme.css 모바일 조작 버튼 간격 변경과 무관한 untracked 파일을 보존하고 각 Task 커밋에서 제외한다. 새 별도 범위가 필요한 발견은 없다.
+
+## Source Decision
+- [Character Gender Visual Distinction](./decisions/2026-11-04-character-gender-visual-distinction.md)
+
+## Next Step (IMPORTANT)
+T02-gender-body-and-pose-fit.md만 읽고 OfficerOutfitArt의 성별별 어깨/몸통과 PixelOfficer/OvertimeOfficer의 포즈별 소매, 필요한 가방끈을 한 Task에서 연결한다. 남성 기본 몸통/손/발 기준과 전체 transform/clip/모션, 선택한 옷/소품/색상을 보존한다. 지정 도형/장면 집중 테스트→lint→build/diff 검증 후 청사진 메시지로 커밋하고 done2/3 및 Active T03으로 전진한다. 다음 실행 전까지 T02 구현은 시작하지 않는다.
+
+## Previous Completed Feature: Character Customization Expansion
 - T01 (`20fbcb6`), T02 (`ab16a10`), T03 (`445e014`), T04 (`b5b989e`) 완료. done 4/4, Active Task 없음.
 - shared/characterAppearance.ts는 이제 expandedCharacterAppearance.ts의version2 계약을 재노출한다. 고정 legacy 모듈은 그대로 유지한다.
 - repository는 정상version1 문서의 기존10선택을 보존해 새3필드를 보완하여 읽는다. 읽기/점수무변경no-op는 DB를 쓰지 않고, 명시적최초외형저장/실제점수쓰기는version2를 쓴다. schemaVersion1과점수대기열version2는 유지한다.
@@ -25,10 +45,10 @@
 - 실제 두 모드/퇴근/야근의 SSR SVG 정적 표본을 확인했다.4개크기 실제 레이아웃/터치/네이티브 키보드/애니메이션 및 실제 Cosmos 검증은 미실행이다. 배포 전 수동 브라우저 확인과 기존 CI 통합 통과가 필요하다. TEMP/character-expansion-t04-evidence/ 및 character-expansion-t04-*.log에 근거를 보존했다.
 - 기존 src/game/pixel-theme.css의 미커밋 모바일 버튼 간격 변경은 보존하고 커밋에서 제외했다. 기존 로컬 데모 http://127.0.0.1:5173/ HTTP200/PID11840 유지. 추가 범위 발견: 특이사항 없음. push/배포는 수행하지 않았다.
 
-## Source Decision
+### Source Decision (Previous Feature)
 - [Character Customization Expansion](./decisions/2026-11-04-character-customization-expansion.md)
 
-## Next Step (IMPORTANT)
+### Release Notes (Previous Feature)
 계획 구현은4/4 완료하여 다음 Active Task는 없다. 로컬 데모의 타이틀→캐릭터 꾸미기에서 새 옵션을 테스트한다. 배포 전 실제 브라우저4개크기의 스크롤/터치/초점/애니메이션, emulator CI 및 실제 계정 저장 복원을 확인한다. 배포가 필요하면 클라이언트/API를 함께 출시하고 구버전 탭을 새로고침한다. push/배포는 별도 사용자 요청 범위다.
 
 ## Previous Completed Feature
