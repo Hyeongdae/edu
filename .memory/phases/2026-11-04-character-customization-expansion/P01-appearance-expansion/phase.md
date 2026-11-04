@@ -9,12 +9,12 @@
 | :--- | :--- | :--- | :--- |
 | T01 | `done` ✅ | 과거 카탈로그 고정, 확장 계약·version 1 정규화 준비 (`20fbcb6`) | [T01](./T01-expanded-appearance-contracts.md) |
 | T02 | `done` ✅ | 모든 픽셀 포즈에 눈·가방 및 새 스타일 렌더링 (`ab16a10`) | [T02](./T02-expanded-pixel-parts.md) |
-| T03 | `in_progress` 🔵 | public 계약 전환과 API·클라이언트 저장 호환 | [T03](./T03-versioned-account-appearance.md) |
-| T04 | `pending` | 편집 UI 13그룹, 실제 장면·모바일 통합 검증 | [T04](./T04-expanded-editor-and-scene-validation.md) |
+| T03 | `done` ✅ | public 계약 전환과 API·클라이언트 저장 호환 (`445e014`) | [T03](./T03-versioned-account-appearance.md) |
+| T04 | `in_progress` 🔵 | 편집 UI 13그룹, 실제 장면·모바일 통합 검증 | [T04](./T04-expanded-editor-and-scene-validation.md) |
 
 ## Progress
-- done: 2/4 (active: T03)
-- T01 계약257/257·API186/186, T02 지정7파일289/289·lint/build 통과. 정적25표본과90개 clip 비교 확인. T03 계정 계약 전환 준비 상태.
+- done: 3/4 (active: T04)
+- T01 계약257/257·API186/186, T02 지정7파일289/289·lint/build 통과. 정적25표본과90개 clip 비교 확인. T03 계정 계약 전환 완료: 지정584/584·API198/198·lint/양쪽build 통과. emulator 미준비로 통합3건 추가 후 미실행. T04 편집 UI 연결 준비 상태.
 
 ## Execution Rules
 - current.md의 Active Task 하나씩 구현·검증·커밋한 뒤 이 표와 포인터를 갱신한다.

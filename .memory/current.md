@@ -7,23 +7,23 @@
 [P01 Appearance Expansion](./phases/2026-11-04-character-customization-expansion/P01-appearance-expansion/phase.md)
 
 ## Active Task
-[T03 Versioned Account Appearance](./phases/2026-11-04-character-customization-expansion/P01-appearance-expansion/T03-versioned-account-appearance.md)
+[T04 Expanded Editor and Scene Validation](./phases/2026-11-04-character-customization-expansion/P01-appearance-expansion/T04-expanded-editor-and-scene-validation.md)
 
 ## Status
-- T01 완료 (`20fbcb6`), T02 완료 (`ab16a10`). done 2/4, Active P01-T03.
-- T01 version1 계약 보존과 version2의13필드/카탈로그/정규화를 준비했다. shared/characterAppearance.ts는 아직 legacy 계약을 재노출한다.
-- T02에서 새 눈/머리/옷/모자/안경/부츠와 가방 앞뒤 레이어를 구현했다. PixelOfficer/OvertimeOfficer는 양쪽 look을 받아 그리며 기존 기본값·frame·팔/다리 좌표·발y40·motion CSS·scene clip을 유지한다.
-- T02 지정7파일289/289(최종32.21초), lint/build/diff check 통과. 신규157개는 모든역할/방향/pose의 실제도형/색/눈표정/가방레이어를 확인한다.
-- TEMP/character-expansion-t02-evidence/expanded-parts-25.svg와 .png로25표본을 확인했고 clip-results.json의90조합 모두 기존clip 전후 pixel이 동일하다.
-- Chrome headless 실행은 자동 승인 검토에서 blocked by policy로 거절되었다. 우회 재시도 없이 TEMP의 정적SVG renderer로 대체했으며 프로젝트 의존성은 바꾸지 않았다. 실제브라우저 애니메이션/모바일 선택 UI 확인은 미실행이다.
-- 다음 T03에서 public/API/클라이언트를 version2로 전환하고 기존외형을 보존한다. 실제13그룹 편집창 확장은 T04다. 아직 운영 DB/계정·배포를 변경하지 않았다.
-- 기존 src/game/pixel-theme.css의 미커밋 모바일 버튼 간격 변경을 보존한다. emulator/실제 계정 저장 확인은 후속 검증 대상이다.
+- T01 (`20fbcb6`), T02 (`ab16a10`), T03 (`445e014`) 완료. done 3/4, Active P01-T04.
+- shared/characterAppearance.ts는 이제 expandedCharacterAppearance.ts의version2 계약을 재노출한다. 고정 legacy 모듈은 그대로 유지한다.
+- repository는 정상version1 문서의 기존10선택을 보존해 새3필드를 보완하여 읽는다. 읽기/점수무변경no-op는 DB를 쓰지 않고, 명시적최초외형저장/실제점수쓰기는version2를 쓴다. schemaVersion1과점수대기열version2는 유지한다.
+- recordApi.normalizeSharedProfile은 실제 HTTP프로필/점수응답을 canonical version2로 반환한다. 외형 저장확인은 raw version2만 인정하며 store의 기존400ms debounce/직렬쓰기/revision 로직은 유지한다.
+- T03 지정9파일584/584(36.06초), API4파일198/198, lint/frontend·API build/diff check 통과. 기존외형보존·첫명시저장·no-op·두모드점수·지연응답/실패재시도·계정분리를 검증했다.
+- 로컬 http://127.0.0.1:8080/ready 미준비로 실제emulator통합은 미실행이다. 통합3건을 추가하고API tsc(test 포함)를 통과했다. 기존 CI 통합 검증은 배포 전 필수다. 운영계정/Cosmos/push/배포는 변경하지 않았다.
+- T02에서는 픽셀/눈/가방모든pose의289테스트 및 정적25표본/90clip 비교를 통과했다. 당시 Chrome 실행은 자동승인검토에서 blocked by policy로 차단되어 TEMP 정적SVG 렌더러로 대체했다. 실제브라우저 애니메이션/모바일 새선택 UI 확인은 남아 있다.
+- 기존 src/game/pixel-theme.css의 미커밋 모바일 버튼 간격 변경은 보존했다. 새 눈/가방3그룹은 아직 편집창에 없으며 T04에서10→13그룹으로 연결한다.
 
 ## Source Decision
 - [Character Customization Expansion](./decisions/2026-11-04-character-customization-expansion.md)
 
 ## Next Step (IMPORTANT)
-T03 청사진을 읽고 shared/characterAppearance.ts의 public export 전환, api/src/playerRepository.ts의 정상version1 읽기/새version2 쓰기와 src/company/recordApi.ts의 실제 응답 정규화를 구현한다. 조회만으로 DB를 수정하지 않고 기존 점수·해금·계정 경계와 지연 저장 draft를 보존한다. `/memory-execute`로 Active Task 한 개씩 진행한다.
+T04 청사진을 읽고 CharacterCustomizationDialog.tsx의 FIELDS에 눈모양/가방/가방색상을 추가한다. 역할별 독립선택·none에서도색상유지·계정상태/초점/모바일스크롤과 실제 두모드/모든엔딩을 검증한다. 전체 회귀를 최종 실행한 뒤 계획을 완료 상태로 동기화한다. `/memory-execute`로 Active Task 한 개씩 진행한다.
 
 ## Previous Completed Feature
 - [Character Customization](./plans/2026-11-03-character-customization.md): complete5/5. T01 8898b74, T02 5f98abb, T03 9e06d5a, T04 d5489e8, T05 936e26b, 완료 문서 bc5b044.

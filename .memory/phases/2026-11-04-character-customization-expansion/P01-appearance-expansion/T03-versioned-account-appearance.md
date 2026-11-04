@@ -147,7 +147,7 @@ Task: T03-versioned-account-appearance
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과
-- commit: pending
+- commit: `445e014`
 
 ## Validation Results — 2026-11-04
 - 지정9파일584/584 통과(36.06초). public version2 전환, 기존v1 HTTP응답의 실제값 변환, 엄격한 저장확인 응답, 새로운 눈·가방 draft의 지연응답/실패재시도/계정격리 및 기존UI10그룹을 확인했다.

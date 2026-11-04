@@ -82,8 +82,10 @@
 - 클라이언트/API를 함께 출시한 뒤 이미 열린 구버전 탭은 새로고침한다. 구버전 실행 코드에 새 옵션을 제공하는 별도 호환 API는 만들지 않는다.
 
 ## Progress
-- done: 2/4
-- Active: P01-T03
+- done: 3/4
+- Active: P01-T04
 - T01 완료 (`20fbcb6`): 지정shared257/257, API186/186, lint/frontend·API build 통과. 과거 계약을 그대로 보존하고 version2 정규화와 카탈로그를 준비했다. 새 옵션의 화면/저장 활성화와 렌더링은 후속 Task에서 수행한다.
 
 - T02 완료 (`ab16a10`): 지정7파일289/289, lint/build 통과. 새 스타일·눈·가방을 모든 포즈에 연결하고 정적25표본/90개 clip 비교를 확인했다. Chrome 실행은 자동 승인 검토에서 차단되어 정적 SVG 렌더링으로 대체했다. public 계약은 아직version1이다.
+
+- T03 완료 (`445e014`): public/API/클라이언트 계약을version2로 전환하고 정상v1 읽기/13필드 저장/기록 보존을 검증했다. 지정584/584·API198/198·lint/frontend·API build 통과. emulator 통합3건을 추가했으나 로컬 readiness 미준비로 실행하지 않았으며 배포 전 CI 통합 확인이 필요하다.
