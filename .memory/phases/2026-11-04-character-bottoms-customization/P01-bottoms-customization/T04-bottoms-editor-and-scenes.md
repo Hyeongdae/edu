@@ -105,7 +105,7 @@ Task: T04-bottoms-editor-and-scenes
 ## Progress
 - [x] 구현 완료
 - [x] 검증 통과 (실제 브라우저/계정 및 조건부 emulator 미검증은 아래 참조)
-- commit: pending
+- commit: `d480239`
 
 ## Execution Result — 2026-11-05
 - 2026-11-04 시작한 T04를 날짜 변경 후 이어서 완료했다. 기존 계획/Phase 폴더의 생성 날짜2026-11-04는 유지한다.

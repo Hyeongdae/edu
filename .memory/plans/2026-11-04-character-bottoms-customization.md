@@ -1,7 +1,7 @@
 # Plan: Character Bottoms Customization
 
 - Date: 2026-11-04
-- Status: in_progress
+- Status: complete
 - Decision: [Character Bottoms Customization](../decisions/2026-11-04-character-bottoms-customization.md)
 
 ## Goal
@@ -10,7 +10,7 @@
 ## Phases
 | Phase | Status | Summary | Blueprint |
 | :--- | :--- | :--- | :--- |
-| P01 | `in_progress` | 과거 외형 호환, 공통 하의 도형, 계정 연결, 편집/장면 검증 | [P01](../phases/2026-11-04-character-bottoms-customization/P01-bottoms-customization/phase.md) |
+| P01 | `complete` | 과거 외형 호환, 공통 하의 도형, 계정 연결, 편집/장면 검증 | [P01](../phases/2026-11-04-character-bottoms-customization/P01-bottoms-customization/phase.md) |
 
 ## Tasks and Order
 | Task | Observable outcome | Principal files |
@@ -71,8 +71,9 @@ T01 → T02 → T03 → T04를 한 Phase에서 순차 실행한다. T01은 publi
 - 현재 직전 출시 `ae9d9b1`/Actions41782715701은 성공했다. 이전 출시의 실제 emulator 결과는 하의 기능의 새 검증을 대신하지 않는다.
 
 ## Progress
-- done: 3/4
-- Active: P01-T04
+- done: 4/4 (구현/자동 검증 완료)
+- Active: 없음
 - T01 완료 (`2d6b996`): 독립 v3 하의 계약과 카탈로그/정규화/복사·동등 비교를 준비했다. 기존 모든 선택을 보존하며 고정 v1/v2와 public v2는 유지한다. 지정4파일328/328(3.65초), lint/프런트엔드·API 타입 검사와 빌드/diff check 통과. UI/실제 저장/렌더러는 후속 Task다. 기존 번들 용량 경고 유지, 별도 결함 없음. push/배포는 수행하지 않았다.
 - T02 완료 (`e30fea8`): 공통 하의4종/6색을 두 역할의 게임4프레임·야근4포즈에 연결했다. 지정9파일481/481(30.80초), 새 하의 최종115/115(10.75초), lint/build/diff check 통과. 기본 긴바지32조건이 기존097c26c와 PNG 바이트 동일하고 새 하의80조건의 원래 표시 크기/2배 정적 표본을 확인했다. 불필요한 clip 생성과 한 테스트에 몰린 조합을 정리해 원래 장면 검사/timeout을 유지했다. public/API/UI는 아직 v2다. 실제 브라우저 애니메이션/모바일 및 실제 계정은 미검증이며 push/배포 없음.
 - T03 완료 (`d7b6e24`): public/API/클라이언트를v3로 전환했다. 정상 v1/v2를 보존해 읽고 최초 명시 저장과 실제 점수 쓰기만 최신 형식으로 쓰며 읽기/점수 no-op는 쓰지 않는다. 지정7파일450/450, 최종 관련9파일662/662(21.12초), API211/211, lint/프런트엔드·API build/diff check 통과. 통합3사례를 추가했지만 로컬 emulator readiness 미준비로 전체16사례의 실제 실행은 배포 전 CI 필수로 남는다. 기존13개 편집 그룹/DB/Auth/게임 규칙을 유지했고 push/배포 없음.
+- T04 완료 (`d480239`, 2026-11-05): 하의4종/색6종을 기존 편집/즉시 미리보기/자동 저장 경로에 노출하고 상의·하의를 구분했다. 실제 편집부터 두 모드·모든 엔딩까지 선택과 게임 진행 보존을 검증했다. 최종 frontend/shared1981/1981(59파일), API211/211, 배포 검사26/26, lint/프런트엔드·API build/diff check 통과. 정적4장면 확인 및 로컬 데모 http://127.0.0.1:5173/ HTTP200 확인. 실제 모바일/브라우저·회사 계정 복원과 emulator16사례 CI 검증은 출시 전 필요하다. 기존 번들 경고 유지, push/배포 없음, 별도 범위 결함 없음.
