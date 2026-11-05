@@ -1,12 +1,17 @@
 import type { CharacterAppearance } from "../../shared/characterAppearance";
-import type { ReactElement } from "react";
+import type { CSSProperties, ReactElement } from "react";
 import { PixelOfficer } from "../game/pixel/PixelOfficer";
 import { PixelOfficeBackdrop } from "../game/pixel/PixelOfficeBackdrop";
 import { PixelStair } from "../game/pixel/PixelStair";
 import { buildInfiniteSceneModel } from "./infiniteSceneModel";
 import type { InfiniteGameState } from "./types";
 
-export function InfiniteStairScene({ appearance, state, isMoving }: { appearance?: CharacterAppearance; state: InfiniteGameState; isMoving: boolean }): ReactElement {
+export function InfiniteStairScene({ appearance, state, isMoving, motionDurationMs }: {
+  appearance?: CharacterAppearance;
+  state: InfiniteGameState;
+  isMoving: boolean;
+  motionDurationMs: number;
+}): ReactElement {
   const model = buildInfiniteSceneModel(state);
   const nextTurn = state.straightStepsRemaining === 0;
   return (
@@ -36,6 +41,7 @@ export function InfiniteStairScene({ appearance, state, isMoving }: { appearance
           </g>
           {model.pursuerVisible && (
             <g className={`infinite-actor infinite-pursuer${isMoving ? " is-moving" : ""}`} data-testid="infinite-pursuer"
+              style={{ "--infinite-pursuer-step-duration": `${motionDurationMs}ms` } as CSSProperties}
               transform={`translate(${model.pursuer.x} ${model.pursuer.y - 12})`}>
               <PixelOfficer appearance={appearance?.pursuer} variant="older" direction={model.pursuer.direction} pose={isMoving ? "climb" : "idle"} />
             </g>

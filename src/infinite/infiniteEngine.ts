@@ -1,13 +1,17 @@
 import { advanceStairRoute, countStraightSteps, createStairRoute, getRouteStep } from "../game/stairRoute";
 import {
-  getPursuerCatchUpState,
   PURSUER_CATCH_UP_INTERVAL_MS,
 } from "../game/pursuitRules";
 import type { PursuerMove, StairRoute } from "../game/types";
 import type { InfiniteGameState, InfiniteInput } from "./types";
 
 const INITIAL_PURSUER_DISTANCE = 4;
-const BASE_PURSUER_INTERVAL_MS = 300;
+const BASE_PURSUER_INTERVAL_MS = 250;
+const MIN_PURSUER_INTERVAL_MS = 100;
+const PURSUER_SPEED_SCORE_STEP = 50;
+const PURSUER_INTERVAL_REDUCTION_MS = 10;
+const INFINITE_CATCH_UP_START_DISTANCE = 10;
+const INFINITE_CATCH_UP_END_DISTANCE = 6;
 const EVENT_STEP_TARGET = 50;
 const EVENT_DURATION_MS = 30_000;
 const TERMINAL_ANIMATION_MS = 500;
@@ -118,10 +122,22 @@ function retainRoute(state: InfiniteGameState): InfiniteGameState {
 }
 
 function nextPursuerDeadline(
-  state: Pick<InfiniteGameState, "isPursuerCatchingUp">,
+  state: Pick<InfiniteGameState, "score" | "isPursuerCatchingUp">,
   atMs: number,
 ): number {
-  return atMs + (state.isPursuerCatchingUp ? PURSUER_CATCH_UP_INTERVAL_MS : BASE_PURSUER_INTERVAL_MS);
+  return atMs + getInfinitePursuerIntervalMs(state);
+}
+
+function getInfiniteCatchUpState(wasCatchingUp: boolean, distance: number): boolean {
+  return wasCatchingUp ? distance > INFINITE_CATCH_UP_END_DISTANCE : distance >= INFINITE_CATCH_UP_START_DISTANCE;
+}
+
+export function getInfinitePursuerIntervalMs(
+  state: Pick<InfiniteGameState, "score" | "isPursuerCatchingUp">,
+): number {
+  if (state.isPursuerCatchingUp) return PURSUER_CATCH_UP_INTERVAL_MS;
+  const speedSteps = Math.floor(state.score / PURSUER_SPEED_SCORE_STEP);
+  return Math.max(MIN_PURSUER_INTERVAL_MS, BASE_PURSUER_INTERVAL_MS - speedSteps * PURSUER_INTERVAL_REDUCTION_MS);
 }
 
 export function createInfiniteGameState(random: () => number = Math.random): InfiniteGameState {
@@ -157,7 +173,7 @@ export function startInfiniteGame(state: InfiniteGameState, nowMs: number): Infi
   return {
     ...state,
     status: "playing",
-    nextPursuerStepAt: nowMs + BASE_PURSUER_INTERVAL_MS,
+    nextPursuerStepAt: nowMs + getInfinitePursuerIntervalMs(state),
     lastMove: null,
   };
 }
@@ -208,7 +224,7 @@ export function tickInfiniteGame(state: InfiniteGameState, nowMs: number): Infin
     }
 
     const pursuerDistance = current.stepsClimbed - toIndex;
-    const isPursuerCatchingUp = getPursuerCatchUpState(current.isPursuerCatchingUp, pursuerDistance);
+    const isPursuerCatchingUp = getInfiniteCatchUpState(current.isPursuerCatchingUp, pursuerDistance);
     const move: PursuerMove = { fromIndex, toIndex, atMs: at };
     const moved = {
       ...current,
@@ -276,7 +292,7 @@ export function applyInfiniteInput(
   }
 
   const pursuerDistance = nextStepsClimbed - current.pursuerIndex;
-  const isPursuerCatchingUp = getPursuerCatchUpState(current.isPursuerCatchingUp, pursuerDistance);
+  const isPursuerCatchingUp = getInfiniteCatchUpState(current.isPursuerCatchingUp, pursuerDistance);
   const moved: InfiniteGameState = {
     ...current,
     score: current.score + scoreGain,
@@ -304,7 +320,7 @@ export function applyInfiniteInput(
 }
 
 export function getInfinitePursuerMotionDurationMs(
-  state: Pick<InfiniteGameState, "isPursuerCatchingUp">,
+  state: Pick<InfiniteGameState, "score" | "isPursuerCatchingUp">,
 ): number {
-  return state.isPursuerCatchingUp ? PURSUER_CATCH_UP_INTERVAL_MS : 240;
+  return getInfinitePursuerIntervalMs(state);
 }

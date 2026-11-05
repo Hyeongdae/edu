@@ -4,6 +4,7 @@ import { PURSUER_CATCH_UP_INTERVAL_MS } from "../game/pursuitRules";
 import {
   applyInfiniteInput,
   createInfiniteGameState,
+  getInfinitePursuerIntervalMs,
   getInfinitePursuerMotionDurationMs,
   startInfiniteGame,
   tickInfiniteGame,
@@ -33,8 +34,19 @@ describe("infinite score engine", () => {
     expect(ready.route.runs[0]).toMatchObject({ startIndex: 1, length: 5, direction: "right" });
     expect("stageEndsAt" in ready).toBe(false);
     expect(startInfiniteGame(ready, 100)).toMatchObject({
-      status: "playing", nextPursuerStepAt: 400,
+      status: "playing", nextPursuerStepAt: 350,
     });
+  });
+
+  it("reduces the base interval by 10 ms at each 50-point score band and clamps at 100 ms", () => {
+    const interval = (score: number, isPursuerCatchingUp = false) => getInfinitePursuerIntervalMs({ score, isPursuerCatchingUp });
+    expect(interval(0)).toBe(250);
+    expect(interval(49)).toBe(250);
+    expect(interval(50)).toBe(240);
+    expect(interval(749)).toBe(110);
+    expect(interval(750)).toBe(100);
+    expect(interval(1_000)).toBe(100);
+    expect(interval(0, true)).toBe(100);
   });
 
   it("accepts forward on a straight run and turn only at a corner", () => {
@@ -67,11 +79,13 @@ describe("infinite score engine", () => {
       score: 50, stepsClimbed: 50, eventSteps: 0, eventEndsAt: 31_000,
       lastMove: { scoreGain: 1, isBonus: false },
     });
+    expect(getInfinitePursuerIntervalMs({ score: threshold.score, isPursuerCatchingUp: false })).toBe(240);
     const during = applyInfiniteInput(threshold, inputForNextStep(threshold), 1_001);
     expect(during).toMatchObject({
       score: 52, eventSteps: 0, eventEndsAt: 31_000,
       lastMove: { scoreGain: 2, isBonus: true },
     });
+    expect(getInfinitePursuerIntervalMs({ score: during.score, isPursuerCatchingUp: false })).toBe(240);
   });
 
   it("expires an event at its deadline and begins a fresh gauge", () => {
@@ -93,12 +107,16 @@ describe("infinite score engine", () => {
     expect(state.status).toBe("playing");
   });
 
-  it("moves once per 300 ms and enters 100 ms catch-up at a 15-stair gap", () => {
+  it("moves once per 250 ms and maintains 100 ms catch-up after a 10-stair lead", () => {
     const initial = startInfiniteGame(createInfiniteGameState(() => 0), 0);
-    expect(tickInfiniteGame(initial, 299)).toBe(initial);
-    expect(tickInfiniteGame(initial, 300)).toMatchObject({
-      pursuerIndex: -3, pursuerDistance: 3, nextPursuerStepAt: 600,
-      lastPursuerMove: { fromIndex: -4, toIndex: -3, atMs: 300 },
+    expect(tickInfiniteGame(initial, 249)).toBe(initial);
+    expect(tickInfiniteGame(initial, 250)).toMatchObject({
+      pursuerIndex: -3, pursuerDistance: 3, nextPursuerStepAt: 500,
+      lastPursuerMove: { fromIndex: -4, toIndex: -3, atMs: 250 },
+    });
+
+    expect(afterSteps(6)).toMatchObject({
+      score: 6, pursuerDistance: 10, isPursuerCatchingUp: true, nextPursuerStepAt: 100,
     });
 
     const route = advanceStairRoute(initial.route, 11, -4);
@@ -118,7 +136,7 @@ describe("infinite score engine", () => {
     });
   });
 
-  it("returns to the 300 ms base interval when the catch-up gap reaches six", () => {
+  it("returns to the score-derived base interval when the catch-up gap reaches six", () => {
     const initial = startInfiniteGame(createInfiniteGameState(() => 0), 0);
     const route = advanceStairRoute(initial.route, 3, -4);
     const catchingUp: InfiniteGameState = {
@@ -133,9 +151,9 @@ describe("infinite score engine", () => {
     };
     const returnedToBase = tickInfiniteGame(catchingUp, 100);
     expect(returnedToBase).toMatchObject({
-      pursuerIndex: -3, pursuerDistance: 6, isPursuerCatchingUp: false, nextPursuerStepAt: 400,
+      pursuerIndex: -3, pursuerDistance: 6, isPursuerCatchingUp: false, nextPursuerStepAt: 350,
     });
-    expect(getInfinitePursuerMotionDurationMs(returnedToBase)).toBe(240);
+    expect(getInfinitePursuerMotionDurationMs(returnedToBase)).toBe(250);
   });
 
   it("ends on contact, retains the catch animation, then freezes the terminal state", () => {
@@ -144,15 +162,15 @@ describe("infinite score engine", () => {
       ...started,
       pursuerIndex: -1,
       pursuerDistance: 1,
-      nextPursuerStepAt: 300,
+      nextPursuerStepAt: 250,
     };
-    const caught = tickInfiniteGame(oneStepGap, 300);
+    const caught = tickInfiniteGame(oneStepGap, 250);
     expect(caught).toMatchObject({
       status: "game-over", endReason: "caught", captureCount: 1,
-      pursuerIndex: -1, pursuerDistance: 1, nextPursuerStepAt: null, captureEndsAt: 800,
+      pursuerIndex: -1, pursuerDistance: 1, nextPursuerStepAt: null, captureEndsAt: 750,
     });
-    expect(tickInfiniteGame(caught, 500)).toMatchObject({ status: "game-over", captureEndsAt: 800 });
-    expect(tickInfiniteGame(caught, 800)).toMatchObject({ status: "game-over", captureEndsAt: null, score: 0 });
+    expect(tickInfiniteGame(caught, 500)).toMatchObject({ status: "game-over", captureEndsAt: 750 });
+    expect(tickInfiniteGame(caught, 750)).toMatchObject({ status: "game-over", captureEndsAt: null, score: 0 });
   });
 
   it("keeps fall animation deadline but never lets a terminal run move or score again", () => {

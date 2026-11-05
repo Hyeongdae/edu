@@ -15,7 +15,7 @@ describe("InfiniteStairScene", () => {
     appearance.runner.bottoms = "skirt"; appearance.runner.bottomsColor = "beige";
     appearance.pursuer.bottoms = "shorts"; appearance.pursuer.bottomsColor = "white";
     const state = createInfiniteGameState(() => 0);
-    const { container, rerender } = render(<InfiniteStairScene state={state} isMoving={false} appearance={appearance} />);
+    const { container, rerender } = render(<InfiniteStairScene state={state} isMoving={false} motionDurationMs={250} appearance={appearance} />);
     const player = screen.getByTestId("infinite-player"), pursuer = screen.getByTestId("infinite-pursuer");
     expect(player.querySelector(".officer-cap-hat")).not.toBeNull();
     expect(pursuer.querySelector(".officer-glasses--round")).not.toBeNull();
@@ -32,7 +32,7 @@ describe("InfiniteStairScene", () => {
     const actors = [player, pursuer];
     const before = actors.map(actor => [actor.querySelector(".officer-face-outline")!.getAttribute("d"), actor.querySelector(".officer-torso-outline")!.getAttribute("d")]);
     const changed = { ...appearance, runner: { ...appearance.runner, gender: "female" as const }, pursuer: { ...appearance.pursuer, gender: "female" as const } };
-    rerender(<InfiniteStairScene state={state} isMoving={false} appearance={changed} />);
+    rerender(<InfiniteStairScene state={state} isMoving={false} motionDurationMs={250} appearance={changed} />);
     actors.forEach((actor, index) => {
       expect(actor.querySelector(".officer-face-outline")!.getAttribute("d")).not.toBe(before[index][0]);
       expect(actor.querySelector(".officer-torso-outline")!.getAttribute("d")).not.toBe(before[index][1]);
@@ -43,10 +43,12 @@ describe("InfiniteStairScene", () => {
   it("renders pixel stairs ascending upward with both office characters and no obstacles", () => {
     let state = startInfiniteGame(createInfiniteGameState(() => 0), 0);
     state = applyInfiniteInput(state, "forward", 0);
-    const { container } = render(<InfiniteStairScene state={state} isMoving={false} />);
+    const { container } = render(<InfiniteStairScene state={state} isMoving={true} motionDurationMs={100} />);
     expect(screen.getByTestId("infinite-stair-scene")).toBeVisible();
     expect(screen.getByTestId("infinite-player")).toHaveAttribute("data-route-index", "1");
     expect(screen.getByTestId("infinite-pursuer")).toBeInTheDocument();
+    expect(screen.getByTestId("infinite-pursuer")).toHaveClass("is-moving");
+    expect(screen.getByTestId("infinite-pursuer").getAttribute("style")).toContain("--infinite-pursuer-step-duration: 100ms");
     const stairs = [...container.querySelectorAll<SVGGElement>("[data-testid='infinite-stair-step']")];
     expect(stairs.length).toBeGreaterThan(4);
     const byIndex = new Map(stairs.map((step) => [Number(step.dataset.routeIndex), Number(step.querySelector(".stair-top")?.getAttribute("transform")?.split(" ")[1]?.replace(")", ""))]));

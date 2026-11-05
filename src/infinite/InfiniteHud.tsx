@@ -1,5 +1,6 @@
 import type { ReactElement } from "react";
 import type { InfiniteGameState } from "./types";
+import { getInfinitePursuerIntervalMs } from "./infiniteEngine";
 
 interface InfiniteHudProps {
   state: InfiniteGameState;
@@ -10,6 +11,7 @@ export function InfiniteHud({ state, nowMs }: InfiniteHudProps): ReactElement {
   const eventActive = state.eventEndsAt !== null;
   const eventSeconds = eventActive ? Math.max(0, Math.ceil((state.eventEndsAt! - nowMs) / 1000)) : 0;
   const gaugeValue = eventActive ? 50 : state.eventSteps;
+  const pursuerSpeed = (getInfinitePursuerIntervalMs(state) / 1000).toFixed(2);
   return (
     <section className="game-hud infinite-hud" aria-label="무한 모드 기록">
       <div className="hud-card score-card">
@@ -21,6 +23,9 @@ export function InfiniteHud({ state, nowMs }: InfiniteHudProps): ReactElement {
         <div className="stage-clock" role="group" aria-label="추격자와 거리">
           <div className="stage-clock-heading"><span className="stage-value">무한 모드</span><span className="hud-label">추격자와 거리</span></div>
           <strong className="stage-time" data-testid="infinite-distance">{state.pursuerDistance}칸</strong>
+          <span className="hud-caption" data-testid="infinite-pursuer-speed" aria-label={`추격 속도 ${pursuerSpeed}초/칸`}>
+            추격 속도 {pursuerSpeed}초/칸
+          </span>
           <span className="hud-caption" data-testid="infinite-steps">계단 {state.stepsClimbed}칸 올라옴</span>
         </div>
       </div>

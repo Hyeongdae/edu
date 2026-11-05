@@ -19,7 +19,7 @@
 
 .infinite-actor { transition: transform 180ms steps(3, end); }
 .infinite-player.is-falling { animation: infinite-fall 500ms steps(4, end) forwards; transform-origin: center bottom; }
-.infinite-pursuer.is-moving { animation: infinite-run 240ms steps(2, end) infinite; }
+.infinite-pursuer.is-moving { animation: infinite-run var(--infinite-pursuer-step-duration, 240ms) steps(2, end) infinite; }
 .infinite-result-panel {
   position: absolute;
   z-index: 7;

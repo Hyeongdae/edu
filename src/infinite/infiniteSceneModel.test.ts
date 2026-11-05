@@ -41,7 +41,7 @@ describe("buildInfiniteSceneModel", () => {
     const moved = tickInfiniteGame(started, 300);
     const model = buildInfiniteSceneModel(moved);
     expect(model.pursuerMotion).toMatchObject({
-      from: { y: 328 }, to: { y: 300 }, atMs: 300,
+      from: { y: 328 }, to: { y: 300 }, atMs: 250,
     });
     expect(model.catchFrames).toHaveLength(7);
     expect(model.catchFrames[0].index).toBe(-1);

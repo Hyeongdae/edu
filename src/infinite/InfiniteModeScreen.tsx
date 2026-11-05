@@ -11,7 +11,7 @@ import { PixelIcon } from "../game/pixel/PixelIcon";
 import { PauseMenuDialog, type PauseMenuConfirmation } from "../game/PauseMenuDialog";
 import { ControlButtons } from "../game/ControlButtons";
 import { LeaderboardDialog } from "../leaderboard/LeaderboardDialog";
-import { applyInfiniteInput, createInfiniteGameState, startInfiniteGame, tickInfiniteGame } from "./infiniteEngine";
+import { applyInfiniteInput, createInfiniteGameState, getInfinitePursuerMotionDurationMs, startInfiniteGame, tickInfiniteGame } from "./infiniteEngine";
 import type { InfiniteGameState, InfiniteInput } from "./types";
 import { InfiniteHud } from "./InfiniteHud";
 import { InfiniteStairScene } from "./InfiniteStairScene";
@@ -302,6 +302,7 @@ export function InfiniteModeScreen({
   };
 
   const terminalAnimationPending = gameState.fallEndsAt !== null || gameState.captureEndsAt !== null;
+  const pursuerMotionDurationMs = getInfinitePursuerMotionDurationMs(gameState);
   const secondsRemaining = countdownEndsAt === null ? null : Math.max(1, Math.min(3, Math.ceil((countdownEndsAt - nowMs) / 1000))) as 1 | 2 | 3;
   const gameplayNowMs = pauseOpen && pausedGameTime !== null ? pausedGameTime : nowMs;
   const onDialogKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
@@ -357,7 +358,8 @@ export function InfiniteModeScreen({
           <h1 className="infinite-mode-accessible-title">무한 모드</h1>
           <InfiniteHud state={gameState} nowMs={gameplayNowMs} />
           <div className="game-layout" data-game-status={gameState.status}>
-            <InfiniteStairScene appearance={appearance} state={gameState} isMoving={gameState.lastPursuerMove !== null && nowMs < gameState.lastPursuerMove.atMs + 240} />
+            <InfiniteStairScene appearance={appearance} state={gameState} motionDurationMs={pursuerMotionDurationMs}
+              isMoving={gameState.lastPursuerMove !== null && nowMs < gameState.lastPursuerMove.atMs + pursuerMotionDurationMs} />
           </div>
         </div>
         {gameState.status === "ready" && countdownEndsAt === null && <section className="stage-select-panel infinite-start-panel" aria-labelledby="infinite-start-title">
