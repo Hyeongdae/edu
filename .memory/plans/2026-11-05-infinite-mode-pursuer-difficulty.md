@@ -1,7 +1,7 @@
 # Plan: Infinite Mode Pursuer Difficulty
 
 - Date: 2026-11-05
-- Status: in_progress
+- Status: completed
 - Decision: [Infinite Mode Pursuer Difficulty](../decisions/2026-11-05-infinite-mode-pursuer-difficulty.md)
 
 ## Goal
@@ -10,7 +10,7 @@ Make Infinite Mode harder over time with a score-scaled pursuer, retain the 10-s
 ## Phases
 | Phase | Status | Summary | Blueprint |
 | :--- | :--- | :--- | :--- |
-| P01 | `in_progress` | Score-based pursuer pace, distance catch-up, HUD, and synchronized movement animation | [P01](../phases/2026-11-05-infinite-mode-pursuer-difficulty/P01-pursuer-scaling/phase.md) |
+| P01 | `done` | Score-based pursuer pace, distance catch-up, HUD, and synchronized movement animation | [P01](../phases/2026-11-05-infinite-mode-pursuer-difficulty/P01-pursuer-scaling/phase.md) |
 
 ## Tasks and Order
 | Task | Observable outcome | Principal files |
@@ -23,5 +23,5 @@ Make Infinite Mode harder over time with a score-scaled pursuer, retain the 10-s
 - Verify the existing stage-mode catch-up threshold remains 15 stairs and its speed behavior is unchanged.
 
 ## Progress
-- done: 0/1
-- Active: P01-T01
+- done: 1/1
+- Active: none

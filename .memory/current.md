@@ -10,13 +10,13 @@ None - latest phase complete
 None - active plan complete
 
 ## Last Completed Task
-[T01 Settings Entry Points and Keyboard Shortcuts](./phases/2026-11-05-game-settings-and-keyboard-controls/P01-settings-and-hotkeys/T01-settings-and-hotkeys.md) - `f10148d` (2026-11-05).
+[T01 Infinite Pursuer Speed Scaling](./phases/2026-11-05-infinite-mode-pursuer-difficulty/P01-pursuer-scaling/T01-pursuer-scaling.md) - `e825334` (2026-11-05).
 
 ## Previous Completed Task
 [T03 Versioned Bottoms Persistence](./phases/2026-11-04-character-bottoms-customization/P01-bottoms-customization/T03-versioned-bottoms-persistence.md) — `d7b6e24` (2026-11-04).
 
 ## Status
-- The game-settings-and-keyboard-controls plan is complete (1/1). CI passed all frontend/API/integration/deployment tests, lint, and builds; Azure deployment completed for `f10148d` in run `41959486047`.
+- Plan infinite-mode-pursuer-difficulty is complete (1/1). All 1,985 tests passed, lint/build/diff check passed. Implementation commit: `e825334`.
 
 ## Next Step (IMPORTANT)
 No active task. Start a new plan or task when requested.
