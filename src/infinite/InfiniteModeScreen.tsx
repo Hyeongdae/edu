@@ -37,6 +37,11 @@ function shiftDeadline(deadline: number | null, duration: number): number | null
   return deadline === null ? null : deadline + duration;
 }
 
+function isTextEntryTarget(target: EventTarget | null): boolean {
+  return target instanceof HTMLElement &&
+    (target.isContentEditable || target.closest("input, textarea, select, [contenteditable='true']") !== null);
+}
+
 export function InfiniteModeScreen({
   account, companyRecords, audioController, audioPreferences, autoplayBlocked = false,
   onAudioPreferencesChange, onEnableAudio, onReturnToTitle, appearance,
@@ -52,6 +57,7 @@ export function InfiniteModeScreen({
   const pausedAtRef = useRef<number | null>(null);
   const pauseResumeTargetRef = useRef<InfiniteResumeTarget>(null);
   const pauseButtonRef = useRef<HTMLButtonElement | null>(null);
+  const pauseMenuActionRef = useRef<(confirmation?: PauseMenuConfirmation) => void>(() => {});
   const leaderboardTriggerRef = useRef<HTMLButtonElement | null>(null);
   const leaderboardCloseRef = useRef<HTMLButtonElement | null>(null);
   const leaderboardDialogRef = useRef<HTMLElement | null>(null);
@@ -172,9 +178,16 @@ export function InfiniteModeScreen({
   }, [countdownEndsAt, gameState.status, settingsOpen, pauseOpen]);
 
   useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || settingsOpen || pauseOpen || countdownEndsAt !== null || gameState.status !== "playing") return;
+  const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || settingsOpen || pauseOpen || leaderboardOpen || isTextEntryTarget(event.target)) return;
       const key = event.key.toLowerCase();
+      if (key === "escape" || key === "r") {
+        if (event.repeat || (gameState.status !== "playing" && countdownEndsAt === null)) return;
+        event.preventDefault();
+        pauseMenuActionRef.current(key === "r" ? "restart" : null);
+        return;
+      }
+      if (countdownEndsAt !== null || gameState.status !== "playing") return;
       if (key === "d") {
         event.preventDefault();
         if (!event.repeat) handleInput("forward");
@@ -185,19 +198,24 @@ export function InfiniteModeScreen({
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [countdownEndsAt, gameState.status, handleInput, settingsOpen, pauseOpen]);
+  }, [countdownEndsAt, gameState.status, handleInput, settingsOpen, pauseOpen, leaderboardOpen]);
 
   const openSettings = () => {
-    if (pauseOpen || countdownEndsAt !== null || settingsOpen || gameState.status !== "playing") return;
-    const now = Date.now();
-    const reconciled = tickInfiniteGame(gameState, now);
-    if (reconciled.status !== "playing") {
+    if (pauseOpen || leaderboardOpen || countdownEndsAt !== null || settingsOpen ||
+      (gameState.status !== "playing" && gameState.status !== "ready")) return;
+    if (gameState.status === "playing") {
+      const now = Date.now();
+      const reconciled = tickInfiniteGame(gameState, now);
+      if (reconciled.status !== "playing") {
+        setGameState(reconciled);
+        setNowMs(now);
+        return;
+      }
       setGameState(reconciled);
-      setNowMs(now);
-      return;
+      pausedAtRef.current = now;
+    } else {
+      pausedAtRef.current = null;
     }
-    setGameState(reconciled);
-    pausedAtRef.current = now;
     setSettingsOpen(true);
   };
 
@@ -218,7 +236,7 @@ export function InfiniteModeScreen({
     setSettingsOpen(false);
   };
 
-  const openPauseMenu = () => {
+  const openPauseMenu = (confirmation: PauseMenuConfirmation = null) => {
     if (settingsOpen || pauseOpen || leaderboardOpen) return;
     const hasCountdown = countdownEndsAt !== null;
     const isPlaying = gameState.status === "playing";
@@ -238,10 +256,11 @@ export function InfiniteModeScreen({
       setPausedGameTime(null);
       setCountdownEndsAt(null);
     }
-    setPauseConfirmation(null);
+    setPauseConfirmation(confirmation);
     setPauseOpen(true);
     audioController?.stopBgm();
   };
+  pauseMenuActionRef.current = openPauseMenu;
 
   const beginPausedResumeCountdown = () => {
     if (!pauseOpen || pauseResumeTargetRef.current === null) return;
@@ -326,7 +345,7 @@ export function InfiniteModeScreen({
     <main className="stair-game pixel-theme infinite-mode-screen" data-game-status={gameState.status}>
       <div className="game-shell"><div className="game-frame" data-game-status={gameState.status} data-infinite-mode="true">
         <button className="game-settings-button" type="button" aria-label="게임 설정" aria-expanded={settingsOpen}
-          onClick={openSettings} disabled={gameState.status !== "playing"}>
+          onClick={openSettings} disabled={countdownEndsAt !== null || (gameState.status !== "playing" && gameState.status !== "ready") || pauseOpen || leaderboardOpen}>
           <PixelIcon name="settings" />
         </button>
         {(gameState.status === "playing" || countdownEndsAt !== null) && <button ref={pauseButtonRef} className="game-pause-button"

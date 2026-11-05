@@ -35,6 +35,11 @@ export function PauseMenuDialog({
       else onResume();
       return;
     }
+    if (event.key === "Enter" && confirmation === "restart" && event.target === firstActionRef.current) {
+      event.preventDefault();
+      onConfirm();
+      return;
+    }
     if (event.key !== "Tab") return;
 
     const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(

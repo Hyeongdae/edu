@@ -1,13 +1,13 @@
 # Current Context
 
 ## Active Plan
-[Character Bottoms Customization](./plans/2026-11-04-character-bottoms-customization.md)
+[Game Settings and Keyboard Controls](./plans/2026-11-05-game-settings-and-keyboard-controls.md)
 
 ## Active Phase
-없음 — [P01 Bottoms Customization](./phases/2026-11-04-character-bottoms-customization/P01-bottoms-customization/phase.md) 완료.
+[P01 Settings and Hotkeys](./phases/2026-11-05-game-settings-and-keyboard-controls/P01-settings-and-hotkeys/phase.md)
 
 ## Active Task
-없음 — 전체4/4 구현/자동 검증 완료.
+[T01 Settings Entry Points and Keyboard Shortcuts](./phases/2026-11-05-game-settings-and-keyboard-controls/P01-settings-and-hotkeys/T01-settings-and-hotkeys.md)
 
 ## Last Completed Task
 [T04 Bottoms Editor and Scenes](./phases/2026-11-04-character-bottoms-customization/P01-bottoms-customization/T04-bottoms-editor-and-scenes.md) — `d480239` (2026-11-05).
@@ -16,6 +16,13 @@
 [T03 Versioned Bottoms Persistence](./phases/2026-11-04-character-bottoms-customization/P01-bottoms-customization/T03-versioned-bottoms-persistence.md) — `d7b6e24` (2026-11-04).
 
 ## Status
+- Previous plan character-bottoms-customization is complete4/4. New Active Task is game-settings-and-keyboard-controls P01-T01; implement only this blueprint, then advance current.md.
+- T01 settings are available from the title and safe start screens; duplicate gameplay/chase help was removed from settings. Escape pauses; R opens restart confirmation and Enter confirms the focused affirmative action. Code is implemented, but tests/build remain unrun.
+
+## Next Step (IMPORTANT)
+Finish validation for `.memory/phases/2026-11-05-game-settings-and-keyboard-controls/P01-settings-and-hotkeys/T01-settings-and-hotkeys.md`, then commit and synchronize task/phase/plan/current. The local app is at http://127.0.0.1:5173/.
+
+## Completed Plan History
 - character-bottoms-customization T01 (`2d6b996`), T02 (`e30fea8`), T03 (`d7b6e24`), T04 (`d480239`) 완료, done4/4. Active Task 없음. 이번 실행은 마지막 T04만 구현/검증/커밋했다.
 - 하의4종(긴바지/청바지/반바지/치마)과 색6종을 추가한다. 고정 v1/v2를 유지하고 독립 v3 계약→모든 포즈 렌더링→public/API 저장 전환→15개 편집 그룹/장면 검증 순서다.
 - T01: shared/bottomsCharacterAppearance.ts 및 테스트를 추가했다. 정상 v1/v2를 기존 선택 그대로 읽고 기본 긴바지/남색만 보완한다. strict v3 저장 검증과 표시 기본값을 분리한다. 정확한13필드 standalone look는 과거형으로 허용하지만 누락된 version3 envelope/14필드/여분·Symbol 키는 거부한다.

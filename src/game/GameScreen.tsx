@@ -112,6 +112,7 @@ export function GameScreen({
   const activeDialogRef = useRef<ActiveGameDialog>(null);
   const settingsTriggerRef = useRef<HTMLButtonElement | null>(null);
   const pauseTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const pauseMenuActionRef = useRef<(confirmation?: PauseMenuConfirmation) => void>(() => {});
   const settingsCloseRef = useRef<HTMLButtonElement | null>(null);
   const instructionsTriggerRef = useRef<HTMLButtonElement | null>(null);
   const titleStartButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -135,7 +136,8 @@ export function GameScreen({
   const openGameDialog = useCallback((dialog: OpenGameDialog) => {
     if (activeDialogRef.current !== null) return;
     if (dialog === "customization" && (!isTitleScreen || isTitleLeaving || gameState.status !== "ready")) return;
-    if (dialog === "settings" && gameState.status !== "playing") return;
+    if (dialog === "settings" && (countdownEndsAtRef.current !== null ||
+      (gameState.status !== "playing" && gameState.status !== "ready" && gameState.status !== "checkpoint"))) return;
     if (dialog === "instructions" && !isTitleScreen) return;
     if (dialog === "leaderboard" && gameState.status !== "ready") return;
 
@@ -277,7 +279,7 @@ export function GameScreen({
     setCountdownEndsAt(endsAt);
   };
 
-  const openPauseMenu = () => {
+  const openPauseMenu = (confirmation: PauseMenuConfirmation = null) => {
     if (activeDialogRef.current !== null) return;
     const pendingCountdown = countdownEndsAtRef.current !== null;
     const isPlaying = gameState.status === "playing";
@@ -300,11 +302,12 @@ export function GameScreen({
       setCountdownEndsAt(null);
     }
 
-    setPauseConfirmation(null);
+    setPauseConfirmation(confirmation);
     activeDialogRef.current = "pause";
     setActiveDialog("pause");
     audioController?.stopBgm();
   };
+  pauseMenuActionRef.current = openPauseMenu;
 
   const beginPausedResumeCountdown = () => {
     if (activeDialogRef.current !== "pause" || pauseResumeTargetRef.current === null) return;
@@ -532,9 +535,17 @@ export function GameScreen({
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (gameState.status !== "playing" || event.defaultPrevented || activeDialogRef.current !== null || isTextEntryTarget(event.target)) {
+      if (event.defaultPrevented || activeDialogRef.current !== null || isTextEntryTarget(event.target)) return;
+
+      const key = event.key.toLowerCase();
+      const countdownPending = countdownEndsAtRef.current !== null;
+      if (key === "escape" || key === "r") {
+        if (event.repeat || (gameState.status !== "playing" && !countdownPending)) return;
+        event.preventDefault();
+        pauseMenuActionRef.current(key === "r" ? "restart" : null);
         return;
       }
+      if (gameState.status !== "playing") return;
 
       const isSpace = event.code === "Space" || event.key === " ";
       if (isSpace) {
@@ -543,7 +554,6 @@ export function GameScreen({
         if (!event.repeat) handleInput("jump");
         return;
       }
-      const key = event.key.toLowerCase();
       if (key === "d") {
         event.preventDefault();
         handleInput("forward");
@@ -555,7 +565,7 @@ export function GameScreen({
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [handleInput, gameState.status]);
+  }, [handleInput, gameState.status, countdownEndsAt]);
 
   useEffect(() => {
     if (activeDialog !== null) return undefined;
@@ -703,6 +713,10 @@ export function GameScreen({
                 <button className="game-title-infinite" type="button" onClick={() => { if (activeDialogRef.current === null && !isTitleLeaving) setActiveMode("infinite"); }}>
                   무한 모드
                 </button>
+                <button ref={settingsTriggerRef} className="game-title-guide" type="button"
+                  aria-haspopup="dialog" aria-expanded={isSettingsOpen} aria-controls="game-settings-dialog" onClick={openSettings}>
+                  설정
+                </button>
                 <button
                   ref={instructionsTriggerRef}
                   className="game-title-guide"
@@ -735,7 +749,7 @@ export function GameScreen({
                 aria-label="게임 설정"
                 aria-expanded={isSettingsOpen}
                 aria-controls="game-settings-dialog"
-                disabled={gameState.status === "ready" || gameState.status === "checkpoint" || isEnding || isCaughtPresentationPending}
+                disabled={countdownEndsAt !== null || (gameState.status !== "ready" && gameState.status !== "checkpoint" && gameState.status !== "playing") || isEnding || isCaughtPresentationPending}
                 onClick={openSettings}
               >
                 <PixelIcon name="settings" />
@@ -912,23 +926,6 @@ export function GameScreen({
                     />
                   )}
 
-                  <div className="settings-help-grid">
-                    <section className="instruction-card">
-                      <span className="instruction-icon"><PixelIcon name="forward" size={20} /></span>
-                      <div>
-                        <strong>조작 방법</strong>
-                        <p><kbd>D</kbd> 한 칸 내려가기 <span>·</span> <kbd>J</kbd> 모퉁이에서 방향을 바꾸며 내려가기 <span>·</span> <kbd>Space</kbd> 장애물을 넘어 두 칸 이동</p>
-                        <p>모바일에서는 내려가기 · 방향 바꾸기 · 점프 버튼을 사용하세요. 장애물이 없을 때 점프하거나 상자에 부딪히면 0.5초 동안 멈춰요.</p>
-                      </div>
-                    </section>
-                    <section className="chase-card">
-                      <span className="chase-icon"><PixelIcon name="flag" size={20} /></span>
-                      <div>
-                        <strong>뒤쫓아오는 추격자</strong>
-                        <p>추격자는 위에서 한 칸씩 따라 내려와요. 단계별 간격은 0.5/0.4/0.35/0.3/0.28초예요. 15칸 이상 멀어지면 0.1초마다 추격하고, 6칸까지 좁혀지면 원래 속도로 돌아와요. 잘못 입력하면 0.5초 동안 멈춰요. 넘어진 동안 추격 간격은 0.25초지만, 가속 추격 중에는 0.1초를 유지해요. 한 번 잡히면 게임이 끝납니다. 각 단계는 0점부터 시작하고 목표는 150/200/250/300/350점이에요. 클리어하면 계속할지 선택할 수 있어요.</p>
-                      </div>
-                    </section>
-                  </div>
                 </div>
               </section>
             </div>
