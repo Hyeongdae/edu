@@ -352,7 +352,7 @@ export function InfiniteModeScreen({
         </button>
         {(gameState.status === "playing" || countdownEndsAt !== null) && <button ref={pauseButtonRef} className="game-pause-button"
           type="button" aria-label="일시정지" aria-haspopup="dialog" aria-expanded={pauseOpen} aria-controls="game-pause-dialog"
-          onClick={openPauseMenu}><PixelIcon name="pause" /></button>}
+          onClick={() => openPauseMenu()}><PixelIcon name="pause" /></button>}
         <div className="game-stage">
           <h1 className="infinite-mode-accessible-title">무한 모드</h1>
           <InfiniteHud state={gameState} nowMs={gameplayNowMs} />

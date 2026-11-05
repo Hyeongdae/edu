@@ -766,7 +766,7 @@ export function GameScreen({
                   aria-haspopup="dialog"
                   aria-expanded={isPauseOpen}
                   aria-controls="game-pause-dialog"
-                  onClick={openPauseMenu}
+                  onClick={() => openPauseMenu()}
                 >
                   <PixelIcon name="pause" />
                 </button>

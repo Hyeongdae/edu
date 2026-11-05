@@ -391,7 +391,7 @@ describe("title screen entry", () => {
 
     expect(screen.getByRole("heading", { level: 1, name: "덱스 탈출 넘버원" })).toBeVisible();
     expect(screen.getByText("계단을 내려가 1층까지 도착해 퇴근하세요!")).toBeVisible();
-    expect(screen.getAllByRole("button")).toHaveLength(5);
+    expect(screen.getAllByRole("button")).toHaveLength(6);
     expect(screen.getByRole("button", { name: "단계 모드" })).toBeVisible();
     expect(screen.getByRole("button", { name: "무한 모드" })).toBeVisible();
     expect(screen.getByRole("button", { name: "게임 설명" })).toBeVisible();
@@ -868,8 +868,8 @@ describe("GameScreen controls", () => {
 
     const dialog = screen.getByRole("dialog", { name: "게임 설정" });
     expect(dialog).toBeVisible();
-    expect(screen.getByText("조작 방법")).toBeVisible();
-    expect(screen.getByText("뒤쫓아오는 추격자")).toBeVisible();
+    expect(screen.queryByText("조작 방법")).not.toBeInTheDocument();
+    expect(screen.queryByText("뒤쫓아오는 추격자")).not.toBeInTheDocument();
     expect(screen.getByText(account.name!)).toBeVisible();
     expect(screen.queryByRole("region", { name: "오디오 설정" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "설정 닫기" })).toHaveFocus();
@@ -890,8 +890,7 @@ describe("GameScreen controls", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 
     fireEvent.click(trigger);
-    fireEvent.click(screen.getByText("조작 방법"));
-    expect(screen.getByRole("dialog")).toBeVisible();
+    expect(screen.getByRole("dialog", { name: "게임 설정" })).toBeVisible();
     fireEvent.mouseDown(document.querySelector(".settings-backdrop")!);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
@@ -2017,7 +2016,7 @@ describe("fall pursuit presentation", () => {
     startSelectedStageImmediately(); fireEvent.keyDown(window, { key: "j" });
     await act(async () => { await vi.advanceTimersByTimeAsync(100); });
     fireEvent.click(screen.getByRole("button", { name: "게임 설정" }));
-    expect(screen.getByText(/15칸 이상 멀어지면 0.1초마다 추격하고, 6칸까지 좁혀지면/)).toBeVisible();
+    expect(screen.queryByText(/15칸 이상 멀어지면 0.1초마다 추격하고, 6칸까지 좁혀지면/)).not.toBeInTheDocument();
     await act(async () => { await vi.advanceTimersByTimeAsync(10_000); });
     expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", "-4");
     expect(screen.getByTestId("event-status")).toHaveTextContent("2배 점수 · 30초");
