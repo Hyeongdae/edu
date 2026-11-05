@@ -1,26 +1,25 @@
 # Current Context
 
 ## Active Plan
-[Game Settings and Keyboard Controls](./plans/2026-11-05-game-settings-and-keyboard-controls.md)
+None - latest plan complete
 
 ## Active Phase
-[P01 Settings and Hotkeys](./phases/2026-11-05-game-settings-and-keyboard-controls/P01-settings-and-hotkeys/phase.md)
+None - latest phase complete
 
 ## Active Task
-[T01 Settings Entry Points and Keyboard Shortcuts](./phases/2026-11-05-game-settings-and-keyboard-controls/P01-settings-and-hotkeys/T01-settings-and-hotkeys.md)
+None - active plan complete
 
 ## Last Completed Task
-[T04 Bottoms Editor and Scenes](./phases/2026-11-04-character-bottoms-customization/P01-bottoms-customization/T04-bottoms-editor-and-scenes.md) — `d480239` (2026-11-05).
+[T01 Settings Entry Points and Keyboard Shortcuts](./phases/2026-11-05-game-settings-and-keyboard-controls/P01-settings-and-hotkeys/T01-settings-and-hotkeys.md) - `f10148d` (2026-11-05).
 
 ## Previous Completed Task
 [T03 Versioned Bottoms Persistence](./phases/2026-11-04-character-bottoms-customization/P01-bottoms-customization/T03-versioned-bottoms-persistence.md) — `d7b6e24` (2026-11-04).
 
 ## Status
-- Previous plan character-bottoms-customization is complete4/4. New Active Task is game-settings-and-keyboard-controls P01-T01; implement only this blueprint, then advance current.md.
-- T01 settings are available from the title and safe start screens; duplicate gameplay/chase help was removed from settings. Escape pauses; R opens restart confirmation and Enter confirms the focused affirmative action. CI first caught a ref update during render; it is moved into effects and local lint passes. Tests/build remain pending in deployment CI.
+- The game-settings-and-keyboard-controls plan is complete (1/1). CI passed all frontend/API/integration/deployment tests, lint, and builds; Azure deployment completed for `f10148d` in run `41959486047`.
 
 ## Next Step (IMPORTANT)
-Finish validation for `.memory/phases/2026-11-05-game-settings-and-keyboard-controls/P01-settings-and-hotkeys/T01-settings-and-hotkeys.md`, then commit and synchronize task/phase/plan/current. The local app is at http://127.0.0.1:5173/.
+No active task. Start a new plan or task when requested.
 
 ## Completed Plan History
 - character-bottoms-customization T01 (`2d6b996`), T02 (`e30fea8`), T03 (`d7b6e24`), T04 (`d480239`) 완료, done4/4. Active Task 없음. 이번 실행은 마지막 T04만 구현/검증/커밋했다.

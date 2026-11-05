@@ -1,6 +1,6 @@
 # Task: T01 Settings Entry Points and Keyboard Shortcuts
 
-## Status: in_progress
+## Status: done
 
 ## Goal
 Expose the existing audio settings dialog from title and safe non-playing screens in both modes, and route `Escape`/`R` during play through existing pause and restart confirmation behavior.
@@ -29,12 +29,12 @@ Expose the existing audio settings dialog from title and safe non-playing screen
 - Countdown `Escape`/`R` must use existing `openPauseMenu` pending-countdown behavior; restart confirmation resumes the current mode’s restart path.
 
 ## Acceptance Criteria
-- [ ] Title screen has an accessible settings button that opens the same audio controls as in-game settings.
-- [ ] Stage ready and checkpoint screens can open settings; stage countdown disables settings.
-- [ ] Infinite ready screen can open settings; infinite countdown disables settings.
-- [ ] In either mode, Escape during gameplay/countdown opens pause and freezes the existing clocks; existing modal Escape behavior remains intact.
-- [ ] In either mode, R opens pause with restart confirmation; Enter on the focused affirmative action confirms, the negative action preserves the current run, and confirmation resets the mode with its existing 3-second countdown.
-- [ ] Typing targets, dialog controls, and repeated R keydown do not accidentally pause/restart.
+- [x] Title screen has an accessible settings button that opens the same audio controls as in-game settings.
+- [x] Stage ready and checkpoint screens can open settings; stage countdown disables settings.
+- [x] Infinite ready screen can open settings; infinite countdown disables settings.
+- [x] In either mode, Escape during gameplay/countdown opens pause and freezes the existing clocks; existing modal Escape behavior remains intact.
+- [x] In either mode, R opens pause with restart confirmation; Enter on the focused affirmative action confirms, the negative action preserves the current run, and confirmation resets the mode with its existing 3-second countdown.
+- [x] Typing targets, dialog controls, and repeated R keydown do not accidentally pause/restart.
 
 ## Validation
 - Focused tests when explicitly requested: `npx vitest run src/game/GameScreen.test.tsx src/infinite/InfiniteModeScreen.test.tsx --maxWorkers=2`.
@@ -55,12 +55,13 @@ Task: T01-settings-and-hotkeys
 
 ## Progress
 - [x] Implementation complete
-- [ ] Validation complete (tests/build not run)
-- commit: pending
+- [x] Validation complete
+- commit: `f10148d`
 
 ## Execution Result — 2026-11-05
 - Added title-screen `설정` entry point and enabled the top-right settings button on stage-ready/checkpoint and infinite-ready screens. Countdown, terminal, and modal states remain locked.
 - `Escape` opens the existing pause menu during gameplay/countdowns. `R` opens it with restart confirmation selected; Enter confirms the focused affirmative action. Existing confirmation handlers keep the same stage/mode reset and 3-second countdown behavior. Text-entry targets, open dialogs, and repeated keydown are ignored.
 - Existing audio preferences and controls are reused. Settings opened before gameplay do not shift game deadlines; settings opened during play preserve existing pause/resume deadline handling.
 - Removed the duplicate controls and pursuer explanation from the stage-mode settings dialog; the separate game instructions dialog remains the place for that guide.
-- Initial deployment CI lint caught ref assignment during render in the two keyboard handlers. Moved the ref updates into effects; local `npm run lint` and `git diff --check` now pass. No tests/build were run locally. Browser interaction remains unverified.
+- Initial deployment CI found a pause button handler passing its click event as the confirmation argument. Wrapped the handler in both modes and updated settings tests for the intentionally removed duplicate guide content.
+- Local targeted tests, full CI tests (1981 passed), lint and production build passed. GitHub Actions verified and deployed commit `f10148d` to Azure Static Web Apps in run `41959486047`.

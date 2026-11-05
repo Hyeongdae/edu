@@ -1,7 +1,7 @@
 # Plan: Game Settings and Keyboard Controls
 
 - Date: 2026-11-05
-- Status: in_progress
+- Status: complete
 - Decision: [Game Settings and Keyboard Controls](../decisions/2026-11-05-game-settings-and-keyboard-controls.md)
 
 ## Goal
@@ -10,7 +10,7 @@ Make the existing audio settings reachable on title/ready/checkpoint/gameplay sc
 ## Phases
 | Phase | Status | Summary | Blueprint |
 | :--- | :--- | :--- | :--- |
-| P01 | `in_progress` | Settings entry points and shared keyboard behavior in both modes | [P01](../phases/2026-11-05-game-settings-and-keyboard-controls/P01-settings-and-hotkeys/phase.md) |
+| P01 | `done` | Settings entry points and shared keyboard behavior in both modes; deployed as `f10148d` | [P01](../phases/2026-11-05-game-settings-and-keyboard-controls/P01-settings-and-hotkeys/phase.md) |
 
 ## Tasks and Order
 | Task | Observable outcome | Principal files |
@@ -25,6 +25,5 @@ T01 is the only task. R opens the existing restart confirmation and Enter activa
 - Do not alter audio storage, game scoring/rules, ranking, stage timers, or pause confirmation wording.
 
 ## Progress
-- done: 0/1
-- Active: P01-T01
-- T01 implementation is complete and `git diff --check` passes. Tests/build were not run; keep the task active until validation is requested/completed.
+- done: 1/1
+- Completed: P01-T01. Full GitHub Actions verification and Azure deployment passed in run `41959486047`.
