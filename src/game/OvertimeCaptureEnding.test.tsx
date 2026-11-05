@@ -12,6 +12,8 @@ it.each((["animated", "complete"] as const).flatMap(variant => (["male", "female
   appearance.runner.bag = "backpack"; appearance.runner.bagColor = "navy"; appearance.runner.eyeStyle = "round";
   appearance.pursuer.bag = "briefcase"; appearance.pursuer.bagColor = "brown"; appearance.pursuer.eyeStyle = "sharp";
   appearance.runner.gender = gender; appearance.pursuer.gender = gender;
+  appearance.runner.bottoms = "skirt"; appearance.runner.bottomsColor = "beige";
+  appearance.pursuer.bottoms = "shorts"; appearance.pursuer.bottomsColor = "white";
   const { container, rerender } = render(<OvertimeCaptureEnding variant={variant} appearance={appearance} />);
   for (const pose of ["dragged", "seated"]) {
     const officer = container.querySelector(`[data-overtime-pose="${pose}"]`)!;
@@ -33,6 +35,16 @@ it.each((["animated", "complete"] as const).flatMap(variant => (["male", "female
   expect(appearance.runner.eyeStyle).toBe("round");
   expect(appearance.pursuer.eyeStyle).toBe("sharp");
   const poses = ["dragged", "seated", "grabbing", "standing"];
+  for (const pose of ["dragged", "seated"]) {
+    const officer = container.querySelector(`[data-overtime-pose="${pose}"]`)!;
+    expect(officer.querySelector(".officer-skirt-fabric")).toHaveAttribute("fill", "#c8b38b");
+    expect(officer.querySelector(".officer-bottom-leg--front .officer-exposed-leg")).toHaveAttribute("fill", "#f5c49a");
+  }
+  for (const pose of ["grabbing", "standing"]) {
+    const officer = container.querySelector(`[data-overtime-pose="${pose}"]`)!;
+    expect(officer.querySelector(".officer-bottoms--shorts .officer-bottom-leg--front .officer-bottoms-fabric")).toHaveAttribute("fill", "#e6edf2");
+    expect(officer.querySelector(".officer-bottom-leg--front .officer-exposed-leg")).toHaveAttribute("fill", "#86533a");
+  }
   const before = poses.map(pose => {
     const actor = container.querySelector(`[data-overtime-pose="${pose}"]`)!;
     return [actor.querySelector(".officer-face-outline")!.getAttribute("d"), actor.querySelector(".officer-torso-outline")!.getAttribute("d")];

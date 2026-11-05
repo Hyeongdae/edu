@@ -10,7 +10,9 @@ function binding(overrides: Partial<AppearanceBinding> = {}): AppearanceBinding 
   return { value: getDefaultCharacterAppearance(), status: "idle", errorMessage: null, update: vi.fn(), retry: vi.fn(), ...overrides };
 }
 function choose(group: string, option: string) {
-  fireEvent.click(within(screen.getByRole("group", { name: group })).getByRole("radio", { name: option }));
+  // Catalog tests separately verify every group's accessible name; select within its visible legend here.
+  const fieldset = screen.getByText(group, { selector: "legend" }).closest("fieldset")!;
+  fireEvent.click(within(fieldset).getByRole("radio", { name: option }));
 }
 
 describe("character editor", () => {
@@ -18,9 +20,9 @@ describe("character editor", () => {
     "changes only $role gender, updates real geometry and keeps the draft through save states", ({ role, label }) => {
       const initial = getDefaultCharacterAppearance();
       Object.assign(initial.runner, { hairStyle: "long", hairColor: "pink", skinTone: "tan", outfit: "hoodie", outfitColor: "sky",
-        hat: "beanie", glasses: "round", shoes: "boots", shoeColor: "navy", eyeStyle: "smile", bag: "backpack", bagColor: "beige" });
+        hat: "beanie", glasses: "round", shoes: "boots", shoeColor: "navy", eyeStyle: "smile", bag: "backpack", bagColor: "beige", bottoms: "skirt", bottomsColor: "beige" });
       Object.assign(initial.pursuer, { hairStyle: "curly", hairColor: "gray", skinTone: "deep", outfit: "vest", outfitColor: "orange",
-        hat: "beret", glasses: "square", shoes: "sneakers", shoeColor: "red", eyeStyle: "sharp", bag: "briefcase", bagColor: "brown" });
+        hat: "beret", glasses: "square", shoes: "sneakers", shoeColor: "red", eyeStyle: "sharp", bag: "briefcase", bagColor: "brown", bottoms: "shorts", bottomsColor: "white" });
       const update = vi.fn(), retry = vi.fn();
       function Harness({ status }: { status: AppearanceBinding["status"] }) {
         const [value, setValue] = useState(initial);
@@ -58,10 +60,10 @@ describe("character editor", () => {
       expect(preview.querySelector(".officer-eyelashes")).toBeNull();
     });
 
-  it("offers the complete catalog in thirteen labelled groups for either role", () => {
+  it("offers the complete catalog in fifteen labelled groups for either role", () => {
     render(<CharacterCustomizationDialog binding={binding()} storageMode="session" onClose={vi.fn()} />);
-    const labels = ["성별", "머리스타일", "머리색", "피부색", "눈 모양", "옷", "옷 색상", "모자", "안경", "신발", "신발 색상", "가방", "가방 색상"];
-    const fields = ["gender", "hairStyle", "hairColor", "skinTone", "eyeStyle", "outfit", "outfitColor", "hat", "glasses", "shoes", "shoeColor", "bag", "bagColor"] as const;
+    const labels = ["성별", "머리스타일", "머리색", "피부색", "눈 모양", "상의", "상의 색상", "하의", "하의 색상", "모자", "안경", "신발", "신발 색상", "가방", "가방 색상"];
+    const fields = ["gender", "hairStyle", "hairColor", "skinTone", "eyeStyle", "outfit", "outfitColor", "bottoms", "bottomsColor", "hat", "glasses", "shoes", "shoeColor", "bag", "bagColor"] as const;
     for (const role of ["도망자", "추격자"]) {
       fireEvent.click(screen.getByRole("tab", { name: role }));
       const groups = screen.getAllByRole("group");
@@ -112,9 +114,10 @@ describe("character editor", () => {
       return <CharacterCustomizationDialog binding={binding({ value, update: next => { update(next); setValue(next); } })} storageMode="session" onClose={vi.fn()} />;
     }
     render(<StrictMode><Harness /></StrictMode>);
-    expect(screen.getAllByRole("group")).toHaveLength(13);
+    expect(screen.getAllByRole("group")).toHaveLength(15);
     choose("모자", "캡 모자"); choose("성별", "여성"); choose("머리스타일", "묶은 머리");
-    choose("옷", "후드티"); choose("옷 색상", "청록"); choose("신발", "부츠"); choose("신발 색상", "흰색");
+    choose("상의", "후드티"); choose("상의 색상", "청록"); choose("신발", "부츠"); choose("신발 색상", "흰색");
+    choose("하의 색상", "베이지"); choose("하의", "치마");
     choose("머리스타일", "장발"); choose("눈 모양", "동그란 눈"); choose("가방", "백팩"); choose("가방 색상", "남색");
     choose("성별", "남성"); choose("성별", "여성");
     const runner = screen.getByRole("img", { name: "도망자 미리보기" });
@@ -126,9 +129,11 @@ describe("character editor", () => {
     expect(runner.querySelector(".officer-hoodie-details")).not.toBeNull();
     expect(runner.querySelector(".officer-eyes")).toHaveAttribute("data-eye-style", "round");
     expect(runner.querySelector('[data-bag-kind="backpack"] .officer-bag-fill')).toHaveAttribute("fill", "#30466d");
+    expect(runner.querySelector(".officer-skirt-fabric")).toHaveAttribute("fill", "#c8b38b");
     fireEvent.click(screen.getByRole("tab", { name: "추격자" }));
     choose("안경", "둥근 안경"); choose("피부색", "짙은 피부");
-    choose("머리스타일", "곱슬머리"); choose("옷", "조끼"); choose("모자", "베레모");
+    choose("머리스타일", "곱슬머리"); choose("상의", "조끼"); choose("모자", "베레모");
+    choose("하의", "반바지"); choose("하의 색상", "흰색");
     choose("눈 모양", "날카로운 눈"); choose("가방", "서류가방"); choose("가방 색상", "갈색");
     const preview = screen.getByRole("img", { name: "추격자 미리보기" });
     expect(preview.querySelector(".officer-beret-hat")).not.toBeNull();
@@ -138,12 +143,35 @@ describe("character editor", () => {
     expect(preview.querySelector(".officer-vest-details")).not.toBeNull();
     expect(preview.querySelector('.officer-glasses--round .officer-eyes')).toHaveAttribute("data-eye-style", "sharp");
     expect(preview.querySelector('[data-bag-kind="briefcase"] .officer-bag-fill')).toHaveAttribute("fill", "#785039");
+    expect(preview.querySelector(".officer-bottoms--shorts .officer-bottom-leg--front .officer-bottoms-fabric")).toHaveAttribute("fill", "#e6edf2");
+    expect(preview.querySelector(".officer-bottom-leg--front .officer-exposed-leg")).toHaveAttribute("fill", "#86533a");
     fireEvent.click(screen.getByRole("tab", { name: "도망자" }));
     expect(within(screen.getByRole("group", { name: "모자" })).getByRole("radio", { name: "캡 모자" })).toBeChecked();
     expect(update.mock.lastCall![0]).toMatchObject({ version: 3,
-      runner: { gender: "female", hairStyle: "long", hat: "cap", outfit: "hoodie", shoeColor: "white", eyeStyle: "round", bag: "backpack", bagColor: "navy" },
-      pursuer: { glasses: "round", skinTone: "deep", gender: "male", hat: "beret", hairStyle: "curly", outfit: "vest", eyeStyle: "sharp", bag: "briefcase", bagColor: "brown" } });
+      runner: { gender: "female", hairStyle: "long", hat: "cap", outfit: "hoodie", shoeColor: "white", eyeStyle: "round", bag: "backpack", bagColor: "navy", bottoms: "skirt", bottomsColor: "beige" },
+      pursuer: { glasses: "round", skinTone: "deep", gender: "male", hat: "beret", hairStyle: "curly", outfit: "vest", eyeStyle: "sharp", bag: "briefcase", bagColor: "brown", bottoms: "shorts", bottomsColor: "white" } });
     expect(screen.getByRole("status")).toHaveTextContent("이번 접속에서만 유지돼요");
+  });
+
+  it.each(["남성", "여성"])("retains an independent color across all bottoms for %s", gender => {
+    const initial = getDefaultCharacterAppearance(), update = vi.fn();
+    function Harness() {
+      const [value, setValue] = useState(initial);
+      return <CharacterCustomizationDialog binding={binding({ value, update: next => { update(next); setValue(next); } })}
+        storageMode="session" onClose={vi.fn()} />;
+    }
+    render(<Harness />);
+    choose("성별", gender); choose("하의 색상", "베이지");
+    const originalPursuer = initial.pursuer;
+    for (const { value, label } of APPEARANCE_OPTIONS.bottoms) {
+      choose("하의", label);
+      expect(within(screen.getByRole("group", { name: "하의 색상" })).getByRole("radio", { name: "베이지" })).toBeChecked();
+      expect(screen.getByRole("img").querySelector(".officer-bottoms")).toHaveAttribute("data-bottoms-kind", value);
+      expect(update.mock.lastCall![0].pursuer).toEqual(originalPursuer);
+    }
+    choose("하의 색상", "흰색");
+    expect(within(screen.getByRole("group", { name: "하의" })).getByRole("radio", { name: "치마" })).toBeChecked();
+    expect(screen.getByRole("img").querySelector(".officer-skirt-fabric")).toHaveAttribute("fill", "#e6edf2");
   });
 
   it("supports roving keyboard tabs without saving and links the selected panel", () => {

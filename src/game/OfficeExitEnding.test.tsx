@@ -32,12 +32,14 @@ it.each((["animated", "complete"] as const).flatMap(variant => (["male", "female
   const appearance = getDefaultCharacterLook("runner"); appearance.hat = "cap"; appearance.outfitColor = "rose";
   appearance.gender = gender;
   appearance.bag = "laptop"; appearance.bagColor = "beige"; appearance.eyeStyle = "smile";
+  appearance.bottoms = "skirt"; appearance.bottomsColor = "beige";
   const { container, rerender } = render(<OfficeExitEnding variant={variant} appearance={appearance} />);
   expect(container.querySelector(".officer-cap-hat")).not.toBeNull();
   expect(container.querySelector(".officer-cloth")).toHaveAttribute("fill", "#b66a87");
   expect(container.querySelector('[data-bag-kind="laptop"] .officer-bag-fill')).toHaveAttribute("fill", "#c8b38b");
   expect(container.querySelector(".officer-eyes")).toHaveAttribute("data-eye-style", "smile");
   expect(container.querySelector(".officer-eyes")).toHaveAttribute("data-expression", "normal");
+  expect(container.querySelector(".officer-skirt-fabric")).toHaveAttribute("fill", "#c8b38b");
   expect(appearance.eyeStyle).toBe("smile");
   const face = container.querySelector(".officer-face-outline")!.getAttribute("d");
   const torso = container.querySelector(".officer-torso-outline")!.getAttribute("d");
@@ -47,6 +49,7 @@ it.each((["animated", "complete"] as const).flatMap(variant => (["male", "female
   expect(container.querySelector(".officer-eyes")).toHaveAttribute("data-expression", "normal");
   expect(container.querySelector('[data-bag-kind="laptop"] .officer-bag-fill')).toHaveAttribute("fill", "#c8b38b");
   expect(appearance.gender).toBe(gender);
+  expect(container.querySelector(".officer-skirt-fabric")).toHaveAttribute("fill", "#c8b38b");
 });
 
 describe("office exit lifecycle", () => {

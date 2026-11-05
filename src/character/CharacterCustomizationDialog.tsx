@@ -13,7 +13,8 @@ export interface CharacterCustomizationDialogProps {
 const FIELDS: readonly [keyof CharacterLook, string][] = [
   ["gender", "성별"], ["hairStyle", "머리스타일"], ["hairColor", "머리색"], ["skinTone", "피부색"],
   ["eyeStyle", "눈 모양"],
-  ["outfit", "옷"], ["outfitColor", "옷 색상"], ["hat", "모자"], ["glasses", "안경"],
+  ["outfit", "상의"], ["outfitColor", "상의 색상"], ["bottoms", "하의"], ["bottomsColor", "하의 색상"],
+  ["hat", "모자"], ["glasses", "안경"],
   ["shoes", "신발"], ["shoeColor", "신발 색상"], ["bag", "가방"], ["bagColor", "가방 색상"],
 ];
 const ROLES = ["runner", "pursuer"] as const;

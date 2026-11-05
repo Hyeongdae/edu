@@ -32,6 +32,8 @@ describe("main downward staircase scene", () => {
     appearance.pursuer.hat = "none"; appearance.pursuer.glasses = "round"; appearance.pursuer.skinTone = "deep";
     appearance.runner.bag = "crossbody"; appearance.runner.bagColor = "beige"; appearance.runner.eyeStyle = "sleepy";
     appearance.pursuer.bag = "briefcase"; appearance.pursuer.bagColor = "brown"; appearance.pursuer.eyeStyle = "sharp";
+    appearance.runner.bottoms = "skirt"; appearance.runner.bottomsColor = "beige";
+    appearance.pursuer.bottoms = "shorts"; appearance.pursuer.bottomsColor = "white";
     const state = initial();
     const view = render(<StairScene {...props(state)} appearance={appearance} />);
     expect(screen.getByTestId("runner").querySelector(".officer-cap-hat")).not.toBeNull();
@@ -41,6 +43,8 @@ describe("main downward staircase scene", () => {
     expect(screen.getByTestId("pursuer").querySelector(".officer-face-skin")).toHaveAttribute("fill", "#86533a");
     expect(screen.getByTestId("runner").querySelector('[data-bag-kind="crossbody"] .officer-bag-fill')).toHaveAttribute("fill", "#c8b38b");
     expect(screen.getByTestId("runner").querySelector(".officer-eyes")).toHaveAttribute("data-eye-style", "sleepy");
+    expect(screen.getByTestId("runner").querySelector(".officer-skirt-fabric")).toHaveAttribute("fill", "#c8b38b");
+    expect(screen.getByTestId("pursuer").querySelector(".officer-bottoms--shorts .officer-bottom-leg--front .officer-bottoms-fabric")).toHaveAttribute("fill", "#e6edf2");
     expect(screen.getByTestId("pursuer").querySelector('[data-bag-kind="briefcase"] .officer-bag-fill')).toHaveAttribute("fill", "#785039");
     expect(screen.getByTestId("pursuer").querySelector(".officer-eyes")).toHaveAttribute("data-eye-style", "sharp");
     expect(screen.getByTestId("runner")).toHaveAttribute("transform", "translate(260 216)");
@@ -54,7 +58,7 @@ describe("main downward staircase scene", () => {
       expect(actor.querySelector(".officer-torso-outline")!.getAttribute("d")).not.toBe(before[index][1]);
     });
     expect(screen.getByTestId("runner")).toHaveAttribute("transform", "translate(260 216)");
-    expect(view.container.querySelectorAll("clipPath")).toHaveLength(1);
+    expect(view.container.querySelectorAll("svg.stair-scene > defs > clipPath")).toHaveLength(1);
     expect(view.container.querySelector("clipPath rect")).toHaveAttribute("height", "84");
     expect(appearance.runner.gender).toBe("male"); expect(appearance.pursuer.gender).toBe("male");
   });

@@ -12,6 +12,8 @@ describe("InfiniteStairScene", () => {
     appearance.pursuer.glasses = "round"; appearance.pursuer.outfitColor = "teal";
     appearance.runner.bag = "backpack"; appearance.runner.bagColor = "navy"; appearance.runner.eyeStyle = "round";
     appearance.pursuer.bag = "laptop"; appearance.pursuer.bagColor = "black"; appearance.pursuer.eyeStyle = "sharp";
+    appearance.runner.bottoms = "skirt"; appearance.runner.bottomsColor = "beige";
+    appearance.pursuer.bottoms = "shorts"; appearance.pursuer.bottomsColor = "white";
     const state = createInfiniteGameState(() => 0);
     const { container, rerender } = render(<InfiniteStairScene state={state} isMoving={false} appearance={appearance} />);
     const player = screen.getByTestId("infinite-player"), pursuer = screen.getByTestId("infinite-pursuer");
@@ -20,6 +22,8 @@ describe("InfiniteStairScene", () => {
     expect(pursuer.querySelector(".officer-cloth")).toHaveAttribute("fill", "#397f82");
     expect(player.querySelector('[data-bag-kind="backpack"] .officer-bag-fill')).toHaveAttribute("fill", "#30466d");
     expect(player.querySelector(".officer-eyes")).toHaveAttribute("data-eye-style", "round");
+    expect(player.querySelector(".officer-skirt-fabric")).toHaveAttribute("fill", "#c8b38b");
+    expect(pursuer.querySelector(".officer-bottoms--shorts .officer-bottom-leg--front .officer-bottoms-fabric")).toHaveAttribute("fill", "#e6edf2");
     expect(pursuer.querySelector('[data-bag-kind="laptop"] .officer-bag-fill')).toHaveAttribute("fill", "#263247");
     expect(pursuer.querySelector(".officer-eyes")).toHaveAttribute("data-eye-style", "sharp");
     const lastStair = container.querySelectorAll('[data-testid="infinite-stair-step"]');

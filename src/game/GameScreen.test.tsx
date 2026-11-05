@@ -110,23 +110,21 @@ describe("title character customization integration", () => {
     for (const key of ["d", "j", " "]) fireEvent.keyDown(window, { key });
     const dialog = screen.getByRole("dialog", { name: "캐릭터 꾸미기" });
     const editor = within(dialog);
+    const options = within(dialog.querySelector<HTMLElement>(".character-options")!);
+    const choose = (group: string, option: string) => fireEvent.click(
+      within(options.getByRole("group", { name: group })).getByRole("radio", { name: option }));
     expect(dialog).toBeVisible();
     expect(screen.queryByRole("heading", { name: "무한 모드" })).toBeNull();
     expect(screen.getByTestId("runner")).toHaveAttribute("data-route-index", "0");
-    fireEvent.click(editor.getByRole("radio", { name: "캡 모자" }));
-    fireEvent.click(editor.getByRole("radio", { name: "동그란 눈" }));
-    fireEvent.click(editor.getByRole("radio", { name: "백팩" }));
-    fireEvent.click(editor.getByRole("radio", { name: "여성" }));
-    fireEvent.click(within(editor.getByRole("group", { name: "가방 색상" })).getByRole("radio", { name: "남색" }));
+    choose("모자", "캡 모자"); choose("눈 모양", "동그란 눈"); choose("가방", "백팩"); choose("성별", "여성");
+    choose("가방 색상", "남색"); choose("하의", "치마"); choose("하의 색상", "베이지");
     fireEvent.click(editor.getByRole("tab", { name: "추격자" }));
-    fireEvent.click(editor.getByRole("radio", { name: "둥근 안경" }));
-    fireEvent.click(editor.getByRole("radio", { name: "날카로운 눈" }));
-    fireEvent.click(editor.getByRole("radio", { name: "서류가방" }));
-    fireEvent.click(editor.getByRole("radio", { name: "여성" }));
-    fireEvent.click(within(editor.getByRole("group", { name: "가방 색상" })).getByRole("radio", { name: "갈색" }));
+    choose("안경", "둥근 안경"); choose("눈 모양", "날카로운 눈"); choose("가방", "서류가방"); choose("성별", "여성");
+    choose("가방 색상", "갈색"); choose("하의", "반바지"); choose("하의 색상", "흰색");
     fireEvent.keyDown(dialog, { key: "Escape" });
     expect(trigger).toHaveFocus(); expect(trigger).toHaveAttribute("aria-expanded", "false");
     expect(screen.getByTestId("runner").querySelector(".officer-cap-hat")).not.toBeNull();
+    expect(screen.getByTestId("runner").querySelector(".officer-skirt-fabric")).toHaveAttribute("fill", "#c8b38b");
     const runnerFace = screen.getByTestId("runner").querySelector(".officer-face-outline")!.getAttribute("d");
     const runnerTorso = screen.getByTestId("runner").querySelector(".officer-torso-outline")!.getAttribute("d");
     fireEvent.click(stage); act(() => { vi.advanceTimersByTime(200); });
@@ -134,6 +132,8 @@ describe("title character customization integration", () => {
     expect(screen.getByTestId("runner").querySelector(".officer-cap-hat")).not.toBeNull();
     expect(screen.getByTestId("pursuer").querySelector(".officer-glasses--round")).not.toBeNull();
     startSelectedStageImmediately(); climbOneStep();
+    expect(screen.getByTestId("runner").querySelector(".officer-skirt-fabric")).toHaveAttribute("fill", "#c8b38b");
+    expect(screen.getByTestId("pursuer").querySelector(".officer-bottoms--shorts .officer-bottom-leg--front .officer-bottoms-fabric")).toHaveAttribute("fill", "#e6edf2");
     expect(screen.getByTestId("runner").querySelector('[data-bag-kind="backpack"] .officer-bag-fill')).toHaveAttribute("fill", "#30466d");
     expect(screen.getByTestId("pursuer").querySelector(".officer-eyes")).toHaveAttribute("data-eye-style", "sharp");
     expect(screen.getByTestId("runner").querySelector(".officer-face-outline")).toHaveAttribute("d", runnerFace);
@@ -149,6 +149,8 @@ describe("title character customization integration", () => {
     act(() => { vi.advanceTimersByTime(3000); });
     fireEvent.keyDown(window, { key: "d" });
     expect(screen.getByTestId("infinite-score")).toHaveTextContent("1");
+    expect(screen.getByTestId("infinite-player").querySelector(".officer-skirt-fabric")).toHaveAttribute("fill", "#c8b38b");
+    expect(screen.getByTestId("infinite-pursuer").querySelector(".officer-bottoms--shorts .officer-bottom-leg--front .officer-bottoms-fabric")).toHaveAttribute("fill", "#e6edf2");
     expect(screen.getByTestId("infinite-player").querySelector(".officer-face-outline")).toHaveAttribute("d", runnerFace);
     expect(screen.getByTestId("infinite-player").querySelector(".officer-torso-outline")).toHaveAttribute("d", runnerTorso);
     expect(screen.getByTestId("infinite-pursuer").querySelector(".officer-outfit")).toHaveAttribute("data-appearance-gender", "female");
@@ -158,10 +160,9 @@ describe("title character customization integration", () => {
     fireEvent.click(screen.getByRole("button", { name: "타이틀로 돌아가기" }));
     fireEvent.click(screen.getByRole("button", { name: "예" }));
     fireEvent.click(screen.getByRole("button", { name: "캐릭터 꾸미기" }));
-    expect(within(screen.getByRole("group", { name: "모자" })).getByRole("radio", { name: "캡 모자" })).toBeChecked();
-    expect(screen.getByRole("radio", { name: "동그란 눈" })).toBeChecked();
-    expect(screen.getByRole("radio", { name: "백팩" })).toBeChecked();
-    expect(screen.getByRole("radio", { name: "여성" })).toBeChecked();
+    const restored = within(screen.getByRole("dialog").querySelector<HTMLElement>(".character-options")!);
+    for (const [group, option] of [["모자", "캡 모자"], ["눈 모양", "동그란 눈"], ["가방", "백팩"], ["성별", "여성"], ["하의", "치마"], ["하의 색상", "베이지"]])
+      expect(within(restored.getByRole("group", { name: group })).getByRole("radio", { name: option })).toBeChecked();
     expect(write).not.toHaveBeenCalled();
     view.unmount(); renderBase(<GameScreen account={account} />);
     expect(screen.getByTestId("runner").querySelector(".officer-cap-hat")).toBeNull();
@@ -172,22 +173,22 @@ describe("title character customization integration", () => {
     const appearance = { value: getDefaultCharacterAppearance(), status: "saved" as const, errorMessage: null, update: vi.fn(), retry: vi.fn() };
     const view = renderBase(<GameScreen account={account} companyRecords={{ ...records, appearance }} />);
     fireEvent.click(screen.getByRole("button", { name: "캐릭터 꾸미기" }));
-    fireEvent.click(screen.getByRole("radio", { name: "카디건" }));
-    expect(appearance.update).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ runner: expect.objectContaining({ outfit: "cardigan" }) }));
+    fireEvent.click(screen.getByRole("radio", { name: "치마" }));
+    expect(appearance.update).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ runner: expect.objectContaining({ bottoms: "skirt" }) }));
     const draft = appearance.update.mock.lastCall![0];
     draft.pursuer.hat = "cap";
     view.rerender(<GameScreen account={account} companyRecords={{ ...records, appearance: { ...appearance, value: draft, status: "error", errorMessage: "저장 연결 오류" } }} />);
     expect(screen.getByRole("status")).toHaveTextContent("저장 연결 오류");
-    expect(screen.getByRole("radio", { name: "카디건" })).toBeChecked();
-    expect(screen.getByRole("img", { name: "도망자 미리보기" }).querySelector(".officer-outfit--cardigan")).not.toBeNull();
+    expect(screen.getByRole("radio", { name: "치마" })).toBeChecked();
+    expect(screen.getByRole("img", { name: "도망자 미리보기" }).querySelector(".officer-skirt-fabric")).toHaveAttribute("fill", "#354766");
     fireEvent.click(screen.getByRole("button", { name: "다시 시도" })); expect(appearance.retry).toHaveBeenCalledOnce();
     fireEvent.click(screen.getByRole("button", { name: "꾸미기 닫기" }));
-    expect(screen.getByTestId("runner").querySelector(".officer-outfit--cardigan")).not.toBeNull();
+    expect(screen.getByTestId("runner").querySelector(".officer-skirt-fabric")).toHaveAttribute("fill", "#354766");
     fireEvent.click(screen.getByRole("button", { name: "무한 모드" }));
     expect(screen.getByTestId("infinite-pursuer").querySelector(".officer-cap-hat")).not.toBeNull();
   });
 
-  it("applies account look acknowledgements without restarting the countdown or active stage", () => {
+  it.each(["gender", "bottoms"] as const)("applies account %s acknowledgements without restarting the countdown or active stage", change => {
     const records = companyBinding();
     const appearance = { value: getDefaultCharacterAppearance(), status: "saved" as const, errorMessage: null, update: vi.fn(), retry: vi.fn() };
     appearance.value.runner.eyeStyle = "smile"; appearance.value.runner.bag = "crossbody"; appearance.value.runner.bagColor = "beige";
@@ -195,7 +196,8 @@ describe("title character customization integration", () => {
     const start = vi.spyOn(gameEngine, "startGame");
     fireEvent.click(document.querySelector<HTMLButtonElement>(".stage-select-start")!);
     act(() => { vi.advanceTimersByTime(1000); });
-    const value = { ...appearance.value, runner: { ...appearance.value.runner, gender: "female" as const } };
+    const value = { ...appearance.value, runner: { ...appearance.value.runner, ...(change === "gender"
+      ? { gender: "female" as const } : { bottoms: "skirt" as const, bottomsColor: "beige" as const }) } };
     const maleFace = screen.getByTestId("runner").querySelector(".officer-face-outline")!.getAttribute("d");
     const maleTorso = screen.getByTestId("runner").querySelector(".officer-torso-outline")!.getAttribute("d");
     const next = { ...records, appearance: { ...appearance, value } };
@@ -214,8 +216,14 @@ describe("title character customization integration", () => {
     expect(screen.getByTestId("pursuer")).toHaveAttribute("data-route-index", distance);
     expect(screen.getByTestId("runner").querySelector('[data-bag-kind="crossbody"] .officer-bag-fill')).toHaveAttribute("fill", "#c8b38b");
     expect(screen.getByTestId("runner").querySelector(".officer-eyes")).toHaveAttribute("data-eye-style", "smile");
-    expect(screen.getByTestId("runner").querySelector(".officer-face-outline")!.getAttribute("d")).not.toBe(maleFace);
-    expect(screen.getByTestId("runner").querySelector(".officer-torso-outline")!.getAttribute("d")).not.toBe(maleTorso);
+    if (change === "gender") {
+      expect(screen.getByTestId("runner").querySelector(".officer-face-outline")!.getAttribute("d")).not.toBe(maleFace);
+      expect(screen.getByTestId("runner").querySelector(".officer-torso-outline")!.getAttribute("d")).not.toBe(maleTorso);
+    } else {
+      expect(screen.getByTestId("runner").querySelector(".officer-face-outline")).toHaveAttribute("d", maleFace);
+      expect(screen.getByTestId("runner").querySelector(".officer-torso-outline")).toHaveAttribute("d", maleTorso);
+      expect(screen.getByTestId("runner").querySelector(".officer-skirt-fabric")).toHaveAttribute("fill", "#c8b38b");
+    }
   });
 
   it.each(["cleared", "caught"] as const)("passes selected looks into the %s animated and reduced-motion endings", outcome => {
@@ -226,6 +234,8 @@ describe("title character customization integration", () => {
     value.runner.gender = "female"; value.pursuer.gender = "female";
     value.runner.eyeStyle = "round"; value.runner.bag = "backpack"; value.runner.bagColor = "navy";
     value.pursuer.eyeStyle = "sharp"; value.pursuer.bag = "briefcase"; value.pursuer.bagColor = "brown";
+    value.runner.bottoms = "skirt"; value.runner.bottomsColor = "beige";
+    value.pursuer.bottoms = "shorts"; value.pursuer.bottomsColor = "white";
     records.appearance = { value, status: "saved", errorMessage: null, update: vi.fn(), retry: vi.fn() };
     render(<GameScreen account={account} companyRecords={records} />);
     startSelectedStageImmediately();
@@ -234,6 +244,7 @@ describe("title character customization integration", () => {
     const ending = screen.getByTestId(testId);
     expect(ending).toHaveAttribute("data-variant", "animated");
     expect(ending.querySelector('.officer-cap-hat')).not.toBeNull();
+    expect(ending.querySelector('.officer-skirt-fabric')).toHaveAttribute("fill", "#c8b38b");
     expect(ending.querySelector('.officer-outfit')).toHaveAttribute("data-appearance-gender", "female");
     expect(ending.querySelector('[data-bag-kind="backpack"] .officer-bag-fill')).toHaveAttribute("fill", "#30466d");
     expect(ending.querySelector('[data-eye-style="round"]')).toHaveAttribute("data-expression", outcome === "caught" ? "weary" : "normal");
@@ -241,10 +252,12 @@ describe("title character customization integration", () => {
     preference.change(true);
     expect(screen.getByTestId(testId)).toHaveAttribute("data-variant", "complete");
     expect(screen.getByTestId(testId).querySelector('.officer-cap-hat')).not.toBeNull();
+    expect(screen.getByTestId(testId).querySelector('.officer-skirt-fabric')).toHaveAttribute("fill", "#c8b38b");
     expect(screen.getByTestId(testId).querySelector('.officer-outfit')).toHaveAttribute("data-appearance-gender", "female");
     expect(screen.getByTestId(testId).querySelector('[data-bag-kind="backpack"] .officer-bag-fill')).toHaveAttribute("fill", "#30466d");
     if (outcome === "caught") {
       expect(screen.getByTestId(testId).querySelector('[data-bag-kind="briefcase"] .officer-bag-fill')).toHaveAttribute("fill", "#785039");
+      expect(screen.getByTestId(testId).querySelector('.officer-bottoms--shorts .officer-bottom-leg--front .officer-bottoms-fabric')).toHaveAttribute("fill", "#e6edf2");
     }
     expect(value.runner.eyeStyle).toBe("round");
   });
@@ -1593,7 +1606,10 @@ describe("GameScreen controls", () => {
     const finalScore = 350;
     expect(screen.getByRole("dialog", { name: "오늘도 수고했어요!" })).toBeVisible();
     expect(save.mock.calls.filter(([key]) => key === DESCENT_LEADERBOARD_KEY)).toHaveLength(0);
-    await act(async () => { await vi.advanceTimersByTimeAsync(4000); });
+    // This hook completes through a synchronous timeout: batch frame renders and check its exact boundary.
+    act(() => { vi.advanceTimersByTime(3999); });
+    expect(screen.getByRole("dialog", { name: "오늘도 수고했어요!" })).toBeVisible();
+    act(() => { vi.advanceTimersByTime(1); });
     expect(screen.getByRole("heading", { name: `${finalScore}점` })).toBeVisible();
     expect(screen.getByText("최종 클리어!")).toBeVisible();
     expect(screen.getByText(`최종 클리어 · 최종 점수 ${finalScore}점`)).toBeInTheDocument();

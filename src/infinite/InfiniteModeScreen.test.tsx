@@ -30,12 +30,14 @@ describe("InfiniteModeScreen", () => {
     fireEvent.keyDown(window, { key: "d" });
     expect(screen.getByTestId("infinite-score")).toHaveTextContent("1");
     const next = { ...appearance,
-      runner: { ...appearance.runner, eyeStyle: "smile" as const, bag: "crossbody" as const, bagColor: "beige" as const },
-      pursuer: { ...appearance.pursuer, glasses: "round" as const, eyeStyle: "sharp" as const, bag: "briefcase" as const, bagColor: "navy" as const } };
+      runner: { ...appearance.runner, eyeStyle: "smile" as const, bag: "crossbody" as const, bagColor: "beige" as const, bottoms: "skirt" as const, bottomsColor: "beige" as const },
+      pursuer: { ...appearance.pursuer, glasses: "round" as const, eyeStyle: "sharp" as const, bag: "briefcase" as const, bagColor: "navy" as const, bottoms: "shorts" as const, bottomsColor: "white" as const } };
     view.rerender(<InfiniteModeScreen account={account} appearance={next} onReturnToTitle={vi.fn()} />);
     expect(screen.getByTestId("infinite-pursuer").querySelector(".officer-glasses--round")).not.toBeNull();
     expect(screen.getByTestId("infinite-player").querySelector('[data-bag-kind="crossbody"] .officer-bag-fill')).toHaveAttribute("fill", "#c8b38b");
     expect(screen.getByTestId("infinite-player").querySelector(".officer-eyes")).toHaveAttribute("data-eye-style", "smile");
+    expect(screen.getByTestId("infinite-player").querySelector(".officer-skirt-fabric")).toHaveAttribute("fill", "#c8b38b");
+    expect(screen.getByTestId("infinite-pursuer").querySelector(".officer-bottoms--shorts .officer-bottom-leg--front .officer-bottoms-fabric")).toHaveAttribute("fill", "#e6edf2");
     expect(screen.getByTestId("infinite-pursuer").querySelector('[data-bag-kind="briefcase"] .officer-bag-fill')).toHaveAttribute("fill", "#30466d");
     expect(screen.getByTestId("infinite-pursuer").querySelector(".officer-eyes")).toHaveAttribute("data-eye-style", "sharp");
     expect(screen.getByTestId("infinite-score")).toHaveTextContent("1");

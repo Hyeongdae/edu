@@ -1,6 +1,6 @@
 # Task: T04 Bottoms Editor and Scenes
 
-## Status: pending
+## Status: done
 
 ## Goal
 타이틀의 캐릭터 꾸미기에 상의/하의 구분과 하의4종·색6종을 노출한다. 선택이 미리보기·타이틀·두 모드·퇴근/야근 엔딩까지 전달되고 계정 저장 상태와 게임 진행을 보존함을 최종 검증한다.
@@ -77,11 +77,11 @@
 - 별도 요청 없이 push/배포/라이브 계정 테스트를 하지 않는다. 후속 출시 시 프런트엔드/API 동시 배포와 탭 새로고침을 인계한다.
 
 ## Acceptance Criteria
-- [ ] 15개 편집 그룹에서 하의4종/6색을 양 역할/성별에 독립적으로 선택한다.
-- [ ] 다른 선택/반대 역할/저장 상태·초점과 게임 진행을 유지한다.
-- [ ] 두 모드와 타이틀/퇴근/야근의 실제 도형·색상으로 하의 전달을 검증한다.
-- [ ] 최종 전체 frontend/API/빌드/lint/배포 검사 통과, emulator 실행 상태와 실제 모바일 미검증 여부를 명시한다.
-- [ ] task/phase/plan/current를 동기화하고 Active Task는 없음으로 종료한다.
+- [x] 15개 편집 그룹에서 하의4종/6색을 양 역할/성별에 독립적으로 선택한다.
+- [x] 다른 선택/반대 역할/저장 상태·초점과 게임 진행을 유지한다.
+- [x] 두 모드와 타이틀/퇴근/야근의 실제 도형·색상으로 하의 전달을 검증한다.
+- [x] 최종 전체 frontend/API/빌드/lint/배포 검사 통과, emulator 실행 상태와 실제 모바일 미검증 여부를 명시한다.
+- [x] task/phase/plan/current를 동기화하고 Active Task는 없음으로 종료한다.
 
 ## Validation
 - `npm run test -- --run src/character/CharacterCustomizationDialog.test.tsx src/game/GameScreen.test.tsx src/game/StairScene.test.tsx src/infinite/InfiniteModeScreen.test.tsx src/infinite/InfiniteStairScene.test.tsx src/game/OfficeExitEnding.test.tsx src/game/OvertimeCaptureEnding.test.tsx src/game/pixel/bottomsAppearanceArt.test.tsx --maxWorkers=2` — 실제 편집/장면/발 기준 통과.
@@ -103,6 +103,21 @@ Task: T04-bottoms-editor-and-scenes
 ```
 
 ## Progress
-- [ ] 구현 완료
-- [ ] 검증 통과
+- [x] 구현 완료
+- [x] 검증 통과 (실제 브라우저/계정 및 조건부 emulator 미검증은 아래 참조)
 - commit: pending
+
+## Execution Result — 2026-11-05
+- 2026-11-04 시작한 T04를 날짜 변경 후 이어서 완료했다. 기존 계획/Phase 폴더의 생성 날짜2026-11-04는 유지한다.
+- CharacterCustomizationDialog의 FIELDS에 bottoms/하의와 bottomsColor/하의 색상을 추가하고 outfit/outfitColor의 표시 이름을 상의/상의 색상으로 바꿨다. 총15개 그룹을 기존 공통 radio 렌더러와 즉시 미리보기/자동 저장 경로에 연결했다. 별도 저장소/버튼은 없다.
+- 기존 responsive CSS/모달 초점·키보드/역할 탭/저장 상태·재시도를 재사용했다. 같은 성별·다른 성별에서 색상을 유지한 종류 전환과 종류를 유지한 색상 전환, 반대 역할 보존, 성별 왕복/저장 상태 갱신 후 선택 보존을 실제 radio로 검증했다.
+- GameScreen에서 실제 편집→단계 모드→일시정지/타이틀→무한 모드→다시 편집 왕복과 계정 draft/retry를 검사했다. 하의만 다른 계정 응답으로 카운트다운/점수/시간/추격 위치가 리셋되지 않는지 확인했다. 두 모드·타이틀·퇴근/야근의 실제 SVG 하의/피부/명암을 검사했다. 장면 발 clip 검사는 새 하의 내부 clip과 구분해 장면 직속 정의만 검사하며 기존84 높이/앵커 조건을 유지했다.
+- 초기 지정8파일337통과/1시간초과는 기존 긴 왕복 검사의 범용 radio 검색 비용이었다. 항목 그룹 내부로 쿼리를 좁혀 동일 동작/검증을 유지했다. 해당 통합6건은 필터 실행에서 모두 통과했다(나머지107건은 필터 제외).
+- 첫 전체 실행은 2026-11-04 17:01부터 다음 날까지 실행 환경 중단/시계 점프가 관측되어56891.97초로 기록됐다. 서로 무관한4파일의4건이 약3시간/12시간 단위 시간초과를 기록했다. 중단된 환경의 결과를 유효한 최종 결과로 쓰지 않고 코드/설정 변경 없이 재실행했다. 프로세스 종료 시도 전 이미 runner가 끝나 실제 프로세스 종료는 없었다. TEMP/t04/interrupted-run-summary.json에 도구 출력 기반 요약을 남겼다.
+- 다음 전체 실행1978통과/3시간초과(217.42초)에서 편집 조합1건과 기존5단계 종료2건이5초를 조금 넘었다. 편집 선택 helper는 legend로 해당 fieldset을 찾은 뒤 내부 radio만 질의하게 했고, 모든 그룹의 접근성 이름 검사는 별도로 유지했다. 종료 hook의 동기 setTimeout에 맞춰 fake clock을3.999초/4초로 나누어 같은 종료/점수/다시하기 검증을 유지하고 경계 검증을 보강했다. 실제 게임 타이머나 config/timeout/skip/worker를 완화하지 않았다.
+- 최종 전체 frontend/shared59파일1981/1981, 실패/skip0,141.40초(2026-11-05 08:54:45 시작) 통과. API4파일211/211, 배포 검사26/26, 최종 lint/프런트엔드·API 타입 검사와 build/diff check 통과. TEMP/bottoms-t04-all.log 및 이전 실패 로그 bottoms-t04-all-before-query-optimization.log에 결과를 보존했다. 변경 후 편집15/15와 종료2/2 필터 검사도 통과했다.
+- 최종 JS668.29kB(gzip184.08kB)/CSS92.97kB(gzip15.88kB), API39.3kB. 기존500kB chunk 경고는 유지되며 이번 작업에서 번들 설정을 변경하지 않았다.
+- TEMP/character-bottoms-customization-2026-11-04/t04/에 현재 컴포넌트의 editor HTML(15그룹), appearance JSON, 두 계단/퇴근/야근의 실제 SVG·PNG4개와 evidence.json을 생성·육안 확인했다. T02의 하의/색/부츠/포즈80조건 원래 크기/2배 표본은 렌더러 변경이 없어 재사용했다. 이들은 정적 렌더링이며 브라우저 스크린샷/애니메이션 재생/반응형 레이아웃 검증이 아니다.
+- 허용된 브라우저 도구가 없어320×568,390×844,768×1024,1440×900 실제 레이아웃/터치/스크롤/native keyboard/애니메이션은 미검증이다. 이전 Chrome 실행 차단을 우회하지 않았다. CSS 변경 필요를 입증하는 별도 결함은 발견하지 않아 기존 CSS/화면 크기/모바일 버튼 간격을 유지했다.
+- 로컬 http://127.0.0.1:5173/ HTTP200, DEV=true/로컬 데모=true와 최신 하의/상의 모듈 제공을 확인했다(응답 원본을UTF-8로 확인). 기존 서버를 유지한다. 실제 회사 계정 저장 복원과 운영 Cosmos는 확인하지 않았다.
+- 2026-11-04/05 모두 http://127.0.0.1:8080/ready 미준비로 Cosmos emulator 통합은 미실행이다. T03의 전체16사례는 배포 전 기존 CI에서 필수다. 운영 연결/기록 수정으로 대체하지 않았다. API/DB/게임 규칙/실제 장면 본체/애니메이션/CSS는 이번 Task에서 변경하지 않았다. push/배포 없음. 별도 범위로 추가할 결함은 특이사항 없음.
