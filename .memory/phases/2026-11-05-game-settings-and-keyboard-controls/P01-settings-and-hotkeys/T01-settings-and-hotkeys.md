@@ -63,4 +63,4 @@ Task: T01-settings-and-hotkeys
 - `Escape` opens the existing pause menu during gameplay/countdowns. `R` opens it with restart confirmation selected; Enter confirms the focused affirmative action. Existing confirmation handlers keep the same stage/mode reset and 3-second countdown behavior. Text-entry targets, open dialogs, and repeated keydown are ignored.
 - Existing audio preferences and controls are reused. Settings opened before gameplay do not shift game deadlines; settings opened during play preserve existing pause/resume deadline handling.
 - Removed the duplicate controls and pursuer explanation from the stage-mode settings dialog; the separate game instructions dialog remains the place for that guide.
-- `git diff --check` passed. No tests/build were run. Browser interaction remains unverified.
+- Initial deployment CI lint caught ref assignment during render in the two keyboard handlers. Moved the ref updates into effects; local `npm run lint` and `git diff --check` now pass. No tests/build were run locally. Browser interaction remains unverified.

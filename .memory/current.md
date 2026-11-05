@@ -17,7 +17,7 @@
 
 ## Status
 - Previous plan character-bottoms-customization is complete4/4. New Active Task is game-settings-and-keyboard-controls P01-T01; implement only this blueprint, then advance current.md.
-- T01 settings are available from the title and safe start screens; duplicate gameplay/chase help was removed from settings. Escape pauses; R opens restart confirmation and Enter confirms the focused affirmative action. Code is implemented, but tests/build remain unrun.
+- T01 settings are available from the title and safe start screens; duplicate gameplay/chase help was removed from settings. Escape pauses; R opens restart confirmation and Enter confirms the focused affirmative action. CI first caught a ref update during render; it is moved into effects and local lint passes. Tests/build remain pending in deployment CI.
 
 ## Next Step (IMPORTANT)
 Finish validation for `.memory/phases/2026-11-05-game-settings-and-keyboard-controls/P01-settings-and-hotkeys/T01-settings-and-hotkeys.md`, then commit and synchronize task/phase/plan/current. The local app is at http://127.0.0.1:5173/.

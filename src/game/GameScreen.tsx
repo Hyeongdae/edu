@@ -307,7 +307,9 @@ export function GameScreen({
     setActiveDialog("pause");
     audioController?.stopBgm();
   };
-  pauseMenuActionRef.current = openPauseMenu;
+  useEffect(() => {
+    pauseMenuActionRef.current = openPauseMenu;
+  });
 
   const beginPausedResumeCountdown = () => {
     if (activeDialogRef.current !== "pause" || pauseResumeTargetRef.current === null) return;

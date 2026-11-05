@@ -260,7 +260,9 @@ export function InfiniteModeScreen({
     setPauseOpen(true);
     audioController?.stopBgm();
   };
-  pauseMenuActionRef.current = openPauseMenu;
+  useEffect(() => {
+    pauseMenuActionRef.current = openPauseMenu;
+  });
 
   const beginPausedResumeCountdown = () => {
     if (!pauseOpen || pauseResumeTargetRef.current === null) return;
