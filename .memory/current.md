@@ -1,25 +1,25 @@
 # Current Context
 
 ## Active Plan
-None - latest plan complete
+[Keyboard Menu Navigation](./plans/2026-11-05-keyboard-menu-navigation.md)
 
 ## Active Phase
-None - latest phase complete
+[P01 Directional Menu Navigation](./phases/2026-11-05-keyboard-menu-navigation/P01-directional-menus/phase.md)
 
 ## Active Task
-None - active plan complete
+[T02 Keyboard Navigation Across Game Menus](./phases/2026-11-05-keyboard-menu-navigation/P01-directional-menus/T02-menu-navigation-integration.md)
 
 ## Last Completed Task
-[T01 Infinite Pursuer Speed Scaling](./phases/2026-11-05-infinite-mode-pursuer-difficulty/P01-pursuer-scaling/T01-pursuer-scaling.md) - `e825334` (2026-11-05).
+[T01 Directional Menu Navigation Core](./phases/2026-11-05-keyboard-menu-navigation/P01-directional-menus/T01-menu-navigation-core.md) - `98d959e` (2026-11-05).
 
 ## Previous Completed Task
 [T03 Versioned Bottoms Persistence](./phases/2026-11-04-character-bottoms-customization/P01-bottoms-customization/T03-versioned-bottoms-persistence.md) — `d7b6e24` (2026-11-04).
 
 ## Status
-- Plan infinite-mode-pursuer-difficulty is complete (1/1). All 1,985 tests passed, lint/build/diff check passed. Implementation commit: `e825334`.
+- Plan keyboard-menu-navigation is initialized from confirmed decisions. T01 Directional Menu Navigation Core is complete (`98d959e`); T01 tests passed (19/19) and `git diff --check` passed. Active task T02 is ready.
 
 ## Next Step (IMPORTANT)
-No active task. Start a new plan or task when requested.
+Read `.memory/phases/2026-11-05-keyboard-menu-navigation/P01-directional-menus/T02-menu-navigation-integration.md` and integrate the shared directional navigation handler into every planned game menu and dialog.
 
 ## Completed Plan History
 - character-bottoms-customization T01 (`2d6b996`), T02 (`e30fea8`), T03 (`d7b6e24`), T04 (`d480239`) 완료, done4/4. Active Task 없음. 이번 실행은 마지막 T04만 구현/검증/커밋했다.
