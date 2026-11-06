@@ -12,12 +12,12 @@ describe("InfiniteHud", () => {
     expect(screen.getByTestId("infinite-score")).toHaveTextContent("49");
     expect(screen.getByTestId("infinite-steps")).toHaveTextContent("49칸");
     expect(screen.getByTestId("infinite-distance")).toHaveTextContent("4칸");
-    expect(screen.getByTestId("infinite-pursuer-speed")).toHaveTextContent("0.25초/칸");
+    expect(screen.getByTestId("infinite-pursuer-speed")).toHaveTextContent("0.20초/칸");
     expect(screen.getByRole("progressbar", { name: "2배 이벤트 진행 게이지" })).toHaveAttribute("aria-valuenow", "49");
   });
 
   it.each([
-    [50, false, "0.24초/칸"],
+    [50, false, "0.19초/칸"],
     [750, false, "0.10초/칸"],
     [0, true, "0.10초/칸"],
   ])("shows the effective pursuer interval at score %i and catch-up %s", (score, isPursuerCatchingUp, expected) => {

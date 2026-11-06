@@ -6,7 +6,7 @@ import type { PursuerMove, StairRoute } from "../game/types";
 import type { InfiniteGameState, InfiniteInput } from "./types";
 
 const INITIAL_PURSUER_DISTANCE = 4;
-const BASE_PURSUER_INTERVAL_MS = 250;
+const BASE_PURSUER_INTERVAL_MS = 200;
 const MIN_PURSUER_INTERVAL_MS = 100;
 const PURSUER_SPEED_SCORE_STEP = 50;
 const PURSUER_INTERVAL_REDUCTION_MS = 10;
