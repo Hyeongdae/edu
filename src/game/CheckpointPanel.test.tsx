@@ -1,9 +1,26 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CheckpointPanel } from "./CheckpointPanel";
+import { handleDirectionalMenuNavigation } from "./directionalMenuNavigation";
 
 afterEach(cleanup);
 describe("CheckpointPanel", () => {
+  it("moves between checkpoint actions with the arrow keys while preserving Enter activation", () => {
+    const onContinue = vi.fn();
+    render(<main onKeyDown={handleDirectionalMenuNavigation}><CheckpointPanel stage={1} score={150} remainingTimeCs={100}
+      onContinue={onContinue} onQuit={vi.fn()} disabled={false} /></main>);
+    const continueButton = screen.getByRole("button", { name: "계속하기" });
+    const quitButton = screen.getByRole("button", { name: "그만두기" });
+    expect(continueButton).toHaveFocus();
+    const down = fireEvent.keyDown(continueButton, { key: "ArrowDown" });
+    expect(quitButton).toHaveFocus();
+    expect(down).toBe(false);
+    fireEvent.keyDown(quitButton, { key: "ArrowDown" });
+    expect(quitButton).toHaveFocus();
+    fireEvent.click(continueButton);
+    expect(onContinue).toHaveBeenCalledOnce();
+  });
+
   it("includes cloud retry actions and login links in its focus trap while retaining both game choices", () => {
     const retry = vi.fn();
     render(<CheckpointPanel stage={1} score={150} remainingTimeCs={100} onContinue={vi.fn()} onQuit={vi.fn()} disabled={false}

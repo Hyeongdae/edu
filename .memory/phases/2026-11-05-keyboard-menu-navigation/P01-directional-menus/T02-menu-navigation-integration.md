@@ -1,6 +1,6 @@
 # Task: T02 Keyboard Navigation Across Game Menus
 
-## Status: pending
+## Status: done
 
 ## Goal
 Connect the tested directional navigation handler to every game menu and dialog in stage and infinite modes. Preserve each screen's current action and keyboard shortcuts, and make the primary action focused when a screen opens so Enter works immediately (including Retry on a result screen).
@@ -33,8 +33,8 @@ Connect the tested directional navigation handler to every game menu and dialog 
   - `src/game/GameInstructionsDialog.test.tsx` - verify tab arrow behavior remains intact and other menu actions are directionally reachable.
   - `src/leaderboard/LeaderboardDialog.tsx` :: `LeaderboardDialog` - mark close and mode-tab actions, preserve existing Tab/Escape and initial close focus behavior.
   - `src/leaderboard/LeaderboardDialog.test.tsx` - verify menu arrows and existing keyboard dismissal/focus return behavior.
-  - `src/character/CharacterCustomizationDialog.tsx` :: `CharacterCustomizationDialog` - mark visible enabled appearance-choice buttons and dialog actions; leave sliders and other native inputs to browser keyboard behavior; preserve its current modal focus management.
-  - `src/character/CharacterCustomizationDialog.test.tsx` - verify arrow movement among visible appearance choices, skip disabled/hidden options, and confirm native controls are not intercepted.
+  - `src/character/CharacterCustomizationDialog.tsx` :: `CharacterCustomizationDialog` - mark dialog tabs and actions; appearance choices are native radio inputs, so their arrow-key selection remains browser-native; leave sliders and other native inputs to browser keyboard behavior; preserve its current modal focus management.
+  - `src/character/CharacterCustomizationDialog.test.tsx` - verify arrow navigation between dialog tabs and actions, while radio-group and slider arrows retain native browser behavior.
 
 ### I03. Integrate infinite-mode menus and dialogs
 - Related Files:
@@ -57,12 +57,12 @@ Connect the tested directional navigation handler to every game menu and dialog 
 5. When focus is on a range slider or another native form input, arrow keys keep native input behavior and do not move menu focus.
 
 ## Acceptance Criteria
-- [ ] Every named stage-mode and infinite-mode menu/dialog exposes directional focus navigation.
-- [ ] Result panels open with Retry focused; Enter retries, and Down reaches the following result action.
-- [ ] Stage/mode selection, tabs, pause/checkpoint confirmations, customization choices, settings actions, and leaderboard actions can be reached by arrows and activated with Enter.
-- [ ] Disabled/hidden actions are skipped and navigation stops at a boundary.
-- [ ] Tab traps/restoration, Escape, R restart confirmation, D/J/Space controls, sound sliders, scores, and ranking behavior remain intact.
-- [ ] Focused tests, full suite, lint, build, and diff check pass.
+- [x] Every named stage-mode and infinite-mode menu/dialog exposes directional focus navigation.
+- [x] Result panels open with Retry focused; Enter retries, and Down reaches the following result action.
+- [x] Stage/mode selection, tabs, pause/checkpoint confirmations, customization choices, settings actions, and leaderboard actions can be reached by arrows and activated with Enter.
+- [x] Disabled/hidden actions are skipped and navigation stops at a boundary.
+- [x] Tab traps/restoration, Escape, R restart confirmation, D/J/Space controls, sound sliders, scores, and ranking behavior remain intact.
+- [x] Focused tests, full suite, lint, build, and diff check pass.
 
 ## Validation
 - Focused component tests: `npm run test -- --run src/game/GameScreen.test.tsx src/game/StageSelectPanel.test.tsx src/game/CheckpointPanel.test.tsx src/game/PauseMenuDialog.test.tsx src/game/GameInstructionsDialog.test.tsx src/leaderboard/LeaderboardDialog.test.tsx src/character/CharacterCustomizationDialog.test.tsx src/infinite/InfiniteModeScreen.test.tsx`
@@ -84,6 +84,6 @@ Task: T02-menu-navigation-integration
 ```
 
 ## Progress
-- [ ] Implementation complete
-- [ ] Validation passed
+- [x] Implementation complete
+- [x] Validation passed: focused tests 8 files/171 tests; full suite 60 files/2012 tests; lint; build; `git diff --check`.
 - commit: pending

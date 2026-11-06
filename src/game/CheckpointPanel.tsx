@@ -26,7 +26,7 @@ export function CheckpointPanel({ stage, score, remainingTimeCs, onContinue, onQ
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
   };
   return (
-    <section className="checkpoint-panel" role="dialog" aria-modal="true" aria-labelledby="checkpoint-title" onKeyDown={onKeyDown}>
+    <section className="checkpoint-panel" data-keyboard-menu role="dialog" aria-modal="true" aria-labelledby="checkpoint-title" onKeyDown={onKeyDown}>
       <h2 id="checkpoint-title">{stage}단계 클리어!</h2>
       <p>이번 단계 점수 {score}점</p>
       <p className="checkpoint-time">남은 시간 {formatRemainingTimeCs(remainingTimeCs)}</p>

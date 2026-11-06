@@ -20,7 +20,7 @@ export function StageSelectPanel({ selectedStage, highestClearedStage, onSelect,
   const duration = `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
 
   return (
-    <section className="stage-select-panel" aria-label="단계 선택">
+    <section className="stage-select-panel" data-keyboard-menu aria-label="단계 선택">
       <h2>시작 단계를 선택하세요</h2>
       <div className="stage-select-grid">
         {STAGE_RULES.map(({ stage }) => {

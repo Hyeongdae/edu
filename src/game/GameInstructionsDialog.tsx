@@ -37,6 +37,7 @@ export function GameInstructionsDialog({ onClose, closeButtonRef, dialogRef, onK
         className="instructions-dialog"
         role="dialog"
         aria-modal="true"
+        data-keyboard-menu
         aria-labelledby="game-instructions-title"
         onKeyDown={onKeyDown}
       >

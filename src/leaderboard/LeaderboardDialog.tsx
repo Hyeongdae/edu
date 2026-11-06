@@ -42,6 +42,7 @@ export function LeaderboardDialog({
         className="leaderboard-dialog"
         role="dialog"
         aria-modal="true"
+        data-keyboard-menu
         aria-labelledby="leaderboard-title"
         onKeyDown={onKeyDown}
       >

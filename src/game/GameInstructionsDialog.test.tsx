@@ -2,6 +2,7 @@ import { createRef } from "react";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { GameInstructionsDialog } from "./GameInstructionsDialog";
+import { handleDirectionalMenuNavigation } from "./directionalMenuNavigation";
 
 afterEach(cleanup);
 
@@ -59,5 +60,20 @@ describe("GameInstructionsDialog", () => {
     expect(infiniteTab).toHaveAttribute("aria-selected", "true");
     expect(screen.getByText(/50칸마다 30초 동안 2배 점수/)).toBeVisible();
     expect(screen.getByText((_, element) => element?.tagName === "LI" && element.textContent?.includes("Space") === true && element.textContent.includes("사용하지 않아요"))).toBeVisible();
+  });
+
+  it("moves focus from Close to the tabs and preserves the tabs' own arrow handling", () => {
+    render(<main onKeyDown={handleDirectionalMenuNavigation}><GameInstructionsDialog onClose={vi.fn()}
+      closeButtonRef={createRef<HTMLButtonElement>()} dialogRef={createRef<HTMLElement>()}
+      onKeyDown={handleDirectionalMenuNavigation} /></main>);
+    const close = screen.getByRole("button", { name: "게임 설명 닫기" });
+    const stageTab = screen.getByRole("tab", { name: "단계 모드" });
+    const infiniteTab = screen.getByRole("tab", { name: "무한 모드" });
+    close.focus();
+    fireEvent.keyDown(close, { key: "ArrowDown" });
+    expect(stageTab).toHaveFocus();
+    fireEvent.keyDown(stageTab, { key: "ArrowRight" });
+    expect(infiniteTab).toHaveFocus();
+    expect(infiniteTab).toHaveAttribute("aria-selected", "true");
   });
 });

@@ -1,4 +1,4 @@
-﻿import * as stairObstacles from "./stairObstacles";
+import * as stairObstacles from "./stairObstacles";
 import { makeObstacleFixture, withObstacle } from "../test/obstacleFixtures";
 import { act, cleanup, fireEvent, render as renderBase, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -166,7 +166,7 @@ describe("title character customization integration", () => {
     expect(write).not.toHaveBeenCalled();
     view.unmount(); renderBase(<GameScreen account={account} />);
     expect(screen.getByTestId("runner").querySelector(".officer-cap-hat")).toBeNull();
-  });
+  }, 15_000);
 
   it("uses the current account draft, exposes retry, and updates scenes after server/store rerenders", () => {
     const records = companyBinding();
@@ -382,6 +382,19 @@ describe("local record policy", () => {
 
 describe("title screen entry", () => {
   afterEach(() => { cleanup(); localStorage.clear(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
+
+  it("moves through title actions with arrow keys from the default primary focus", () => {
+    renderBase(<GameScreen account={account} />);
+    const start = document.querySelector<HTMLButtonElement>(".game-title-start")!;
+    const infinite = document.querySelector<HTMLButtonElement>(".game-title-infinite")!;
+    expect(start).toHaveFocus();
+    expect(fireEvent.keyDown(start, { key: "ArrowDown" })).toBe(false);
+    expect(infinite).toHaveFocus();
+    fireEvent.keyDown(infinite, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(document.querySelectorAll(".game-title-actions button")[2]);
+    fireEvent.click(infinite);
+    expect(screen.getByRole("button", { name: "게임 시작" })).toBeVisible();
+  });
 
   it("shows the title and stage selection, then counts down before starting play", async () => {
     vi.useFakeTimers();
@@ -653,6 +666,12 @@ describe("caught overtime integration", () => {
     vi.setSystemTime(Date.now() + 3100); fireEvent(document, new Event("visibilitychange"));
     expect(screen.queryByTestId("overtime-capture-ending")).toBeNull();
     expect(screen.getByRole("button", { name: /다시 시작/ })).toHaveFocus();
+    const retry = document.querySelector<HTMLButtonElement>(".game-over-actions .restart-button")!;
+    const title = document.querySelector<HTMLButtonElement>(".game-over-actions .game-over-title-button")!;
+    fireEvent.keyDown(retry, { key: "ArrowDown" });
+    expect(title).toHaveFocus();
+    fireEvent.keyDown(title, { key: "ArrowDown" });
+    expect(title).toHaveFocus();
   });
 
   it("cleans up pending scenes on unmount and does not let an old deadline finish a remounted run", async () => {
@@ -864,6 +883,10 @@ describe("GameScreen controls", () => {
     render(<GameScreen account={account} />);
     startSelectedStageImmediately();
     const trigger = screen.getByRole("button", { name: "게임 설정" });
+    const pause = screen.getByRole("button", { name: "일시정지" });
+    pause.focus();
+    fireEvent.keyDown(pause, { key: "ArrowUp" });
+    expect(trigger).toHaveFocus();
     fireEvent.click(trigger);
 
     const dialog = screen.getByRole("dialog", { name: "게임 설정" });

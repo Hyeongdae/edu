@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { APPEARANCE_OPTIONS, getDefaultCharacterAppearance } from "../../shared/characterAppearance";
 import type { AppearanceBinding } from "../company/types";
 import { CharacterCustomizationDialog } from "./CharacterCustomizationDialog";
+import { handleDirectionalMenuNavigation } from "../game/directionalMenuNavigation";
 
 afterEach(cleanup);
 function binding(overrides: Partial<AppearanceBinding> = {}): AppearanceBinding {
@@ -16,6 +17,25 @@ function choose(group: string, option: string) {
 }
 
 describe("character editor", () => {
+  it("uses arrow navigation for dialog actions and preserves native radio arrow handling", () => {
+    render(<main onKeyDown={handleDirectionalMenuNavigation}><CharacterCustomizationDialog binding={binding()}
+      storageMode="session" onClose={vi.fn()} /></main>);
+    const close = screen.getByRole("button", { name: "꾸미기 닫기" });
+    const runnerTab = screen.getByRole("tab", { name: "도망자" });
+    const pursuerTab = screen.getByRole("tab", { name: "추격자" });
+    expect(close).toHaveFocus();
+    fireEvent.keyDown(close, { key: "ArrowDown" });
+    expect(runnerTab).toHaveFocus();
+    fireEvent.keyDown(runnerTab, { key: "ArrowRight" });
+    expect(pursuerTab).toHaveFocus();
+
+    const radio = screen.getAllByRole("radio")[0];
+    radio.focus();
+    const arrowEventWasNotCancelled = fireEvent.keyDown(radio, { key: "ArrowRight" });
+    expect(arrowEventWasNotCancelled).toBe(true);
+    expect(radio).toHaveFocus();
+  });
+
   it.each([{ role: "runner", label: "도망자" }, { role: "pursuer", label: "추격자" }] as const)(
     "changes only $role gender, updates real geometry and keeps the draft through save states", ({ role, label }) => {
       const initial = getDefaultCharacterAppearance();

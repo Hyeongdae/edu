@@ -63,7 +63,7 @@ export function CharacterCustomizationDialog({ binding, storageMode, onClose }: 
 
   return (
     <div className="character-customization-backdrop" onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
-      <section id="character-customization-dialog" className="character-customization-dialog" role="dialog" aria-modal="true"
+      <section id="character-customization-dialog" className="character-customization-dialog" role="dialog" aria-modal="true" data-keyboard-menu
         aria-labelledby={`${id}-title`} onKeyDown={onKeyDown}>
         <header className="character-customization-header">
           <h2 id={`${id}-title`}>캐릭터 꾸미기</h2>

@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { GameAccount } from "../auth/gameAccount";
 import type { AudioController } from "../audio/audioController";
@@ -20,6 +20,26 @@ function audio(): AudioController {
 afterEach(() => { cleanup(); vi.useRealTimers(); });
 
 describe("InfiniteModeScreen", () => {
+  it("focuses the primary start action, navigates the ready menu, and traps settings focus", () => {
+    render(<InfiniteModeScreen account={account} onReturnToTitle={vi.fn()} />);
+    const startActions = Array.from(document.querySelectorAll<HTMLButtonElement>(".infinite-start-actions button"));
+    expect(startActions[0]).toHaveFocus();
+    fireEvent.keyDown(startActions[0], { key: "ArrowDown" });
+    expect(startActions[1]).toHaveFocus();
+    fireEvent.keyDown(startActions[1], { key: "ArrowDown" });
+    expect(startActions[2]).toHaveFocus();
+
+    fireEvent.click(screen.getByRole("button", { name: "게임 설정" }));
+    const dialog = screen.getByRole("dialog", { name: "무한 모드 설정" });
+    const close = screen.getByRole("button", { name: "설정 닫기" });
+    const continueButton = within(dialog).getByRole("button", { name: "계속하기" });
+    expect(close).toHaveFocus();
+    fireEvent.keyDown(close, { key: "ArrowDown" });
+    expect(continueButton).toHaveFocus();
+    fireEvent.keyDown(continueButton, { key: "Tab" });
+    expect(close).toHaveFocus();
+  });
+
   it("updates current scene looks from props without resetting an ongoing score", async () => {
     vi.useFakeTimers(); vi.setSystemTime(0);
     const appearance = getDefaultCharacterAppearance(); appearance.runner.hat = "cap";
@@ -175,14 +195,26 @@ describe("InfiniteModeScreen", () => {
     const company = records();
     const onReturnToTitle = vi.fn();
     render(<InfiniteModeScreen account={account} companyRecords={company} onReturnToTitle={onReturnToTitle} />);
-    fireEvent.click(screen.getByRole("button", { name: "게임 시작" }));
+    const startActions = Array.from(document.querySelectorAll<HTMLButtonElement>(".infinite-start-actions button"));
+    expect(startActions[0]).toHaveFocus();
+    fireEvent.keyDown(startActions[0], { key: "ArrowDown" });
+    expect(startActions[1]).toHaveFocus();
+    fireEvent.keyDown(startActions[1], { key: "ArrowDown" });
+    expect(startActions[2]).toHaveFocus();
+    startActions[0].focus();
+    fireEvent.click(startActions[0]);
     await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
     fireEvent.keyDown(window, { key: "j" });
     expect(company.submitInfiniteScore).toHaveBeenCalledExactlyOnceWith({ score: 0 });
     expect(screen.queryByRole("heading", { name: "계단에서 넘어졌어요" })).not.toBeInTheDocument();
     await act(async () => { await vi.advanceTimersByTimeAsync(500); });
-    expect(screen.getByRole("heading", { name: "계단에서 넘어졌어요" })).toBeVisible();
-    fireEvent.click(screen.getByRole("button", { name: "다시하기" }));
+    const resultActions = Array.from(document.querySelectorAll<HTMLButtonElement>(".infinite-result-actions button"));
+    expect(resultActions[0]).toHaveFocus();
+    fireEvent.keyDown(resultActions[0], { key: "ArrowDown" });
+    expect(resultActions[1]).toHaveFocus();
+    fireEvent.keyDown(resultActions[1], { key: "ArrowDown" });
+    expect(resultActions[2]).toHaveFocus();
+    fireEvent.click(resultActions[0]);
     expect(screen.getByText("무한 모드 시작").closest("section")).toHaveAttribute("aria-live", "assertive");
     await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
     fireEvent.keyDown(window, { key: "j" });

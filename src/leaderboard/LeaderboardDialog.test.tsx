@@ -3,6 +3,7 @@ import { createRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { LeaderboardEntry } from "./leaderboard";
 import { LeaderboardDialog } from "./LeaderboardDialog";
+import { handleDirectionalMenuNavigation } from "../game/directionalMenuNavigation";
 
 afterEach(cleanup);
 
@@ -56,5 +57,20 @@ describe("LeaderboardDialog", () => {
     expect(screen.getByRole("tab", { name: "무한 모드" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByText("80점")).toBeVisible();
     expect(screen.queryByText("3단계")).not.toBeInTheDocument();
+  });
+
+  it("navigates from the close action to ranking tabs and keeps tab arrows intact", () => {
+    render(<main onKeyDown={handleDirectionalMenuNavigation}><LeaderboardDialog entries={entries} currentAccountId="runner"
+      scope="company" onClose={vi.fn()} closeButtonRef={createRef<HTMLButtonElement>()}
+      dialogRef={createRef<HTMLElement>()} onKeyDown={handleDirectionalMenuNavigation} /></main>);
+    const close = screen.getByRole("button", { name: "랭킹 닫기" });
+    const stageTab = screen.getByRole("tab", { name: "단계 모드" });
+    const infiniteTab = screen.getByRole("tab", { name: "무한 모드" });
+    close.focus();
+    fireEvent.keyDown(close, { key: "ArrowDown" });
+    expect(stageTab).toHaveFocus();
+    fireEvent.keyDown(stageTab, { key: "ArrowRight" });
+    expect(infiniteTab).toHaveFocus();
+    expect(infiniteTab).toHaveAttribute("aria-selected", "true");
   });
 });

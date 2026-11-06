@@ -19,6 +19,7 @@
 }
 
 .stair-game.pixel-theme .game-shell { gap: 0; }
+.stair-game.pixel-theme .game-utility-actions { display: contents; }
 
 .stair-game.pixel-theme .game-frame {
   display: block;

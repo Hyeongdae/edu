@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { StageSelectPanel } from "./StageSelectPanel";
+import { handleDirectionalMenuNavigation } from "./directionalMenuNavigation";
 
 afterEach(cleanup);
 describe("StageSelectPanel", () => {
@@ -47,6 +48,42 @@ describe("StageSelectPanel", () => {
     expect(onOpenLeaderboard).toHaveBeenCalledExactlyOnceWith(leaderboard);
     fireEvent.click(screen.getByRole("button", { name: "타이틀로 돌아가기" }));
     expect(onReturnToTitle).toHaveBeenCalledOnce();
+  });
+
+  it("moves spatially from the stage row to Start, Ranking, and Title", () => {
+    const onStart = vi.fn();
+    render(<main onKeyDown={handleDirectionalMenuNavigation}><StageSelectPanel selectedStage={2} highestClearedStage={5}
+      onSelect={vi.fn()} onStart={onStart} onReturnToTitle={vi.fn()} onOpenLeaderboard={vi.fn()}
+      disabled={false} progressUnavailable={false} /></main>);
+    const stage2 = screen.getByRole("button", { name: "2단계 선택" });
+    const stage3 = screen.getByRole("button", { name: "3단계 선택" });
+    const start = screen.getByRole("button", { name: "시작하기" });
+    const ranking = screen.getByRole("button", { name: "랭킹 보기" });
+    const title = screen.getByRole("button", { name: "타이틀로 돌아가기" });
+    const positions = [
+      [screen.getByRole("button", { name: "1단계 선택" }), 0, 0], [stage2, 100, 0],
+      [stage3, 200, 0], [screen.getByRole("button", { name: "4단계 선택" }), 300, 0],
+      [screen.getByRole("button", { name: "5단계 선택" }), 400, 0],
+      [start, 200, 120], [ranking, 200, 180], [title, 200, 240],
+    ] as const;
+    for (const [element, left, top] of positions) {
+      vi.spyOn(element, "getBoundingClientRect").mockReturnValue({ left, top, width: 80, height: 40,
+        right: left + 80, bottom: top + 40, x: left, y: top, toJSON: () => ({}) });
+    }
+
+    expect(stage2).toHaveFocus();
+    fireEvent.keyDown(stage2, { key: "ArrowRight" });
+    expect(stage3).toHaveFocus();
+    fireEvent.keyDown(stage3, { key: "ArrowDown" });
+    expect(start).toHaveFocus();
+    fireEvent.keyDown(start, { key: "ArrowDown" });
+    expect(ranking).toHaveFocus();
+    fireEvent.keyDown(ranking, { key: "ArrowDown" });
+    expect(title).toHaveFocus();
+    fireEvent.keyDown(title, { key: "ArrowDown" });
+    expect(title).toHaveFocus();
+    fireEvent.click(start);
+    expect(onStart).toHaveBeenCalledOnce();
   });
 
   it("disables all actions while keeping unavailable-progress guidance visible", () => {

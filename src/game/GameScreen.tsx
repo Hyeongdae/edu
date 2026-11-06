@@ -24,6 +24,7 @@ import { PixelIcon } from "./pixel/PixelIcon";
 import { PauseMenuDialog, type PauseMenuConfirmation } from "./PauseMenuDialog";
 import type { ClearedStage, GameInput, GameStage } from "./types";
 import { LeaderboardPanel } from "../leaderboard/LeaderboardPanel";
+import { handleDirectionalMenuNavigation } from "./directionalMenuNavigation";
 import { AudioControls } from "../audio/AudioControls";
 import type { AudioController } from "../audio/audioController";
 import type { AudioPreferences } from "../audio/audioPreferences";
@@ -625,6 +626,10 @@ export function GameScreen({
   }, [gameState.status, isEnding, isCaughtPresentationPending, stageResult]);
 
   useEffect(() => {
+    if (isTitleScreen && activeDialogRef.current === null) titleStartButtonRef.current?.focus();
+  }, [isTitleScreen]);
+
+  useEffect(() => {
     if (activeDialog === "settings") {
       if (!settingsDialogRef.current?.contains(document.activeElement)) settingsCloseRef.current?.focus();
     } else if (activeDialog === "instructions") {
@@ -684,7 +689,7 @@ export function GameScreen({
   }
 
   return (
-    <main className="stair-game pixel-theme" data-game-status={gameState.status}>
+    <main className="stair-game pixel-theme" data-game-status={gameState.status} onKeyDown={handleDirectionalMenuNavigation}>
       <div className="game-shell">
         <div
           className="game-frame"
@@ -699,6 +704,7 @@ export function GameScreen({
           {isTitleScreen && (
             <section
               className={`game-title-screen${isTitleLeaving ? " is-leaving" : ""}`}
+              data-keyboard-menu
               aria-labelledby="game-title"
               aria-hidden={isTitleLeaving || isCustomizationOpen || undefined}
               inert={isTitleLeaving || isCustomizationOpen || undefined}
@@ -744,6 +750,7 @@ export function GameScreen({
           )}
           {(!isTitleScreen || isTitleLeaving) && (
             <>
+              <div className="game-utility-actions" data-keyboard-menu>
               <button
                 ref={settingsTriggerRef}
                 className="game-settings-button"
@@ -771,6 +778,7 @@ export function GameScreen({
                   <PixelIcon name="pause" />
                 </button>
               )}
+              </div>
 
               {countdownEndsAt !== null && (gameState.status === "ready" || gameState.status === "checkpoint") ? null : gameState.status === "ready" && (!isTitleScreen || isTitleLeaving) ? (
                 <StageSelectPanel selectedStage={gameState.stage} highestClearedStage={Math.max(
@@ -796,6 +804,7 @@ export function GameScreen({
                 : isOvertimeEnding ? <OvertimeCaptureEnding appearance={appearance} key={stageResult!.endedAtMs} variant="animated" startedAtMs={overtime.sceneStartedAtMs!} /> : (
                 <section
                   className="game-over-panel"
+                  data-keyboard-menu
                   aria-labelledby="game-over-title"
                 >
                   <div className="game-over-result">
@@ -887,6 +896,7 @@ export function GameScreen({
                 ref={settingsDialogRef}
                 id="game-settings-dialog"
                 className="settings-dialog"
+                data-keyboard-menu
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="game-settings-title"
