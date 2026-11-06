@@ -10,13 +10,13 @@ None
 None
 
 ## Last Completed Task
-[T02 Keyboard Navigation Across Game Menus](./phases/2026-11-05-keyboard-menu-navigation/P01-directional-menus/T02-menu-navigation-integration.md) - `5c4cfc0` (2026-11-06).
+[T01 Infinite Mode Base Speed Update](./phases/2026-11-06-infinite-mode-pursuer-speed/P01-base-speed/T01-base-speed-update.md) - `22192d7` (2026-11-06).
 
 ## Previous Completed Task
 [T03 Versioned Bottoms Persistence](./phases/2026-11-04-character-bottoms-customization/P01-bottoms-customization/T03-versioned-bottoms-persistence.md) — `d7b6e24` (2026-11-04).
 
 ## Status
-- Plan keyboard-menu-navigation completed: T01 (`98d959e`) and T02 (`5c4cfc0`), 2/2 tasks. The separate weekend-work-app-layout plan remains preserved in its own files.
+- Plan infinite-mode-pursuer-speed completed: T01 (`22192d7`), 1/1 task. Pursuer base interval is 200 ms; score acceleration, catch-up, score, event, ranking, and saving rules remain unchanged.
 
 ## Next Step (IMPORTANT)
 There is no active task. Start a new plan when the user requests another feature.
