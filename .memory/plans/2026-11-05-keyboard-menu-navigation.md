@@ -1,7 +1,7 @@
 # Plan: Keyboard Menu Navigation
 
 - Date: 2026-11-05
-- Status: in_progress
+- Status: completed
 - Decision: [Keyboard Menu Navigation](../decisions/2026-11-05-keyboard-menu-navigation.md)
 
 ## Goal
@@ -10,7 +10,7 @@ Allow keyboard users to navigate all game menus and dialogs with arrow keys and 
 ## Phases
 | Phase | Status | Summary | Blueprint |
 | :--- | :--- | :--- | :--- |
-| P01 | `in_progress` | Shared directional focus navigation and integration across stage and infinite mode menus | [P01](../phases/2026-11-05-keyboard-menu-navigation/P01-directional-menus/phase.md) |
+| P01 | `completed` | Shared directional focus navigation and integration across stage and infinite mode menus | [P01](../phases/2026-11-05-keyboard-menu-navigation/P01-directional-menus/phase.md) |
 
 ## Tasks and Order
 | Task | Observable outcome | Principal files |
@@ -24,5 +24,5 @@ Allow keyboard users to navigate all game menus and dialogs with arrow keys and 
 - Run `npm run test -- --run --maxWorkers=2`, `npm run lint`, `npm run build`, and `git diff --check` before completion.
 
 ## Progress
-- done: 1/2
-- Active: P01-T02
+- done: 2/2
+- Active: none

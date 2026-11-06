@@ -1,25 +1,25 @@
 # Current Context
 
 ## Active Plan
-[Keyboard Menu Navigation](./plans/2026-11-05-keyboard-menu-navigation.md)
+None
 
 ## Active Phase
-[P01 Directional Menu Navigation](./phases/2026-11-05-keyboard-menu-navigation/P01-directional-menus/phase.md)
+None
 
 ## Active Task
-[T02 Keyboard Navigation Across Game Menus](./phases/2026-11-05-keyboard-menu-navigation/P01-directional-menus/T02-menu-navigation-integration.md)
+None
 
 ## Last Completed Task
-[T01 Directional Menu Navigation Core](./phases/2026-11-05-keyboard-menu-navigation/P01-directional-menus/T01-menu-navigation-core.md) - `98d959e` (2026-11-05).
+[T02 Keyboard Navigation Across Game Menus](./phases/2026-11-05-keyboard-menu-navigation/P01-directional-menus/T02-menu-navigation-integration.md) - `5c4cfc0` (2026-11-06).
 
 ## Previous Completed Task
 [T03 Versioned Bottoms Persistence](./phases/2026-11-04-character-bottoms-customization/P01-bottoms-customization/T03-versioned-bottoms-persistence.md) — `d7b6e24` (2026-11-04).
 
 ## Status
-- Plan keyboard-menu-navigation is initialized from confirmed decisions. T01 Directional Menu Navigation Core is complete (`98d959e`); T01 tests passed (19/19) and `git diff --check` passed. Active task T02 is ready.
+- Plan keyboard-menu-navigation completed: T01 (`98d959e`) and T02 (`5c4cfc0`), 2/2 tasks. The separate weekend-work-app-layout plan remains preserved in its own files.
 
 ## Next Step (IMPORTANT)
-Read `.memory/phases/2026-11-05-keyboard-menu-navigation/P01-directional-menus/T02-menu-navigation-integration.md` and integrate the shared directional navigation handler into every planned game menu and dialog.
+There is no active task. Start a new plan when the user requests another feature.
 
 ## Completed Plan History
 - character-bottoms-customization T01 (`2d6b996`), T02 (`e30fea8`), T03 (`d7b6e24`), T04 (`d480239`) 완료, done4/4. Active Task 없음. 이번 실행은 마지막 T04만 구현/검증/커밋했다.
