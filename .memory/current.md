@@ -10,13 +10,13 @@ None
 None
 
 ## Last Completed Task
-[T01 Infinite Mode Base Speed Update](./phases/2026-11-06-infinite-mode-pursuer-speed/P01-base-speed/T01-base-speed-update.md) - `22192d7` (2026-11-06).
+[T01 Add R Restart Hint](./phases/2026-11-10-r-keyboard-hint/P01-control-hints/T01-add-r-hint.md) - `fa8ded0` (2026-11-10).
 
 ## Previous Completed Task
 [T03 Versioned Bottoms Persistence](./phases/2026-11-04-character-bottoms-customization/P01-bottoms-customization/T03-versioned-bottoms-persistence.md) — `d7b6e24` (2026-11-04).
 
 ## Status
-- Plan infinite-mode-pursuer-speed completed: T01 (`22192d7`), 1/1 task. Pursuer base interval is 200 ms; score acceleration, catch-up, score, event, ranking, and saving rules remain unchanged.
+- Plan r-keyboard-hint completed: T01 (`fa8ded0`), 1/1 task. Both desktop mode hints explain R restart; the confirmation behavior and mobile labels remain unchanged.
 
 ## Next Step (IMPORTANT)
 There is no active task. Start a new plan when the user requests another feature.
