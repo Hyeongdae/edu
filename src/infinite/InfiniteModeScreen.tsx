@@ -421,7 +421,7 @@ export function InfiniteModeScreen({
           </div>
         </section>}
         <p className="game-footer" aria-hidden={gameState.status !== "playing" || undefined}>
-          <span className="desktop-control-hint"><kbd>D</kbd> 한 칸 올라가기 <span>·</span> <kbd>J</kbd> 방향 바꾸며 올라가기</span>
+          <span className="desktop-control-hint"><kbd>D</kbd> 한 칸 올라가기 <span>·</span> <kbd>J</kbd> 방향 바꾸며 올라가기 <span>·</span> <kbd>R</kbd> 재시작</span>
           <span className="mobile-control-hint">올라가기 · 방향 바꾸기</span>
         </p>
         {settingsOpen && <div className="settings-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) closeSettings(); }}>

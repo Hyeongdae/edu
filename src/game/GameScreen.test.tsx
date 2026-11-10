@@ -832,6 +832,7 @@ describe("GameScreen controls", () => {
     render(<GameScreen account={account} />);
 
     startSelectedStageImmediately();
+    expect(document.querySelector(".desktop-control-hint")).toHaveTextContent("R 재시작");
     fireEvent.keyDown(window, { key: "d" });
     expect(screen.getByTestId("score-value")).toHaveTextContent("1");
     expect(screen.getByTestId("score-gain")).toHaveTextContent("+1");

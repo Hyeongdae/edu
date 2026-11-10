@@ -20,6 +20,15 @@ function audio(): AudioController {
 afterEach(() => { cleanup(); vi.useRealTimers(); });
 
 describe("InfiniteModeScreen", () => {
+  it("shows the R restart hint while infinite mode is playing", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    render(<InfiniteModeScreen account={account} onReturnToTitle={vi.fn()} />);
+    fireEvent.click(document.querySelector<HTMLButtonElement>(".infinite-start-panel .stage-select-start")!);
+    await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
+    expect(document.querySelector(".desktop-control-hint")).toHaveTextContent("R 재시작");
+  });
+
   it("focuses the primary start action, navigates the ready menu, and traps settings focus", () => {
     render(<InfiniteModeScreen account={account} onReturnToTitle={vi.fn()} />);
     const startActions = Array.from(document.querySelectorAll<HTMLButtonElement>(".infinite-start-actions button"));

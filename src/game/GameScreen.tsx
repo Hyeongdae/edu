@@ -832,7 +832,7 @@ export function GameScreen({
                 </section>
               )}
               <p className="game-footer" aria-hidden={isForegroundEnding || undefined} inert={isForegroundEnding || undefined}>
-                <span className="desktop-control-hint"><kbd>D</kbd> 한 칸 내려가기 <span>·</span> <kbd>J</kbd> 방향 바꾸며 내려가기 <span>·</span> <kbd>Space</kbd> 장애물 점프</span>
+                <span className="desktop-control-hint"><kbd>D</kbd> 한 칸 내려가기 <span>·</span> <kbd>J</kbd> 방향 바꾸며 내려가기 <span>·</span> <kbd>Space</kbd> 장애물 점프 <span>·</span> <kbd>R</kbd> 재시작</span>
                 <span className="mobile-control-hint">내려가기 · 방향 바꾸기 · 장애물은 점프!</span>
               </p>
             </>
