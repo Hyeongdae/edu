@@ -82,7 +82,7 @@ Task: T02-client-store-and-queue
 ## Progress
 - [x] Implementation complete
 - [x] Validation passed
-- commit: pending
+- commit: `07586a8`
 
 ## Validation Notes (2026-11-11)
 - Passed focused record API/store/gate/infinite/game/notice tests: 240 tests.

@@ -10,7 +10,7 @@
 [T03 Show Versioned Infinite Leaderboards](./phases/2026-11-11-infinite-mode-v1-v2-leaderboards/P01-versioned-infinite-rankings/T03-versioned-ranking-ui.md)
 
 ## Last Completed Task
-[T02 Route Client Records and Preserve v1 Queue](./phases/2026-11-11-infinite-mode-v1-v2-leaderboards/P01-versioned-infinite-rankings/T02-client-store-and-queue.md) - `d9b4d10` (2026-11-11).
+[T02 Route Client Records and Preserve v1 Queue](./phases/2026-11-11-infinite-mode-v1-v2-leaderboards/P01-versioned-infinite-rankings/T02-client-store-and-queue.md) - `07586a8` (2026-11-11).
 
 ## Previous Completed Task
 [T01 Add v2 Cosmos Fields and API](./phases/2026-11-11-infinite-mode-v1-v2-leaderboards/P01-versioned-infinite-rankings/T01-v2-cosmos-api.md) - `fd71f62` (2026-11-11).
