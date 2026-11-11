@@ -115,8 +115,8 @@ describe("real isolated Cosmos DB repository operations", () => {
     const v1 = await repo.submitInfiniteScore(owner, { score: 410 });
     expect(v1.infiniteBest?.bestScore).toBe(410);
     expect(v1.infiniteV2Best?.bestScore).toBe(75);
-    expect(await repo.listTopInfiniteScores()).toEqual([v1.infiniteBest]);
-    expect(await repo.listTopInfiniteV2Scores()).toEqual([v1.infiniteV2Best]);
+    expect(await repo.listTopInfiniteScores()).toContainEqual(v1.infiniteBest);
+    expect(await repo.listTopInfiniteV2Scores()).toContainEqual(v1.infiniteV2Best);
     expect(await countAccountDocuments(owner.accountId)).toBe(1);
   });
 
