@@ -80,7 +80,7 @@ Task: T03-versioned-ranking-ui
 ## Progress
 - [x] Implementation complete
 - [x] Validation passed
-- commit: pending
+- commit: `f008411`
 
 ## Validation Notes (2026-11-11)
 - Passed focused leaderboard/game regression tests: 139 tests across 4 files.

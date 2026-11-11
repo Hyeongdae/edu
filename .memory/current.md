@@ -10,10 +10,10 @@
 None
 
 ## Last Completed Task
-[T02 Route Client Records and Preserve v1 Queue](./phases/2026-11-11-infinite-mode-v1-v2-leaderboards/P01-versioned-infinite-rankings/T02-client-store-and-queue.md) - `07586a8` (2026-11-11).
+[T03 Show Versioned Infinite Leaderboards](./phases/2026-11-11-infinite-mode-v1-v2-leaderboards/P01-versioned-infinite-rankings/T03-versioned-ranking-ui.md) - `f008411` (2026-11-11).
 
 ## Previous Completed Task
-[T01 Add v2 Cosmos Fields and API](./phases/2026-11-11-infinite-mode-v1-v2-leaderboards/P01-versioned-infinite-rankings/T01-v2-cosmos-api.md) - `fd71f62` (2026-11-11).
+[T02 Route Client Records and Preserve v1 Queue](./phases/2026-11-11-infinite-mode-v1-v2-leaderboards/P01-versioned-infinite-rankings/T02-client-store-and-queue.md) - `07586a8` (2026-11-11).
 
 ## Status
 - Plan `infinite-mode-v1-v2-leaderboards` completed (3/3). The ranking dialog separates stage, infinite v1, and infinite v2 tabs and opens on v2. T01 Cosmos emulator integration remains unverified because no local emulator endpoint is configured.
