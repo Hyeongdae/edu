@@ -475,6 +475,9 @@ describe("title screen entry", () => {
     fireEvent.click(titleTrigger);
     let dialog = screen.getByRole("dialog", { name: "최고 기록 랭킹" });
     expect(within(dialog).getByText("COMPANY RANKING")).toBeVisible();
+    expect(within(dialog).getByRole("tab", { name: "무한모드 v2" })).toHaveAttribute("aria-selected", "true");
+    expect(within(dialog).queryByText("서버 플레이어")).not.toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("tab", { name: "단계 모드" }));
     expect(within(dialog).getByText("서버 플레이어")).toBeVisible();
     const closeButton = screen.getByRole("button", { name: "랭킹 닫기" });
     expect(closeButton).toHaveFocus();
@@ -495,6 +498,7 @@ describe("title screen entry", () => {
     const stageTrigger = screen.getByRole("button", { name: "랭킹 보기" });
     fireEvent.click(stageTrigger);
     dialog = screen.getByRole("dialog", { name: "최고 기록 랭킹" });
+    fireEvent.click(within(dialog).getByRole("tab", { name: "단계 모드" }));
     expect(within(dialog).getByText("서버 플레이어")).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "랭킹 닫기" }));
     expect(stageTrigger).toHaveFocus();
@@ -515,6 +519,7 @@ describe("title screen entry", () => {
     fireEvent.click(screen.getByRole("button", { name: "랭킹 보기" }));
     const dialog = screen.getByRole("dialog", { name: "최고 기록 랭킹" });
     expect(within(dialog).getByText("LOCAL PLAY")).toBeVisible();
+    fireEvent.click(within(dialog).getByRole("tab", { name: "단계 모드" }));
     expect(within(dialog).getByText("로컬 플레이 기록은 저장되지 않아요. 회사 게임에 로그인하면 랭킹에 기록됩니다.")).toBeVisible();
     expect(within(dialog).queryByText("로컬 기록")).not.toBeInTheDocument();
   });

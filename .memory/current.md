@@ -7,7 +7,7 @@
 [P01 Versioned Infinite Rankings](./phases/2026-11-11-infinite-mode-v1-v2-leaderboards/P01-versioned-infinite-rankings/phase.md)
 
 ## Active Task
-[T03 Show Versioned Infinite Leaderboards](./phases/2026-11-11-infinite-mode-v1-v2-leaderboards/P01-versioned-infinite-rankings/T03-versioned-ranking-ui.md)
+None
 
 ## Last Completed Task
 [T02 Route Client Records and Preserve v1 Queue](./phases/2026-11-11-infinite-mode-v1-v2-leaderboards/P01-versioned-infinite-rankings/T02-client-store-and-queue.md) - `07586a8` (2026-11-11).
@@ -16,10 +16,10 @@
 [T01 Add v2 Cosmos Fields and API](./phases/2026-11-11-infinite-mode-v1-v2-leaderboards/P01-versioned-infinite-rankings/T01-v2-cosmos-api.md) - `fd71f62` (2026-11-11).
 
 ## Status
-- Plan `infinite-mode-v1-v2-leaderboards`: T01 and T02 code are implemented and committed. T01 Cosmos integration remains unverified because no local emulator endpoint is configured. T02 routes new infinite scores to v2 and legacy queued scores to v1; focused tests, lint, and build pass.
+- Plan `infinite-mode-v1-v2-leaderboards` completed (3/3). The ranking dialog separates stage, infinite v1, and infinite v2 tabs and opens on v2. T01 Cosmos emulator integration remains unverified because no local emulator endpoint is configured.
 
 ## Next Step (IMPORTANT)
-Implement T03: add stage/infinite v1/infinite v2 leaderboard tabs, defaulting to the v2 ranking.
+There is no active task. T01's Cosmos emulator integration is the only validation exception; the v2 persistence API, v1/v2 client routing, and ranking tabs are implemented. Start a new plan for the next requested feature.
 
 ## Completed Plan History
 - character-bottoms-customization T01 (`2d6b996`), T02 (`e30fea8`), T03 (`d7b6e24`), T04 (`d480239`) 완료, done4/4. Active Task 없음. 이번 실행은 마지막 T04만 구현/검증/커밋했다.

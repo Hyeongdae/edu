@@ -434,7 +434,8 @@ export function InfiniteModeScreen({
             <button className="start-button" type="button" onClick={closeSettings}>계속하기</button>
           </section>
         </div>}
-        {leaderboardOpen && <LeaderboardDialog entries={companyRecords?.entries ?? []} infiniteEntries={companyRecords?.infiniteEntries ?? []}
+        {leaderboardOpen && <LeaderboardDialog entries={companyRecords?.entries ?? []}
+          infiniteV1Entries={companyRecords?.infiniteEntries ?? []} infiniteV2Entries={companyRecords?.infiniteV2Entries ?? []}
           currentAccountId={account.homeAccountId} scope={companyRecords ? "company" : "browser"} onClose={closeLeaderboard}
           closeButtonRef={leaderboardCloseRef} dialogRef={leaderboardDialogRef} onKeyDown={onLeaderboardKeyDown} />}
       </div></div>

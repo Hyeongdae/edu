@@ -6,14 +6,17 @@ interface LeaderboardPanelProps {
   entries: LeaderboardEntry[];
   currentAccountId: string;
   scope?: "browser" | "company";
-  mode?: "stage" | "infinite";
-  infiniteEntries?: SharedInfiniteBest[];
+  mode?: "stage" | "infinite-v1" | "infinite-v2";
+  infiniteV1Entries?: SharedInfiniteBest[];
+  infiniteV2Entries?: SharedInfiniteBest[];
 }
 
-export function LeaderboardPanel({ entries, currentAccountId, scope = "browser", mode = "stage", infiniteEntries = [] }: LeaderboardPanelProps) {
+export function LeaderboardPanel({ entries, currentAccountId, scope = "browser", mode = "stage", infiniteV1Entries = [], infiniteV2Entries = [] }: LeaderboardPanelProps) {
   const topScores = scope === "company" ? getSharedTopScores(entries.filter((entry): entry is SharedBest => entry.remainingTimeCs !== undefined))
     : getTopScores(entries);
-  const infiniteScores = scope === "company" ? getSharedTopInfiniteScores(infiniteEntries) : [];
+  const isInfinite = mode !== "stage";
+  const selectedInfiniteEntries = mode === "infinite-v1" ? infiniteV1Entries : infiniteV2Entries;
+  const infiniteScores = scope === "company" && isInfinite ? getSharedTopInfiniteScores(selectedInfiniteEntries) : [];
   const rankedInfiniteScores = infiniteScores.reduce<Array<SharedInfiniteBest & { rank: number }>>((rows, entry) => {
     const previous = rows.at(-1);
     rows.push({ ...entry, rank: !previous ? 1 : previous.bestScore === entry.bestScore ? previous.rank : previous.rank + 1 });
@@ -26,13 +29,15 @@ export function LeaderboardPanel({ entries, currentAccountId, scope = "browser",
         <div>
           <p className="leaderboard-kicker">{scope === "company" ? "COMPANY RANKING" : "LOCAL PLAY"}</p>
           <h2 id="leaderboard-title">최고 기록 랭킹</h2>
-          <p className="leaderboard-ranking-rule">순위 기준: 단계 → 점수 → 남은 시간</p>
+          <p className="leaderboard-ranking-rule">{isInfinite ? "순위 기준: 점수가 높은 순" : "순위 기준: 단계 → 점수 → 남은 시간"}</p>
         </div>
         <span className="leaderboard-count">TOP 10</span>
       </div>
-      <p className="leaderboard-mode-label">{mode === "stage" ? "단계 모드" : "무한 모드"}</p>
-      {mode === "infinite" ? rankedInfiniteScores.length === 0 ? (
-        <p className="leaderboard-empty">{scope === "company" ? "아직 무한 모드 기록이 없습니다. 첫 기록을 만들어 보세요!" : "회사 계정으로 접속하면 무한 모드 랭킹이 기록됩니다."}</p>
+      <p className="leaderboard-mode-label">{mode === "stage" ? "단계 모드" : mode === "infinite-v1" ? "무한모드 v1" : "무한모드 v2"}</p>
+      {isInfinite ? rankedInfiniteScores.length === 0 ? (
+        <p className="leaderboard-empty">{scope === "company"
+          ? mode === "infinite-v1" ? "무한모드 v1 기록이 없습니다." : "무한모드 v2 기록이 없습니다. 첫 기록을 만들어 보세요!"
+          : "회사 계정으로 접속하면 무한모드 랭킹이 기록됩니다."}</p>
       ) : (
         <ol className="leaderboard-list infinite-leaderboard-list">
           {rankedInfiniteScores.map((entry) => <li className={`leaderboard-row${entry.accountId === currentAccountId ? " is-current-player" : ""}`}

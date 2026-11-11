@@ -59,7 +59,7 @@
 .infinite-settings-dialog { display: grid; gap: 14px; }
 
 .mode-tabs { display: flex; gap: 8px; padding: 8px 0; }
-.mode-tabs [role="tab"] { border: 2px solid #536887; background: #16223a; color: #dce7fa; padding: 8px 14px; font: inherit; cursor: pointer; }
+.mode-tabs [role="tab"] { min-width: 0; flex: 1 1 0; border: 2px solid #536887; background: #16223a; color: #dce7fa; padding: 8px 10px; font: inherit; cursor: pointer; }
 .mode-tabs [role="tab"][aria-selected="true"] { color: #10182c; background: #ffe07a; border-color: #ffe07a; }
 .leaderboard-mode-label { margin: 0; color: #91a8c9; font-size: .85rem; }
 .infinite-leaderboard-list .leaderboard-row { grid-template-columns: 44px minmax(0, 1fr) auto; }
@@ -69,6 +69,8 @@
 @keyframes infinite-run { 50% { translate: 0 -3px; } }
 
 @media (max-width: 720px) {
+  .mode-tabs { gap: 5px; }
+  .mode-tabs [role="tab"] { padding: 7px 5px; font-size: .76rem; }
   .infinite-start-panel { padding: 14px; }
   .infinite-result-panel { inset: 10% 5%; padding: 12px; }
   .infinite-leaderboard-list .leaderboard-row { grid-template-columns: 28px minmax(0, 1fr) auto; }

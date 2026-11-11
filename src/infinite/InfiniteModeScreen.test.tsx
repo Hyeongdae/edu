@@ -177,8 +177,8 @@ describe("InfiniteModeScreen", () => {
     expect(screen.getByRole("button", { name: "랭킹 보기" })).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "랭킹 보기" }));
     expect(screen.getByRole("dialog", { name: "최고 기록 랭킹" })).toBeVisible();
-    fireEvent.click(screen.getByRole("tab", { name: "무한 모드" }));
-    expect(screen.getByText("회사 계정으로 접속하면 무한 모드 랭킹이 기록됩니다.")).toBeVisible();
+    expect(screen.getByRole("tab", { name: "무한모드 v2" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByText("회사 계정으로 접속하면 무한모드 랭킹이 기록됩니다.")).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "랭킹 닫기" }));
     expect(screen.getByRole("button", { name: "랭킹 보기" })).toHaveFocus();
     fireEvent.click(screen.getByRole("button", { name: "게임 시작" }));

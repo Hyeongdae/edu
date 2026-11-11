@@ -69,7 +69,6 @@ describe("LeaderboardPanel", () => {
     render(<LeaderboardPanel entries={entries} currentAccountId="player-4" />);
 
     expect(screen.getAllByRole("listitem")).toHaveLength(10);
-    expect(screen.getByText("나")).toBeVisible();
     expect(screen.getByText("플레이어 4").closest("li")).toHaveClass("is-current-player");
     const currentRow = screen.getByText("플레이어 4").closest("li")!;
     expect(within(currentRow).getByText("1단계")).toBeVisible();
@@ -107,8 +106,8 @@ describe("LeaderboardPanel", () => {
     expect(within(rows[4]).getByText("3단계")).toBeVisible();
   });
 
-  it("assigns dense shared ranks to the separate infinite score list", () => {
-    render(<LeaderboardPanel mode="infinite" scope="company" currentAccountId="b" entries={[]} infiniteEntries={[
+  it("assigns dense shared ranks to the v2 score list", () => {
+    render(<LeaderboardPanel mode="infinite-v2" scope="company" currentAccountId="b" entries={[]} infiniteV2Entries={[
       { accountId: "a", displayName: "먼저", bestScore: 100, achievedAt: "2026-10-30T00:00:00.000Z" },
       { accountId: "b", displayName: "나", bestScore: 100, achievedAt: "2026-10-30T00:00:01.000Z" },
       { accountId: "c", displayName: "다음", bestScore: 90, achievedAt: "2026-10-30T00:00:02.000Z" },
@@ -118,5 +117,30 @@ describe("LeaderboardPanel", () => {
     expect(rows[1]).toHaveClass("is-current-player");
     expect(within(rows[0]).getByText("100점")).toBeVisible();
     expect(within(rows[0]).queryByText(/초|단계/)).not.toBeInTheDocument();
+  });
+
+  it("shows only the selected version's records when the same account has different bests", () => {
+    const v1 = [{ accountId: "runner", displayName: "계단왕", bestScore: 120, achievedAt: "2026-10-30T00:00:00.000Z" }];
+    const v2 = [{ accountId: "runner", displayName: "계단왕", bestScore: 450, achievedAt: "2026-10-31T00:00:00.000Z" }];
+    const view = render(<LeaderboardPanel mode="infinite-v1" scope="company" currentAccountId="runner" entries={[]}
+      infiniteV1Entries={v1} infiniteV2Entries={v2} />);
+    expect(screen.getByText("무한모드 v1")).toBeVisible();
+    expect(screen.getByText("120점")).toBeVisible();
+    expect(screen.queryByText("450점")).not.toBeInTheDocument();
+    view.rerender(<LeaderboardPanel mode="infinite-v2" scope="company" currentAccountId="runner" entries={[]}
+      infiniteV1Entries={v1} infiniteV2Entries={v2} />);
+    expect(screen.getByText("무한모드 v2")).toBeVisible();
+    expect(screen.getByText("450점")).toBeVisible();
+    expect(screen.queryByText("120점")).not.toBeInTheDocument();
+    expect(screen.getByText("계단왕").closest("li")).toHaveClass("is-current-player");
+  });
+
+  it("shows a v2-specific empty state while preserving the historical v1 list", () => {
+    const view = render(<LeaderboardPanel mode="infinite-v2" scope="company" currentAccountId="runner" entries={[]}
+      infiniteV1Entries={[{ accountId: "runner", displayName: "계단왕", bestScore: 120, achievedAt: "2026-10-30T00:00:00.000Z" }]} />);
+    expect(screen.getByText("무한모드 v2 기록이 없습니다. 첫 기록을 만들어 보세요!")).toBeVisible();
+    view.rerender(<LeaderboardPanel mode="infinite-v1" scope="company" currentAccountId="runner" entries={[]}
+      infiniteV1Entries={[{ accountId: "runner", displayName: "계단왕", bestScore: 120, achievedAt: "2026-10-30T00:00:00.000Z" }]} />);
+    expect(screen.getByText("120점")).toBeVisible();
   });
 });

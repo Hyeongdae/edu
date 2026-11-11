@@ -957,7 +957,8 @@ export function GameScreen({
           {isLeaderboardOpen && (
             <LeaderboardDialog
               entries={companyRecords?.entries ?? leaderboard}
-              infiniteEntries={companyRecords?.infiniteEntries ?? []}
+              infiniteV1Entries={companyRecords?.infiniteEntries ?? []}
+              infiniteV2Entries={companyRecords?.infiniteV2Entries ?? []}
               currentAccountId={account.homeAccountId}
               scope={usesCompanyRecords ? "company" : "browser"}
               onClose={closeLeaderboard}
