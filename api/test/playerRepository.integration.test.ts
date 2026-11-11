@@ -52,6 +52,7 @@ describe("real isolated Cosmos DB repository operations", () => {
       highestClearedStage: 0,
       best: null,
       infiniteBest: null,
+      infiniteV2Best: null,
     });
     expect(await repository().listTopScores()).toEqual([]);
     expect(await countAccountDocuments(newActor.accountId)).toBe(0);
@@ -64,7 +65,7 @@ describe("real isolated Cosmos DB repository operations", () => {
 
     expect(saved.highestClearedStage).toBe(1);
     expect(await repository().getProfile(owner)).toEqual(saved);
-    expect(await repository().getProfile(other)).toEqual({ ...other, highestClearedStage: 0, best: null, infiniteBest: null });
+    expect(await repository().getProfile(other)).toEqual({ ...other, highestClearedStage: 0, best: null, infiniteBest: null, infiniteV2Best: null });
     expect(await countAccountDocuments(owner.accountId)).toBe(1);
     expect(JSON.stringify(saved)).not.toMatch(/_etag|_rid|_self|_attachments|_ts/);
   });
@@ -91,6 +92,31 @@ describe("real isolated Cosmos DB repository operations", () => {
     await repository().saveAppearance(owner, profile.appearance!);
     expect((await item.read<PlayerDocument>()).etag).toBe(upgraded.etag);
     expect(await repository().getProfile(actor("legacy-other"))).not.toHaveProperty("appearance");
+    expect(await countAccountDocuments(owner.accountId)).toBe(1);
+  });
+
+  it("stores v2 bests independently beside legacy infinite scores in one Cosmos document", async () => {
+    const owner = actor("versioned-infinite");
+    const document: PlayerDocument = { id: getPlayerRowKey(owner.accountId), ...owner, schemaVersion: 1,
+      highestClearedStage: 0, infiniteBestScore: 400, infiniteAchievedAt: NOW };
+    await emulator.container.items.create(document);
+    const repo = repository();
+    const initial = await repo.getProfile(owner);
+    expect(initial.infiniteBest?.bestScore).toBe(400);
+    expect(initial.infiniteV2Best).toBeNull();
+
+    const v2 = await repo.submitInfiniteV2Score(owner, { score: 75 });
+    expect(v2.infiniteBest?.bestScore).toBe(400);
+    expect(v2.infiniteV2Best?.bestScore).toBe(75);
+    const afterV2 = await (emulator.container as unknown as Container).item(document.id, owner.accountId).read<PlayerDocument>();
+    expect(afterV2.resource).toMatchObject({ infiniteBestScore: 400, infiniteAchievedAt: NOW,
+      infiniteV2BestScore: 75, infiniteV2AchievedAt: NOW });
+
+    const v1 = await repo.submitInfiniteScore(owner, { score: 410 });
+    expect(v1.infiniteBest?.bestScore).toBe(410);
+    expect(v1.infiniteV2Best?.bestScore).toBe(75);
+    expect(await repo.listTopInfiniteScores()).toEqual([v1.infiniteBest]);
+    expect(await repo.listTopInfiniteV2Scores()).toEqual([v1.infiniteV2Best]);
     expect(await countAccountDocuments(owner.accountId)).toBe(1);
   });
 
@@ -157,7 +183,7 @@ describe("real isolated Cosmos DB repository operations", () => {
     appearance.runner = { ...appearance.runner, hat: "beanie", hairStyle: "long", eyeStyle: "round", bag: "backpack", bagColor: "navy", bottoms: "skirt", bottomsColor: "beige" };
     appearance.pursuer = { ...appearance.pursuer, glasses: "round", eyeStyle: "sharp", bag: "briefcase", bagColor: "brown", bottoms: "shorts", bottomsColor: "white" };
     const saved = await repository().saveAppearance(owner, appearance);
-    expect(saved).toEqual({ ...owner, highestClearedStage: 0, best: null, infiniteBest: null, appearance });
+    expect(saved).toEqual({ ...owner, highestClearedStage: 0, best: null, infiniteBest: null, infiniteV2Best: null, appearance });
     expect(await repository().getProfile(owner)).toEqual(saved);
     expect(await repository().getProfile(other)).not.toHaveProperty("appearance");
     await repository().saveAppearance(owner, appearance);

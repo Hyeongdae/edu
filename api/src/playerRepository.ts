@@ -1,6 +1,6 @@
 import { CosmosClient, type ItemDefinition, type SqlQuerySpec } from "@azure/cosmos";
 import { createHash } from "node:crypto";
-import { getSharedTopInfiniteScores, getSharedTopScores, mergeSharedInfiniteScore, mergeSharedResult, validateResultForProfile } from "../../shared/companyRecords";
+import { getSharedTopInfiniteScores, getSharedTopScores, mergeSharedInfiniteScore, mergeSharedInfiniteV2Score, mergeSharedResult, validateResultForProfile } from "../../shared/companyRecords";
 import type { AuthenticatedActor, InfiniteScoreInput, SharedBest, SharedInfiniteBest, SharedProfile, SubmitResultRequest } from "../../shared/companyRecords";
 import { areCharacterAppearancesEqual, cloneCharacterAppearance, isCharacterAppearance, normalizeCharacterAppearance } from "../../shared/characterAppearance";
 import type { CharacterAppearance } from "../../shared/characterAppearance";
@@ -16,8 +16,10 @@ export interface PlayerRepository {
   getProfile(actor: AuthenticatedActor): Promise<SharedProfile>;
   listTopScores(): Promise<SharedBest[]>;
   listTopInfiniteScores(): Promise<SharedInfiniteBest[]>;
+  listTopInfiniteV2Scores(): Promise<SharedInfiniteBest[]>;
   submit(actor: AuthenticatedActor, input: SubmitResultRequest): Promise<SharedProfile>;
   submitInfiniteScore(actor: AuthenticatedActor, input: InfiniteScoreInput): Promise<SharedProfile>;
+  submitInfiniteV2Score(actor: AuthenticatedActor, input: InfiniteScoreInput): Promise<SharedProfile>;
   saveAppearance(actor: AuthenticatedActor, appearance: CharacterAppearance): Promise<SharedProfile>;
 }
 
@@ -33,6 +35,8 @@ export interface PlayerDocument extends ItemDefinition {
   achievedAt?: string;
   infiniteBestScore?: number;
   infiniteAchievedAt?: string;
+  infiniteV2BestScore?: number;
+  infiniteV2AchievedAt?: string;
   appearance?: CharacterAppearance | ExpandedCharacterAppearance | LegacyCharacterAppearance;
 }
 
@@ -70,6 +74,9 @@ const TOP_SCORES_OPTIONS = { maxItemCount: 10 };
 const TOP_INFINITE_SCORES_QUERY: SqlQuerySpec = {
   query: "SELECT TOP 10 * FROM c WHERE IS_DEFINED(c.infiniteBestScore) ORDER BY c.infiniteBestScore DESC, c.infiniteAchievedAt ASC, c.accountId ASC",
 };
+const TOP_INFINITE_V2_SCORES_QUERY: SqlQuerySpec = {
+  query: "SELECT TOP 10 * FROM c WHERE IS_DEFINED(c.infiniteV2BestScore) ORDER BY c.infiniteV2BestScore DESC, c.infiniteV2AchievedAt ASC, c.accountId ASC",
+};
 
 export function getPlayerRowKey(accountId: string): string {
   return "p_" + createHash("sha256").update(accountId).digest("hex");
@@ -103,6 +110,9 @@ function decodeDocument(document: unknown): SharedProfile {
   const hasInfiniteScore = Object.hasOwn(document, "infiniteBestScore");
   const hasInfiniteAt = Object.hasOwn(document, "infiniteAchievedAt");
   if (hasInfiniteScore !== hasInfiniteAt) return fail();
+  const hasInfiniteV2Score = Object.hasOwn(document, "infiniteV2BestScore");
+  const hasInfiniteV2At = Object.hasOwn(document, "infiniteV2AchievedAt");
+  if (hasInfiniteV2Score !== hasInfiniteV2At) return fail();
 
   let best: SharedBest | null = null;
   if (hasBest) {
@@ -137,6 +147,16 @@ function decodeDocument(document: unknown): SharedProfile {
       bestScore: document.infiniteBestScore, achievedAt: document.infiniteAchievedAt };
   }
 
+  let infiniteV2Best: SharedInfiniteBest | null = null;
+  if (hasInfiniteV2Score) {
+    if (typeof document.infiniteV2BestScore !== "number" || !Number.isSafeInteger(document.infiniteV2BestScore) ||
+      document.infiniteV2BestScore < 0 || typeof document.infiniteV2AchievedAt !== "string" ||
+      !Number.isFinite(Date.parse(document.infiniteV2AchievedAt)) ||
+      new Date(document.infiniteV2AchievedAt).toISOString() !== document.infiniteV2AchievedAt) return fail();
+    infiniteV2Best = { accountId: document.accountId, displayName: document.displayName,
+      bestScore: document.infiniteV2BestScore, achievedAt: document.infiniteV2AchievedAt };
+  }
+
   const appearance = normalizeCharacterAppearance(document.appearance);
   return {
     accountId: document.accountId,
@@ -144,6 +164,7 @@ function decodeDocument(document: unknown): SharedProfile {
     highestClearedStage: document.highestClearedStage,
     best,
     infiniteBest,
+    infiniteV2Best,
     ...(appearance ? { appearance } : {}),
   };
 }
@@ -164,6 +185,10 @@ function encodeDocument(profile: SharedProfile): PlayerDocument {
     ...(profile.infiniteBest ? {
       infiniteBestScore: profile.infiniteBest.bestScore,
       infiniteAchievedAt: profile.infiniteBest.achievedAt,
+    } : {}),
+    ...(profile.infiniteV2Best ? {
+      infiniteV2BestScore: profile.infiniteV2Best.bestScore,
+      infiniteV2AchievedAt: profile.infiniteV2Best.achievedAt,
     } : {}),
     ...(isCharacterAppearance(profile.appearance) ? { appearance: cloneCharacterAppearance(profile.appearance) } : {}),
   };
@@ -224,7 +249,7 @@ export function createPlayerRepository(
   return {
     getProfile: (actor) => storageBoundary(async () => {
       const stored = await readStored(actor);
-      return stored?.profile ?? { ...actor, highestClearedStage: 0, best: null, infiniteBest: null };
+      return stored?.profile ?? { ...actor, highestClearedStage: 0, best: null, infiniteBest: null, infiniteV2Best: null };
     }),
 
     saveAppearance: (actor, appearance) => storageBoundary(async () => {
@@ -233,7 +258,7 @@ export function createPlayerRepository(
       const requestedAppearance = cloneCharacterAppearance(appearance);
       for (let attempt = 0; attempt < 5; attempt++) {
         const stored = await readStored(actor);
-        const previous: SharedProfile = stored?.profile ?? { ...actor, highestClearedStage: 0, best: null, infiniteBest: null };
+        const previous: SharedProfile = stored?.profile ?? { ...actor, highestClearedStage: 0, best: null, infiniteBest: null, infiniteV2Best: null };
         if (!stored?.appearanceNeedsUpgrade && previous.appearance && previous.displayName === actor.displayName &&
           areCharacterAppearancesEqual(previous.appearance, requestedAppearance)) return previous;
         const profile: SharedProfile = {
@@ -241,6 +266,7 @@ export function createPlayerRepository(
           ...actor,
           best: previous.best ? { ...previous.best, displayName: actor.displayName } : null,
           infiniteBest: previous.infiniteBest ? { ...previous.infiniteBest, displayName: actor.displayName } : null,
+          infiniteV2Best: previous.infiniteV2Best ? { ...previous.infiniteV2Best, displayName: actor.displayName } : null,
           appearance: cloneCharacterAppearance(requestedAppearance),
         };
         const document = encodeDocument(profile);
@@ -283,6 +309,17 @@ export function createPlayerRepository(
       return getSharedTopInfiniteScores(bests);
     }),
 
+    listTopInfiniteV2Scores: () => storageBoundary(async () => {
+      await ensureContainer();
+      const { resources = [] } = await container.items.query<PlayerDocument>(TOP_INFINITE_V2_SCORES_QUERY, TOP_SCORES_OPTIONS).fetchAll();
+      const bests: SharedInfiniteBest[] = [];
+      for (const document of resources) {
+        const profile = decodeDocument(document);
+        if (profile.infiniteV2Best) bests.push(profile.infiniteV2Best);
+      }
+      return getSharedTopInfiniteScores(bests);
+    }),
+
     submit: (actor, input) => storageBoundary(async () => {
       for (let attempt = 0; attempt < 5; attempt++) {
         const stored = await readStored(actor);
@@ -313,6 +350,29 @@ export function createPlayerRepository(
       for (let attempt = 0; attempt < 5; attempt++) {
         const stored = await readStored(actor);
         const merged = mergeSharedInfiniteScore(stored?.profile ?? null, actor, input, now().toISOString());
+        if (!merged.changed) return merged.profile;
+        const document = encodeDocument(merged.profile);
+        try {
+          if (stored) {
+            await container.item(getPlayerRowKey(actor.accountId), actor.accountId).replace(document, {
+              accessCondition: { type: "IfMatch", condition: stored.etag },
+            });
+          } else {
+            await container.items.create(document);
+          }
+          return merged.profile;
+        } catch (error) {
+          if ((!stored && statusCode(error) === 409) || (stored && statusCode(error) === 412)) continue;
+          throw error;
+        }
+      }
+      throw new RecordServiceError("conflict");
+    }),
+
+    submitInfiniteV2Score: (actor, input) => storageBoundary(async () => {
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const stored = await readStored(actor);
+        const merged = mergeSharedInfiniteV2Score(stored?.profile ?? null, actor, input, now().toISOString());
         if (!merged.changed) return merged.profile;
         const document = encodeDocument(merged.profile);
         try {

@@ -8,13 +8,15 @@ import { getDefaultCharacterAppearance as getLegacyAppearance } from "../../shar
 import { getDefaultCharacterAppearance as getExpandedAppearance } from "../../shared/expandedCharacterAppearance";
 
 const context = new InvocationContext({ functionName: "records-test" });
-const profile = { ...ACTOR, highestClearedStage: 0 as const, best: null, infiniteBest: null };
+const profile = { ...ACTOR, highestClearedStage: 0 as const, best: null, infiniteBest: null, infiniteV2Best: null };
 const repository = {
   getProfile: vi.fn().mockResolvedValue(profile),
   listTopScores: vi.fn().mockResolvedValue([]),
   listTopInfiniteScores: vi.fn().mockResolvedValue([]),
+  listTopInfiniteV2Scores: vi.fn().mockResolvedValue([]),
   submit: vi.fn().mockResolvedValue(profile),
   submitInfiniteScore: vi.fn().mockResolvedValue(profile),
+  submitInfiniteV2Score: vi.fn().mockResolvedValue(profile),
   saveAppearance: vi.fn().mockResolvedValue({ ...profile, appearance: getDefaultCharacterAppearance() }),
 };
 const handlers = createRecordHandlers({ repository });
@@ -34,8 +36,10 @@ beforeEach(() => {
   repository.getProfile.mockReset().mockResolvedValue(profile);
   repository.listTopScores.mockReset().mockResolvedValue([]);
   repository.listTopInfiniteScores.mockReset().mockResolvedValue([]);
+  repository.listTopInfiniteV2Scores.mockReset().mockResolvedValue([]);
   repository.submit.mockReset().mockResolvedValue(profile);
   repository.submitInfiniteScore.mockReset().mockResolvedValue(profile);
+  repository.submitInfiniteV2Score.mockReset().mockResolvedValue(profile);
   repository.saveAppearance.mockReset().mockResolvedValue({ ...profile, appearance: getDefaultCharacterAppearance() });
 });
 
@@ -47,7 +51,7 @@ describe("record handlers", () => {
     expect(await handlers.results(request({ headers: { "x-game-account": ACTOR.accountId } }), context))
       .toMatchObject({ status: 200 });
   });
-  it.each(["profile", "leaderboard", "results", "infiniteLeaderboard", "infiniteResults", "appearance"] as const)("authenticates %s before repository access", async (route) => {
+  it.each(["profile", "leaderboard", "results", "infiniteLeaderboard", "infiniteV2Leaderboard", "infiniteResults", "infiniteV2Results", "appearance"] as const)("authenticates %s before repository access", async (route) => {
     const response = await handlers[route](request({ headers: { "x-ms-client-principal": "" } }), context);
     expect(response).toMatchObject({ status: 401, jsonBody: { error: { code: "unauthenticated" } } });
     expect(repository.getProfile).not.toHaveBeenCalled();
@@ -55,6 +59,8 @@ describe("record handlers", () => {
     expect(repository.submit).not.toHaveBeenCalled();
     expect(repository.listTopInfiniteScores).not.toHaveBeenCalled();
     expect(repository.submitInfiniteScore).not.toHaveBeenCalled();
+    expect(repository.listTopInfiniteV2Scores).not.toHaveBeenCalled();
+    expect(repository.submitInfiniteV2Score).not.toHaveBeenCalled();
     expect(repository.saveAppearance).not.toHaveBeenCalled();
   });
 
@@ -86,10 +92,28 @@ describe("record handlers", () => {
     expect(repository.submitInfiniteScore).toHaveBeenCalledExactlyOnceWith(ACTOR, payload.result);
   });
 
+  it("serves and submits v2 scores only through the v2 repository methods", async () => {
+    const v2Best = { accountId: ACTOR.accountId, displayName: ACTOR.displayName, bestScore: 75, achievedAt: NOW };
+    repository.listTopInfiniteV2Scores.mockResolvedValue([v2Best]);
+    expect(await handlers.infiniteV2Leaderboard(request({ method: "GET" }), context))
+      .toMatchObject({ status: 200, jsonBody: { entries: [v2Best] } });
+    const payload = { submissionId: submission().submissionId, result: { score: 75 } };
+    repository.submitInfiniteV2Score.mockResolvedValue({ ...profile, infiniteV2Best: v2Best });
+    expect(await handlers.infiniteV2Results(request({ body: JSON.stringify(payload) }), context))
+      .toMatchObject({ status: 200, jsonBody: { submissionId: payload.submissionId, entries: [v2Best] } });
+    expect(repository.submitInfiniteV2Score).toHaveBeenCalledExactlyOnceWith(ACTOR, payload.result);
+    expect(repository.listTopInfiniteV2Scores).toHaveBeenCalledTimes(2);
+    expect(repository.submitInfiniteScore).not.toHaveBeenCalled();
+    expect(repository.listTopInfiniteScores).not.toHaveBeenCalled();
+  });
+
   it.each([{ score: -1 }, { score: 1.5 }, { score: Number.MAX_SAFE_INTEGER + 1 }, { score: 1, extra: true }])("rejects invalid infinite score payload %j", async (result) => {
       expect(await handlers.infiniteResults(request({ body: JSON.stringify({ submissionId: submission().submissionId, result }) }), context))
         .toMatchObject({ status: 400, jsonBody: { error: { code: "invalid-request" } } });
+      expect(await handlers.infiniteV2Results(request({ body: JSON.stringify({ submissionId: submission().submissionId, result }) }), context))
+        .toMatchObject({ status: 400, jsonBody: { error: { code: "invalid-request" } } });
       expect(repository.submitInfiniteScore).not.toHaveBeenCalled();
+      expect(repository.submitInfiniteV2Score).not.toHaveBeenCalled();
     });
 
   it("submits the verified actor and echoes only the acknowledged request ID", async () => {

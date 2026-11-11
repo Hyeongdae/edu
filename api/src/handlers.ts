@@ -44,8 +44,10 @@ export function createRecordHandlers(deps: { repository: PlayerRepository }): {
   profile: RecordHandler;
   leaderboard: RecordHandler;
   infiniteLeaderboard: RecordHandler;
+  infiniteV2Leaderboard: RecordHandler;
   results: RecordHandler;
   infiniteResults: RecordHandler;
+  infiniteV2Results: RecordHandler;
   appearance: RecordHandler;
 } {
   async function authenticated(
@@ -73,6 +75,7 @@ export function createRecordHandlers(deps: { repository: PlayerRepository }): {
     profile: (req) => authenticated(req, (actor) => deps.repository.getProfile(actor)),
     leaderboard: (req) => authenticated(req, async () => ({ entries: await deps.repository.listTopScores() })),
     infiniteLeaderboard: (req) => authenticated(req, async () => ({ entries: await deps.repository.listTopInfiniteScores() })),
+    infiniteV2Leaderboard: (req) => authenticated(req, async () => ({ entries: await deps.repository.listTopInfiniteV2Scores() })),
     appearance: (req) => authenticated(req, async (actor) => {
       const payload = await readResultBody(req);
       if (!isSaveAppearanceRequest(payload)) throw new RecordServiceError("invalid-request");
@@ -89,6 +92,12 @@ export function createRecordHandlers(deps: { repository: PlayerRepository }): {
       if (!isSubmitInfiniteScoreRequest(payload)) throw new RecordServiceError("invalid-request");
       const profile = await deps.repository.submitInfiniteScore(actor, payload.result);
       return { submissionId: payload.submissionId, profile, entries: await deps.repository.listTopInfiniteScores() };
+    }),
+    infiniteV2Results: (req) => authenticated(req, async (actor) => {
+      const payload = await readResultBody(req);
+      if (!isSubmitInfiniteScoreRequest(payload)) throw new RecordServiceError("invalid-request");
+      const profile = await deps.repository.submitInfiniteV2Score(actor, payload.result);
+      return { submissionId: payload.submissionId, profile, entries: await deps.repository.listTopInfiniteV2Scores() };
     }),
   };
 }

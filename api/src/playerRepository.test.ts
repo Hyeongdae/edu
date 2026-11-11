@@ -175,7 +175,7 @@ describe("account character appearance persistence", () => {
     expect(container.items.create).not.toHaveBeenCalled();
     const appearance = getDefaultCharacterAppearance();
     expect(await repo.saveAppearance(ACTOR, appearance)).toEqual({
-      ...ACTOR, highestClearedStage: 0, best: null, infiniteBest: null, appearance,
+      ...ACTOR, highestClearedStage: 0, best: null, infiniteBest: null, infiniteV2Best: null, appearance,
     });
     expect(current()).toEqual({
       id: getPlayerRowKey(ACTOR.accountId), ...ACTOR, schemaVersion: 1, highestClearedStage: 0, appearance,
@@ -327,7 +327,7 @@ describe("Cosmos player repository", () => {
   it.each([itemNotFound, { code: 404 }])(
     "returns a new profile only when the verified container has no matching item: %j", async (error) => {
       item.read.mockRejectedValueOnce(error);
-      expect(await repository().getProfile(ACTOR)).toEqual({ ...ACTOR, highestClearedStage: 0, best: null, infiniteBest: null });
+      expect(await repository().getProfile(ACTOR)).toEqual({ ...ACTOR, highestClearedStage: 0, best: null, infiniteBest: null, infiniteV2Best: null });
       expect(container.read).toHaveBeenCalledExactlyOnceWith();
       expect(container.item).toHaveBeenCalledExactlyOnceWith(getPlayerRowKey(ACTOR.accountId), ACTOR.accountId);
       expect(container.items.create).not.toHaveBeenCalled();
@@ -336,7 +336,7 @@ describe("Cosmos player repository", () => {
 
   it("treats the SDK's resolved 404 response with no resource as a missing item", async () => {
     item.read.mockResolvedValueOnce({ statusCode: 404 });
-    expect(await repository().getProfile(ACTOR)).toEqual({ ...ACTOR, highestClearedStage: 0, best: null, infiniteBest: null });
+    expect(await repository().getProfile(ACTOR)).toEqual({ ...ACTOR, highestClearedStage: 0, best: null, infiniteBest: null, infiniteV2Best: null });
     expect(container.items.create).not.toHaveBeenCalled();
   });
 
@@ -369,6 +369,7 @@ describe("Cosmos player repository", () => {
       highestClearedStage: 0,
       best: { ...ACTOR, bestStage: 1, bestScore: 100, remainingTimeCs: 6000, achievedAt: NOW },
       infiniteBest: null,
+      infiniteV2Best: null,
     });
     await repo.getProfile(ACTOR);
     expect(container.read).toHaveBeenCalledExactlyOnceWith();
@@ -384,6 +385,10 @@ describe("Cosmos player repository", () => {
     { infiniteBestScore: 10 }, { infiniteAchievedAt: NOW }, { infiniteBestScore: -1, infiniteAchievedAt: NOW },
     { infiniteBestScore: 1.5, infiniteAchievedAt: NOW }, { infiniteBestScore: Number.MAX_SAFE_INTEGER + 1, infiniteAchievedAt: NOW },
     { infiniteBestScore: 10, infiniteAchievedAt: "bad-time" },
+    { infiniteV2BestScore: 10 }, { infiniteV2AchievedAt: NOW }, { infiniteV2BestScore: -1, infiniteV2AchievedAt: NOW },
+    { infiniteV2BestScore: 1.5, infiniteV2AchievedAt: NOW },
+    { infiniteV2BestScore: Number.MAX_SAFE_INTEGER + 1, infiniteV2AchievedAt: NOW },
+    { infiniteV2BestScore: 10, infiniteV2AchievedAt: "bad-time" },
   ])("fails closed on corrupt persisted documents: %j", async (overrides) => {
     item.read.mockResolvedValueOnce({ resource: stored(overrides), etag: ITEM_ETAG });
     await expect(repository().getProfile(ACTOR)).rejects.toMatchObject({ code: "storage-unavailable" });
@@ -395,7 +400,7 @@ describe("Cosmos player repository", () => {
       delete noBest[key as keyof PlayerDocument];
     }
     item.read.mockResolvedValueOnce({ resource: noBest, etag: ITEM_ETAG });
-    expect(await repository().getProfile(ACTOR)).toEqual({ ...ACTOR, highestClearedStage: 0, best: null, infiniteBest: null });
+    expect(await repository().getProfile(ACTOR)).toEqual({ ...ACTOR, highestClearedStage: 0, best: null, infiniteBest: null, infiniteV2Best: null });
     item.read.mockResolvedValueOnce({ resource: { ...noBest, bestScore: 10 }, etag: ITEM_ETAG });
     await expect(repository().getProfile(ACTOR)).rejects.toMatchObject({ code: "storage-unavailable" });
   });
@@ -427,6 +432,35 @@ describe("Cosmos player repository", () => {
     expect(container.items.query).toHaveBeenCalledWith({
       query: "SELECT TOP 10 * FROM c WHERE IS_DEFINED(c.infiniteBestScore) ORDER BY c.infiniteBestScore DESC, c.infiniteAchievedAt ASC, c.accountId ASC",
     }, { maxItemCount: 10 });
+  });
+
+  it("writes and queries v2 scores independently while preserving v1", async () => {
+    item.read.mockResolvedValue({ resource: stored({ infiniteBestScore: 400, infiniteAchievedAt: NOW }), etag: ITEM_ETAG });
+    const repo = repository();
+    const saved = await repo.submitInfiniteV2Score(ACTOR, { score: 75 });
+    expect(saved.infiniteBest?.bestScore).toBe(400);
+    expect(saved.infiniteV2Best).toMatchObject({ bestScore: 75, achievedAt: NOW });
+    expect(item.replace).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
+      infiniteBestScore: 400, infiniteAchievedAt: NOW, infiniteV2BestScore: 75, infiniteV2AchievedAt: NOW,
+    }), { accessCondition: { type: "IfMatch", condition: ITEM_ETAG } });
+
+    const v2Rows = [0, 1, 2].map(score => stored({
+      accountId: `v2-${score}`, id: getPlayerRowKey(`v2-${score}`), displayName: `V2 ${score}`,
+      infiniteV2BestScore: score * 10, infiniteV2AchievedAt: NOW,
+    }));
+    container.items.query.mockReturnValue({ fetchAll: vi.fn().mockResolvedValue({ resources: [stored(), ...v2Rows] }) });
+    expect((await repo.listTopInfiniteV2Scores()).map(entry => entry.bestScore)).toEqual([20, 10, 0]);
+    expect(container.items.query).toHaveBeenLastCalledWith({
+      query: "SELECT TOP 10 * FROM c WHERE IS_DEFINED(c.infiniteV2BestScore) ORDER BY c.infiniteV2BestScore DESC, c.infiniteV2AchievedAt ASC, c.accountId ASC",
+    }, { maxItemCount: 10 });
+  });
+
+  it("keeps the existing v2 best and timestamp on lower or equal retries", async () => {
+    item.read.mockResolvedValue({ resource: stored({ infiniteV2BestScore: 80, infiniteV2AchievedAt: NOW }), etag: ITEM_ETAG });
+    const repo = repository();
+    expect((await repo.submitInfiniteV2Score(ACTOR, { score: 50 })).infiniteV2Best?.bestScore).toBe(80);
+    expect((await repo.submitInfiniteV2Score(ACTOR, { score: 80 })).infiniteV2Best?.achievedAt).toBe(NOW);
+    expect(item.replace).not.toHaveBeenCalled();
   });
 
   it.each([undefined, "", " * ", "*"])("rejects a missing or unsafe response ETag: %j", async (etag) => {

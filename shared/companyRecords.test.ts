@@ -4,7 +4,7 @@ import { STAGE_RULES, getHighestUnlockedStage } from "../src/game/stageRules";
 import type { ClearedStage } from "../src/game/types";
 import {
   compareSharedInfiniteScore, compareSharedPerformance, getSharedTopInfiniteScores, getSharedTopScores,
-  isSubmitInfiniteScoreRequest, isSubmitResultRequest, mergeSharedInfiniteScore, mergeSharedResult, validateResultForProfile,
+  isSubmitInfiniteScoreRequest, isSubmitResultRequest, mergeSharedInfiniteScore, mergeSharedInfiniteV2Score, mergeSharedResult, validateResultForProfile,
 } from "./companyRecords";
 import type { AuthenticatedActor, ResultInput, SharedBest, SharedProfile, SubmitResultRequest } from "./companyRecords";
 import { getDefaultCharacterAppearance } from "./characterAppearance";
@@ -31,7 +31,7 @@ function best(overrides: Partial<SharedBest> = {}): SharedBest {
 }
 
 function profile(overrides: Partial<SharedProfile> = {}): SharedProfile {
-  return { ...actor, highestClearedStage: 0, best: best(), infiniteBest: null, ...overrides };
+  return { ...actor, highestClearedStage: 0, best: best(), infiniteBest: null, infiniteV2Best: null, ...overrides };
 }
 
 describe("appearance preservation across game records", () => {
@@ -216,6 +216,32 @@ describe("infinite score contract and ranking", () => {
     expect(higher.infiniteBest?.bestScore).toBe(55);
     expect(mergeSharedResult(higher, actor, result({ score: 150, outcome: "cleared" }), LATER_TIME).profile.infiniteBest)
       .toEqual(higher.infiniteBest);
+  });
+
+  it("keeps v1 and v2 personal bests independent across infinite and stage merges", () => {
+    const v1 = mergeSharedInfiniteScore(null, actor, { score: 80 }, FIRST_TIME).profile;
+    const v2 = mergeSharedInfiniteV2Score(v1, actor, { score: 25 }, LATER_TIME).profile;
+    expect(v2.infiniteBest?.bestScore).toBe(80);
+    expect(v2.infiniteV2Best).toEqual({ ...actor, bestScore: 25, achievedAt: LATER_TIME });
+
+    const improvedV1 = mergeSharedInfiniteScore(v2, actor, { score: 90 }, LATER_TIME).profile;
+    expect(improvedV1.infiniteBest?.bestScore).toBe(90);
+    expect(improvedV1.infiniteV2Best).toEqual(v2.infiniteV2Best);
+
+    const improvedV2 = mergeSharedInfiniteV2Score(improvedV1, actor, { score: 35 }, LATER_TIME).profile;
+    const stage = mergeSharedResult(improvedV2, actor, result({ score: 150, outcome: "cleared" }), LATER_TIME).profile;
+    expect(stage.infiniteBest?.bestScore).toBe(90);
+    expect(stage.infiniteV2Best?.bestScore).toBe(35);
+    expect(stage.highestClearedStage).toBe(1);
+  });
+
+  it("keeps the first v2 timestamp for equal or lower scores and checks profile ownership", () => {
+    const initial = mergeSharedInfiniteV2Score(null, actor, { score: 35 }, FIRST_TIME).profile;
+    expect(mergeSharedInfiniteV2Score(initial, actor, { score: 35 }, LATER_TIME)).toMatchObject({ changed: false });
+    expect(mergeSharedInfiniteV2Score(initial, actor, { score: 20 }, LATER_TIME).profile.infiniteV2Best?.achievedAt)
+      .toBe(FIRST_TIME);
+    expect(() => mergeSharedInfiniteV2Score(profile({ infiniteBest: { ...actor, bestScore: 1, achievedAt: FIRST_TIME } }),
+      { accountId: "employee-b", displayName: "Other" }, { score: 1 }, LATER_TIME)).toThrow(RangeError);
   });
 });
 

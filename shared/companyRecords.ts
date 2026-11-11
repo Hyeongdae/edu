@@ -29,6 +29,7 @@ export interface SharedProfile {
   highestClearedStage: ClearedStage;
   best: SharedBest | null;
   infiniteBest: SharedInfiniteBest | null;
+  infiniteV2Best: SharedInfiniteBest | null;
   appearance?: CharacterAppearance;
 }
 
@@ -163,7 +164,8 @@ export function mergeSharedInfiniteScore(
     !hasInfiniteScore(input)) throw new RangeError("A verified actor and valid infinite score are required.");
   if (previous && (previous.accountId !== actor.accountId ||
     (previous.best && previous.best.accountId !== actor.accountId) ||
-    (previous.infiniteBest && previous.infiniteBest.accountId !== actor.accountId))) {
+    (previous.infiniteBest && previous.infiniteBest.accountId !== actor.accountId) ||
+    (previous.infiniteV2Best && previous.infiniteV2Best.accountId !== actor.accountId))) {
     throw new RangeError("The previous profile must belong to the authenticated actor.");
   }
   const timestamp = normalizeServerTime(serverNowIso);
@@ -176,7 +178,35 @@ export function mergeSharedInfiniteScore(
   const changed = !previous || previous.displayName !== actor.displayName || previous.infiniteBest !== infiniteBest;
   if (!changed) return { profile: previous, changed: false };
   return { profile: { ...previous, ...actor, highestClearedStage: previous?.highestClearedStage ?? 0,
-    best: previous?.best ?? null, infiniteBest,
+    best: previous?.best ?? null, infiniteBest, infiniteV2Best: previous?.infiniteV2Best ?? null,
+    ...(previous?.appearance ? { appearance: cloneCharacterAppearance(previous.appearance) } : {}) }, changed: true };
+}
+
+export function mergeSharedInfiniteV2Score(
+  previous: SharedProfile | null,
+  actor: AuthenticatedActor,
+  input: InfiniteScoreInput,
+  serverNowIso: string,
+): { profile: SharedProfile; changed: boolean } {
+  if (typeof actor.accountId !== "string" || !actor.accountId.trim() || typeof actor.displayName !== "string" ||
+    !hasInfiniteScore(input)) throw new RangeError("A verified actor and valid infinite score are required.");
+  if (previous && (previous.accountId !== actor.accountId ||
+    (previous.best && previous.best.accountId !== actor.accountId) ||
+    (previous.infiniteBest && previous.infiniteBest.accountId !== actor.accountId) ||
+    (previous.infiniteV2Best && previous.infiniteV2Best.accountId !== actor.accountId))) {
+    throw new RangeError("The previous profile must belong to the authenticated actor.");
+  }
+  const timestamp = normalizeServerTime(serverNowIso);
+  const candidate: SharedInfiniteBest = {
+    accountId: actor.accountId, displayName: actor.displayName, bestScore: input.score, achievedAt: timestamp,
+  };
+  let infiniteV2Best = previous?.infiniteV2Best ?? null;
+  if (!infiniteV2Best || candidate.bestScore > infiniteV2Best.bestScore) infiniteV2Best = candidate;
+  else if (infiniteV2Best.displayName !== actor.displayName) infiniteV2Best = { ...infiniteV2Best, displayName: actor.displayName };
+  const changed = !previous || previous.displayName !== actor.displayName || previous.infiniteV2Best !== infiniteV2Best;
+  if (!changed) return { profile: previous, changed: false };
+  return { profile: { ...previous, ...actor, highestClearedStage: previous?.highestClearedStage ?? 0,
+    best: previous?.best ?? null, infiniteBest: previous?.infiniteBest ?? null, infiniteV2Best,
     ...(previous?.appearance ? { appearance: cloneCharacterAppearance(previous.appearance) } : {}) }, changed: true };
 }
 
@@ -236,7 +266,8 @@ export function mergeSharedResult(
   }
   if (previous && (previous.accountId !== actor.accountId ||
     (previous.best !== null && previous.best.accountId !== actor.accountId) ||
-    (previous.infiniteBest !== null && previous.infiniteBest.accountId !== actor.accountId))) {
+    (previous.infiniteBest !== null && previous.infiniteBest.accountId !== actor.accountId) ||
+    (previous.infiniteV2Best !== null && previous.infiniteV2Best.accountId !== actor.accountId))) {
     throw new RangeError("The previous profile must belong to the authenticated actor.");
   }
   const achievedAt = normalizeServerTime(serverNowIso);
@@ -259,12 +290,15 @@ export function mergeSharedResult(
   ) as ClearedStage;
   const infiniteBest = previous?.infiniteBest && previous.infiniteBest.displayName !== actor.displayName
     ? { ...previous.infiniteBest, displayName: actor.displayName } : previous?.infiniteBest ?? null;
+  const infiniteV2Best = previous?.infiniteV2Best && previous.infiniteV2Best.displayName !== actor.displayName
+    ? { ...previous.infiniteV2Best, displayName: actor.displayName } : previous?.infiniteV2Best ?? null;
   const changed = !previous || previous.displayName !== actor.displayName ||
-    previous.highestClearedStage !== highestClearedStage || previous.best !== best || previous.infiniteBest !== infiniteBest;
+    previous.highestClearedStage !== highestClearedStage || previous.best !== best || previous.infiniteBest !== infiniteBest ||
+    previous.infiniteV2Best !== infiniteV2Best;
   if (!changed) return { profile: previous, changed: false };
   return {
     profile: { accountId: actor.accountId, displayName: actor.displayName, highestClearedStage, best,
-      infiniteBest, ...(previous?.appearance ? { appearance: cloneCharacterAppearance(previous.appearance) } : {}) },
+      infiniteBest, infiniteV2Best, ...(previous?.appearance ? { appearance: cloneCharacterAppearance(previous.appearance) } : {}) },
     changed: true,
   };
 }

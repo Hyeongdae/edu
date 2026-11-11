@@ -1,13 +1,13 @@
 # Current Context
 
 ## Active Plan
-None
+[Infinite Mode v1 and v2 Leaderboards](./plans/2026-11-11-infinite-mode-v1-v2-leaderboards.md)
 
 ## Active Phase
-None
+[P01 Versioned Infinite Rankings](./phases/2026-11-11-infinite-mode-v1-v2-leaderboards/P01-versioned-infinite-rankings/phase.md)
 
 ## Active Task
-None
+[T02 Route Client Records and Preserve v1 Queue](./phases/2026-11-11-infinite-mode-v1-v2-leaderboards/P01-versioned-infinite-rankings/T02-client-store-and-queue.md)
 
 ## Last Completed Task
 [T01 Add R Restart Hint](./phases/2026-11-10-r-keyboard-hint/P01-control-hints/T01-add-r-hint.md) - `fa8ded0` (2026-11-10).
@@ -16,10 +16,10 @@ None
 [T03 Versioned Bottoms Persistence](./phases/2026-11-04-character-bottoms-customization/P01-bottoms-customization/T03-versioned-bottoms-persistence.md) — `d7b6e24` (2026-11-04).
 
 ## Status
-- Plan r-keyboard-hint completed: T01 (`fa8ded0`), 1/1 task. Both desktop mode hints explain R restart; the confirmation behavior and mobile labels remain unchanged.
+- Plan `infinite-mode-v1-v2-leaderboards`: T01 code and available checks are complete; Cosmos integration remains unverified because no local emulator endpoint is configured. Proceeding to T02 at the user's direction.
 
 ## Next Step (IMPORTANT)
-There is no active task. Start a new plan when the user requests another feature.
+Implement T02: route new infinite scores to v2 while keeping already queued legacy `infinite` results on v1.
 
 ## Completed Plan History
 - character-bottoms-customization T01 (`2d6b996`), T02 (`e30fea8`), T03 (`d7b6e24`), T04 (`d480239`) 완료, done4/4. Active Task 없음. 이번 실행은 마지막 T04만 구현/검증/커밋했다.
