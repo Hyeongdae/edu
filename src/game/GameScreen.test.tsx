@@ -21,8 +21,8 @@ import { getDefaultCharacterAppearance } from "../../shared/characterAppearance"
 
 function companyBinding(highestClearedStage: CompanyRecordBinding["profile"]["highestClearedStage"] = 0): CompanyRecordBinding {
   return { profile: companyProfile({ accountId: account.homeAccountId, highestClearedStage }), entries: [],
-    infiniteEntries: [], syncStatus: "idle", pendingCount: 0, errorMessage: null,
-    submitResult: vi.fn(), submitInfiniteScore: vi.fn(), retry: vi.fn(), refresh: vi.fn() };
+    infiniteEntries: [], infiniteV2Entries: [], syncStatus: "idle", pendingCount: 0, errorMessage: null,
+    submitResult: vi.fn(), submitInfiniteV2Score: vi.fn(), retry: vi.fn(), refresh: vi.fn() };
 }
 
 const account = {

@@ -9,8 +9,8 @@ import { getDefaultCharacterAppearance } from "../../shared/characterAppearance"
 
 const account: GameAccount = { homeAccountId: "employee-a", username: "employee@example.com", name: "회사원 A" };
 function records(): CompanyRecordBinding {
-  return { profile: companyProfile(), entries: [], infiniteEntries: [], syncStatus: "idle", pendingCount: 0,
-    errorMessage: null, submitResult: vi.fn(), submitInfiniteScore: vi.fn(), retry: vi.fn(), refresh: vi.fn() };
+  return { profile: companyProfile(), entries: [], infiniteEntries: [], infiniteV2Entries: [], syncStatus: "idle", pendingCount: 0,
+    errorMessage: null, submitResult: vi.fn(), submitInfiniteV2Score: vi.fn(), retry: vi.fn(), refresh: vi.fn() };
 }
 function audio(): AudioController {
   return { startBgm: vi.fn().mockResolvedValue(true), stopBgm: vi.fn(), setEventActive: vi.fn(), setPreferences: vi.fn(),
@@ -118,12 +118,12 @@ describe("InfiniteModeScreen", () => {
     expect(screen.getByTestId("infinite-score")).toHaveTextContent("1");
     expect(screen.getByTestId("infinite-distance")).toHaveTextContent(distance!);
     expect(screen.getByTestId("infinite-steps")).toHaveTextContent("계단 1칸 올라옴");
-    expect(company.submitInfiniteScore).not.toHaveBeenCalled();
+    expect(company.submitInfiniteV2Score).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "게임 재개" }));
     await act(async () => { await vi.advanceTimersByTimeAsync(2999); });
     expect(screen.getByTestId("infinite-score")).toHaveTextContent("1");
     expect(screen.getByTestId("infinite-distance")).toHaveTextContent(distance!);
-    expect(company.submitInfiniteScore).not.toHaveBeenCalled();
+    expect(company.submitInfiniteV2Score).not.toHaveBeenCalled();
     await act(async () => { await vi.advanceTimersByTimeAsync(1); });
     expect(screen.getByTestId("infinite-score")).toHaveTextContent("1");
     expect(screen.getByTestId("infinite-distance")).toHaveTextContent(distance!);
@@ -146,10 +146,10 @@ describe("InfiniteModeScreen", () => {
     fireEvent.click(document.querySelector<HTMLButtonElement>(".pause-menu-confirmation-actions button:nth-child(1)")!);
     expect(screen.getByText("게임 재개").closest("section")).toHaveTextContent("3");
     expect(screen.getByTestId("infinite-score")).toHaveTextContent("0");
-    expect(company.submitInfiniteScore).not.toHaveBeenCalled();
+    expect(company.submitInfiniteV2Score).not.toHaveBeenCalled();
     await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
     expect(screen.getByTestId("infinite-score")).toHaveTextContent("0");
-    expect(company.submitInfiniteScore).not.toHaveBeenCalled();
+    expect(company.submitInfiniteV2Score).not.toHaveBeenCalled();
   });
 
   it("requires title confirmation and invokes the title callback only for Yes", async () => {
@@ -214,7 +214,7 @@ describe("InfiniteModeScreen", () => {
     fireEvent.click(startActions[0]);
     await act(async () => { await vi.advanceTimersByTimeAsync(3000); });
     fireEvent.keyDown(window, { key: "j" });
-    expect(company.submitInfiniteScore).toHaveBeenCalledExactlyOnceWith({ score: 0 });
+    expect(company.submitInfiniteV2Score).toHaveBeenCalledExactlyOnceWith({ score: 0 });
     expect(screen.queryByRole("heading", { name: "계단에서 넘어졌어요" })).not.toBeInTheDocument();
     await act(async () => { await vi.advanceTimersByTimeAsync(500); });
     const resultActions = Array.from(document.querySelectorAll<HTMLButtonElement>(".infinite-result-actions button"));

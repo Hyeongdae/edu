@@ -7,19 +7,19 @@
 [P01 Versioned Infinite Rankings](./phases/2026-11-11-infinite-mode-v1-v2-leaderboards/P01-versioned-infinite-rankings/phase.md)
 
 ## Active Task
-[T02 Route Client Records and Preserve v1 Queue](./phases/2026-11-11-infinite-mode-v1-v2-leaderboards/P01-versioned-infinite-rankings/T02-client-store-and-queue.md)
+[T03 Show Versioned Infinite Leaderboards](./phases/2026-11-11-infinite-mode-v1-v2-leaderboards/P01-versioned-infinite-rankings/T03-versioned-ranking-ui.md)
 
 ## Last Completed Task
-[T01 Add R Restart Hint](./phases/2026-11-10-r-keyboard-hint/P01-control-hints/T01-add-r-hint.md) - `fa8ded0` (2026-11-10).
+[T02 Route Client Records and Preserve v1 Queue](./phases/2026-11-11-infinite-mode-v1-v2-leaderboards/P01-versioned-infinite-rankings/T02-client-store-and-queue.md) - `d9b4d10` (2026-11-11).
 
 ## Previous Completed Task
-[T03 Versioned Bottoms Persistence](./phases/2026-11-04-character-bottoms-customization/P01-bottoms-customization/T03-versioned-bottoms-persistence.md) — `d7b6e24` (2026-11-04).
+[T01 Add v2 Cosmos Fields and API](./phases/2026-11-11-infinite-mode-v1-v2-leaderboards/P01-versioned-infinite-rankings/T01-v2-cosmos-api.md) - `fd71f62` (2026-11-11).
 
 ## Status
-- Plan `infinite-mode-v1-v2-leaderboards`: T01 code and available checks are complete; Cosmos integration remains unverified because no local emulator endpoint is configured. Proceeding to T02 at the user's direction.
+- Plan `infinite-mode-v1-v2-leaderboards`: T01 and T02 code are implemented and committed. T01 Cosmos integration remains unverified because no local emulator endpoint is configured. T02 routes new infinite scores to v2 and legacy queued scores to v1; focused tests, lint, and build pass.
 
 ## Next Step (IMPORTANT)
-Implement T02: route new infinite scores to v2 while keeping already queued legacy `infinite` results on v1.
+Implement T03: add stage/infinite v1/infinite v2 leaderboard tabs, defaulting to the v2 ranking.
 
 ## Completed Plan History
 - character-bottoms-customization T01 (`2d6b996`), T02 (`e30fea8`), T03 (`d7b6e24`), T04 (`d480239`) 완료, done4/4. Active Task 없음. 이번 실행은 마지막 T04만 구현/검증/커밋했다.

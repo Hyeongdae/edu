@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { mergeSharedInfiniteScore, mergeSharedResult } from "../../shared/companyRecords";
+import { mergeSharedInfiniteScore, mergeSharedInfiniteV2Score, mergeSharedResult } from "../../shared/companyRecords";
 import type { SaveAppearanceResponse, SharedProfile } from "../../shared/companyRecords";
 import { companyAck, companyProfile, companyResult, companySubmission, deferred } from "../test/companyFixtures";
 import { CompanyRecordStore, companyPendingKey } from "./CompanyRecordStore";
@@ -23,6 +23,7 @@ function setup(initial = companyProfile(), storage = memory()) {
     fetchProfile: vi.fn<CompanyRecordApi["fetchProfile"]>().mockImplementation(async () => server),
     fetchLeaderboard: vi.fn<CompanyRecordApi["fetchLeaderboard"]>().mockResolvedValue([]),
     fetchInfiniteLeaderboard: vi.fn<CompanyRecordApi["fetchInfiniteLeaderboard"]>().mockResolvedValue([]),
+    fetchInfiniteV2Leaderboard: vi.fn<CompanyRecordApi["fetchInfiniteV2Leaderboard"]>().mockResolvedValue([]),
     postResult: vi.fn<CompanyRecordApi["postResult"]>().mockImplementation(async (accountId, input) => {
       server = mergeSharedResult(server, { accountId, displayName: server.displayName }, input.result, now).profile;
       return companyAck(input, server);
@@ -30,6 +31,10 @@ function setup(initial = companyProfile(), storage = memory()) {
     postInfiniteResult: vi.fn<CompanyRecordApi["postInfiniteResult"]>().mockImplementation(async (accountId, input) => {
       server = mergeSharedInfiniteScore(server, { accountId, displayName: server.displayName }, input.result, now).profile;
       return { submissionId: input.submissionId, profile: server, entries: server.infiniteBest ? [server.infiniteBest] : [] };
+    }),
+    postInfiniteV2Result: vi.fn<CompanyRecordApi["postInfiniteV2Result"]>().mockImplementation(async (accountId, input) => {
+      server = mergeSharedInfiniteV2Score(server, { accountId, displayName: server.displayName }, input.result, now).profile;
+      return { submissionId: input.submissionId, profile: server, entries: server.infiniteV2Best ? [server.infiniteV2Best] : [] };
     }),
     postAppearance: vi.fn<NonNullable<CompanyRecordApi["postAppearance"]>>().mockImplementation(async (accountId, input) => {
       if (accountId !== server.accountId) throw new RecordApiError("unauthenticated");
@@ -204,22 +209,22 @@ describe("account appearance autosave", () => {
     const order: string[] = [];
     const gate = deferred<void>();
     const saveStage = api.postResult.getMockImplementation()!;
-    const saveInfinite = api.postInfiniteResult.getMockImplementation()!;
+    const saveInfinite = api.postInfiniteV2Result.getMockImplementation()!;
     const saveAppearance = api.postAppearance.getMockImplementation()!;
     api.postResult.mockImplementationOnce(async (...args) => { order.push("stage"); const response = await saveStage(...args); await gate.promise; return response; });
-    api.postInfiniteResult.mockImplementation(async (...args) => { order.push("infinite"); return saveInfinite(...args); });
+    api.postInfiniteV2Result.mockImplementation(async (...args) => { order.push("infinite-v2"); return saveInfinite(...args); });
     api.postAppearance.mockImplementation(async (...args) => { order.push("appearance"); return saveAppearance(...args); });
     const appearance = withRunner({ hat: "cap", bottoms: "skirt", bottomsColor: "beige" });
     appearance.pursuer = { ...appearance.pursuer, bottoms: "shorts", bottomsColor: "white" };
     store.updateAppearance(appearance);
     store.submitResult(companyResult({ score: 150, outcome: "cleared" }));
-    store.submitInfiniteScore({ score: 120 }); await settle();
+    store.submitInfiniteV2Score({ score: 120 }); await settle();
     await vi.advanceTimersByTimeAsync(400);
     expect(order).toEqual(["stage"]);
     expect(binding(store).pendingCount).toBe(2);
     gate.resolve(); await settle();
-    expect(order).toEqual(["stage", "infinite", "appearance"]);
-    expect(readServer()).toMatchObject({ appearance, highestClearedStage: 1, best: { bestScore: 150 }, infiniteBest: { bestScore: 120 } });
+    expect(order).toEqual(["stage", "infinite-v2", "appearance"]);
+    expect(readServer()).toMatchObject({ appearance, highestClearedStage: 1, best: { bestScore: 150 }, infiniteV2Best: { bestScore: 120 } });
     expect(binding(store).pendingCount).toBe(0);
     expect(appearanceBinding(store).status).toBe("saved");
     expect(JSON.parse(storage.data.get(companyPendingKey("employee-a"))!)).toEqual({ version: 2, accountId: "employee-a", pending: [] });
@@ -390,7 +395,7 @@ describe("account appearance autosave", () => {
   it("restores saved bottoms through a new HTTP-backed store session without writing them again", async () => {
     const first = setup(); first.store.start(); await settle();
     first.store.submitResult(companyResult({ score: 150, outcome: "cleared" }));
-    first.store.submitInfiniteScore({ score: 120 }); await settle();
+    first.store.submitInfiniteV2Score({ score: 120 }); await settle();
     const appearance = withRunner({ bottoms: "skirt", bottomsColor: "beige", bag: "backpack" });
     appearance.pursuer = { ...appearance.pursuer, bottoms: "shorts", bottomsColor: "white", eyeStyle: "sharp" };
     first.store.updateAppearance(appearance); await vi.advanceTimersByTimeAsync(400);
@@ -401,7 +406,7 @@ describe("account appearance autosave", () => {
     expect(appearanceBinding(next.store)).toMatchObject({ value: appearance, status: "idle" });
     expect(binding(next.store).profile).toEqual(persisted);
     expect(binding(next.store).profile).toMatchObject({ highestClearedStage: 1,
-      best: { bestScore: 150 }, infiniteBest: { bestScore: 120 } });
+      best: { bestScore: 150 }, infiniteBest: null, infiniteV2Best: { bestScore: 120 } });
     await vi.advanceTimersByTimeAsync(1000);
     expect(next.api.postAppearance).not.toHaveBeenCalled();
     const other = setup(companyProfile({ accountId: "employee-b" })); other.store.start(); await settle();
@@ -482,15 +487,72 @@ describe("account-bound company record store", () => {
     expect(JSON.parse(storage.data.get(companyPendingKey("employee-a"))!).version).toBe(2);
   });
 
-  it("stores infinite scores in the v2 queue and updates only the infinite personal best", async () => {
+  it("stores new infinite scores in the v2 queue and updates only the v2 personal best", async () => {
     const { store, api } = setup();
     store.start(); await settle();
-    store.submitInfiniteScore(Object.freeze({ score: 75 })); await settle();
-    expect(api.postInfiniteResult).toHaveBeenCalledOnce();
-    expect(api.postInfiniteResult.mock.calls[0][1].result).toEqual({ score: 75 });
-    expect(binding(store).profile.infiniteBest).toMatchObject({ bestScore: 75 });
+    store.submitInfiniteV2Score(Object.freeze({ score: 75 })); await settle();
+    expect(api.postInfiniteV2Result).toHaveBeenCalledOnce();
+    expect(api.postInfiniteV2Result.mock.calls[0][1].result).toEqual({ score: 75 });
+    expect(api.postInfiniteResult).not.toHaveBeenCalled();
+    expect(binding(store).profile.infiniteV2Best).toMatchObject({ bestScore: 75 });
+    expect(binding(store).profile.infiniteBest).toBeNull();
     expect(binding(store).profile.best).toBeNull();
-    expect(binding(store).infiniteEntries).toHaveLength(1);
+    expect(binding(store).infiniteV2Entries).toHaveLength(1);
+  });
+
+  it("replays the persisted legacy infinite discriminator only through the v1 endpoint", async () => {
+    const storage = memory();
+    const legacy = { mode: "infinite", submissionId: "00000000-0000-4000-8000-000000000091", createdAt: now, result: { score: 91 } };
+    storage.data.set(companyPendingKey("employee-a"), JSON.stringify({ version: 1, accountId: "employee-a", pending: [legacy] }));
+    const { store, api } = setup(companyProfile(), storage); store.start(); await settle();
+    expect(api.postInfiniteResult).toHaveBeenCalledOnce();
+    expect(api.postInfiniteResult.mock.calls[0][1]).toEqual({ submissionId: legacy.submissionId, result: legacy.result });
+    expect(api.postInfiniteV2Result).not.toHaveBeenCalled();
+    expect(binding(store).profile).toMatchObject({ infiniteBest: { bestScore: 91 }, infiniteV2Best: null });
+    expect(JSON.parse(storage.data.get(companyPendingKey("employee-a"))!).pending).toEqual([]);
+  });
+
+  it("canonicalizes a pending legacy queue item before retrying it", async () => {
+    const storage = memory();
+    const legacy = { mode: "infinite", submissionId: "00000000-0000-4000-8000-000000000094", createdAt: now, result: { score: 91 } };
+    storage.data.set(companyPendingKey("employee-a"), JSON.stringify({ version: 1, accountId: "employee-a", pending: [legacy] }));
+    const { store, api } = setup(companyProfile(), storage);
+    api.postInfiniteResult.mockRejectedValueOnce(new RecordApiError("network"));
+    store.start(); await settle();
+    expect(api.postInfiniteResult).toHaveBeenCalledOnce();
+    expect(JSON.parse(storage.data.get(companyPendingKey("employee-a"))!).pending[0]).toMatchObject({
+      mode: "infinite-v1", submissionId: legacy.submissionId, createdAt: now, result: legacy.result,
+    });
+  });
+
+  it("routes mixed stage, v1, and v2 queue items FIFO to matching APIs", async () => {
+    const storage = memory();
+    const stage = companySubmission();
+    const legacy = { mode: "infinite", submissionId: "00000000-0000-4000-8000-000000000092", createdAt: now, result: { score: 40 } };
+    const v2 = { mode: "infinite-v2", submissionId: "00000000-0000-4000-8000-000000000093", createdAt: now, result: { score: 80 } };
+    storage.data.set(companyPendingKey("employee-a"), JSON.stringify({ version: 2, accountId: "employee-a",
+      pending: [{ ...stage, mode: "stage", createdAt: now }, legacy, v2] }));
+    const { store, api } = setup(companyProfile(), storage); store.start(); await settle();
+    expect(api.postResult).toHaveBeenCalledOnce();
+    expect(api.postInfiniteResult).toHaveBeenCalledOnce();
+    expect(api.postInfiniteV2Result).toHaveBeenCalledOnce();
+    expect(binding(store).profile).toMatchObject({ best: { bestScore: 100 }, infiniteBest: { bestScore: 40 }, infiniteV2Best: { bestScore: 80 } });
+    expect(JSON.parse(storage.data.get(companyPendingKey("employee-a"))!).pending).toEqual([]);
+  });
+
+  it("keeps v1 and v2 profile bests separate from their respective top ten lists", async () => {
+    const profile = companyProfile({
+      infiniteBest: { accountId: "employee-a", displayName: "회사원 A", bestScore: 110, achievedAt: now },
+      infiniteV2Best: { accountId: "employee-a", displayName: "회사원 A", bestScore: 210, achievedAt: now },
+    });
+    const { store, api } = setup(profile);
+    api.fetchInfiniteLeaderboard.mockResolvedValue([{ accountId: "employee-b", displayName: "B", bestScore: 300, achievedAt: now }]);
+    api.fetchInfiniteV2Leaderboard.mockResolvedValue([{ accountId: "employee-c", displayName: "C", bestScore: 400, achievedAt: now }]);
+    store.start(); await settle();
+    expect(binding(store).infiniteEntries.map(({ accountId }) => accountId)).toEqual(["employee-b", "employee-a"]);
+    expect(binding(store).infiniteV2Entries.map(({ accountId }) => accountId)).toEqual(["employee-c", "employee-a"]);
+    expect(binding(store).profile.infiniteBest?.bestScore).toBe(110);
+    expect(binding(store).profile.infiniteV2Best?.bestScore).toBe(210);
   });
 
   it("serializes a clear before the following unlocked stage despite immediate continued play", async () => {

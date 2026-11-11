@@ -166,7 +166,7 @@ export function InfiniteModeScreen({
     audioController?.setEventActive(false);
     audioController?.playFall();
     audioController?.stopBgm();
-    companyRecords?.submitInfiniteScore({ score: gameState.score });
+    companyRecords?.submitInfiniteV2Score({ score: gameState.score });
   }, [audioController, companyRecords, gameState.status, gameState.score]);
 
   useEffect(() => () => audioController?.setEventActive(false), [audioController]);

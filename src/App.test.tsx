@@ -143,7 +143,8 @@ describe("authenticated audio setup", () => {
     await openAudioSettings();
     expect(screen.getByText("회사 사용자")).toBeVisible();
     expect(screen.queryByText("로컬 테스트 사용자")).not.toBeInTheDocument();
-    expect(fetcher).toHaveBeenCalledTimes(4);
+    expect(fetcher).toHaveBeenCalledTimes(5);
+    expect(fetcher.mock.calls.some(([path]) => path === "/api/infinite-v2-leaderboard")).toBe(true);
   });
 
   it("does not create audio or a game while hosted identity is unavailable", async () => {

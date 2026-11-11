@@ -18,12 +18,13 @@ export interface CompanyRecordBinding {
   profile: SharedProfile;
   entries: SharedBest[];
   infiniteEntries: SharedInfiniteBest[];
+  infiniteV2Entries: SharedInfiniteBest[];
   syncStatus: SyncStatus;
   pendingCount: number;
   errorMessage: string | null;
   appearance?: AppearanceBinding;
   submitResult(result: StageResult): void;
-  submitInfiniteScore(result: InfiniteScoreInput): void;
+  submitInfiniteV2Score(result: InfiniteScoreInput): void;
   retry(): void;
   refresh(): void;
 }
@@ -36,7 +37,7 @@ export interface PendingStageResult {
 }
 
 export interface PendingInfiniteResult {
-  mode: "infinite";
+  mode: "infinite-v1" | "infinite-v2";
   submissionId: string;
   createdAt: string;
   result: InfiniteScoreInput;

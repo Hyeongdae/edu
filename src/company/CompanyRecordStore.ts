@@ -31,6 +31,7 @@ export class CompanyRecordStore {
   private profile: SharedProfile | null = null;
   private entries: SharedBest[] = [];
   private infiniteEntries: SharedInfiniteBest[] = [];
+  private infiniteV2Entries: SharedInfiniteBest[] = [];
   private pending: PendingResult[] = [];
   private loadedQueue = false;
   private active = false;
@@ -112,7 +113,7 @@ export class CompanyRecordStore {
     this.kick();
   };
 
-  submitInfiniteScore = (result: InfiniteScoreInput): void => {
+  submitInfiniteV2Score = (result: InfiniteScoreInput): void => {
     if (!this.active || !this.profile || this.submittedInfinite.has(result)) return;
     const input = Object.freeze({ score: result.score });
     const submissionId = (this.options.uuid ?? (() => crypto.randomUUID()))();
@@ -124,7 +125,7 @@ export class CompanyRecordStore {
       return;
     }
     this.submittedInfinite.set(result, submissionId);
-    this.pending.push(Object.freeze({ mode: "infinite", submissionId,
+    this.pending.push(Object.freeze({ mode: "infinite-v2", submissionId,
       createdAt: (this.options.now?.() ?? new Date()).toISOString(), result: input }));
     this.persist();
     this.publish();
@@ -224,13 +225,17 @@ export class CompanyRecordStore {
         if (mode === "stage") {
           if (!isSubmitResultRequest({ submissionId: item.submissionId, result: item.result }) || !validateResultForProfile(item.result, 5).ok) throw new Error();
           pending.push({ mode, submissionId: item.submissionId, createdAt: item.createdAt, result: item.result });
-        } else if (mode === "infinite") {
+        } else if (mode === "infinite" || mode === "infinite-v1") {
+          if (!isSubmitInfiniteScoreRequest({ submissionId: item.submissionId, result: item.result })) throw new Error();
+          pending.push({ mode: "infinite-v1", submissionId: item.submissionId, createdAt: item.createdAt, result: item.result });
+        } else if (mode === "infinite-v2") {
           if (!isSubmitInfiniteScoreRequest({ submissionId: item.submissionId, result: item.result })) throw new Error();
           pending.push({ mode, submissionId: item.submissionId, createdAt: item.createdAt, result: item.result });
         } else throw new Error();
         ids.add(item.submissionId);
       }
       this.pending = pending;
+      if (pending.length) this.persist(); // Upgrade legacy mode labels before any retry can be interrupted.
     } catch {
       // Ignore a corrupt/unavailable queue without uploading it or clearing any legacy/account data.
       this.persistenceWarning = "이 브라우저의 대기 기록을 읽지 못했습니다. 새 대기 기록은 새로고침 시 유지되지 않을 수 있어요.";
@@ -257,7 +262,11 @@ export class CompanyRecordStore {
     if (previous?.infiniteBest && (!infiniteBest || compareSharedInfiniteScore(previous.infiniteBest, infiniteBest) <= 0)) {
       infiniteBest = { ...previous.infiniteBest, displayName: incoming.displayName };
     }
-    this.profile = { ...incoming, best, infiniteBest,
+    let infiniteV2Best = incoming.infiniteV2Best;
+    if (previous?.infiniteV2Best && (!infiniteV2Best || compareSharedInfiniteScore(previous.infiniteV2Best, infiniteV2Best) <= 0)) {
+      infiniteV2Best = { ...previous.infiniteV2Best, displayName: incoming.displayName };
+    }
+    this.profile = { ...incoming, best, infiniteBest, infiniteV2Best,
       ...(incoming.appearance ? { appearance: cloneCharacterAppearance(incoming.appearance) } : {}),
       highestClearedStage: Math.max(previous?.highestClearedStage ?? 0, incoming.highestClearedStage) as SharedProfile["highestClearedStage"] };
     if (this.appearanceDraft && this.appearanceStatus === "auth-required") {
@@ -273,9 +282,9 @@ export class CompanyRecordStore {
         : { status: "loading" };
     } else {
       this.snapshot = { status: "ready", binding: {
-        profile: this.profile, entries: this.entries, infiniteEntries: this.infiniteEntries, syncStatus: this.syncStatus,
+        profile: this.profile, entries: this.entries, infiniteEntries: this.infiniteEntries, infiniteV2Entries: this.infiniteV2Entries, syncStatus: this.syncStatus,
         pendingCount: this.pending.length, errorMessage: [this.errorMessage, this.persistenceWarning].filter(Boolean).join(" ") || null,
-        submitResult: this.submitResult, submitInfiniteScore: this.submitInfiniteScore, retry: this.retry, refresh: this.refresh,
+        submitResult: this.submitResult, submitInfiniteV2Score: this.submitInfiniteV2Score, retry: this.retry, refresh: this.refresh,
         appearance: {
           value: this.appearanceDraft ? cloneCharacterAppearance(this.appearanceDraft) : resolveCharacterAppearance(this.profile.appearance),
           status: this.appearanceStatus, errorMessage: this.appearanceErrorMessage,
@@ -344,27 +353,32 @@ export class CompanyRecordStore {
       while (current()) {
         if (!this.profile || this.needsRefresh) {
           this.needsRefresh = false;
-          const [profile, entries, infiniteEntries] = await Promise.all([
+          const [profile, entries, infiniteEntries, infiniteV2Entries] = await Promise.all([
             this.api.fetchProfile(this.accountId, controller.signal), this.api.fetchLeaderboard(controller.signal),
-            this.api.fetchInfiniteLeaderboard(controller.signal),
+            this.api.fetchInfiniteLeaderboard(controller.signal), this.api.fetchInfiniteV2Leaderboard(controller.signal),
           ]);
           if (!current()) return;
           this.acceptProfile(profile);
           this.entries = getSharedTopScores([...entries, ...(this.profile!.best ? [this.profile!.best] : [])]);
           this.infiniteEntries = getSharedTopInfiniteScores([...infiniteEntries, ...(this.profile!.infiniteBest ? [this.profile!.infiniteBest] : [])]);
+          this.infiniteV2Entries = getSharedTopInfiniteScores([...infiniteV2Entries, ...(this.profile!.infiniteV2Best ? [this.profile!.infiniteV2Best] : [])]);
           this.publish();
         } else if (this.pending.length) {
           const next = this.pending[0];
           const response = next.mode === "stage"
             ? await this.api.postResult(this.accountId, { submissionId: next.submissionId, result: next.result }, controller.signal)
-            : await this.api.postInfiniteResult(this.accountId, { submissionId: next.submissionId, result: next.result }, controller.signal);
+            : next.mode === "infinite-v1"
+              ? await this.api.postInfiniteResult(this.accountId, { submissionId: next.submissionId, result: next.result }, controller.signal)
+              : await this.api.postInfiniteV2Result(this.accountId, { submissionId: next.submissionId, result: next.result }, controller.signal);
           if (!current()) return;
           if (response.submissionId !== next.submissionId) throw new RecordApiError("invalid-response");
           this.acceptProfile(response.profile);
           if (next.mode === "stage") {
             this.entries = getSharedTopScores([...response.entries as SharedBest[], ...(this.profile!.best ? [this.profile!.best] : [])]);
-          } else {
+          } else if (next.mode === "infinite-v1") {
             this.infiniteEntries = getSharedTopInfiniteScores([...response.entries as SharedInfiniteBest[], ...(this.profile!.infiniteBest ? [this.profile!.infiniteBest] : [])]);
+          } else {
+            this.infiniteV2Entries = getSharedTopInfiniteScores([...response.entries as SharedInfiniteBest[], ...(this.profile!.infiniteV2Best ? [this.profile!.infiniteV2Best] : [])]);
           }
           this.pending = this.pending.filter((item) => item.submissionId !== response.submissionId);
           this.persist();

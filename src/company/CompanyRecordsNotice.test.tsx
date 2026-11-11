@@ -6,8 +6,8 @@ import { CompanyRecordsNotice } from "./CompanyRecordsNotice";
 import type { CompanyRecordBinding } from "./types";
 
 afterEach(cleanup);
-const records = (): CompanyRecordBinding => ({ profile: companyProfile(), entries: [], infiniteEntries: [], syncStatus: "error", pendingCount: 1,
-  errorMessage: "사내 저장 실패", submitResult: vi.fn(), submitInfiniteScore: vi.fn(), retry: vi.fn(), refresh: vi.fn() });
+const records = (): CompanyRecordBinding => ({ profile: companyProfile(), entries: [], infiniteEntries: [], infiniteV2Entries: [], syncStatus: "error", pendingCount: 1,
+  errorMessage: "사내 저장 실패", submitResult: vi.fn(), submitInfiniteV2Score: vi.fn(), retry: vi.fn(), refresh: vi.fn() });
 
 describe("company save notice", () => {
   it("keeps the actual nested retry control in the checkpoint Tab loop", () => {

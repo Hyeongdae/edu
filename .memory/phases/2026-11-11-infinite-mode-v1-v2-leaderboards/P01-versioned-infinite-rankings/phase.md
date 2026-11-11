@@ -8,8 +8,8 @@
 | Task | Status | Summary | Blueprint |
 | :--- | :--- | :--- | :--- |
 | T01 | `done` | Add independent v2 profile fields, Cosmos ranking query, and authenticated v2 ranking/result API routes (Cosmos emulator integration pending) | [T01](./T01-v2-cosmos-api.md) |
-| T02 | `in_progress` | Route new infinite submissions to v2 and preserve legacy queued infinite submissions on v1 | [T02](./T02-client-store-and-queue.md) |
-| T03 | `pending` | Show stage, infinite v1, and infinite v2 leaderboard tabs, defaulting to v2 | [T03](./T03-versioned-ranking-ui.md) |
+| T02 | `done` | Route new infinite submissions to v2 and preserve legacy queued infinite submissions on v1 | [T02](./T02-client-store-and-queue.md) |
+| T03 | `in_progress` | Show stage, infinite v1, and infinite v2 leaderboard tabs, defaulting to v2 | [T03](./T03-versioned-ranking-ui.md) |
 
 ## Progress
-- done: 1/3 (active: T02)
+- done: 2/3 (active: T03)

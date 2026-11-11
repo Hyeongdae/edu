@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { companyAck, companyProfile, companySubmission, deferred } from "../test/companyFixtures";
-import { fetchInfiniteLeaderboard, fetchLeaderboard, fetchProfile, isSharedBest, isSharedProfile, normalizeSharedProfile, postAppearance, postInfiniteResult, postResult } from "./recordApi";
+import { fetchInfiniteLeaderboard, fetchInfiniteV2Leaderboard, fetchLeaderboard, fetchProfile, isSharedBest, isSharedProfile, normalizeSharedProfile, postAppearance, postInfiniteResult, postInfiniteV2Result, postResult } from "./recordApi";
 import { getDefaultCharacterAppearance } from "../../shared/characterAppearance";
 import type { SaveAppearanceRequest } from "../../shared/characterAppearance";
 import { getDefaultCharacterAppearance as getLegacyAppearance } from "../../shared/legacyCharacterAppearance";
@@ -14,11 +14,13 @@ function legacyWireProfile() {
   const appearance = getLegacyAppearance();
   appearance.runner = { gender: "female", hairStyle: "ponytail", hairColor: "blond", skinTone: "deep",
     outfit: "cardigan", outfitColor: "teal", hat: "cap", glasses: "round", shoes: "sneakers", shoeColor: "white" };
-  return { ...companyProfile({ highestClearedStage: 1,
+  const profile = { ...companyProfile({ highestClearedStage: 1,
     best: { accountId: "employee-a", displayName: "회사원 A", bestStage: 1, bestScore: 150,
       remainingTimeCs: 6000, achievedAt: "2026-11-04T00:00:00.000Z" },
     infiniteBest: { accountId: "employee-a", displayName: "회사원 A", bestScore: 300, achievedAt: "2026-11-04T00:00:00.000Z" },
   }), appearance };
+  delete (profile as Partial<typeof profile>).infiniteV2Best;
+  return profile;
 }
 
 function expandedWireProfile() {
@@ -39,6 +41,7 @@ describe("versioned profile normalization", () => {
     expect(normalized.appearance).toMatchObject({ version: 3,
       runner: { bottoms: "trousers", bottomsColor: "navy" }, pursuer: { bottoms: "trousers", bottomsColor: "navy" } });
     expect(normalized.best).toEqual(wire.best); expect(normalized.infiniteBest).toEqual(wire.infiniteBest);
+    expect(normalized.infiniteV2Best).toBeNull();
     expect(wire).toEqual(before); expect(normalized).not.toBe(wire);
     normalized.appearance!.runner.hat = "none"; expect(wire.appearance.runner.hat).toBe(before.appearance.runner.hat);
     expect(normalizeSharedProfile(wire, "another-account")).toBeNull();
@@ -231,6 +234,36 @@ describe("company record HTTP boundary", () => {
     expect(fetcher.mock.calls[1][0]).toBe("/api/infinite-results");
     expect(fetcher.mock.calls[1][1]).toMatchObject({ credentials: "include", cache: "no-store", mode: "same-origin" });
     expect(JSON.parse(fetcher.mock.calls[1][1].body)).toEqual(input);
+  });
+
+  it("uses the v2 endpoints and keeps the response's v1 and v2 personal bests separate", async () => {
+    const input = { submissionId: "0b220b82-bccc-4b85-b763-d824001bc73b", result: { score: 450 } };
+    const infiniteBest = { accountId: "employee-a", displayName: "회사원 A", bestScore: 120, achievedAt: "2026-10-30T00:00:00.000Z" };
+    const infiniteV2Best = { ...infiniteBest, bestScore: 450 };
+    const profile = companyProfile({ infiniteBest, infiniteV2Best });
+    const fetcher = vi.fn().mockResolvedValueOnce(Response.json({ entries: [infiniteV2Best] }))
+      .mockResolvedValueOnce(Response.json({ submissionId: input.submissionId, profile, entries: [infiniteV2Best] }));
+    vi.stubGlobal("fetch", fetcher);
+    expect(await fetchInfiniteV2Leaderboard(new AbortController().signal)).toEqual([infiniteV2Best]);
+    expect(await postInfiniteV2Result("employee-a", input, new AbortController().signal))
+      .toMatchObject({ submissionId: input.submissionId, profile, entries: [infiniteV2Best] });
+    expect(fetcher.mock.calls[0][0]).toBe("/api/infinite-v2-leaderboard");
+    expect(fetcher.mock.calls[1][0]).toBe("/api/infinite-v2-results");
+    expect(fetcher.mock.calls[1][1]).toMatchObject({ credentials: "include", cache: "no-store", mode: "same-origin",
+      headers: { "X-Game-Account": "employee-a", "X-Game-Request": "1" } });
+    expect(JSON.parse(fetcher.mock.calls[1][1].body)).toEqual(input);
+  });
+
+  it("rejects invalid, duplicate, or cross-account v2 data", async () => {
+    const valid = { accountId: "employee-a", displayName: "A", bestScore: 5, achievedAt: "2026-10-30T00:00:00.000Z" };
+    for (const entries of [[{ ...valid, bestScore: -1 }], [valid, valid]]) {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ entries })));
+      await expect(fetchInfiniteV2Leaderboard(new AbortController().signal)).rejects.toMatchObject({ code: "invalid-response" });
+    }
+    const profile = companyProfile({ infiniteV2Best: { ...valid, accountId: "other-account" } });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ submissionId: "0b220b82-bccc-4b85-b763-d824001bc73b", profile, entries: [] })));
+    await expect(postInfiniteV2Result("employee-a", { submissionId: "0b220b82-bccc-4b85-b763-d824001bc73b", result: { score: 5 } }, new AbortController().signal))
+      .rejects.toMatchObject({ code: "invalid-response" });
   });
 
   it.each([401, 403, 302])("requires login on HTTP%s", async (status) => {

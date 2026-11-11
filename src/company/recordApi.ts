@@ -36,6 +36,7 @@ export function isSharedProfile(value: unknown, accountId: string): value is Sha
         value.best.bestStage <= getHighestUnlockedStage(value.highestClearedStage) &&
         (value.best.bestScore < getStageRule(value.best.bestStage).scoreRequired || value.highestClearedStage >= value.best.bestStage))) &&
     (value.infiniteBest === null || (isSharedInfiniteBest(value.infiniteBest) && value.infiniteBest.accountId === accountId)) &&
+    (value.infiniteV2Best === null || (isSharedInfiniteBest(value.infiniteV2Best) && value.infiniteV2Best.accountId === accountId)) &&
     (value.appearance === undefined || isCharacterAppearance(value.appearance));
 }
 
@@ -44,7 +45,7 @@ export function normalizeSharedProfile(value: unknown, accountId: string): Share
   if (!object(value)) return null;
   const appearance = value.appearance === undefined ? undefined : normalizeCharacterAppearance(value.appearance);
   if (appearance === null) return null;
-  const profile = { ...value, ...(appearance ? { appearance } : {}) };
+  const profile = { infiniteV2Best: null, ...value, ...(appearance ? { appearance } : {}) };
   return isSharedProfile(profile, accountId) ? profile : null;
 }
 
@@ -127,6 +128,15 @@ export async function fetchInfiniteLeaderboard(signal: AbortSignal): Promise<Sha
   return value.entries;
 }
 
+export async function fetchInfiniteV2Leaderboard(signal: AbortSignal): Promise<SharedInfiniteBest[]> {
+  const value = await request("/api/infinite-v2-leaderboard", signal);
+  if (!object(value) || !Array.isArray(value.entries) || value.entries.length > 10 ||
+    !value.entries.every(isSharedInfiniteBest) || new Set(value.entries.map((entry) => entry.accountId)).size !== value.entries.length) {
+    throw new RecordApiError("invalid-response");
+  }
+  return value.entries;
+}
+
 export async function postResult(accountId: string, payload: SubmitResultRequest, signal: AbortSignal): Promise<SubmitResultResponse> {
   const value = await request("/api/results", signal, accountId, payload);
   if (!object(value) || value.submissionId !== payload.submissionId ||
@@ -146,13 +156,25 @@ export async function postInfiniteResult(accountId: string, payload: SubmitInfin
   return { submissionId: payload.submissionId, profile, entries: value.entries };
 }
 
+export async function postInfiniteV2Result(accountId: string, payload: SubmitInfiniteScoreRequest, signal: AbortSignal): Promise<SubmitInfiniteScoreResponse> {
+  const value = await request("/api/infinite-v2-results", signal, accountId, payload);
+  if (!object(value) || value.submissionId !== payload.submissionId ||
+    !Array.isArray(value.entries) || value.entries.length > 10 || !value.entries.every(isSharedInfiniteBest) ||
+    new Set(value.entries.map((entry) => entry.accountId)).size !== value.entries.length) throw new RecordApiError("invalid-response");
+  const profile = normalizeSharedProfile(value.profile, accountId);
+  if (!profile) throw new RecordApiError("invalid-response");
+  return { submissionId: payload.submissionId, profile, entries: value.entries };
+}
+
 export async function postAppearance(accountId: string, payload: SaveAppearanceRequest, signal: AbortSignal): Promise<SaveAppearanceResponse> {
   if (!isSaveAppearanceRequest(payload)) throw new RecordApiError("invalid-request");
   const input = { appearance: cloneCharacterAppearance(payload.appearance) };
   const value = await request("/api/appearance", signal, accountId, input);
-  if (!object(value) || !isSharedProfile(value.profile, accountId) || !value.profile.appearance ||
-    !areCharacterAppearancesEqual(value.profile.appearance, input.appearance)) throw new RecordApiError("invalid-response");
-  return { profile: value.profile };
+  const hasCanonicalAppearance = object(value) && object(value.profile) && isCharacterAppearance(value.profile.appearance) &&
+    areCharacterAppearancesEqual(value.profile.appearance, input.appearance);
+  const profile = hasCanonicalAppearance ? normalizeSharedProfile(value.profile, accountId) : null;
+  if (!profile || !profile.appearance || !areCharacterAppearancesEqual(profile.appearance, input.appearance)) throw new RecordApiError("invalid-response");
+  return { profile };
 }
 
 export interface CompanyRecordApi {
@@ -161,7 +183,10 @@ export interface CompanyRecordApi {
   postResult: typeof postResult;
   fetchInfiniteLeaderboard: typeof fetchInfiniteLeaderboard;
   postInfiniteResult: typeof postInfiniteResult;
+  fetchInfiniteV2Leaderboard: typeof fetchInfiniteV2Leaderboard;
+  postInfiniteV2Result: typeof postInfiniteV2Result;
   postAppearance?: typeof postAppearance;
 }
 
-export const companyRecordApi: CompanyRecordApi = { fetchProfile, fetchLeaderboard, postResult, fetchInfiniteLeaderboard, postInfiniteResult, postAppearance };
+export const companyRecordApi: CompanyRecordApi = { fetchProfile, fetchLeaderboard, postResult, fetchInfiniteLeaderboard, postInfiniteResult,
+  fetchInfiniteV2Leaderboard, postInfiniteV2Result, postAppearance };

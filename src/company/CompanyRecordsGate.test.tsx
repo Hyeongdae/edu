@@ -23,6 +23,7 @@ describe("company profile bootstrap gate", () => {
     render(<StrictMode><CompanyRecordsGate account={account}>{(records) => <GameScreen account={account} companyRecords={records} />}</CompanyRecordsGate></StrictMode>);
     expect(screen.queryByRole("button", { name: "단계 모드" })).not.toBeInTheDocument();
     await screen.findByRole("button", { name: "단계 모드" }); enterSelection();
+    expect(fetcher.mock.calls.some(([path]) => path === "/api/infinite-v2-leaderboard")).toBe(true);
     expect(screen.getByRole("button", { name: "3단계 선택" })).toHaveAttribute("aria-pressed", "true");
     expect(read.mock.calls.every(([key]) => key.startsWith("stair-descent:company:production:pending:v1:"))).toBe(true);
   });
@@ -47,7 +48,7 @@ describe("company profile bootstrap gate", () => {
 
   it("unmounts the old account while loading another account and restores only that account's progress", async () => {
     const second = deferred<Response>();
-    vi.stubGlobal("fetch", vi.fn((path: string, init: RequestInit) => path === "/api/leaderboard" || path === "/api/infinite-leaderboard"
+    vi.stubGlobal("fetch", vi.fn((path: string, init: RequestInit) => path === "/api/leaderboard" || path === "/api/infinite-leaderboard" || path === "/api/infinite-v2-leaderboard"
       ? Promise.resolve(Response.json({ entries: [] })) : (init.headers as Record<string, string>)["X-Game-Account"] === "employee-a"
         ? Promise.resolve(Response.json(companyProfile({ highestClearedStage: 2 }))) : second.promise));
     const child = (records: Parameters<Parameters<typeof CompanyRecordsGate>[0]["children"]>[0]) => (
