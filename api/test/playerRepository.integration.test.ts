@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type { Container } from "@azure/cosmos";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createPlayerRepository, getPlayerRowKey } from "../src/playerRepository";
@@ -120,6 +120,78 @@ describe("real isolated Cosmos DB repository operations", () => {
     expect(await repo.listTopInfiniteScores()).toContainEqual(v1.infiniteBest);
     expect(await repo.listTopInfiniteV2Scores()).toContainEqual(v1.infiniteV2Best);
     expect(await countAccountDocuments(owner.accountId)).toBe(1);
+  });
+
+  it("commits a coin receipt and profile increment together, and replays the claim without a second credit", async () => {
+    const owner = actor("coin-replay");
+    const repo = repository();
+    expect((await repo.collectPointCoin(owner, "same-claim")).wallet.balance).toBe(1);
+    expect((await repo.collectPointCoin(owner, "same-claim")).wallet.balance).toBe(1);
+    expect((await repo.collectPointCoin(owner, "another-claim")).wallet.balance).toBe(2);
+    expect(await countAccountDocuments(owner.accountId)).toBe(3);
+    const { resources = [] } = await emulator.container.items.query<PlayerDocument>({
+      query: "SELECT * FROM c WHERE c.accountId = @accountId AND c.kind = @kind",
+      parameters: [{ name: "@accountId", value: owner.accountId }, { name: "@kind", value: "point-coin-claim" }],
+    }, { maxItemCount: 10 }).fetchAll();
+    expect(resources).toHaveLength(2);
+    expect(resources.every((receipt) => receipt.id.startsWith("coin_") && !receipt.id.includes("same-claim"))).toBe(true);
+    expect(await repo.listTopScores()).toEqual([]);
+  });
+
+  it("credits two simultaneous distinct claims once each in the same player partition", async () => {
+    const owner = actor("coin-concurrent");
+    const concurrent = repository(holdFirstItemReadsTogether(emulator.container as unknown as Container, 2));
+    await Promise.all([concurrent.collectPointCoin(owner, "parallel-one"), concurrent.collectPointCoin(owner, "parallel-two")]);
+    expect((await repository().getProfile(owner)).wallet.balance).toBe(2);
+    expect(await countAccountDocuments(owner.accountId)).toBe(3);
+  });
+
+  it("does not double-credit the same claim when two requests race", async () => {
+    const owner = actor("coin-replay-race");
+    const concurrent = repository(holdFirstItemReadsTogether(emulator.container as unknown as Container, 2));
+    const results = await Promise.all([concurrent.collectPointCoin(owner, "one-shared-claim"),
+      concurrent.collectPointCoin(owner, "one-shared-claim")]);
+    expect(results.map((profile) => profile.wallet.balance)).toEqual([1, 1]);
+    expect(await countAccountDocuments(owner.accountId)).toBe(2);
+  });
+
+  it("rolls back the receipt when the player replacement fails its ETag condition", async () => {
+    const owner = actor("coin-rollback");
+    const document: PlayerDocument = { id: getPlayerRowKey(owner.accountId), ...owner, schemaVersion: 1,
+      highestClearedStage: 0, pointBalance: 4, ownedPointEffects: [], equippedPointEffect: null };
+    await emulator.container.items.create(document);
+    const receiptId = "coin_" + createHash("sha256").update("rollback-claim").digest("hex");
+    const rawContainer = emulator.container as unknown as Container;
+    const current = await rawContainer.item(document.id, owner.accountId).read<PlayerDocument>();
+    const response = await rawContainer.items.batch([
+      { operationType: "Create", resourceBody: { id: receiptId, accountId: owner.accountId,
+        kind: "point-coin-claim", createdAt: NOW } },
+      { operationType: "Replace", id: document.id, ifMatch: "stale-etag", resourceBody: {
+        ...JSON.parse(JSON.stringify({ ...document, pointBalance: 5 })),
+      } as never },
+    ], owner.accountId);
+    expect((response.result ?? []).some((operation) => operation.statusCode >= 400)).toBe(true);
+    await expect(rawContainer.item(receiptId, owner.accountId).read()).rejects.toMatchObject({ code: 404 });
+    const after = await rawContainer.item(document.id, owner.accountId).read<PlayerDocument>();
+    expect(after.etag).toBe(current.etag);
+    expect(after.resource?.pointBalance).toBe(4);
+  });
+
+  it("debits a purchased effect while retaining rankings, progress, and appearance", async () => {
+    const owner = actor("point-purchase-preserve"), appearance = getDefaultCharacterAppearance();
+    appearance.runner = { ...appearance.runner, hat: "cap", bag: "laptop", bagColor: "navy" };
+    const document: PlayerDocument = { id: getPlayerRowKey(owner.accountId), ...owner, schemaVersion: 1,
+      highestClearedStage: 2, bestStage: 2, bestScore: 175, remainingTimeCs: 1200, achievedAt: NOW,
+      infiniteBestScore: 50, infiniteAchievedAt: NOW, infiniteV2BestScore: 60, infiniteV2AchievedAt: NOW,
+      appearance, pointBalance: 250, ownedPointEffects: [], equippedPointEffect: null };
+    await emulator.container.items.create(document);
+    const profile = await repository().purchasePointEffect(owner, "sparkle");
+    expect(profile).toMatchObject({ highestClearedStage: 2, best: { bestScore: 175 }, infiniteBest: { bestScore: 50 },
+      infiniteV2Best: { bestScore: 60 }, appearance: normalizeCharacterAppearance(appearance),
+      wallet: { balance: 50, ownedEffects: ["sparkle"], equippedEffect: "sparkle" } });
+    expect(await repository().purchasePointEffect(owner, "sparkle")).toEqual(profile);
+    await expect(repository().purchasePointEffect(owner, "fire")).rejects.toMatchObject({ code: "insufficient-points" });
+    await expect(repository().equipPointEffect(owner, "fire")).rejects.toMatchObject({ code: "effect-not-owned" });
   });
 
   it.each(["stage", "infinite"] as const)("preserves legacy choices when a real %s improvement upgrades the document", async mode => {

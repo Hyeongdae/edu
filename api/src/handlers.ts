@@ -1,5 +1,5 @@
 import type { HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
-import { isSubmitInfiniteScoreRequest, isSubmitResultRequest } from "../../shared/companyRecords";
+import { isCollectPointCoinRequest, isEquipPointEffectRequest, isPurchasePointEffectRequest, isSubmitInfiniteScoreRequest, isSubmitResultRequest } from "../../shared/companyRecords";
 import type { AuthenticatedActor } from "../../shared/companyRecords";
 import { isSaveAppearanceRequest } from "../../shared/characterAppearance";
 import { RecordServiceError } from "./errors";
@@ -49,6 +49,9 @@ export function createRecordHandlers(deps: { repository: PlayerRepository }): {
   infiniteResults: RecordHandler;
   infiniteV2Results: RecordHandler;
   appearance: RecordHandler;
+  pointCoin: RecordHandler;
+  pointPurchase: RecordHandler;
+  pointEquip: RecordHandler;
 } {
   async function authenticated(
     req: HttpRequest,
@@ -80,6 +83,21 @@ export function createRecordHandlers(deps: { repository: PlayerRepository }): {
       const payload = await readResultBody(req);
       if (!isSaveAppearanceRequest(payload)) throw new RecordServiceError("invalid-request");
       return { profile: await deps.repository.saveAppearance(actor, payload.appearance) };
+    }),
+    pointCoin: (req) => authenticated(req, async (actor) => {
+      const payload = await readResultBody(req);
+      if (!isCollectPointCoinRequest(payload)) throw new RecordServiceError("invalid-request");
+      return { profile: await deps.repository.collectPointCoin(actor, payload.claimId) };
+    }),
+    pointPurchase: (req) => authenticated(req, async (actor) => {
+      const payload = await readResultBody(req);
+      if (!isPurchasePointEffectRequest(payload)) throw new RecordServiceError("invalid-request");
+      return { profile: await deps.repository.purchasePointEffect(actor, payload.effectId) };
+    }),
+    pointEquip: (req) => authenticated(req, async (actor) => {
+      const payload = await readResultBody(req);
+      if (!isEquipPointEffectRequest(payload)) throw new RecordServiceError("invalid-request");
+      return { profile: await deps.repository.equipPointEffect(actor, payload.effectId) };
     }),
     results: (req) => authenticated(req, async (actor) => {
       const payload = await readResultBody(req);

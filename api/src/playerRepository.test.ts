@@ -27,7 +27,7 @@ const item = { read: vi.fn(), replace: vi.fn() };
 const container = {
   read: vi.fn(),
   item: vi.fn(),
-  items: { create: vi.fn(), query: vi.fn() },
+  items: { create: vi.fn(), query: vi.fn(), batch: vi.fn() },
 };
 
 function stored(overrides: Record<string, unknown> = {}): PlayerDocument {
@@ -71,12 +71,59 @@ function useMemoryDocument(initial?: PlayerDocument) {
   return () => document ? structuredClone(document) : undefined;
 }
 
+function useWalletMemoryDocument(initial?: PlayerDocument) {
+  const documents = new Map<string, Record<string, unknown>>();
+  const versions = new Map<string, number>();
+  if (initial) {
+    documents.set(initial.id, structuredClone(initial) as unknown as Record<string, unknown>);
+    versions.set(initial.id, 1);
+  }
+  const readItem = (id: string) => ({
+    read: vi.fn(async () => {
+      const document = documents.get(id);
+      return document ? { resource: structuredClone(document), etag: `"version-${versions.get(id)}"` } : { statusCode: 404 };
+    }),
+    replace: vi.fn(async (document: Record<string, unknown>, options: { accessCondition: { condition: string } }) => {
+      if (options.accessCondition.condition !== `"version-${versions.get(id)}"`) throw { code: 412 };
+      documents.set(id, structuredClone(document));
+      versions.set(id, (versions.get(id) ?? 0) + 1);
+    }),
+  });
+  container.item.mockImplementation((id: string) => readItem(id));
+  container.items.create.mockImplementation(async (document: PlayerDocument) => {
+    if (documents.has(document.id)) throw { code: 409 };
+    documents.set(document.id, structuredClone(document) as unknown as Record<string, unknown>);
+    versions.set(document.id, 1);
+  });
+  container.items.batch.mockImplementation(async (operations: Array<Record<string, unknown>>, accountId: string) => {
+    const [receiptOperation, profileOperation] = operations;
+    const receipt = receiptOperation.resourceBody as Record<string, unknown>;
+    const profile = profileOperation.resourceBody as Record<string, unknown>;
+    const existingReceipt = documents.has(String(receipt.id));
+    const currentProfile = documents.get(String(profile.id));
+    const stale = profileOperation.operationType === "Replace" &&
+      profileOperation.ifMatch !== `"version-${versions.get(String(profile.id))}"`;
+    if (existingReceipt) return { result: [{ statusCode: 409 }, { statusCode: 424 }] };
+    if (stale || (profileOperation.operationType === "Create" && currentProfile)) {
+      return { result: [{ statusCode: 424 }, { statusCode: stale ? 412 : 409 }] };
+    }
+    if (receipt.accountId !== accountId || profile.accountId !== accountId) throw new Error("partition mismatch");
+    documents.set(String(receipt.id), structuredClone(receipt));
+    documents.set(String(profile.id), structuredClone(profile));
+    versions.set(String(receipt.id), 1);
+    versions.set(String(profile.id), (versions.get(String(profile.id)) ?? 0) + 1);
+    return { result: [{ statusCode: 201 }, { statusCode: 200 }] };
+  });
+  return documents;
+}
+
 beforeEach(() => {
   container.read.mockReset().mockResolvedValue({ resource: { id: CONTAINER_ID, partitionKey: { paths: ["/accountId"] } } });
   container.item.mockReset().mockReturnValue(item);
   item.read.mockReset().mockResolvedValue({ resource: stored(), etag: ITEM_ETAG });
   item.replace.mockReset().mockResolvedValue({});
   container.items.create.mockReset().mockResolvedValue({});
+  container.items.batch.mockReset().mockResolvedValue({ result: [] });
   container.items.query.mockReset().mockImplementation(() => ({
     fetchAll: vi.fn().mockResolvedValue({ resources: [] }),
   }));
@@ -179,7 +226,8 @@ describe("account character appearance persistence", () => {
       ...ACTOR, highestClearedStage: 0, best: null, infiniteBest: null, infiniteV2Best: null, wallet: createEmptyPointWallet(), appearance,
     });
     expect(current()).toEqual({
-      id: getPlayerRowKey(ACTOR.accountId), ...ACTOR, schemaVersion: 1, highestClearedStage: 0, appearance,
+      id: getPlayerRowKey(ACTOR.accountId), ...ACTOR, schemaVersion: 1, highestClearedStage: 0,
+      pointBalance: 0, ownedPointEffects: [], equippedPointEffect: null, appearance,
     });
     expect(container.items.create).toHaveBeenCalledTimes(1);
     expect(item.replace).not.toHaveBeenCalled();
@@ -192,7 +240,8 @@ describe("account character appearance persistence", () => {
     await repository().saveAppearance(other, appearance);
     expect(container.item).toHaveBeenCalledWith(getPlayerRowKey(other.accountId), other.accountId);
     expect(container.items.create).toHaveBeenCalledExactlyOnceWith({
-      id: getPlayerRowKey(other.accountId), ...other, schemaVersion: 1, highestClearedStage: 0, appearance,
+      id: getPlayerRowKey(other.accountId), ...other, schemaVersion: 1, highestClearedStage: 0,
+      pointBalance: 0, ownedPointEffects: [], equippedPointEffect: null, appearance,
     });
     expect(await repository().getProfile(ACTOR)).not.toHaveProperty("appearance");
   });
@@ -314,6 +363,101 @@ describe("account character appearance persistence", () => {
     item.replace.mockRejectedValueOnce(new Error("private-write-key"));
     await expect(repo.saveAppearance(ACTOR, getDefaultCharacterAppearance()))
       .rejects.toMatchObject({ code: "storage-unavailable", status: 503 });
+  });
+});
+
+describe("account point wallet persistence", () => {
+  it("defaults a legacy player with all wallet fields absent and rejects partial or malformed wallets", async () => {
+    const read = useWalletMemoryDocument(stored());
+    expect((await repository().getProfile(ACTOR)).wallet).toEqual(createEmptyPointWallet());
+    expect(read.get(getPlayerRowKey(ACTOR.accountId))).not.toHaveProperty("pointBalance");
+
+    for (const invalid of [
+      { pointBalance: 2 },
+      { pointBalance: -1, ownedPointEffects: [], equippedPointEffect: null },
+      { pointBalance: 1.5, ownedPointEffects: [], equippedPointEffect: null },
+      { pointBalance: 0, ownedPointEffects: ["fire", "fire"], equippedPointEffect: "fire" },
+      { pointBalance: 0, ownedPointEffects: [], equippedPointEffect: "smoke" },
+    ]) {
+      useWalletMemoryDocument(stored(invalid));
+      await expect(repository().getProfile(ACTOR)).rejects.toMatchObject({ code: "storage-unavailable" });
+    }
+  });
+
+  it("credits each coin claim once and keeps different claim receipts independent", async () => {
+    const appearance = getDefaultCharacterAppearance();
+    const documents = useWalletMemoryDocument(stored({ highestClearedStage: 1, infiniteBestScore: 45,
+      infiniteAchievedAt: NOW, appearance, pointBalance: 7, ownedPointEffects: ["smoke"], equippedPointEffect: "smoke" }));
+    const repo = repository();
+    const first = await repo.collectPointCoin(ACTOR, "claim-one");
+    expect(first.wallet.balance).toBe(8);
+    expect(first).toMatchObject({ highestClearedStage: 1, best: { bestScore: 100 }, infiniteBest: { bestScore: 45 }, appearance });
+    expect([...documents.keys()].filter((id) => id.startsWith("coin_"))).toHaveLength(1);
+    expect(await repo.collectPointCoin(ACTOR, "claim-one")).toMatchObject({ wallet: { balance: 8 } });
+    expect(await repo.collectPointCoin(ACTOR, "claim-two")).toMatchObject({ wallet: { balance: 9 } });
+    expect([...documents.keys()].filter((id) => id.startsWith("coin_"))).toHaveLength(2);
+    expect([...documents.keys()].some((id) => id.includes("claim-one"))).toBe(false);
+  });
+
+  it("resolves concurrent unique claims without losing either point", async () => {
+    useWalletMemoryDocument();
+    const repo = repository();
+    await Promise.all([repo.collectPointCoin(ACTOR, "concurrent-a"), repo.collectPointCoin(ACTOR, "concurrent-b")]);
+    expect((await repo.getProfile(ACTOR)).wallet.balance).toBe(2);
+  });
+
+  it("resolves a concurrent replay of one claim to a single point", async () => {
+    const documents = useWalletMemoryDocument();
+    const repo = repository();
+    const results = await Promise.all([repo.collectPointCoin(ACTOR, "same-parallel-claim"),
+      repo.collectPointCoin(ACTOR, "same-parallel-claim")]);
+    expect(results.map((profile) => profile.wallet.balance)).toEqual([1, 1]);
+    expect([...documents.keys()].filter((id) => id.startsWith("coin_"))).toHaveLength(1);
+  });
+
+  it("debits exactly once, auto-equips, and preserves score, progress, and appearance fields", async () => {
+    const appearance = getDefaultCharacterAppearance();
+    const initial = stored({ highestClearedStage: 2, bestStage: 2, bestScore: 175, remainingTimeCs: 1200,
+      infiniteBestScore: 250, infiniteAchievedAt: NOW, infiniteV2BestScore: 300, infiniteV2AchievedAt: NOW,
+      appearance, pointBalance: 200, ownedPointEffects: [], equippedPointEffect: null });
+    const documents = useWalletMemoryDocument(initial);
+    const repo = repository();
+    const bought = await repo.purchasePointEffect(ACTOR, "fire");
+    expect(bought.wallet).toEqual({ balance: 0, ownedEffects: ["fire"], equippedEffect: "fire" });
+    expect(bought).toMatchObject({ highestClearedStage: 2, best: { bestScore: 175 },
+      infiniteBest: { bestScore: 250 }, infiniteV2Best: { bestScore: 300 }, appearance });
+    expect(await repo.purchasePointEffect(ACTOR, "fire")).toEqual(bought);
+    expect(documents.get(getPlayerRowKey(ACTOR.accountId))).toMatchObject({ pointBalance: 0,
+      ownedPointEffects: ["fire"], equippedPointEffect: "fire", bestScore: 175, infiniteBestScore: 250,
+      infiniteV2BestScore: 300, appearance });
+  });
+
+  it("does not write when points are insufficient and rejects equipping unowned effects", async () => {
+    const initial = stored({ pointBalance: 199, ownedPointEffects: [], equippedPointEffect: null });
+    const documents = useWalletMemoryDocument(initial);
+    const before = structuredClone(documents.get(initial.id));
+    const repo = repository();
+    await expect(repo.purchasePointEffect(ACTOR, "sparkle")).rejects.toMatchObject({ code: "insufficient-points", status: 409 });
+    await expect(repo.equipPointEffect(ACTOR, "smoke")).rejects.toMatchObject({ code: "effect-not-owned", status: 409 });
+    expect(documents.get(initial.id)).toEqual(before);
+  });
+
+  it("rejects invalid claims before storage and caps retryable batch conflicts", async () => {
+    const repo = repository();
+    await expect(repo.collectPointCoin(ACTOR, "x".repeat(129))).rejects.toMatchObject({ code: "invalid-request" });
+    expect(container.read).not.toHaveBeenCalled();
+    useWalletMemoryDocument();
+    container.items.batch.mockResolvedValue({ result: [{ statusCode: 424 }, { statusCode: 412 }] });
+    await expect(repo.collectPointCoin(ACTOR, "claim-conflict")).rejects.toMatchObject({ code: "conflict" });
+    expect(container.items.batch).toHaveBeenCalledTimes(5);
+  });
+
+  it("sanitizes Cosmos batch failures", async () => {
+    useWalletMemoryDocument();
+    container.items.batch.mockRejectedValueOnce(new Error("AccountKey=private-point-secret"));
+    const error = await repository().collectPointCoin(ACTOR, "storage-error").catch((failure) => failure);
+    expect(error).toMatchObject({ code: "storage-unavailable" });
+    expect(error.message).not.toContain("private-point-secret");
   });
 });
 
@@ -484,6 +628,9 @@ describe("Cosmos player repository", () => {
       bestScore: 150,
       remainingTimeCs: 6000,
       achievedAt: NOW,
+      pointBalance: 0,
+      ownedPointEffects: [],
+      equippedPointEffect: null,
     });
     expect(item.replace).not.toHaveBeenCalled();
   });

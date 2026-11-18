@@ -1,7 +1,7 @@
-import { CosmosClient, type ItemDefinition, type SqlQuerySpec } from "@azure/cosmos";
+import { CosmosClient, type ItemDefinition, type OperationInput, type SqlQuerySpec } from "@azure/cosmos";
 import { createHash } from "node:crypto";
-import { createEmptyPointWallet, getSharedTopInfiniteScores, getSharedTopScores, mergeSharedInfiniteScore, mergeSharedInfiniteV2Score, mergeSharedResult, validateResultForProfile } from "../../shared/companyRecords";
-import type { AuthenticatedActor, InfiniteScoreInput, SharedBest, SharedInfiniteBest, SharedProfile, SubmitResultRequest } from "../../shared/companyRecords";
+import { createEmptyPointWallet, equipPointEffect as applyEquipPointEffect, getSharedTopInfiniteScores, getSharedTopScores, isCollectPointCoinRequest, isPointEffectId, isPointWallet, mergeSharedInfiniteScore, mergeSharedInfiniteV2Score, mergeSharedResult, purchasePointEffect as applyPurchasePointEffect, validateResultForProfile } from "../../shared/companyRecords";
+import type { AuthenticatedActor, InfiniteScoreInput, PointEffectId, SharedBest, SharedInfiniteBest, SharedProfile, SubmitResultRequest } from "../../shared/companyRecords";
 import { areCharacterAppearancesEqual, cloneCharacterAppearance, isCharacterAppearance, normalizeCharacterAppearance } from "../../shared/characterAppearance";
 import type { CharacterAppearance } from "../../shared/characterAppearance";
 import { isCharacterAppearance as isLegacyCharacterAppearance } from "../../shared/legacyCharacterAppearance";
@@ -21,6 +21,9 @@ export interface PlayerRepository {
   submitInfiniteScore(actor: AuthenticatedActor, input: InfiniteScoreInput): Promise<SharedProfile>;
   submitInfiniteV2Score(actor: AuthenticatedActor, input: InfiniteScoreInput): Promise<SharedProfile>;
   saveAppearance(actor: AuthenticatedActor, appearance: CharacterAppearance): Promise<SharedProfile>;
+  collectPointCoin(actor: AuthenticatedActor, claimId: string): Promise<SharedProfile>;
+  purchasePointEffect(actor: AuthenticatedActor, effectId: PointEffectId): Promise<SharedProfile>;
+  equipPointEffect(actor: AuthenticatedActor, effectId: PointEffectId | null): Promise<SharedProfile>;
 }
 
 export interface PlayerDocument extends ItemDefinition {
@@ -37,10 +40,20 @@ export interface PlayerDocument extends ItemDefinition {
   infiniteAchievedAt?: string;
   infiniteV2BestScore?: number;
   infiniteV2AchievedAt?: string;
+  pointBalance?: number;
+  ownedPointEffects?: PointEffectId[];
+  equippedPointEffect?: PointEffectId | null;
   appearance?: CharacterAppearance | ExpandedCharacterAppearance | LegacyCharacterAppearance;
 }
 
-interface ItemRead<T> {
+interface PointCoinReceipt extends ItemDefinition {
+  id: string;
+  accountId: string;
+  kind: "point-coin-claim";
+  createdAt: string;
+}
+
+interface ItemRead<T extends ItemDefinition> {
   resource?: T;
   etag?: string;
   statusCode?: number;
@@ -63,6 +76,7 @@ export interface PlayerContainer {
       query: SqlQuerySpec,
       options: { maxItemCount: number },
     ): { fetchAll(): Promise<{ resources?: T[] }> };
+    batch(operations: OperationInput[], partitionKey: string): Promise<{ result?: Array<{ statusCode: number }> }>;
   };
 }
 
@@ -113,6 +127,15 @@ function decodeDocument(document: unknown): SharedProfile {
   const hasInfiniteV2Score = Object.hasOwn(document, "infiniteV2BestScore");
   const hasInfiniteV2At = Object.hasOwn(document, "infiniteV2AchievedAt");
   if (hasInfiniteV2Score !== hasInfiniteV2At) return fail();
+  const walletFields = ["pointBalance", "ownedPointEffects", "equippedPointEffect"] as const;
+  const walletFieldCount = walletFields.filter((field) => Object.hasOwn(document, field)).length;
+  if (walletFieldCount !== 0 && walletFieldCount !== walletFields.length) return fail();
+  const wallet = walletFieldCount === 0 ? createEmptyPointWallet() : {
+    balance: document.pointBalance,
+    ownedEffects: document.ownedPointEffects,
+    equippedEffect: document.equippedPointEffect,
+  };
+  if (!isPointWallet(wallet)) return fail();
 
   let best: SharedBest | null = null;
   if (hasBest) {
@@ -165,7 +188,7 @@ function decodeDocument(document: unknown): SharedProfile {
     best,
     infiniteBest,
     infiniteV2Best,
-    wallet: createEmptyPointWallet(),
+    wallet,
     ...(appearance ? { appearance } : {}),
   };
 }
@@ -191,6 +214,9 @@ function encodeDocument(profile: SharedProfile): PlayerDocument {
       infiniteV2BestScore: profile.infiniteV2Best.bestScore,
       infiniteV2AchievedAt: profile.infiniteV2Best.achievedAt,
     } : {}),
+    pointBalance: profile.wallet.balance,
+    ownedPointEffects: [...profile.wallet.ownedEffects],
+    equippedPointEffect: profile.wallet.equippedEffect,
     ...(isCharacterAppearance(profile.appearance) ? { appearance: cloneCharacterAppearance(profile.appearance) } : {}),
   };
 }
@@ -247,6 +273,71 @@ export function createPlayerRepository(
       isLegacyCharacterAppearance(response.resource.appearance) || isExpandedCharacterAppearance(response.resource.appearance) };
   }
 
+  function requireActor(actor: AuthenticatedActor): void {
+    if (!actor || typeof actor.accountId !== "string" || !actor.accountId.trim() ||
+      typeof actor.displayName !== "string" || !actor.displayName.trim() || actor.displayName.length > 200) {
+      throw new RecordServiceError("unauthenticated");
+    }
+  }
+
+  function newProfile(actor: AuthenticatedActor): SharedProfile {
+    return { ...actor, highestClearedStage: 0, best: null, infiniteBest: null, infiniteV2Best: null,
+      wallet: createEmptyPointWallet() };
+  }
+
+  async function readCoinReceipt(actor: AuthenticatedActor, receiptId: string): Promise<PointCoinReceipt | null> {
+    try {
+      const response = await container.item(receiptId, actor.accountId).read<PlayerDocument>();
+      if (!response.resource && response.statusCode === 404) return null;
+      const receipt = response.resource as unknown as PointCoinReceipt | undefined;
+      if (!receipt || receipt.id !== receiptId || receipt.accountId !== actor.accountId ||
+        receipt.kind !== "point-coin-claim" || typeof receipt.createdAt !== "string" ||
+        !Number.isFinite(Date.parse(receipt.createdAt)) || new Date(receipt.createdAt).toISOString() !== receipt.createdAt) {
+        throw new RecordServiceError("storage-unavailable");
+      }
+      return receipt;
+    } catch (error) {
+      if (isMissingItem(error)) return null;
+      throw error;
+    }
+  }
+
+  async function persistProfile(profile: SharedProfile, stored: Awaited<ReturnType<typeof readStored>>): Promise<void> {
+    const document = encodeDocument(profile);
+    if (stored) {
+      await container.item(getPlayerRowKey(profile.accountId), profile.accountId).replace(document, {
+        accessCondition: { type: "IfMatch", condition: stored.etag },
+      });
+    } else {
+      await container.items.create(document);
+    }
+  }
+
+  async function mutateWallet(
+    actor: AuthenticatedActor,
+    mutate: (wallet: SharedProfile["wallet"]) =>
+      | { ok: true; wallet: SharedProfile["wallet"]; changed: boolean }
+      | { ok: false; code: "insufficient-points" | "effect-not-owned" },
+  ): Promise<SharedProfile> {
+    requireActor(actor);
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const stored = await readStored(actor);
+      const previous = stored?.profile ?? newProfile(actor);
+      const result = mutate(previous.wallet);
+      if (!result.ok) throw new RecordServiceError(result.code);
+      if (!result.changed) return previous;
+      const profile: SharedProfile = { ...previous, ...actor, wallet: result.wallet };
+      try {
+        await persistProfile(profile, stored);
+        return profile;
+      } catch (error) {
+        if ((!stored && statusCode(error) === 409) || (stored && statusCode(error) === 412)) continue;
+        throw error;
+      }
+    }
+    throw new RecordServiceError("conflict");
+  }
+
   return {
     getProfile: (actor) => storageBoundary(async () => {
       const stored = await readStored(actor);
@@ -288,6 +379,75 @@ export function createPlayerRepository(
         }
       }
       throw new RecordServiceError("conflict");
+    }),
+
+    collectPointCoin: (actor, claimId) => storageBoundary(async () => {
+      requireActor(actor);
+      if (!isCollectPointCoinRequest({ claimId })) throw new RecordServiceError("invalid-request");
+      await ensureContainer();
+      const receiptId = "coin_" + createHash("sha256").update(claimId, "utf8").digest("hex");
+
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const stored = await readStored(actor);
+        const existingReceipt = await readCoinReceipt(actor, receiptId);
+        if (existingReceipt) {
+          const current = await readStored(actor);
+          if (!current) throw new RecordServiceError("storage-unavailable");
+          return current.profile;
+        }
+
+        const previous = stored?.profile ?? newProfile(actor);
+        if (previous.wallet.balance >= Number.MAX_SAFE_INTEGER) throw new RecordServiceError("storage-unavailable");
+        const profile: SharedProfile = { ...previous, ...actor,
+          wallet: { ...previous.wallet, balance: previous.wallet.balance + 1 } };
+        const receipt: PointCoinReceipt = { id: receiptId, accountId: actor.accountId,
+          kind: "point-coin-claim", createdAt: now().toISOString() };
+        const operations: OperationInput[] = [
+          { operationType: "Create", resourceBody: receipt },
+          stored
+            ? { operationType: "Replace", id: getPlayerRowKey(actor.accountId), ifMatch: stored.etag, resourceBody: encodeDocument(profile) }
+            : { operationType: "Create", resourceBody: encodeDocument(profile) },
+        ];
+
+        try {
+          const response = await container.items.batch(operations, actor.accountId);
+          const failure = response.result?.find((operation) => operation.statusCode >= 400);
+          if (!failure) return profile;
+          if ([409, 412, 424].includes(failure.statusCode)) {
+            const receiptAfterConflict = await readCoinReceipt(actor, receiptId);
+            if (receiptAfterConflict) {
+              const current = await readStored(actor);
+              if (!current) throw new RecordServiceError("storage-unavailable");
+              return current.profile;
+            }
+            continue;
+          }
+          throw new RecordServiceError("storage-unavailable");
+        } catch (error) {
+          if (error instanceof RecordServiceError && error.code === "storage-unavailable") throw error;
+          if ([409, 412, 424].includes(statusCode(error) ?? 0)) {
+            const receiptAfterConflict = await readCoinReceipt(actor, receiptId);
+            if (receiptAfterConflict) {
+              const current = await readStored(actor);
+              if (!current) throw new RecordServiceError("storage-unavailable");
+              return current.profile;
+            }
+            continue;
+          }
+          throw error;
+        }
+      }
+      throw new RecordServiceError("conflict");
+    }),
+
+    purchasePointEffect: (actor, effectId) => storageBoundary(async () => {
+      if (!isPointEffectId(effectId)) throw new RecordServiceError("invalid-request");
+      return mutateWallet(actor, (wallet) => applyPurchasePointEffect(wallet, effectId));
+    }),
+
+    equipPointEffect: (actor, effectId) => storageBoundary(async () => {
+      if (effectId !== null && !isPointEffectId(effectId)) throw new RecordServiceError("invalid-request");
+      return mutateWallet(actor, (wallet) => applyEquipPointEffect(wallet, effectId));
     }),
 
     listTopScores: () => storageBoundary(async () => {

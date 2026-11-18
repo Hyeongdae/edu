@@ -105,6 +105,7 @@ export function holdFirstItemReadsTogether(container: Container, count = 2): Pla
     items: {
       create: (document) => container.items.create(document),
       query: (query, options) => container.items.query(query, options),
+      batch: (operations, partitionKey) => container.items.batch(operations, partitionKey),
     },
   };
 }

@@ -16,6 +16,9 @@ const handlers = createRecordHandlers({
     submitInfiniteScore: (actor, input) => getRepository().submitInfiniteScore(actor, input),
     submitInfiniteV2Score: (actor, input) => getRepository().submitInfiniteV2Score(actor, input),
     saveAppearance: (actor, appearance) => getRepository().saveAppearance(actor, appearance),
+    collectPointCoin: (actor, claimId) => getRepository().collectPointCoin(actor, claimId),
+    purchasePointEffect: (actor, effectId) => getRepository().purchasePointEffect(actor, effectId),
+    equipPointEffect: (actor, effectId) => getRepository().equipPointEffect(actor, effectId),
   },
 });
 
@@ -27,3 +30,6 @@ app.http("results", { methods: ["POST"], authLevel: "anonymous", route: "results
 app.http("infinite-results", { methods: ["POST"], authLevel: "anonymous", route: "infinite-results", handler: handlers.infiniteResults });
 app.http("infinite-v2-results", { methods: ["POST"], authLevel: "anonymous", route: "infinite-v2-results", handler: handlers.infiniteV2Results });
 app.http("appearance", { methods: ["POST"], authLevel: "anonymous", route: "appearance", handler: handlers.appearance });
+app.http("point-coins", { methods: ["POST"], authLevel: "anonymous", route: "points/coins", handler: handlers.pointCoin });
+app.http("point-purchases", { methods: ["POST"], authLevel: "anonymous", route: "points/purchases", handler: handlers.pointPurchase });
+app.http("point-equip", { methods: ["POST"], authLevel: "anonymous", route: "points/equip", handler: handlers.pointEquip });

@@ -1,6 +1,7 @@
 import { HttpRequest, InvocationContext } from "@azure/functions";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ACTOR, NOW, principal, submission } from "../test/fixtures";
+import { createEmptyPointWallet } from "../../shared/companyRecords";
 import { RecordServiceError } from "./errors";
 import { createRecordHandlers } from "./handlers";
 import { getDefaultCharacterAppearance } from "../../shared/characterAppearance";
@@ -8,7 +9,8 @@ import { getDefaultCharacterAppearance as getLegacyAppearance } from "../../shar
 import { getDefaultCharacterAppearance as getExpandedAppearance } from "../../shared/expandedCharacterAppearance";
 
 const context = new InvocationContext({ functionName: "records-test" });
-const profile = { ...ACTOR, highestClearedStage: 0 as const, best: null, infiniteBest: null, infiniteV2Best: null };
+const profile = { ...ACTOR, highestClearedStage: 0 as const, best: null, infiniteBest: null, infiniteV2Best: null,
+  wallet: createEmptyPointWallet() };
 const repository = {
   getProfile: vi.fn().mockResolvedValue(profile),
   listTopScores: vi.fn().mockResolvedValue([]),
@@ -18,6 +20,9 @@ const repository = {
   submitInfiniteScore: vi.fn().mockResolvedValue(profile),
   submitInfiniteV2Score: vi.fn().mockResolvedValue(profile),
   saveAppearance: vi.fn().mockResolvedValue({ ...profile, appearance: getDefaultCharacterAppearance() }),
+  collectPointCoin: vi.fn().mockResolvedValue(profile),
+  purchasePointEffect: vi.fn().mockResolvedValue(profile),
+  equipPointEffect: vi.fn().mockResolvedValue(profile),
 };
 const handlers = createRecordHandlers({ repository });
 
@@ -41,6 +46,9 @@ beforeEach(() => {
   repository.submitInfiniteScore.mockReset().mockResolvedValue(profile);
   repository.submitInfiniteV2Score.mockReset().mockResolvedValue(profile);
   repository.saveAppearance.mockReset().mockResolvedValue({ ...profile, appearance: getDefaultCharacterAppearance() });
+  repository.collectPointCoin.mockReset().mockResolvedValue(profile);
+  repository.purchasePointEffect.mockReset().mockResolvedValue(profile);
+  repository.equipPointEffect.mockReset().mockResolvedValue(profile);
 });
 
 describe("record handlers", () => {
@@ -51,7 +59,7 @@ describe("record handlers", () => {
     expect(await handlers.results(request({ headers: { "x-game-account": ACTOR.accountId } }), context))
       .toMatchObject({ status: 200 });
   });
-  it.each(["profile", "leaderboard", "results", "infiniteLeaderboard", "infiniteV2Leaderboard", "infiniteResults", "infiniteV2Results", "appearance"] as const)("authenticates %s before repository access", async (route) => {
+  it.each(["profile", "leaderboard", "results", "infiniteLeaderboard", "infiniteV2Leaderboard", "infiniteResults", "infiniteV2Results", "appearance", "pointCoin", "pointPurchase", "pointEquip"] as const)("authenticates %s before repository access", async (route) => {
     const response = await handlers[route](request({ headers: { "x-ms-client-principal": "" } }), context);
     expect(response).toMatchObject({ status: 401, jsonBody: { error: { code: "unauthenticated" } } });
     expect(repository.getProfile).not.toHaveBeenCalled();
@@ -62,6 +70,36 @@ describe("record handlers", () => {
     expect(repository.listTopInfiniteV2Scores).not.toHaveBeenCalled();
     expect(repository.submitInfiniteV2Score).not.toHaveBeenCalled();
     expect(repository.saveAppearance).not.toHaveBeenCalled();
+    expect(repository.collectPointCoin).not.toHaveBeenCalled();
+    expect(repository.purchasePointEffect).not.toHaveBeenCalled();
+    expect(repository.equipPointEffect).not.toHaveBeenCalled();
+  });
+
+  it("dispatches valid point requests through the authenticated actor", async () => {
+    const cases = [
+      [handlers.pointCoin, { claimId: "claim-a" }, repository.collectPointCoin, [ACTOR, "claim-a"]],
+      [handlers.pointPurchase, { effectId: "fire" }, repository.purchasePointEffect, [ACTOR, "fire"]],
+      [handlers.pointEquip, { effectId: null }, repository.equipPointEffect, [ACTOR, null]],
+    ] as const;
+    for (const [handler, payload, operation, args] of cases) {
+      const response = await handler(request({ body: JSON.stringify(payload) }), context);
+      expect(response).toMatchObject({ status: 200, jsonBody: { profile } });
+      expect(operation).toHaveBeenCalledExactlyOnceWith(...args);
+      operation.mockClear();
+    }
+  });
+
+  it.each([
+    ["pointCoin", { claimId: "claim", amount: 100 }, "collectPointCoin"],
+    ["pointCoin", { claimId: " " }, "collectPointCoin"],
+    ["pointPurchase", { effectId: "fire", price: 1 }, "purchasePointEffect"],
+    ["pointPurchase", { effectId: "unknown" }, "purchasePointEffect"],
+    ["pointEquip", { effectId: "fire", accountId: ACTOR.accountId }, "equipPointEffect"],
+    ["pointEquip", {}, "equipPointEffect"],
+  ] as const)("rejects malformed %s point payload before storage", async (route, payload, method) => {
+    const response = await handlers[route](request({ body: JSON.stringify(payload) }), context);
+    expect(response).toMatchObject({ status: 400, jsonBody: { error: { code: "invalid-request" } } });
+    expect(repository[method]).not.toHaveBeenCalled();
   });
 
   it("returns only the current actor's profile, ignoring arbitrary query actor selectors", async () => {
@@ -167,6 +205,7 @@ describe("record handlers", () => {
 
   it.each([
     ["invalid-request", 400], ["stage-locked", 409], ["conflict", 409], ["storage-unavailable", 503],
+    ["insufficient-points", 409], ["effect-not-owned", 409],
   ] as const)("maps %s to HTTP %s", async (code, status) => {
     repository.submit.mockRejectedValueOnce(new RecordServiceError(code));
     expect(await handlers.results(request(), context)).toMatchObject({ status, jsonBody: { error: { code } } });
