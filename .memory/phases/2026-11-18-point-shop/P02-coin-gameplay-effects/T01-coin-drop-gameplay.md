@@ -97,4 +97,4 @@ Task: T01-coin-drop-gameplay
 ## Progress
 - [x] Implementation complete
 - [x] Validation passed
-- commit: pending
+- commit: `aa8a007`
