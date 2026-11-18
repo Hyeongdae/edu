@@ -285,6 +285,6 @@ describe("downward player motion", () => {
     expect(() => buildDescentSceneModel({ ...jumped, lastMove: { ...jumped.lastMove!, fromIndex: 2 } })).toThrow(RangeError);
     const corner = geometryAt(0, 7);
     expect(() => buildDescentSceneModel({ ...corner,
-      lastMove: { kind: "jump", fromIndex: 5, toIndex: 7, scoreGain: 2, isBonus: false } })).toThrow(RangeError);
+      lastMove: { kind: "jump", fromIndex: 5, toIndex: 7, scoreGain: 2, isBonus: false, collectedCoinIndices: [] } })).toThrow(RangeError);
   });
 });

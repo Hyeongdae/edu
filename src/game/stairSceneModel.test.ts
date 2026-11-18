@@ -230,6 +230,6 @@ describe("two-stair jump projection", () => {
     expect(() => buildStairSceneModel({ ...state, route: { ...state.route, steps: state.route.steps.filter((step) => step.index !== 1) } })).toThrow(RangeError);
     let corner = startGame(createGameState(() => 0), 0);
     for (let index = 0; index < 7; index += 1) corner = climb(corner);
-    expect(() => buildStairSceneModel({ ...corner, lastMove: { kind: "jump", fromIndex: 5, toIndex: 7, scoreGain: 2, isBonus: false } })).toThrow(RangeError);
+    expect(() => buildStairSceneModel({ ...corner, lastMove: { kind: "jump", fromIndex: 5, toIndex: 7, scoreGain: 2, isBonus: false, collectedCoinIndices: [] } })).toThrow(RangeError);
   });
 });

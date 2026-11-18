@@ -18,6 +18,7 @@ import type { GameState } from "./types";
 import { countStraightSteps, getRouteStep } from "./stairRoute";
 import { getStageRule, getStageTargetScore, STAGE_RULES } from "./stageRules";
 import { withPursuitAt } from "../test/gameFixtures";
+import { hasPointCoin } from "../points/coinDrops";
 
 const randomFiveSteps = () => 0;
 
@@ -29,7 +30,7 @@ describe("checkpoint sessions", () => {
   it.each(STAGE_RULES)("starts unlocked stage $stage with one seed and zero run score", (rule) => {
     const random = vi.fn(() => 0);
     const ready = createGameState(random, { stage: rule.stage, highestClearedStage: rule.stage });
-    expect(random).toHaveBeenCalledTimes(1);
+    expect(random).toHaveBeenCalledTimes(2);
     expect(ready).toMatchObject({ stage: rule.stage, score: 0, highestClearedStage: rule.stage,
       clearedStageThisRun: 0, checkpointEnteredAt: null });
     expect(ready).not.toHaveProperty("lives");
@@ -57,7 +58,7 @@ describe("checkpoint sessions", () => {
     const random = vi.fn(() => 0);
     const ready = createGameState(random, { stage, highestClearedStage: highest });
     expect(ready).toMatchObject({ status: "ready", stage, highestClearedStage: highest, score: 0, clearedStageThisRun: 0 });
-    expect(random).toHaveBeenCalledOnce();
+    expect(random).toHaveBeenCalledTimes(2);
     expect(ready).not.toHaveProperty("recordStage");
     expect(ready).not.toHaveProperty("stageStartScore");
   });
@@ -600,5 +601,31 @@ describe("obstacle jumps", () => {
     expect(jumps).toBeGreaterThan(0);
     expect(state.stage).toBeGreaterThanOrEqual(3);
     expect(state.pursuerDistance).toBe(state.stepsClimbed - state.pursuerIndex);
+  });
+});
+
+describe("point coin pickup transitions", () => {
+  function seedForCoinAt(index: number): number {
+    for (let seed = 0; seed < 100_000; seed += 1) if (hasPointCoin(seed, index)) return seed;
+    throw new Error(`No deterministic coin seed found for stair ${index}.`);
+  }
+
+  it("reports a coin only after a correct move and leaves score and events untouched by it", () => {
+    const ready = createGameState(() => 0);
+    const state = { ...startGame(ready, 0), pointCoinSeed: seedForCoinAt(1) };
+    const moved = applyInput(state, "forward", 0);
+    expect(moved.lastMove?.collectedCoinIndices).toEqual([1]);
+    expect(moved).toMatchObject({ score: 1, eventSteps: 1, pointCoinSeed: state.pointCoinSeed });
+    expect(applyInput(state, "turn", 0)).toMatchObject({ lastMove: null, score: 0, pointCoinSeed: state.pointCoinSeed });
+    expect(tickGame(state, 1)).toMatchObject({ lastMove: null, score: 0, pointCoinSeed: state.pointCoinSeed });
+  });
+
+  it("keeps the run seed across stage checkpoints and creates a new one on reset", () => {
+    const state = playingState({ score: 149, pointCoinSeed: 12345 });
+    const checkpoint = applyInput(state, "forward", 0);
+    expect(checkpoint.pointCoinSeed).toBe(12345);
+    expect(continueGame(checkpoint, 3_000).pointCoinSeed).toBe(12345);
+    const reset = resetGame(() => 0.5);
+    expect(reset.pointCoinSeed).not.toBe(12345);
   });
 });

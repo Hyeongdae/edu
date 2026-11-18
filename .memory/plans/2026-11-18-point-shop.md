@@ -46,7 +46,7 @@ The proposed exact retry deduplication adds one same-partition Cosmos receipt do
 - Final: `npm.cmd run lint`, `npm.cmd run build`, `npm.cmd --prefix api run build`, and `git diff --check`.
 
 ## Progress
-- done: 3/6
-- Active: P02-T01
+- done: 4/6
+- Active: P02-T02
 
 

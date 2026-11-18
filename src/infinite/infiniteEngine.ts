@@ -4,6 +4,7 @@ import {
 } from "../game/pursuitRules";
 import type { PursuerMove, StairRoute } from "../game/types";
 import type { InfiniteGameState, InfiniteInput } from "./types";
+import { createPointCoinSeed, getCollectedPointCoinIndices } from "../points/coinDrops";
 
 const INITIAL_PURSUER_DISTANCE = 4;
 const BASE_PURSUER_INTERVAL_MS = 200;
@@ -32,6 +33,7 @@ function validateState(state: InfiniteGameState): void {
   if (
     !state || (state.status !== "ready" && state.status !== "playing" && state.status !== "game-over") ||
     !Number.isSafeInteger(state.score) || state.score < 0 ||
+    !Number.isSafeInteger(state.pointCoinSeed) ||
     !Number.isSafeInteger(state.stepsClimbed) || state.stepsClimbed < 0 ||
     (state.direction !== "left" && state.direction !== "right") ||
     !Number.isSafeInteger(state.straightStepsRemaining) || state.straightStepsRemaining < 0 ||
@@ -84,7 +86,9 @@ function validateState(state: InfiniteGameState): void {
     if (
       !Number.isSafeInteger(move.fromIndex) || move.fromIndex + 1 !== move.toIndex ||
       move.toIndex !== state.stepsClimbed || (move.scoreGain !== 1 && move.scoreGain !== 2) ||
-      typeof move.isBonus !== "boolean"
+      typeof move.isBonus !== "boolean" || !Array.isArray(move.collectedCoinIndices) ||
+      move.collectedCoinIndices.some((index, position, all) => !Number.isSafeInteger(index) ||
+        index <= move.fromIndex || index > move.toIndex || (position > 0 && all[position - 1] >= index))
     ) {
       throw new RangeError("Invalid infinite player move.");
     }
@@ -142,11 +146,13 @@ export function getInfinitePursuerIntervalMs(
 
 export function createInfiniteGameState(random: () => number = Math.random): InfiniteGameState {
   const route = createStairRoute(random);
+  const pointCoinSeed = createPointCoinSeed(random);
   const direction = getRouteStep(route, 0).direction;
   return {
     status: "ready",
     endReason: null,
     score: 0,
+    pointCoinSeed,
     stepsClimbed: 0,
     direction,
     straightStepsRemaining: countStraightSteps(route, 0, direction),
@@ -295,6 +301,7 @@ export function applyInfiniteInput(
   const isPursuerCatchingUp = getInfiniteCatchUpState(current.isPursuerCatchingUp, pursuerDistance);
   const moved: InfiniteGameState = {
     ...current,
+    pointCoinSeed: current.pointCoinSeed,
     score: current.score + scoreGain,
     stepsClimbed: nextStepsClimbed,
     direction: nextStep.direction,
@@ -313,6 +320,7 @@ export function applyInfiniteInput(
       toIndex: nextStepsClimbed,
       scoreGain,
       isBonus,
+      collectedCoinIndices: getCollectedPointCoinIndices(current.pointCoinSeed, current.stepsClimbed, nextStepsClimbed),
     },
   };
   validateState(moved);

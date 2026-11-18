@@ -64,6 +64,7 @@ export interface GameMove {
   toIndex: number;
   scoreGain: 1 | 2 | 3 | 4;
   isBonus: boolean;
+  collectedCoinIndices: number[];
 }
 
 export interface StageResult {
@@ -81,6 +82,7 @@ export interface GameState {
   stageResult: StageResult | null;
   endReason: GameEndReason | null;
   score: number;
+  pointCoinSeed: number;
   stepsClimbed: number;
   highestClearedStage: ClearedStage;
   clearedStageThisRun: ClearedStage;

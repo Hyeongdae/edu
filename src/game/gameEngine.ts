@@ -4,6 +4,7 @@ import { getHighestUnlockedStage, getStageRule, getStageTargetScore, isClearedSt
 import { createObstacleState, hasObstacle, revealObstacles } from "./stairObstacles";
 import { getPursuerCatchUpState, PURSUER_CATCH_UP_INTERVAL_MS } from "./pursuitRules";
 import { captureStageResult, isStageResult } from "./stageResult";
+import { createPointCoinSeed, getCollectedPointCoinIndices } from "../points/coinDrops";
 
 const INITIAL_PURSUER_DISTANCE = 4;
 const EVENT_STEP_TARGET = 30;
@@ -29,6 +30,7 @@ function validatePursuit(state: GameState): void {
     throw new RangeError("Invalid checkpoint session.");
   }
   if (
+    !Number.isSafeInteger(state.pointCoinSeed) ||
     !Number.isSafeInteger(state.stepsClimbed) || state.stepsClimbed < 0 ||
     !Number.isSafeInteger(state.pursuerIndex) || !Number.isSafeInteger(state.pursuerDistance) ||
     state.pursuerDistance < 1 || state.pursuerDistance !== state.stepsClimbed - state.pursuerIndex ||
@@ -80,9 +82,10 @@ export function createGameState(random: () => number = Math.random, options: Gam
     throw new RangeError("Selected stage must be unlocked by cleared progress.");
   }
   const route = createStairRoute(random);
+  const pointCoinSeed = createPointCoinSeed(random);
   return {
     status: "ready", stage, stageEndsAt: null, stageResult: null, endReason: null,
-    score: 0, highestClearedStage: highest, clearedStageThisRun: 0, checkpointEnteredAt: null,
+    score: 0, pointCoinSeed, highestClearedStage: highest, clearedStageThisRun: 0, checkpointEnteredAt: null,
     stepsClimbed: 0, direction: "right",
     straightStepsRemaining: countStraightSteps(route, 0, "right"),
     pursuerDistance: INITIAL_PURSUER_DISTANCE, pursuerIndex: -INITIAL_PURSUER_DISTANCE,
@@ -216,8 +219,11 @@ export function applyInput(state: GameState, input: GameInput, nowMs: number): G
       ? Math.min(currentState.nextPursuerStepAt!, nowMs + PURSUER_CATCH_UP_INTERVAL_MS)
       : currentState.nextPursuerStepAt,
     eventSteps, eventEndsAt, recoveryEndsAt: null, lastMistake: false, route,
+    pointCoinSeed: currentState.pointCoinSeed,
     lastMove: { kind: input === "jump" ? "jump" : "climb", fromIndex: currentState.stepsClimbed,
-      toIndex: nextStepsClimbed, scoreGain, isBonus: eventIsActive },
+      toIndex: nextStepsClimbed, scoreGain, isBonus: eventIsActive,
+      collectedCoinIndices: getCollectedPointCoinIndices(currentState.pointCoinSeed, currentState.stepsClimbed,
+        nextStepsClimbed, (index) => hasObstacle(currentState.obstacles, index)) },
   };
   let result = movedState;
   const completed = score >= getStageTargetScore(currentState.stage);

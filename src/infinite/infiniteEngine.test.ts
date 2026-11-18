@@ -10,6 +10,7 @@ import {
   tickInfiniteGame,
 } from "./infiniteEngine";
 import type { InfiniteGameState } from "./types";
+import { getCollectedPointCoinIndices, hasPointCoin } from "../points/coinDrops";
 
 function inputForNextStep(state: InfiniteGameState): "forward" | "turn" {
   return getRouteStep(state.route, state.stepsClimbed + 1).direction === state.direction ? "forward" : "turn";
@@ -69,6 +70,18 @@ describe("infinite score engine", () => {
     expect(applyInfiniteInput(atCorner, "forward", 0)).toMatchObject({
       status: "game-over", endReason: "fall", stepsClimbed: 5, score: 5,
     });
+  });
+
+  it("reports crossed coins on successful moves only, without changing infinite score", () => {
+    const seed = Array.from({ length: 100_000 }, (_, value) => value).find((value) => hasPointCoin(value, 1));
+    expect(seed).toBeDefined();
+    const ready = createInfiniteGameState(() => 0);
+    const started = { ...startInfiniteGame(ready, 0), pointCoinSeed: seed! };
+    const moved = applyInfiniteInput(started, "forward", 0);
+    expect(moved.lastMove?.collectedCoinIndices).toEqual([1]);
+    expect(moved).toMatchObject({ score: 1, eventSteps: 1, pointCoinSeed: seed });
+    expect(applyInfiniteInput(started, "turn", 0)).toMatchObject({ status: "game-over", lastMove: null, score: 0 });
+    expect(getCollectedPointCoinIndices(seed!, 1, 3)).toEqual([2, 3].filter((index) => hasPointCoin(seed!, index)));
   });
 
   it("fills the 50-stair event gauge and begins the 2x bonus after the threshold stair", () => {

@@ -9,12 +9,14 @@ export interface InfiniteMove {
   toIndex: number;
   scoreGain: 1 | 2;
   isBonus: boolean;
+  collectedCoinIndices: number[];
 }
 
 export interface InfiniteGameState {
   status: InfiniteGameStatus;
   endReason: InfiniteEndReason | null;
   score: number;
+  pointCoinSeed: number;
   stepsClimbed: number;
   direction: Direction;
   straightStepsRemaining: number;
