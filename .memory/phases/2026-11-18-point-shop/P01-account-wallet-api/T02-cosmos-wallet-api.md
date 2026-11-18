@@ -93,7 +93,7 @@ Task: T02-cosmos-wallet-api
 ## Progress
 - [x] Implementation complete
 - [x] Focused tests and build passed; live emulator integration remains unverified because `COSMOS_EMULATOR_ENDPOINT` is not configured.
-- commit: pending
+- commit: `502f6e8`
 
 ## Validation Notes (2026-11-18)
 - Focused API route/repository tests: 209 passed across 2 files.
