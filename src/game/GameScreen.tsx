@@ -2,7 +2,7 @@ import { type KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useRe
 import type { GameAccount } from "../auth/gameAccount";
 import { getDefaultCharacterAppearance } from "../../shared/characterAppearance";
 import { CharacterCustomizationDialog } from "../character/CharacterCustomizationDialog";
-import type { AppearanceBinding, CompanyRecordBinding } from "../company/types";
+import type { AppearanceBinding, CompanyRecordBinding, PointWalletBinding } from "../company/types";
 import { CompanyRecordsNotice } from "../company/CompanyRecordsNotice";
 import { applyInput, continueGame, createGameState, getStageSecondsLeft, quitAtCheckpoint, resetGame, resumeGameAfterPause, startGame, tickGame } from "./gameEngine";
 import { CheckpointPanel } from "./CheckpointPanel";
@@ -41,6 +41,7 @@ type StageResumeTarget = "playing" | "start" | "continue" | null;
 interface GameScreenProps {
   account: GameAccount;
   companyRecords?: CompanyRecordBinding;
+  pointWallet?: PointWalletBinding;
   audioController?: AudioController;
   audioPreferences?: AudioPreferences;
   autoplayBlocked?: boolean;
@@ -62,12 +63,14 @@ function isTextEntryTarget(target: EventTarget | null): boolean {
 export function GameScreen({
   account,
   companyRecords,
+  pointWallet,
   audioController,
   audioPreferences,
   autoplayBlocked = false,
   onAudioPreferencesChange,
   onEnableAudio,
 }: GameScreenProps) {
+  const activePointWallet = companyRecords?.pointWallet ?? pointWallet;
   const [localAppearance, setLocalAppearance] = useState(getDefaultCharacterAppearance);
   const appearanceBinding: AppearanceBinding = companyRecords?.appearance ?? {
     value: localAppearance, status: "idle", errorMessage: null, update: setLocalAppearance, retry: () => {},
@@ -683,13 +686,14 @@ export function GameScreen({
   const onLeaderboardDialogKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => onDialogKeyDown(event, closeLeaderboard);
 
   if (activeMode === "infinite") {
-    return <InfiniteModeScreen appearance={appearance} account={account} companyRecords={companyRecords} audioController={audioController}
+    return <InfiniteModeScreen appearance={appearance} account={account} companyRecords={companyRecords} pointWallet={activePointWallet} audioController={audioController}
       audioPreferences={audioPreferences} autoplayBlocked={autoplayBlocked} onAudioPreferencesChange={onAudioPreferencesChange}
       onEnableAudio={onEnableAudio} onReturnToTitle={() => setActiveMode("title")} />;
   }
 
   return (
-    <main className="stair-game pixel-theme" data-game-status={gameState.status} onKeyDown={handleDirectionalMenuNavigation}>
+    <main className="stair-game pixel-theme" data-game-status={gameState.status}
+      data-point-wallet-status={activePointWallet?.status ?? "unavailable"} onKeyDown={handleDirectionalMenuNavigation}>
       <div className="game-shell">
         <div
           className="game-frame"

@@ -10,6 +10,8 @@ import { getDefaultCharacterAppearance } from "../../shared/characterAppearance"
 const account: GameAccount = { homeAccountId: "employee-a", username: "employee@example.com", name: "회사원 A" };
 function records(): CompanyRecordBinding {
   return { profile: companyProfile(), entries: [], infiniteEntries: [], infiniteV2Entries: [], syncStatus: "idle", pendingCount: 0,
+    pointWallet: { wallet: { balance: 0, ownedEffects: [], equippedEffect: null }, status: "idle", errorMessage: null,
+      coinGainRevision: 0, lastCoinGainAt: null, collectCoin: vi.fn(), purchaseEffect: vi.fn(), equipEffect: vi.fn(), retry: vi.fn() },
     errorMessage: null, submitResult: vi.fn(), submitInfiniteV2Score: vi.fn(), retry: vi.fn(), refresh: vi.fn() };
 }
 function audio(): AudioController {

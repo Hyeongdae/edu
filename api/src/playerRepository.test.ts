@@ -71,7 +71,7 @@ function useMemoryDocument(initial?: PlayerDocument) {
   return () => document ? structuredClone(document) : undefined;
 }
 
-function useWalletMemoryDocument(initial?: PlayerDocument) {
+function createWalletMemoryDocument(initial?: PlayerDocument) {
   const documents = new Map<string, Record<string, unknown>>();
   const versions = new Map<string, number>();
   if (initial) {
@@ -368,7 +368,7 @@ describe("account character appearance persistence", () => {
 
 describe("account point wallet persistence", () => {
   it("defaults a legacy player with all wallet fields absent and rejects partial or malformed wallets", async () => {
-    const read = useWalletMemoryDocument(stored());
+    const read = createWalletMemoryDocument(stored());
     expect((await repository().getProfile(ACTOR)).wallet).toEqual(createEmptyPointWallet());
     expect(read.get(getPlayerRowKey(ACTOR.accountId))).not.toHaveProperty("pointBalance");
 
@@ -379,14 +379,14 @@ describe("account point wallet persistence", () => {
       { pointBalance: 0, ownedPointEffects: ["fire", "fire"], equippedPointEffect: "fire" },
       { pointBalance: 0, ownedPointEffects: [], equippedPointEffect: "smoke" },
     ]) {
-      useWalletMemoryDocument(stored(invalid));
+      createWalletMemoryDocument(stored(invalid));
       await expect(repository().getProfile(ACTOR)).rejects.toMatchObject({ code: "storage-unavailable" });
     }
   });
 
   it("credits each coin claim once and keeps different claim receipts independent", async () => {
     const appearance = getDefaultCharacterAppearance();
-    const documents = useWalletMemoryDocument(stored({ highestClearedStage: 1, infiniteBestScore: 45,
+    const documents = createWalletMemoryDocument(stored({ highestClearedStage: 1, infiniteBestScore: 45,
       infiniteAchievedAt: NOW, appearance, pointBalance: 7, ownedPointEffects: ["smoke"], equippedPointEffect: "smoke" }));
     const repo = repository();
     const first = await repo.collectPointCoin(ACTOR, "claim-one");
@@ -400,14 +400,14 @@ describe("account point wallet persistence", () => {
   });
 
   it("resolves concurrent unique claims without losing either point", async () => {
-    useWalletMemoryDocument();
+    createWalletMemoryDocument();
     const repo = repository();
     await Promise.all([repo.collectPointCoin(ACTOR, "concurrent-a"), repo.collectPointCoin(ACTOR, "concurrent-b")]);
     expect((await repo.getProfile(ACTOR)).wallet.balance).toBe(2);
   });
 
   it("resolves a concurrent replay of one claim to a single point", async () => {
-    const documents = useWalletMemoryDocument();
+    const documents = createWalletMemoryDocument();
     const repo = repository();
     const results = await Promise.all([repo.collectPointCoin(ACTOR, "same-parallel-claim"),
       repo.collectPointCoin(ACTOR, "same-parallel-claim")]);
@@ -420,7 +420,7 @@ describe("account point wallet persistence", () => {
     const initial = stored({ highestClearedStage: 2, bestStage: 2, bestScore: 175, remainingTimeCs: 1200,
       infiniteBestScore: 250, infiniteAchievedAt: NOW, infiniteV2BestScore: 300, infiniteV2AchievedAt: NOW,
       appearance, pointBalance: 200, ownedPointEffects: [], equippedPointEffect: null });
-    const documents = useWalletMemoryDocument(initial);
+    const documents = createWalletMemoryDocument(initial);
     const repo = repository();
     const bought = await repo.purchasePointEffect(ACTOR, "fire");
     expect(bought.wallet).toEqual({ balance: 0, ownedEffects: ["fire"], equippedEffect: "fire" });
@@ -434,7 +434,7 @@ describe("account point wallet persistence", () => {
 
   it("does not write when points are insufficient and rejects equipping unowned effects", async () => {
     const initial = stored({ pointBalance: 199, ownedPointEffects: [], equippedPointEffect: null });
-    const documents = useWalletMemoryDocument(initial);
+    const documents = createWalletMemoryDocument(initial);
     const before = structuredClone(documents.get(initial.id));
     const repo = repository();
     await expect(repo.purchasePointEffect(ACTOR, "sparkle")).rejects.toMatchObject({ code: "insufficient-points", status: 409 });
@@ -446,14 +446,14 @@ describe("account point wallet persistence", () => {
     const repo = repository();
     await expect(repo.collectPointCoin(ACTOR, "x".repeat(129))).rejects.toMatchObject({ code: "invalid-request" });
     expect(container.read).not.toHaveBeenCalled();
-    useWalletMemoryDocument();
+    createWalletMemoryDocument();
     container.items.batch.mockResolvedValue({ result: [{ statusCode: 424 }, { statusCode: 412 }] });
     await expect(repo.collectPointCoin(ACTOR, "claim-conflict")).rejects.toMatchObject({ code: "conflict" });
     expect(container.items.batch).toHaveBeenCalledTimes(5);
   });
 
   it("sanitizes Cosmos batch failures", async () => {
-    useWalletMemoryDocument();
+    createWalletMemoryDocument();
     container.items.batch.mockRejectedValueOnce(new Error("AccountKey=private-point-secret"));
     const error = await repository().collectPointCoin(ACTOR, "storage-error").catch((failure) => failure);
     expect(error).toMatchObject({ code: "storage-unavailable" });

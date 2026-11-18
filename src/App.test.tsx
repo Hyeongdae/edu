@@ -119,6 +119,7 @@ describe("authenticated audio setup", () => {
     AppAudio.instances = [];
     AppAudio.outcomes = [true];
     vi.stubGlobal("Audio", AppAudio);
+    const fetcher = vi.fn(); vi.stubGlobal("fetch", fetcher);
 
     render(<App configurationError="Entra 설정이 필요합니다." localDemoMode />);
 
@@ -127,6 +128,10 @@ describe("authenticated audio setup", () => {
     await openAudioSettings();
     expect(screen.getByText("로컬 테스트 사용자")).toBeVisible();
     expect(screen.queryByText("Entra 설정이 필요합니다.")).not.toBeInTheDocument();
+    expect(JSON.parse(window.localStorage.getItem("stair-descent:local:point-wallet:v1") ?? "{}")).toEqual({
+      balance: 1000, ownedEffects: [], equippedEffect: null,
+    });
+    expect(fetcher.mock.calls.some(([path]) => String(path).startsWith("/api/points/"))).toBe(false);
   });
 
   it("uses hosted identity before local demo or missing SPA settings, with no MSAL hooks", async () => {

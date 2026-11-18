@@ -7,6 +7,8 @@ import type { CompanyRecordBinding } from "./types";
 
 afterEach(cleanup);
 const records = (): CompanyRecordBinding => ({ profile: companyProfile(), entries: [], infiniteEntries: [], infiniteV2Entries: [], syncStatus: "error", pendingCount: 1,
+  pointWallet: { wallet: { balance: 0, ownedEffects: [], equippedEffect: null }, status: "idle", errorMessage: null,
+    coinGainRevision: 0, lastCoinGainAt: null, collectCoin: vi.fn(), purchaseEffect: vi.fn(), equipEffect: vi.fn(), retry: vi.fn() },
   errorMessage: "사내 저장 실패", submitResult: vi.fn(), submitInfiniteV2Score: vi.fn(), retry: vi.fn(), refresh: vi.fn() });
 
 describe("company save notice", () => {

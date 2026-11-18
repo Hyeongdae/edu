@@ -70,7 +70,9 @@ describe("shared point wallet contract", () => {
       .toEqual({ ok: false, code: "insufficient-points" });
     const owned = { balance: 250, ownedEffects: ["fire"] as (typeof POINT_EFFECT_IDS)[number][], equippedEffect: "fire" as const };
     expect(purchasePointEffect(owned, "fire")).toEqual({ ok: true, wallet: owned, changed: false });
-    expect(purchasePointEffect(owned, "smoke").wallet).toEqual({ balance: 50, ownedEffects: ["fire", "smoke"], equippedEffect: "smoke" });
+    const purchase = purchasePointEffect(owned, "smoke");
+    expect(purchase.ok).toBe(true);
+    if (purchase.ok) expect(purchase.wallet).toEqual({ balance: 50, ownedEffects: ["fire", "smoke"], equippedEffect: "smoke" });
     expect(owned).toEqual({ balance: 250, ownedEffects: ["fire"], equippedEffect: "fire" });
   });
 
@@ -79,7 +81,9 @@ describe("shared point wallet contract", () => {
     expect(equipPointEffect(wallet, "fire")).toEqual({ ok: false, code: "effect-not-owned" });
     expect(equipPointEffect(wallet, "sparkle")).toEqual({ ok: true,
       wallet: { ...wallet, ownedEffects: ["sparkle"], equippedEffect: "sparkle" }, changed: true });
-    expect(equipPointEffect({ ...wallet, equippedEffect: "sparkle" }, null).wallet.equippedEffect).toBeNull();
+    const unequipped = equipPointEffect({ ...wallet, equippedEffect: "sparkle" }, null);
+    expect(unequipped.ok).toBe(true);
+    if (unequipped.ok) expect(unequipped.wallet.equippedEffect).toBeNull();
   });
 
   it("keeps a wallet through stage and infinite profile merges", () => {

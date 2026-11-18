@@ -22,6 +22,8 @@ import { getDefaultCharacterAppearance } from "../../shared/characterAppearance"
 function companyBinding(highestClearedStage: CompanyRecordBinding["profile"]["highestClearedStage"] = 0): CompanyRecordBinding {
   return { profile: companyProfile({ accountId: account.homeAccountId, highestClearedStage }), entries: [],
     infiniteEntries: [], infiniteV2Entries: [], syncStatus: "idle", pendingCount: 0, errorMessage: null,
+    pointWallet: { wallet: { balance: 0, ownedEffects: [], equippedEffect: null }, status: "idle", errorMessage: null,
+      coinGainRevision: 0, lastCoinGainAt: null, collectCoin: vi.fn(), purchaseEffect: vi.fn(), equipEffect: vi.fn(), retry: vi.fn() },
     submitResult: vi.fn(), submitInfiniteV2Score: vi.fn(), retry: vi.fn(), refresh: vi.fn() };
 }
 

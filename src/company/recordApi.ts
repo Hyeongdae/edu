@@ -1,10 +1,10 @@
-import type { ApiErrorCode, SaveAppearanceResponse, SharedBest, SharedInfiniteBest, SharedProfile, SubmitInfiniteScoreRequest, SubmitInfiniteScoreResponse, SubmitResultRequest, SubmitResultResponse } from "../../shared/companyRecords";
+import type { ApiErrorCode, CollectPointCoinRequest, EquipPointEffectRequest, PointWalletResponse, PurchasePointEffectRequest, SaveAppearanceResponse, SharedBest, SharedInfiniteBest, SharedProfile, SubmitInfiniteScoreRequest, SubmitInfiniteScoreResponse, SubmitResultRequest, SubmitResultResponse } from "../../shared/companyRecords";
 import { createEmptyPointWallet, isPointWallet } from "../../shared/companyRecords";
 import { areCharacterAppearancesEqual, cloneCharacterAppearance, isCharacterAppearance, isSaveAppearanceRequest, normalizeCharacterAppearance } from "../../shared/characterAppearance";
 import type { SaveAppearanceRequest } from "../../shared/characterAppearance";
 import { getHighestUnlockedStage, getStageRule, isClearedStage, isGameStage } from "../game/stageRules";
 
-type RecordApiErrorCode = ApiErrorCode | "network" | "timeout" | "invalid-response";
+export type RecordApiErrorCode = ApiErrorCode | "network" | "timeout" | "invalid-response";
 
 export class RecordApiError extends Error {
   constructor(readonly code: RecordApiErrorCode) {
@@ -68,7 +68,7 @@ function isEntries(value: unknown): value is SharedBest[] {
     new Set(value.map((entry) => entry.accountId)).size === value.length;
 }
 
-async function request(path: string, signal: AbortSignal, accountId?: string, payload?: SubmitResultRequest | SubmitInfiniteScoreRequest | SaveAppearanceRequest): Promise<unknown> {
+async function request(path: string, signal: AbortSignal, accountId?: string, payload?: SubmitResultRequest | SubmitInfiniteScoreRequest | SaveAppearanceRequest | CollectPointCoinRequest | PurchasePointEffectRequest | EquipPointEffectRequest): Promise<unknown> {
   const controller = new AbortController();
   let timedOut = false;
   const abort = () => controller.abort();
@@ -182,6 +182,27 @@ export async function postAppearance(accountId: string, payload: SaveAppearanceR
   return { profile };
 }
 
+async function postPointWallet(path: string, accountId: string,
+  payload: CollectPointCoinRequest | PurchasePointEffectRequest | EquipPointEffectRequest,
+  signal: AbortSignal): Promise<PointWalletResponse> {
+  const value = await request(path, signal, accountId, payload);
+  const profile = object(value) ? normalizeSharedProfile(value.profile, accountId) : null;
+  if (!profile) throw new RecordApiError("invalid-response");
+  return { profile };
+}
+
+export function postPointCoin(accountId: string, payload: CollectPointCoinRequest, signal: AbortSignal): Promise<PointWalletResponse> {
+  return postPointWallet("/api/points/coins", accountId, payload, signal);
+}
+
+export function postPointPurchase(accountId: string, payload: PurchasePointEffectRequest, signal: AbortSignal): Promise<PointWalletResponse> {
+  return postPointWallet("/api/points/purchases", accountId, payload, signal);
+}
+
+export function postPointEquip(accountId: string, payload: EquipPointEffectRequest, signal: AbortSignal): Promise<PointWalletResponse> {
+  return postPointWallet("/api/points/equip", accountId, payload, signal);
+}
+
 export interface CompanyRecordApi {
   fetchProfile: typeof fetchProfile;
   fetchLeaderboard: typeof fetchLeaderboard;
@@ -191,7 +212,10 @@ export interface CompanyRecordApi {
   fetchInfiniteV2Leaderboard: typeof fetchInfiniteV2Leaderboard;
   postInfiniteV2Result: typeof postInfiniteV2Result;
   postAppearance?: typeof postAppearance;
+  postPointCoin: typeof postPointCoin;
+  postPointPurchase: typeof postPointPurchase;
+  postPointEquip: typeof postPointEquip;
 }
 
 export const companyRecordApi: CompanyRecordApi = { fetchProfile, fetchLeaderboard, postResult, fetchInfiniteLeaderboard, postInfiniteResult,
-  fetchInfiniteV2Leaderboard, postInfiniteV2Result, postAppearance };
+  fetchInfiniteV2Leaderboard, postInfiniteV2Result, postAppearance, postPointCoin, postPointPurchase, postPointEquip };

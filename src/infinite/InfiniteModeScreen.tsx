@@ -1,7 +1,7 @@
 import type { CharacterAppearance } from "../../shared/characterAppearance";
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import type { GameAccount } from "../auth/gameAccount";
-import type { CompanyRecordBinding } from "../company/types";
+import type { CompanyRecordBinding, PointWalletBinding } from "../company/types";
 import { CompanyRecordsNotice } from "../company/CompanyRecordsNotice";
 import { AudioControls } from "../audio/AudioControls";
 import type { AudioController } from "../audio/audioController";
@@ -26,6 +26,7 @@ interface InfiniteModeScreenProps {
   appearance?: CharacterAppearance;
   account: GameAccount;
   companyRecords?: CompanyRecordBinding;
+  pointWallet?: PointWalletBinding;
   audioController?: AudioController;
   audioPreferences?: AudioPreferences;
   autoplayBlocked?: boolean;
@@ -44,9 +45,10 @@ function isTextEntryTarget(target: EventTarget | null): boolean {
 }
 
 export function InfiniteModeScreen({
-  account, companyRecords, audioController, audioPreferences, autoplayBlocked = false,
+  account, companyRecords, pointWallet, audioController, audioPreferences, autoplayBlocked = false,
   onAudioPreferencesChange, onEnableAudio, onReturnToTitle, appearance,
 }: InfiniteModeScreenProps) {
+  const activePointWallet = companyRecords?.pointWallet ?? pointWallet;
   const [gameState, setGameState] = useState<InfiniteGameState>(() => createInfiniteGameState());
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [countdownEndsAt, setCountdownEndsAt] = useState<number | null>(null);
@@ -369,7 +371,8 @@ export function InfiniteModeScreen({
   }, [pauseOpen]);
 
   return (
-    <main className="stair-game pixel-theme infinite-mode-screen" data-game-status={gameState.status} onKeyDown={handleDirectionalMenuNavigation}>
+    <main className="stair-game pixel-theme infinite-mode-screen" data-game-status={gameState.status}
+      data-point-wallet-status={activePointWallet?.status ?? "unavailable"} onKeyDown={handleDirectionalMenuNavigation}>
       <div className="game-shell"><div className="game-frame" data-game-status={gameState.status} data-infinite-mode="true">
         <div className="game-utility-actions" data-keyboard-menu>
         <button className="game-settings-button" type="button" aria-label="게임 설정" aria-expanded={settingsOpen}

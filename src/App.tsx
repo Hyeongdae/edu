@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useMsal } from "@azure/msal-react";
 import type { AccountInfo } from "@azure/msal-browser";
 import { AuthGate } from "./auth/AuthGate";
@@ -6,7 +6,8 @@ import { HostedAuthGate } from "./auth/HostedAuthGate";
 import type { AuthMode } from "./auth/authConfig";
 import type { GameAccount } from "./auth/gameAccount";
 import { CompanyRecordsGate } from "./company/CompanyRecordsGate";
-import type { CompanyRecordBinding } from "./company/types";
+import type { CompanyRecordBinding, PointWalletBinding, PointWalletSnapshot } from "./company/types";
+import { LocalPointWalletStore } from "./points/localPointWallet";
 import { GameScreen } from "./game/GameScreen";
 import { createAudioController } from "./audio/audioController";
 import { loadAudioPreferences, saveAudioPreferences, type AudioPreferences } from "./audio/audioPreferences";
@@ -17,6 +18,11 @@ interface AppProps {
   localDemoMode?: boolean;
   authMode?: AuthMode;
 }
+
+const EMPTY_LOCAL_WALLET: PointWalletSnapshot = { wallet: { balance: 0, ownedEffects: [], equippedEffect: null }, status: "idle",
+  errorMessage: null, coinGainRevision: 0, lastCoinGainAt: null };
+const NOOP_SUBSCRIBE = () => () => {};
+const getEmptyWalletSnapshot = () => EMPTY_LOCAL_WALLET;
 
 function AuthConfigurationMessage({ message }: { message: string }) {
   return (
@@ -34,7 +40,14 @@ function AuthConfigurationMessage({ message }: { message: string }) {
   );
 }
 
-function GameAppShell({ account, companyRecords }: { account: GameAccount; companyRecords?: CompanyRecordBinding }) {
+function GameAppShell({ account, companyRecords, localDemoWallet = false }: { account: GameAccount; companyRecords?: CompanyRecordBinding; localDemoWallet?: boolean }) {
+  const [localWalletStore] = useState(() => localDemoWallet ? new LocalPointWalletStore(window.localStorage) : null);
+  const localWalletSnapshot = useSyncExternalStore(localWalletStore?.subscribe ?? NOOP_SUBSCRIBE,
+    localWalletStore?.getSnapshot ?? getEmptyWalletSnapshot, localWalletStore?.getSnapshot ?? getEmptyWalletSnapshot);
+  const pointWallet: PointWalletBinding | undefined = companyRecords?.pointWallet ?? (localWalletStore ? {
+    ...localWalletSnapshot, collectCoin: localWalletStore.collectCoin, purchaseEffect: localWalletStore.purchaseEffect,
+    equipEffect: localWalletStore.equipEffect, retry: () => {},
+  } : undefined);
   const [audioController] = useState(() => createAudioController());
   const [audioPreferences, setAudioPreferences] = useState(() => loadAudioPreferences());
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
@@ -70,6 +83,7 @@ function GameAppShell({ account, companyRecords }: { account: GameAccount; compa
       key={account.homeAccountId}
       account={account}
       companyRecords={companyRecords}
+      pointWallet={pointWallet}
       audioController={audioController}
       audioPreferences={audioPreferences}
       autoplayBlocked={autoplayBlocked}
@@ -117,7 +131,7 @@ export default function App({ configurationError, localDemoMode = false, authMod
   }
 
   if (localDemoMode && import.meta.env.DEV) {
-    return <GameAppShell key={localDemoAccount.homeAccountId} account={localDemoAccount} />;
+    return <GameAppShell key={localDemoAccount.homeAccountId} account={localDemoAccount} localDemoWallet />;
   }
 
   if (configurationError) {

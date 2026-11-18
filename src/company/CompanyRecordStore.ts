@@ -1,5 +1,6 @@
 import { compareSharedInfiniteScore, compareSharedPerformance, getSharedTopInfiniteScores, getSharedTopScores, isSubmitInfiniteScoreRequest, isSubmitResultRequest, validateResultForProfile } from "../../shared/companyRecords";
-import type { InfiniteScoreInput, SharedBest, SharedInfiniteBest, SharedProfile } from "../../shared/companyRecords";
+import type { InfiniteScoreInput, PointEffectId, SharedBest, SharedInfiniteBest, SharedProfile } from "../../shared/companyRecords";
+import type { PointWalletSnapshot, PendingPointCoinClaim } from "./types";
 import { areCharacterAppearancesEqual, cloneCharacterAppearance, isCharacterAppearance, resolveCharacterAppearance } from "../../shared/characterAppearance";
 import type { CharacterAppearance } from "../../shared/characterAppearance";
 import type { StageResult } from "../game/types";
@@ -13,6 +14,13 @@ const APPEARANCE_AUTH_ERROR = "외형을 저장하려면 회사 계정으로 다
 export function companyPendingKey(accountId: string): string {
   return "stair-descent:company:production:pending:v1:" + encodeURIComponent(accountId);
 }
+
+export function companyPointClaimsKey(accountId: string): string {
+  return "stair-descent:company:production:coin-claims:v1:" + encodeURIComponent(accountId);
+}
+
+const POINT_SAVE_ERROR = "포인트를 저장하지 못했습니다. 연결을 확인한 뒤 다시 시도해 주세요.";
+const POINT_AUTH_ERROR = "회사 계정 인증이 필요합니다. 다시 로그인한 뒤 다시 시도해 주세요.";
 
 interface StoreOptions {
   api?: CompanyRecordApi;
@@ -52,6 +60,17 @@ export class CompanyRecordStore {
   private appearanceStatus: AppearanceSyncStatus = "idle";
   private appearanceErrorMessage: string | null = null;
   private appearanceTimer: ReturnType<typeof setTimeout> | undefined;
+  private pointClaims: PendingPointCoinClaim[] = [];
+  private loadedPointClaims = false;
+  private pointStatus: PointWalletSnapshot["status"] = "idle";
+  private pointError: string | null = null;
+  private coinGainRevision = 0;
+  private lastCoinGainAt: number | null = null;
+  private pointRunning = false;
+  private pointBackoff = 0;
+  private pointTimer: ReturnType<typeof setTimeout> | undefined;
+  private pointWriteTail: Promise<void> = Promise.resolve();
+  private pointController: AbortController | null = null;
 
   constructor(private readonly accountId: string, private readonly options: StoreOptions = {}) {
     if (!accountId.trim()) throw new Error("A hosted account is required.");
@@ -73,7 +92,10 @@ export class CompanyRecordStore {
     this.errorMessage = null;
     this.needsRefresh = true;
     if (!this.loadedQueue) { this.loadedQueue = true; this.loadQueue(); }
+    if (!this.loadedPointClaims) { this.loadedPointClaims = true; this.loadPointClaims(); }
+    if (this.pointStatus === "auth-required") this.pointStatus = this.pointClaims.length ? "saving" : "idle";
     window.addEventListener("online", this.onOnline);
+    document.addEventListener("visibilitychange", this.onVisibilityChange);
     this.publish();
     this.kick();
   };
@@ -92,7 +114,12 @@ export class CompanyRecordStore {
     }
     this.controller?.abort();
     this.controller = null;
+    clearTimeout(this.pointTimer);
+    this.pointTimer = undefined;
+    this.pointController?.abort();
+    this.pointController = null;
     window.removeEventListener("online", this.onOnline);
+    document.removeEventListener("visibilitychange", this.onVisibilityChange);
   };
 
   submitResult = (result: StageResult): void => {
@@ -161,6 +188,7 @@ export class CompanyRecordStore {
 
   retry = (): void => {
     if (!this.active) return;
+    const pointNeedsAuthentication = this.pointStatus === "auth-required";
     clearTimeout(this.timer);
     this.timer = undefined;
     this.backoff = 0;
@@ -168,8 +196,13 @@ export class CompanyRecordStore {
     this.permanent = false;
     this.errorMessage = null;
     this.needsRefresh = true;
+    if (!pointNeedsAuthentication) {
+      this.pointStatus = this.pointClaims.length ? "saving" : this.pointStatus;
+      this.pointError = null;
+    }
     this.publish();
     this.kick();
+    if (!pointNeedsAuthentication) this.kickPointQueue();
   };
 
   refresh = (): void => {
@@ -184,6 +217,142 @@ export class CompanyRecordStore {
       if (this.appearanceStatus === "error") this.retryAppearance();
     }
   };
+
+  private onVisibilityChange = (): void => {
+    if (document.visibilityState === "visible") {
+      if (this.pointStatus === "auth-required") this.retry();
+      else this.kickPointQueue();
+    }
+  };
+
+  collectCoin = (): void => {
+    if (!this.active || !this.profile || !this.api.postPointCoin) return;
+    const claimId = (this.options.uuid ?? (() => crypto.randomUUID()))();
+    if (this.pointClaims.some((claim) => claim.claimId === claimId)) return;
+    const claim = { claimId, createdAt: (this.options.now?.() ?? new Date()).toISOString() };
+    this.pointClaims = [...this.pointClaims, claim];
+    if (!this.persistPointClaims()) {
+      this.pointStatus = "error";
+      this.pointError = "포인트 획득을 브라우저에 안전하게 보관하지 못했습니다. 저장 공간을 확인한 뒤 다시 시도해 주세요.";
+      this.publish();
+      return;
+    }
+    this.pointStatus = "saving";
+    this.pointError = null;
+    this.publish();
+    this.kickPointQueue();
+  };
+
+  purchaseEffect = (effectId: PointEffectId): Promise<void> => this.serializePointWrite(async () => {
+    await this.drainPointClaims();
+    if (!this.active || !this.profile) throw new Error(POINT_AUTH_ERROR);
+    this.pointStatus = "saving"; this.pointError = null; this.publish();
+    try {
+      const response = await this.api.postPointPurchase(this.accountId, { effectId }, this.newPointSignal());
+      this.acceptProfile(response.profile); this.pointStatus = "idle"; this.pointError = null; this.publish();
+    } catch (failure) { this.handlePointError(failure); throw failure; }
+  });
+
+  equipEffect = (effectId: PointEffectId | null): Promise<void> => this.serializePointWrite(async () => {
+    if (!this.active || !this.profile) throw new Error(POINT_AUTH_ERROR);
+    this.pointStatus = "saving"; this.pointError = null; this.publish();
+    try {
+      const response = await this.api.postPointEquip(this.accountId, { effectId }, this.newPointSignal());
+      this.acceptProfile(response.profile); this.pointStatus = "idle"; this.pointError = null; this.publish();
+    } catch (failure) { this.handlePointError(failure); throw failure; }
+  });
+
+  private serializePointWrite(action: () => Promise<void>): Promise<void> {
+    const result = this.pointWriteTail.then(action, action);
+    this.pointWriteTail = result.catch(() => {});
+    return result;
+  }
+
+  private newPointSignal(): AbortSignal {
+    this.pointController?.abort();
+    this.pointController = new AbortController();
+    return this.pointController.signal;
+  }
+
+  private loadPointClaims(): void {
+    try {
+      const raw = this.storage().getItem(companyPointClaimsKey(this.accountId));
+      if (raw === null) return;
+      const value = JSON.parse(raw) as { version?: unknown; accountId?: unknown; pending?: unknown };
+      if (!value || value.version !== 1 || value.accountId !== this.accountId || !Array.isArray(value.pending)) throw new Error();
+      const ids = new Set<string>();
+      const claims: PendingPointCoinClaim[] = [];
+      for (const item of value.pending) {
+        if (!item || typeof item !== "object" || typeof item.claimId !== "string" || !item.claimId.trim() ||
+          new TextEncoder().encode(item.claimId).length > 128 || typeof item.createdAt !== "string" ||
+          !Number.isFinite(Date.parse(item.createdAt)) || new Date(item.createdAt).toISOString() !== item.createdAt || ids.has(item.claimId)) throw new Error();
+        ids.add(item.claimId); claims.push({ claimId: item.claimId, createdAt: item.createdAt });
+      }
+      this.pointClaims = claims;
+    } catch {
+      this.pointError = "저장된 코인 요청을 읽지 못했습니다. 브라우저 저장 공간을 확인해 주세요.";
+      this.pointStatus = "error";
+    }
+  }
+
+  private persistPointClaims(): boolean {
+    try {
+      this.storage().setItem(companyPointClaimsKey(this.accountId), JSON.stringify({ version: 1, accountId: this.accountId, pending: this.pointClaims }));
+      return true;
+    } catch { return false; }
+  }
+
+  private kickPointQueue(): void {
+    if (!this.active || !this.profile || !this.pointClaims.length || this.pointRunning || this.pointStatus === "auth-required") return;
+    clearTimeout(this.pointTimer); this.pointTimer = undefined;
+    void this.serializePointWrite(() => this.drainPointClaims()).catch(() => {});
+  }
+
+  private retryPointWrites = (): void => {
+    if (!this.active) return;
+    this.pointBackoff = 0; this.pointError = null;
+    if (this.pointStatus === "auth-required") this.retry();
+    else { this.pointStatus = this.pointClaims.length ? "saving" : "idle"; this.publish(); this.kickPointQueue(); }
+  };
+
+  private async drainPointClaims(): Promise<void> {
+    if (this.pointRunning || !this.active || !this.profile || !this.api.postPointCoin) return;
+    this.pointRunning = true;
+    try {
+      while (this.active && this.profile && this.pointClaims.length) {
+        const claim = this.pointClaims[0];
+        if (!this.persistPointClaims()) throw new RecordApiError("storage-unavailable");
+        this.pointStatus = "saving"; this.pointError = null; this.publish();
+        const response = await this.api.postPointCoin(this.accountId, { claimId: claim.claimId }, this.newPointSignal());
+        if (!this.active) return;
+        this.acceptProfile(response.profile);
+        const previousClaims = this.pointClaims;
+        this.pointClaims = this.pointClaims.filter((item) => item.claimId !== claim.claimId);
+        if (!this.persistPointClaims()) {
+          this.pointClaims = previousClaims;
+          throw new RecordApiError("storage-unavailable");
+        }
+        this.coinGainRevision += 1; this.lastCoinGainAt = (this.options.now?.() ?? new Date()).getTime();
+        this.pointBackoff = 0; this.pointStatus = "idle"; this.pointError = null; this.publish();
+      }
+    } catch (failure) {
+      if (!this.active) return;
+      const error = failure instanceof RecordApiError ? failure : new RecordApiError("network");
+      this.handlePointError(error);
+      if (!["unauthenticated", "invalid-request", "invalid-response"].includes(error.code)) {
+        const delays = [1000, 2000, 5000, 10000, 30000];
+        this.pointTimer = setTimeout(() => { this.pointTimer = undefined; this.kickPointQueue(); }, delays[Math.min(this.pointBackoff++, delays.length - 1)]);
+      }
+      throw error;
+    } finally { this.pointRunning = false; }
+  }
+
+  private handlePointError(failure: unknown): void {
+    const error = failure instanceof RecordApiError ? failure : new RecordApiError("network");
+    this.pointStatus = error.code === "unauthenticated" ? "auth-required" : "error";
+    this.pointError = error.code === "unauthenticated" ? POINT_AUTH_ERROR : POINT_SAVE_ERROR;
+    this.publish();
+  }
 
   private appearanceIsDue(): boolean {
     return this.appearanceDraft !== null && this.appearanceStatus === "pending" &&
@@ -269,6 +438,10 @@ export class CompanyRecordStore {
     this.profile = { ...incoming, best, infiniteBest, infiniteV2Best,
       ...(incoming.appearance ? { appearance: cloneCharacterAppearance(incoming.appearance) } : {}),
       highestClearedStage: Math.max(previous?.highestClearedStage ?? 0, incoming.highestClearedStage) as SharedProfile["highestClearedStage"] };
+    if (this.pointStatus === "auth-required") {
+      this.pointStatus = this.pointClaims.length ? "saving" : "idle";
+      this.pointError = null;
+    }
     if (this.appearanceDraft && this.appearanceStatus === "auth-required") {
       this.appearanceStatus = "pending";
       this.appearanceErrorMessage = null;
@@ -285,6 +458,9 @@ export class CompanyRecordStore {
         profile: this.profile, entries: this.entries, infiniteEntries: this.infiniteEntries, infiniteV2Entries: this.infiniteV2Entries, syncStatus: this.syncStatus,
         pendingCount: this.pending.length, errorMessage: [this.errorMessage, this.persistenceWarning].filter(Boolean).join(" ") || null,
         submitResult: this.submitResult, submitInfiniteV2Score: this.submitInfiniteV2Score, retry: this.retry, refresh: this.refresh,
+        pointWallet: { wallet: this.profile.wallet, status: this.pointStatus, errorMessage: this.pointError,
+          coinGainRevision: this.coinGainRevision, lastCoinGainAt: this.lastCoinGainAt,
+          collectCoin: this.collectCoin, purchaseEffect: this.purchaseEffect, equipEffect: this.equipEffect, retry: this.retryPointWrites },
         appearance: {
           value: this.appearanceDraft ? cloneCharacterAppearance(this.appearanceDraft) : resolveCharacterAppearance(this.profile.appearance),
           status: this.appearanceStatus, errorMessage: this.appearanceErrorMessage,
@@ -417,6 +593,7 @@ export class CompanyRecordStore {
         this.controller = null;
         if (this.active && !this.paused && (!this.profile || this.needsRefresh || this.pending.length)) this.kick();
         else this.scheduleAppearance();
+        if (this.active && this.profile && this.pointClaims.length) this.kickPointQueue();
       }
     }
   }

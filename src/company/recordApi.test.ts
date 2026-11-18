@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { companyAck, companyProfile, companySubmission, deferred } from "../test/companyFixtures";
-import { fetchInfiniteLeaderboard, fetchInfiniteV2Leaderboard, fetchLeaderboard, fetchProfile, isSharedBest, isSharedProfile, normalizeSharedProfile, postAppearance, postInfiniteResult, postInfiniteV2Result, postResult } from "./recordApi";
+import { fetchInfiniteLeaderboard, fetchInfiniteV2Leaderboard, fetchLeaderboard, fetchProfile, isSharedBest, isSharedProfile, normalizeSharedProfile, postAppearance, postInfiniteResult, postInfiniteV2Result, postPointCoin, postPointEquip, postPointPurchase, postResult } from "./recordApi";
 import { getDefaultCharacterAppearance } from "../../shared/characterAppearance";
 import type { SaveAppearanceRequest } from "../../shared/characterAppearance";
 import { getDefaultCharacterAppearance as getLegacyAppearance } from "../../shared/legacyCharacterAppearance";
@@ -104,6 +104,30 @@ describe("versioned profile normalization", () => {
     await expect(postAppearance("employee-a", { appearance: make() } as unknown as SaveAppearanceRequest, new AbortController().signal))
       .rejects.toMatchObject({ code: "invalid-request" });
     expect(fetcher).not.toHaveBeenCalled();
+  });
+});
+
+describe("point wallet API", () => {
+  it.each([
+    [postPointCoin, "/api/points/coins", { claimId: "claim-1" }],
+    [postPointPurchase, "/api/points/purchases", { effectId: "fire" }],
+    [postPointEquip, "/api/points/equip", { effectId: null }],
+  ] as const)("sends authenticated POST to %s and validates its canonical account wallet", async (method, path, payload) => {
+    const profile = companyProfile({ accountId: "employee-a", wallet: { balance: 321, ownedEffects: ["fire"], equippedEffect: "fire" } });
+    const fetcher = vi.fn().mockResolvedValue(Response.json({ profile })); vi.stubGlobal("fetch", fetcher);
+    const result = await method("employee-a", payload as never, new AbortController().signal);
+    expect(result.profile.wallet).toEqual(profile.wallet);
+    expect(fetcher).toHaveBeenCalledWith(path, expect.objectContaining({ method: "POST", credentials: "include",
+      headers: expect.objectContaining({ "X-Game-Account": "employee-a", "X-Game-Request": "1" }), body: JSON.stringify(payload) }));
+  });
+
+  it("rejects a wallet acknowledgement for another account and preserves safe purchase errors", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ profile: companyProfile({ accountId: "other" }) })));
+    await expect(postPointCoin("employee-a", { claimId: "claim-1" }, new AbortController().signal))
+      .rejects.toMatchObject({ code: "invalid-response" });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ error: { code: "insufficient-points" } }, { status: 409 })));
+    await expect(postPointPurchase("employee-a", { effectId: "fire" }, new AbortController().signal))
+      .rejects.toMatchObject({ code: "insufficient-points" });
   });
 });
 

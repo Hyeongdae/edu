@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { mergeSharedInfiniteScore, mergeSharedInfiniteV2Score, mergeSharedResult } from "../../shared/companyRecords";
+import { equipPointEffect, mergeSharedInfiniteScore, mergeSharedInfiniteV2Score, mergeSharedResult, purchasePointEffect } from "../../shared/companyRecords";
 import type { SaveAppearanceResponse, SharedProfile } from "../../shared/companyRecords";
 import { companyAck, companyProfile, companyResult, companySubmission, deferred } from "../test/companyFixtures";
-import { CompanyRecordStore, companyPendingKey } from "./CompanyRecordStore";
+import { CompanyRecordStore, companyPendingKey, companyPointClaimsKey } from "./CompanyRecordStore";
 import { fetchProfile, normalizeSharedProfile, RecordApiError, type CompanyRecordApi } from "./recordApi";
 import { cloneCharacterAppearance, getDefaultCharacterAppearance } from "../../shared/characterAppearance";
 import type { CharacterAppearance, CharacterLook } from "../../shared/characterAppearance";
@@ -19,6 +19,7 @@ function memory() {
 function setup(initial = companyProfile(), storage = memory()) {
   let server = initial;
   let sequence = 0;
+  const coinClaims = new Set<string>();
   const api = {
     fetchProfile: vi.fn<CompanyRecordApi["fetchProfile"]>().mockImplementation(async () => server),
     fetchLeaderboard: vi.fn<CompanyRecordApi["fetchLeaderboard"]>().mockResolvedValue([]),
@@ -39,6 +40,26 @@ function setup(initial = companyProfile(), storage = memory()) {
     postAppearance: vi.fn<NonNullable<CompanyRecordApi["postAppearance"]>>().mockImplementation(async (accountId, input) => {
       if (accountId !== server.accountId) throw new RecordApiError("unauthenticated");
       server = { ...server, appearance: cloneCharacterAppearance(input.appearance) };
+      return { profile: server };
+    }),
+    postPointCoin: vi.fn<CompanyRecordApi["postPointCoin"]>().mockImplementation(async (accountId, input) => {
+      if (accountId !== server.accountId) throw new RecordApiError("unauthenticated");
+      if (!coinClaims.has(input.claimId)) {
+        coinClaims.add(input.claimId);
+        server = { ...server, wallet: { ...server.wallet, balance: server.wallet.balance + 1 } };
+      }
+      return { profile: server };
+    }),
+    postPointPurchase: vi.fn<CompanyRecordApi["postPointPurchase"]>().mockImplementation(async (_accountId, input) => {
+      const result = purchasePointEffect(server.wallet, input.effectId);
+      if (!result.ok) throw new RecordApiError("insufficient-points");
+      server = { ...server, wallet: result.wallet };
+      return { profile: server };
+    }),
+    postPointEquip: vi.fn<CompanyRecordApi["postPointEquip"]>().mockImplementation(async (_accountId, input) => {
+      const result = equipPointEffect(server.wallet, input.effectId);
+      if (!result.ok) throw new RecordApiError("effect-not-owned");
+      server = { ...server, wallet: result.wallet };
       return { profile: server };
     }),
   };
@@ -66,6 +87,49 @@ function withRunner(overrides: Partial<CharacterLook>): CharacterAppearance {
 
 beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(now); });
 afterEach(() => { stores.splice(0).forEach((store) => store.stop()); vi.unstubAllGlobals(); vi.useRealTimers(); });
+
+describe("account point wallet writes", () => {
+  it("persists coin claims before fetch and retries the same claim until confirmed", async () => {
+    const storage = memory();
+    const first = setup(companyProfile(), storage);
+    first.api.postPointCoin.mockRejectedValueOnce(new RecordApiError("network"));
+    first.store.start(); await settle();
+    binding(first.store).pointWallet.collectCoin();
+    await settle();
+    const key = companyPointClaimsKey("employee-a");
+    expect(JSON.parse(storage.data.get(key)!)).toMatchObject({ accountId: "employee-a", pending: [{ claimId: "00000000-0000-4000-8000-000000000001" }] });
+    expect(first.api.postPointCoin).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1000); await settle();
+    expect(first.api.postPointCoin).toHaveBeenCalledTimes(2);
+    expect(first.api.postPointCoin.mock.calls[0][1]).toEqual(first.api.postPointCoin.mock.calls[1][1]);
+    expect(binding(first.store).pointWallet.wallet.balance).toBe(1);
+    expect(JSON.parse(storage.data.get(key)!).pending).toEqual([]);
+    expect(binding(first.store).pointWallet.coinGainRevision).toBe(1);
+  });
+
+  it("restores queued claims for only the matching account after store recreation", async () => {
+    const storage = memory();
+    const original = setup(companyProfile(), storage);
+    original.store.start(); await settle();
+    original.api.postPointCoin.mockRejectedValueOnce(new RecordApiError("network"));
+    binding(original.store).pointWallet.collectCoin(); await settle(); original.store.stop();
+    const resumed = setup(companyProfile(), storage);
+    resumed.store.start(); await settle();
+    expect(resumed.api.postPointCoin).toHaveBeenCalledOnce();
+    expect(binding(resumed.store).pointWallet.wallet.balance).toBe(1);
+    expect(companyPointClaimsKey("employee-a")).not.toBe(companyPointClaimsKey("employee-b"));
+  });
+
+  it("uses the canonical server wallet and does not debit on purchase failure", async () => {
+    const { store, api } = setup(companyProfile({ wallet: { balance: 500, ownedEffects: [], equippedEffect: null } }));
+    store.start(); await settle();
+    api.postPointPurchase.mockRejectedValueOnce(new RecordApiError("insufficient-points"));
+    await expect(binding(store).pointWallet.purchaseEffect("fire")).rejects.toMatchObject({ code: "insufficient-points" });
+    expect(binding(store).pointWallet.wallet).toEqual({ balance: 500, ownedEffects: [], equippedEffect: null });
+    await binding(store).pointWallet.purchaseEffect("fire");
+    expect(binding(store).pointWallet.wallet).toEqual({ balance: 300, ownedEffects: ["fire"], equippedEffect: "fire" });
+  });
+});
 
 describe("account appearance autosave", () => {
   it.each([{ name: "v1", make: getLegacyAppearance }, { name: "v2", make: getExpandedAppearance }])(
@@ -591,7 +655,7 @@ describe("account-bound company record store", () => {
     storage.data.set("stair-descent:leaderboard:v2", "old demo scores");
     const { store, api } = setup(companyProfile(), storage); store.start(); await settle();
     expect(api.postResult.mock.calls[0][1]).toEqual(companySubmission());
-    expect(storage.getItem.mock.calls).toEqual([[companyPendingKey("employee-a")]]);
+    expect(storage.getItem.mock.calls).toEqual([[companyPendingKey("employee-a")], [companyPointClaimsKey("employee-a")]]);
     expect(storage.data.get(companyPendingKey("other"))).toBe("other account bytes");
     expect(storage.data.get("stair-descent:leaderboard:v2")).toBe("old demo scores");
   });
