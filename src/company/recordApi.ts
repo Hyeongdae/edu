@@ -1,4 +1,5 @@
 import type { ApiErrorCode, SaveAppearanceResponse, SharedBest, SharedInfiniteBest, SharedProfile, SubmitInfiniteScoreRequest, SubmitInfiniteScoreResponse, SubmitResultRequest, SubmitResultResponse } from "../../shared/companyRecords";
+import { createEmptyPointWallet, isPointWallet } from "../../shared/companyRecords";
 import { areCharacterAppearancesEqual, cloneCharacterAppearance, isCharacterAppearance, isSaveAppearanceRequest, normalizeCharacterAppearance } from "../../shared/characterAppearance";
 import type { SaveAppearanceRequest } from "../../shared/characterAppearance";
 import { getHighestUnlockedStage, getStageRule, isClearedStage, isGameStage } from "../game/stageRules";
@@ -37,6 +38,7 @@ export function isSharedProfile(value: unknown, accountId: string): value is Sha
         (value.best.bestScore < getStageRule(value.best.bestStage).scoreRequired || value.highestClearedStage >= value.best.bestStage))) &&
     (value.infiniteBest === null || (isSharedInfiniteBest(value.infiniteBest) && value.infiniteBest.accountId === accountId)) &&
     (value.infiniteV2Best === null || (isSharedInfiniteBest(value.infiniteV2Best) && value.infiniteV2Best.accountId === accountId)) &&
+    isPointWallet(value.wallet) &&
     (value.appearance === undefined || isCharacterAppearance(value.appearance));
 }
 
@@ -45,7 +47,9 @@ export function normalizeSharedProfile(value: unknown, accountId: string): Share
   if (!object(value)) return null;
   const appearance = value.appearance === undefined ? undefined : normalizeCharacterAppearance(value.appearance);
   if (appearance === null) return null;
-  const profile = { infiniteV2Best: null, ...value, ...(appearance ? { appearance } : {}) };
+  const profile = { infiniteV2Best: null, ...value,
+    wallet: Object.hasOwn(value, "wallet") ? value.wallet : createEmptyPointWallet(),
+    ...(appearance ? { appearance } : {}) };
   return isSharedProfile(profile, accountId) ? profile : null;
 }
 
@@ -91,7 +95,8 @@ async function request(path: string, signal: AbortSignal, accountId?: string, pa
     if (!response.ok) {
       const code = object(value) && object(value.error) ? value.error.code : null;
       if (code === "unauthenticated" || code === "invalid-request" || code === "stage-locked" ||
-        code === "conflict" || code === "storage-unavailable") throw new RecordApiError(code);
+        code === "conflict" || code === "storage-unavailable" || code === "insufficient-points" ||
+        code === "effect-not-owned") throw new RecordApiError(code);
       throw new RecordApiError(response.status >= 500 ? "storage-unavailable" : "invalid-response");
     }
     return value;

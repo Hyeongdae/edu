@@ -4,6 +4,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createPlayerRepository, getPlayerRowKey } from "../src/playerRepository";
 import type { PlayerContainer, PlayerDocument } from "../src/playerRepository";
 import { NOW, submission } from "./fixtures";
+import { createEmptyPointWallet } from "../../shared/companyRecords";
 import { createCosmosEmulatorHarness, holdFirstItemReadsTogether } from "./cosmosEmulatorHarness";
 import { getDefaultCharacterAppearance, normalizeCharacterAppearance } from "../../shared/characterAppearance";
 import { getDefaultCharacterAppearance as getLegacyAppearance } from "../../shared/legacyCharacterAppearance";
@@ -53,6 +54,7 @@ describe("real isolated Cosmos DB repository operations", () => {
       best: null,
       infiniteBest: null,
       infiniteV2Best: null,
+      wallet: createEmptyPointWallet(),
     });
     expect(await repository().listTopScores()).toEqual([]);
     expect(await countAccountDocuments(newActor.accountId)).toBe(0);
@@ -65,7 +67,7 @@ describe("real isolated Cosmos DB repository operations", () => {
 
     expect(saved.highestClearedStage).toBe(1);
     expect(await repository().getProfile(owner)).toEqual(saved);
-    expect(await repository().getProfile(other)).toEqual({ ...other, highestClearedStage: 0, best: null, infiniteBest: null, infiniteV2Best: null });
+    expect(await repository().getProfile(other)).toEqual({ ...other, highestClearedStage: 0, best: null, infiniteBest: null, infiniteV2Best: null, wallet: createEmptyPointWallet() });
     expect(await countAccountDocuments(owner.accountId)).toBe(1);
     expect(JSON.stringify(saved)).not.toMatch(/_etag|_rid|_self|_attachments|_ts/);
   });
@@ -183,7 +185,7 @@ describe("real isolated Cosmos DB repository operations", () => {
     appearance.runner = { ...appearance.runner, hat: "beanie", hairStyle: "long", eyeStyle: "round", bag: "backpack", bagColor: "navy", bottoms: "skirt", bottomsColor: "beige" };
     appearance.pursuer = { ...appearance.pursuer, glasses: "round", eyeStyle: "sharp", bag: "briefcase", bagColor: "brown", bottoms: "shorts", bottomsColor: "white" };
     const saved = await repository().saveAppearance(owner, appearance);
-    expect(saved).toEqual({ ...owner, highestClearedStage: 0, best: null, infiniteBest: null, infiniteV2Best: null, appearance });
+    expect(saved).toEqual({ ...owner, highestClearedStage: 0, best: null, infiniteBest: null, infiniteV2Best: null, wallet: createEmptyPointWallet(), appearance });
     expect(await repository().getProfile(owner)).toEqual(saved);
     expect(await repository().getProfile(other)).not.toHaveProperty("appearance");
     await repository().saveAppearance(owner, appearance);

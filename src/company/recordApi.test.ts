@@ -20,6 +20,7 @@ function legacyWireProfile() {
     infiniteBest: { accountId: "employee-a", displayName: "회사원 A", bestScore: 300, achievedAt: "2026-11-04T00:00:00.000Z" },
   }), appearance };
   delete (profile as Partial<typeof profile>).infiniteV2Best;
+  delete (profile as Partial<typeof profile>).wallet;
   return profile;
 }
 
@@ -45,6 +46,19 @@ describe("versioned profile normalization", () => {
     expect(wire).toEqual(before); expect(normalized).not.toBe(wire);
     normalized.appearance!.runner.hat = "none"; expect(wire.appearance.runner.hat).toBe(before.appearance.runner.hat);
     expect(normalizeSharedProfile(wire, "another-account")).toBeNull();
+  });
+
+  it("defaults a missing legacy wallet but rejects a malformed present wallet", () => {
+    const legacy = legacyWireProfile();
+    expect(normalizeSharedProfile(legacy, "employee-a")?.wallet)
+      .toEqual({ balance: 0, ownedEffects: [], equippedEffect: null });
+    for (const wallet of [
+      { balance: -1, ownedEffects: [], equippedEffect: null },
+      { balance: 1.5, ownedEffects: [], equippedEffect: null },
+      { balance: 0, ownedEffects: ["fire", "fire"], equippedEffect: "fire" },
+      { balance: 0, ownedEffects: [], equippedEffect: "smoke" },
+      { balance: 0, ownedEffects: [], equippedEffect: null, price: 1 },
+    ]) expect(normalizeSharedProfile({ ...companyProfile(), wallet }, "employee-a")).toBeNull();
   });
 
   it.each(oldWireProfiles.flatMap(schema => ["profile", "stage", "infinite"].map(mode => ({ ...schema, mode }))))(

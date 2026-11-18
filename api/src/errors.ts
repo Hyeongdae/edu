@@ -6,6 +6,8 @@ const STATUS: Record<ApiErrorCode, number> = {
   "stage-locked": 409,
   "conflict": 409,
   "storage-unavailable": 503,
+  "insufficient-points": 409,
+  "effect-not-owned": 409,
 };
 
 const MESSAGES: Record<ApiErrorCode, string> = {
@@ -14,6 +16,8 @@ const MESSAGES: Record<ApiErrorCode, string> = {
   "stage-locked": "Clear the preceding stage first.",
   "conflict": "The record changed during saving. Please retry.",
   "storage-unavailable": "Company records are temporarily unavailable. Please retry.",
+  "insufficient-points": "You do not have enough points to buy this effect.",
+  "effect-not-owned": "Buy this effect before equipping it.",
 };
 
 /** Only public, fixed messages cross the API boundary; SDK failures never reach response bodies. */

@@ -1,6 +1,6 @@
 import { CosmosClient, type ItemDefinition, type SqlQuerySpec } from "@azure/cosmos";
 import { createHash } from "node:crypto";
-import { getSharedTopInfiniteScores, getSharedTopScores, mergeSharedInfiniteScore, mergeSharedInfiniteV2Score, mergeSharedResult, validateResultForProfile } from "../../shared/companyRecords";
+import { createEmptyPointWallet, getSharedTopInfiniteScores, getSharedTopScores, mergeSharedInfiniteScore, mergeSharedInfiniteV2Score, mergeSharedResult, validateResultForProfile } from "../../shared/companyRecords";
 import type { AuthenticatedActor, InfiniteScoreInput, SharedBest, SharedInfiniteBest, SharedProfile, SubmitResultRequest } from "../../shared/companyRecords";
 import { areCharacterAppearancesEqual, cloneCharacterAppearance, isCharacterAppearance, normalizeCharacterAppearance } from "../../shared/characterAppearance";
 import type { CharacterAppearance } from "../../shared/characterAppearance";
@@ -165,6 +165,7 @@ function decodeDocument(document: unknown): SharedProfile {
     best,
     infiniteBest,
     infiniteV2Best,
+    wallet: createEmptyPointWallet(),
     ...(appearance ? { appearance } : {}),
   };
 }
@@ -249,7 +250,8 @@ export function createPlayerRepository(
   return {
     getProfile: (actor) => storageBoundary(async () => {
       const stored = await readStored(actor);
-      return stored?.profile ?? { ...actor, highestClearedStage: 0, best: null, infiniteBest: null, infiniteV2Best: null };
+      return stored?.profile ?? { ...actor, highestClearedStage: 0, best: null, infiniteBest: null, infiniteV2Best: null,
+        wallet: createEmptyPointWallet() };
     }),
 
     saveAppearance: (actor, appearance) => storageBoundary(async () => {
@@ -258,7 +260,8 @@ export function createPlayerRepository(
       const requestedAppearance = cloneCharacterAppearance(appearance);
       for (let attempt = 0; attempt < 5; attempt++) {
         const stored = await readStored(actor);
-        const previous: SharedProfile = stored?.profile ?? { ...actor, highestClearedStage: 0, best: null, infiniteBest: null, infiniteV2Best: null };
+        const previous: SharedProfile = stored?.profile ?? { ...actor, highestClearedStage: 0, best: null, infiniteBest: null,
+          infiniteV2Best: null, wallet: createEmptyPointWallet() };
         if (!stored?.appearanceNeedsUpgrade && previous.appearance && previous.displayName === actor.displayName &&
           areCharacterAppearancesEqual(previous.appearance, requestedAppearance)) return previous;
         const profile: SharedProfile = {

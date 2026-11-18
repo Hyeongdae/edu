@@ -21,6 +21,75 @@ export interface SharedInfiniteBest {
   achievedAt: string;
 }
 
+export const POINT_EFFECT_IDS = ["fire", "sparkle", "smoke"] as const;
+export type PointEffectId = (typeof POINT_EFFECT_IDS)[number];
+
+export interface PointWallet {
+  balance: number;
+  ownedEffects: PointEffectId[];
+  equippedEffect: PointEffectId | null;
+}
+
+export interface CollectPointCoinRequest { claimId: string }
+export interface PurchasePointEffectRequest { effectId: PointEffectId }
+export interface EquipPointEffectRequest { effectId: PointEffectId | null }
+export interface PointWalletResponse { profile: SharedProfile }
+
+export const POINT_EFFECT_PRICE = 200;
+export const POINT_COIN_VALUE = 1;
+
+export function createEmptyPointWallet(): PointWallet {
+  return { balance: 0, ownedEffects: [], equippedEffect: null };
+}
+
+export function isPointEffectId(value: unknown): value is PointEffectId {
+  return typeof value === "string" && (POINT_EFFECT_IDS as readonly string[]).includes(value);
+}
+
+export function isPointWallet(value: unknown): value is PointWallet {
+  if (!isRecord(value) || !hasExactOwnKeys(value, ["balance", "ownedEffects", "equippedEffect"]) ||
+    typeof value.balance !== "number" || !Number.isSafeInteger(value.balance) || value.balance < 0 ||
+    !Array.isArray(value.ownedEffects) || !value.ownedEffects.every(isPointEffectId) ||
+    new Set(value.ownedEffects).size !== value.ownedEffects.length) return false;
+  return value.equippedEffect === null ||
+    (isPointEffectId(value.equippedEffect) && value.ownedEffects.includes(value.equippedEffect));
+}
+
+export function isCollectPointCoinRequest(value: unknown): value is CollectPointCoinRequest {
+  return isRecord(value) && hasExactOwnKeys(value, ["claimId"]) && typeof value.claimId === "string" &&
+    value.claimId.trim().length > 0 && new TextEncoder().encode(value.claimId).length <= 128;
+}
+
+export function isPurchasePointEffectRequest(value: unknown): value is PurchasePointEffectRequest {
+  return isRecord(value) && hasExactOwnKeys(value, ["effectId"]) && isPointEffectId(value.effectId);
+}
+
+export function isEquipPointEffectRequest(value: unknown): value is EquipPointEffectRequest {
+  return isRecord(value) && hasExactOwnKeys(value, ["effectId"]) &&
+    (value.effectId === null || isPointEffectId(value.effectId));
+}
+
+export function purchasePointEffect(previous: PointWallet, effectId: PointEffectId):
+  | { ok: true; wallet: PointWallet; changed: boolean }
+  | { ok: false; code: "insufficient-points" } {
+  if (!isPointWallet(previous) || !isPointEffectId(effectId)) throw new RangeError("A valid wallet and effect are required.");
+  if (previous.ownedEffects.includes(effectId)) return { ok: true, wallet: previous, changed: false };
+  if (previous.balance < POINT_EFFECT_PRICE) return { ok: false, code: "insufficient-points" };
+  return { ok: true, wallet: { balance: previous.balance - POINT_EFFECT_PRICE,
+    ownedEffects: [...previous.ownedEffects, effectId], equippedEffect: effectId }, changed: true };
+}
+
+export function equipPointEffect(previous: PointWallet, effectId: PointEffectId | null):
+  | { ok: true; wallet: PointWallet; changed: boolean }
+  | { ok: false; code: "effect-not-owned" } {
+  if (!isPointWallet(previous) || (effectId !== null && !isPointEffectId(effectId))) {
+    throw new RangeError("A valid wallet and effect are required.");
+  }
+  if (effectId !== null && !previous.ownedEffects.includes(effectId)) return { ok: false, code: "effect-not-owned" };
+  if (previous.equippedEffect === effectId) return { ok: true, wallet: previous, changed: false };
+  return { ok: true, wallet: { ...previous, ownedEffects: [...previous.ownedEffects], equippedEffect: effectId }, changed: true };
+}
+
 export interface InfiniteScoreInput { score: number }
 
 export interface SharedProfile {
@@ -30,6 +99,7 @@ export interface SharedProfile {
   best: SharedBest | null;
   infiniteBest: SharedInfiniteBest | null;
   infiniteV2Best: SharedInfiniteBest | null;
+  wallet: PointWallet;
   appearance?: CharacterAppearance;
 }
 
@@ -67,7 +137,7 @@ export interface SubmitInfiniteScoreResponse {
 }
 
 export type ApiErrorCode = "unauthenticated" | "invalid-request" | "stage-locked"
-  | "conflict" | "storage-unavailable";
+  | "conflict" | "storage-unavailable" | "insufficient-points" | "effect-not-owned";
 
 export interface ApiError {
   error: { code: ApiErrorCode; message: string };
@@ -179,6 +249,7 @@ export function mergeSharedInfiniteScore(
   if (!changed) return { profile: previous, changed: false };
   return { profile: { ...previous, ...actor, highestClearedStage: previous?.highestClearedStage ?? 0,
     best: previous?.best ?? null, infiniteBest, infiniteV2Best: previous?.infiniteV2Best ?? null,
+    wallet: previous?.wallet ?? createEmptyPointWallet(),
     ...(previous?.appearance ? { appearance: cloneCharacterAppearance(previous.appearance) } : {}) }, changed: true };
 }
 
@@ -207,6 +278,7 @@ export function mergeSharedInfiniteV2Score(
   if (!changed) return { profile: previous, changed: false };
   return { profile: { ...previous, ...actor, highestClearedStage: previous?.highestClearedStage ?? 0,
     best: previous?.best ?? null, infiniteBest: previous?.infiniteBest ?? null, infiniteV2Best,
+    wallet: previous?.wallet ?? createEmptyPointWallet(),
     ...(previous?.appearance ? { appearance: cloneCharacterAppearance(previous.appearance) } : {}) }, changed: true };
 }
 
@@ -298,7 +370,8 @@ export function mergeSharedResult(
   if (!changed) return { profile: previous, changed: false };
   return {
     profile: { accountId: actor.accountId, displayName: actor.displayName, highestClearedStage, best,
-      infiniteBest, infiniteV2Best, ...(previous?.appearance ? { appearance: cloneCharacterAppearance(previous.appearance) } : {}) },
+      infiniteBest, infiniteV2Best, wallet: previous?.wallet ?? createEmptyPointWallet(),
+      ...(previous?.appearance ? { appearance: cloneCharacterAppearance(previous.appearance) } : {}) },
     changed: true,
   };
 }

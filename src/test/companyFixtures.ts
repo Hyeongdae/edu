@@ -1,8 +1,10 @@
+import { createEmptyPointWallet } from "../../shared/companyRecords";
 import type { SharedProfile, SubmitResultRequest, SubmitResultResponse } from "../../shared/companyRecords";
 import type { StageResult } from "../game/types";
 
 export function companyProfile(overrides: Partial<SharedProfile> = {}): SharedProfile {
-  return { accountId: "employee-a", displayName: "회사원 A", highestClearedStage: 0, best: null, infiniteBest: null, infiniteV2Best: null, ...overrides };
+  return { accountId: "employee-a", displayName: "회사원 A", highestClearedStage: 0, best: null, infiniteBest: null,
+    infiniteV2Best: null, wallet: createEmptyPointWallet(), ...overrides };
 }
 
 export function companyResult(overrides: Partial<StageResult> = {}): StageResult {

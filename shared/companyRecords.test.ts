@@ -3,8 +3,10 @@ import { describe, expect, it } from "vitest";
 import { STAGE_RULES, getHighestUnlockedStage } from "../src/game/stageRules";
 import type { ClearedStage } from "../src/game/types";
 import {
-  compareSharedInfiniteScore, compareSharedPerformance, getSharedTopInfiniteScores, getSharedTopScores,
-  isSubmitInfiniteScoreRequest, isSubmitResultRequest, mergeSharedInfiniteScore, mergeSharedInfiniteV2Score, mergeSharedResult, validateResultForProfile,
+  POINT_EFFECT_IDS, POINT_EFFECT_PRICE, createEmptyPointWallet, compareSharedInfiniteScore, compareSharedPerformance,
+  equipPointEffect, getSharedTopInfiniteScores, getSharedTopScores, isCollectPointCoinRequest, isEquipPointEffectRequest,
+  isPointWallet, isPurchasePointEffectRequest, isSubmitInfiniteScoreRequest, isSubmitResultRequest,
+  mergeSharedInfiniteScore, mergeSharedInfiniteV2Score, mergeSharedResult, purchasePointEffect, validateResultForProfile,
 } from "./companyRecords";
 import type { AuthenticatedActor, ResultInput, SharedBest, SharedProfile, SubmitResultRequest } from "./companyRecords";
 import { getDefaultCharacterAppearance } from "./characterAppearance";
@@ -31,8 +33,64 @@ function best(overrides: Partial<SharedBest> = {}): SharedBest {
 }
 
 function profile(overrides: Partial<SharedProfile> = {}): SharedProfile {
-  return { ...actor, highestClearedStage: 0, best: best(), infiniteBest: null, infiniteV2Best: null, ...overrides };
+  return { ...actor, highestClearedStage: 0, best: best(), infiniteBest: null, infiniteV2Best: null,
+    wallet: createEmptyPointWallet(), ...overrides };
 }
+
+describe("shared point wallet contract", () => {
+  it("validates the exact wallet shape and rejects malformed balances and ownership", () => {
+    const valid = { balance: 200, ownedEffects: ["fire"], equippedEffect: "fire" };
+    expect(isPointWallet(valid)).toBe(true);
+    for (const wallet of [
+      { ...valid, balance: -1 }, { ...valid, balance: 1.5 }, { ...valid, balance: Number.MAX_SAFE_INTEGER + 1 },
+      { ...valid, ownedEffects: ["fire", "fire"] }, { ...valid, ownedEffects: ["unknown"] },
+      { ...valid, equippedEffect: "smoke" }, { ...valid, extra: true },
+    ]) expect(isPointWallet(wallet)).toBe(false);
+    expect(POINT_EFFECT_IDS).toEqual(["fire", "sparkle", "smoke"]);
+  });
+
+  it("strictly validates coin, purchase, and equip requests", () => {
+    expect(isCollectPointCoinRequest({ claimId: "claim-1" })).toBe(true);
+    expect(isCollectPointCoinRequest({ claimId: " " })).toBe(false);
+    expect(isCollectPointCoinRequest({ claimId: "x".repeat(129) })).toBe(false);
+    expect(isCollectPointCoinRequest({ claimId: "😀".repeat(33) })).toBe(false);
+    expect(isCollectPointCoinRequest({ claimId: "claim-1", amount: 1000 })).toBe(false);
+    expect(isPurchasePointEffectRequest({ effectId: "fire" })).toBe(true);
+    expect(isPurchasePointEffectRequest({ effectId: "fire", price: 0 })).toBe(false);
+    expect(isPurchasePointEffectRequest({ effectId: "unknown" })).toBe(false);
+    expect(isEquipPointEffectRequest({ effectId: null })).toBe(true);
+    expect(isEquipPointEffectRequest({ effectId: "smoke", accountId: "other" })).toBe(false);
+  });
+
+  it("charges exactly 200 once, auto-equips, and preserves wallet immutability", () => {
+    const initial = { balance: POINT_EFFECT_PRICE, ownedEffects: [], equippedEffect: null } as const;
+    expect(purchasePointEffect({ ...initial, ownedEffects: [] }, "fire")).toEqual({ ok: true,
+      wallet: { balance: 0, ownedEffects: ["fire"], equippedEffect: "fire" }, changed: true });
+    expect(purchasePointEffect({ balance: 199, ownedEffects: [], equippedEffect: null }, "fire"))
+      .toEqual({ ok: false, code: "insufficient-points" });
+    const owned = { balance: 250, ownedEffects: ["fire"] as (typeof POINT_EFFECT_IDS)[number][], equippedEffect: "fire" as const };
+    expect(purchasePointEffect(owned, "fire")).toEqual({ ok: true, wallet: owned, changed: false });
+    expect(purchasePointEffect(owned, "smoke").wallet).toEqual({ balance: 50, ownedEffects: ["fire", "smoke"], equippedEffect: "smoke" });
+    expect(owned).toEqual({ balance: 250, ownedEffects: ["fire"], equippedEffect: "fire" });
+  });
+
+  it("only equips owned effects and supports unequipping", () => {
+    const wallet = { balance: 25, ownedEffects: ["sparkle"] as (typeof POINT_EFFECT_IDS)[number][], equippedEffect: null };
+    expect(equipPointEffect(wallet, "fire")).toEqual({ ok: false, code: "effect-not-owned" });
+    expect(equipPointEffect(wallet, "sparkle")).toEqual({ ok: true,
+      wallet: { ...wallet, ownedEffects: ["sparkle"], equippedEffect: "sparkle" }, changed: true });
+    expect(equipPointEffect({ ...wallet, equippedEffect: "sparkle" }, null).wallet.equippedEffect).toBeNull();
+  });
+
+  it("keeps a wallet through stage and infinite profile merges", () => {
+    const wallet = { balance: 31, ownedEffects: ["smoke"] as (typeof POINT_EFFECT_IDS)[number][], equippedEffect: "smoke" as const };
+    const before = profile({ wallet });
+    expect(mergeSharedResult(before, actor, result({ score: 101 }), LATER_TIME).profile.wallet).toEqual(wallet);
+    expect(mergeSharedInfiniteScore(before, actor, { score: 101 }, LATER_TIME).profile.wallet).toEqual(wallet);
+    expect(mergeSharedInfiniteV2Score(before, actor, { score: 101 }, LATER_TIME).profile.wallet).toEqual(wallet);
+    expect(mergeSharedResult(null, actor, result(), LATER_TIME).profile.wallet).toEqual(createEmptyPointWallet());
+  });
+});
 
 describe("appearance preservation across game records", () => {
   const modes = ["stage", "infinite"] as const;

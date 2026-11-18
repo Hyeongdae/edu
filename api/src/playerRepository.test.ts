@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ACTOR, NOW, submission } from "../test/fixtures";
+import { createEmptyPointWallet } from "../../shared/companyRecords";
 import {
   createPlayerRepository, createPlayerRepositoryFromEnvironment, getPlayerRowKey,
 } from "./playerRepository";
@@ -175,7 +176,7 @@ describe("account character appearance persistence", () => {
     expect(container.items.create).not.toHaveBeenCalled();
     const appearance = getDefaultCharacterAppearance();
     expect(await repo.saveAppearance(ACTOR, appearance)).toEqual({
-      ...ACTOR, highestClearedStage: 0, best: null, infiniteBest: null, infiniteV2Best: null, appearance,
+      ...ACTOR, highestClearedStage: 0, best: null, infiniteBest: null, infiniteV2Best: null, wallet: createEmptyPointWallet(), appearance,
     });
     expect(current()).toEqual({
       id: getPlayerRowKey(ACTOR.accountId), ...ACTOR, schemaVersion: 1, highestClearedStage: 0, appearance,
@@ -327,7 +328,7 @@ describe("Cosmos player repository", () => {
   it.each([itemNotFound, { code: 404 }])(
     "returns a new profile only when the verified container has no matching item: %j", async (error) => {
       item.read.mockRejectedValueOnce(error);
-      expect(await repository().getProfile(ACTOR)).toEqual({ ...ACTOR, highestClearedStage: 0, best: null, infiniteBest: null, infiniteV2Best: null });
+      expect(await repository().getProfile(ACTOR)).toEqual({ ...ACTOR, highestClearedStage: 0, best: null, infiniteBest: null, infiniteV2Best: null, wallet: createEmptyPointWallet() });
       expect(container.read).toHaveBeenCalledExactlyOnceWith();
       expect(container.item).toHaveBeenCalledExactlyOnceWith(getPlayerRowKey(ACTOR.accountId), ACTOR.accountId);
       expect(container.items.create).not.toHaveBeenCalled();
@@ -336,7 +337,7 @@ describe("Cosmos player repository", () => {
 
   it("treats the SDK's resolved 404 response with no resource as a missing item", async () => {
     item.read.mockResolvedValueOnce({ statusCode: 404 });
-    expect(await repository().getProfile(ACTOR)).toEqual({ ...ACTOR, highestClearedStage: 0, best: null, infiniteBest: null, infiniteV2Best: null });
+    expect(await repository().getProfile(ACTOR)).toEqual({ ...ACTOR, highestClearedStage: 0, best: null, infiniteBest: null, infiniteV2Best: null, wallet: createEmptyPointWallet() });
     expect(container.items.create).not.toHaveBeenCalled();
   });
 
@@ -370,6 +371,7 @@ describe("Cosmos player repository", () => {
       best: { ...ACTOR, bestStage: 1, bestScore: 100, remainingTimeCs: 6000, achievedAt: NOW },
       infiniteBest: null,
       infiniteV2Best: null,
+      wallet: createEmptyPointWallet(),
     });
     await repo.getProfile(ACTOR);
     expect(container.read).toHaveBeenCalledExactlyOnceWith();
@@ -400,7 +402,7 @@ describe("Cosmos player repository", () => {
       delete noBest[key as keyof PlayerDocument];
     }
     item.read.mockResolvedValueOnce({ resource: noBest, etag: ITEM_ETAG });
-    expect(await repository().getProfile(ACTOR)).toEqual({ ...ACTOR, highestClearedStage: 0, best: null, infiniteBest: null, infiniteV2Best: null });
+    expect(await repository().getProfile(ACTOR)).toEqual({ ...ACTOR, highestClearedStage: 0, best: null, infiniteBest: null, infiniteV2Best: null, wallet: createEmptyPointWallet() });
     item.read.mockResolvedValueOnce({ resource: { ...noBest, bestScore: 10 }, etag: ITEM_ETAG });
     await expect(repository().getProfile(ACTOR)).rejects.toMatchObject({ code: "storage-unavailable" });
   });
