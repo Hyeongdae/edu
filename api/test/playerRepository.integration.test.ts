@@ -43,7 +43,15 @@ async function countAccountDocuments(accountId: string): Promise<number> {
   return resources.length;
 }
 
-beforeEach(() => { testScope = randomUUID().replaceAll("-", ""); });
+beforeEach(async () => {
+  testScope = randomUUID().replaceAll("-", "");
+  const { resources = [] } = await emulator.container.items.query<PlayerDocument>({ query: "SELECT * FROM c" })
+    .fetchAll();
+  const rawContainer = emulator.container as unknown as Container;
+  for (const document of resources) {
+    await rawContainer.item(document.id, document.accountId).delete();
+  }
+});
 
 describe("real isolated Cosmos DB repository operations", () => {
   it("returns a fresh profile for a missing point read without persisting it", async () => {
@@ -171,7 +179,9 @@ describe("real isolated Cosmos DB repository operations", () => {
       } as never },
     ], owner.accountId);
     expect((response.result ?? []).some((operation) => operation.statusCode >= 400)).toBe(true);
-    await expect(rawContainer.item(receiptId, owner.accountId).read()).rejects.toMatchObject({ code: 404 });
+    const receiptAfterRollback = await rawContainer.item(receiptId, owner.accountId).read()
+      .catch((error: { statusCode?: number }) => error);
+    expect(receiptAfterRollback).toMatchObject({ statusCode: 404, resource: undefined });
     const after = await rawContainer.item(document.id, owner.accountId).read<PlayerDocument>();
     expect(after.etag).toBe(current.etag);
     expect(after.resource?.pointBalance).toBe(4);
