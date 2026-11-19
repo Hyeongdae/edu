@@ -45,7 +45,9 @@ async function countAccountDocuments(accountId: string): Promise<number> {
 
 beforeEach(async () => {
   testScope = randomUUID().replaceAll("-", "");
-  const { resources = [] } = await emulator.container.items.query<PlayerDocument>({ query: "SELECT * FROM c" })
+  const { resources = [] } = await emulator.container.items.query<PlayerDocument>(
+    { query: "SELECT * FROM c" }, { maxItemCount: 100 },
+  )
     .fetchAll();
   const rawContainer = emulator.container as unknown as Container;
   for (const document of resources) {
