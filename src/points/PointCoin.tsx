@@ -19,7 +19,7 @@ export function PlayerStepEffect({ effect, animationKey }: { effect: PointEffect
       <path className="step-fire-core" d="M-8 2v-6h3v-7h4v5h4v8Z" fill="#ffd85a" />
       <path className="step-fire-core-highlight" d="M-2 2v-5h3v-5h3v7h2v3Z" fill="#fff1a0" />
     </g>}
-    {effect === "sparkle" && <><path d="M0-18 3-5 13-2 3 1 0 14-3 1-13-2-3-5Z" fill="#8cf5ef"/><path d="M15-11v8m-4-4h8M-17-4v7m-3-3h7" stroke="#fff3a3" strokeWidth="2"/></>}
-    {effect === "smoke" && <><circle cx="-6" cy="-6" r="5" fill="#bdc9d9"/><circle cx="2" cy="-12" r="6" fill="#e0e8f2"/><circle cx="9" cy="-5" r="4" fill="#aab8cb"/></>}
+    {effect === "sparkle" && <g className="step-sparkle" transform="scale(1.5)"><path d="M0-18 3-5 13-2 3 1 0 14-3 1-13-2-3-5Z" fill="#8cf5ef"/><path d="M15-11v8m-4-4h8M-17-4v7m-3-3h7" stroke="#fff3a3" strokeWidth="2"/></g>}
+    {effect === "smoke" && <g className="step-smoke" transform="scale(1.6)"><circle cx="-6" cy="-6" r="5" fill="#bdc9d9"/><circle cx="2" cy="-12" r="6" fill="#e0e8f2"/><circle cx="9" cy="-5" r="4" fill="#aab8cb"/></g>}
   </g>;
 }

@@ -16,6 +16,8 @@ describe("pixel point pickups", () => {
       expect(getByTestId("player-step-effect").querySelector(".step-fire-flame--right")).toHaveClass("step-fire-flame--right");
       expect(getByTestId("player-step-effect")).toHaveStyle({ transformBox: "fill-box", transformOrigin: "center bottom" });
     }
+    if (effect === "sparkle") expect(getByTestId("player-step-effect").querySelector(".step-sparkle")).toHaveAttribute("transform", "scale(1.5)");
+    if (effect === "smoke") expect(getByTestId("player-step-effect").querySelector(".step-smoke")).toHaveAttribute("transform", "scale(1.6)");
   });
 });
 afterEach(cleanup);
