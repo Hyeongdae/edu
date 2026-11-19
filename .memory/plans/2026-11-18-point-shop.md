@@ -11,8 +11,8 @@ Add account-persistent shop points, random coin pickups in stage and infinite mo
 | Phase | Status | Summary | Blueprint |
 | :--- | :--- | :--- | :--- |
 | P01 | `done` | Extend the shared profile, authenticated Cosmos API, and client/local wallet with idempotent point collection and purchases | [P01](../phases/2026-11-18-point-shop/P01-account-wallet-api/phase.md) |
-| P02 | `in_progress` | Add 5% safe coin drops and one-point collection to both game engines, then render coins and step effects | [P02](../phases/2026-11-18-point-shop/P02-coin-gameplay-effects/phase.md) |
-| P03 | `pending` | Add title-screen shop popup, previews, confirmation, inventory and equip controls | [P03](../phases/2026-11-18-point-shop/P03-point-shop-ui/phase.md) |
+| P02 | `done` | Add 5% safe coin drops and one-point collection to both game engines, then render coins and step effects | [P02](../phases/2026-11-18-point-shop/P02-coin-gameplay-effects/phase.md) |
+| P03 | `in_progress` | Add title-screen shop popup, previews, confirmation, inventory and equip controls | [P03](../phases/2026-11-18-point-shop/P03-point-shop-ui/phase.md) |
 
 ## Data Contract
 - Shared profile wallet: `{ balance: number; ownedEffects: PointEffectId[]; equippedEffect: PointEffectId | null }`.
@@ -46,7 +46,7 @@ The proposed exact retry deduplication adds one same-partition Cosmos receipt do
 - Final: `npm.cmd run lint`, `npm.cmd run build`, `npm.cmd --prefix api run build`, and `git diff --check`.
 
 ## Progress
-- done: 4/6
-- Active: P02-T02
+- done: 5/6
+- Active: P03-T01
 
 
