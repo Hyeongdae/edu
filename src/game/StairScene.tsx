@@ -146,8 +146,6 @@ export function StairScene({ appearance, state, climbAnimationKey, isClimbing, p
                 <PixelStair face="top" direction={step.direction} />
               </g>
               {step.hasPointCoin && <g transform={`translate(${step.x} ${step.y})`}><PointCoin stairIndex={step.index} /></g>}
-              {equippedEffect && step.index === model.player.index && state.lastMove?.toIndex === model.player.index &&
-                <g transform={`translate(${step.x} ${step.y})`}><PlayerStepEffect effect={equippedEffect} animationKey={stepEffectKey} /></g>}
               {hasObstacle(state.obstacles, step.index) && (step.index > state.stepsClimbed || step.index === jumpedBoxIndex) && (
                 <g data-testid="stair-obstacle" data-route-index={step.index} transform={`translate(${step.x} ${step.y})`}>
                   <PixelObstacle />
@@ -162,6 +160,10 @@ export function StairScene({ appearance, state, climbAnimationKey, isClimbing, p
             <g className="pursuer-move-overlay">{pursuer}{stairFront(model.pursuer)}</g>
           )}
           {climbing && <g className={jumping ? "jump-overlay" : "step-overlay"}>{runner}{stairFront(model.player)}</g>}
+          {equippedEffect && state.lastMove?.toIndex === model.player.index && !isPursuerCaught &&
+            <g className="player-effect-overlay" transform={`translate(${model.player.x} ${model.player.y + 3})`}>
+              <PlayerStepEffect effect={equippedEffect} animationKey={stepEffectKey} />
+            </g>}
           {isPursuerCaught && (
             <g className="catch-overlay">
               {pursuer}

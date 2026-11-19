@@ -38,8 +38,6 @@ export function InfiniteStairScene({ appearance, state, isMoving, motionDuration
             <g key={step.index} data-testid="infinite-stair-step" data-route-index={step.index} data-direction={step.direction}>
               <g className="stair-top" transform={`translate(${step.x} ${step.y})`}><PixelStair face="top" direction={step.direction} /></g>
               {step.hasPointCoin && <g transform={`translate(${step.x} ${step.y})`}><PointCoin stairIndex={step.index} /></g>}
-              {equippedEffect && step.index === model.player.index && state.lastMove?.toIndex === model.player.index &&
-                <g transform={`translate(${step.x} ${step.y})`}><PlayerStepEffect effect={equippedEffect} animationKey={stepEffectKey} /></g>}
               <g className="stair-front" transform={`translate(${step.x} ${step.y})`}><PixelStair face="front" direction={step.direction} /></g>
             </g>
           ))}
@@ -49,6 +47,10 @@ export function InfiniteStairScene({ appearance, state, isMoving, motionDuration
             transform={`translate(${model.player.x} ${model.player.y - 12})`}>
             <PixelOfficer appearance={appearance?.runner} variant="young" direction={model.player.direction} pose={state.status === "game-over" ? "fall" : isMoving ? "climb" : "idle"} />
           </g>
+          {equippedEffect && state.lastMove?.toIndex === model.player.index && state.status !== "game-over" &&
+            <g className="player-effect-overlay" transform={`translate(${model.player.x} ${model.player.y + 3})`}>
+              <PlayerStepEffect effect={equippedEffect} animationKey={stepEffectKey} />
+            </g>}
           {model.pursuerVisible && (
             <g className={`infinite-actor infinite-pursuer${isMoving ? " is-moving" : ""}`} data-testid="infinite-pursuer"
               style={{ "--infinite-pursuer-step-duration": `${motionDurationMs}ms` } as CSSProperties}

@@ -10,6 +10,10 @@ describe("pixel point pickups", () => {
   it.each(["fire", "sparkle", "smoke"] as const)("renders the %s footstep effect variant", (effect) => {
     const { getByTestId } = render(<svg><PlayerStepEffect effect={effect} animationKey={1} /></svg>);
     expect(getByTestId("player-step-effect")).toHaveAttribute("data-effect", effect);
+    if (effect === "fire") {
+      expect(getByTestId("player-step-effect").querySelector(".step-fire-flames")).not.toBeNull();
+      expect(getByTestId("player-step-effect").querySelector(".step-fire-flame--right")).toHaveClass("step-fire-flame--right");
+    }
   });
 });
 afterEach(cleanup);

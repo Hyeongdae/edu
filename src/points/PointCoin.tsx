@@ -12,7 +12,12 @@ export function PointCoin({ stairIndex }: { stairIndex: number }): ReactElement 
 export function PlayerStepEffect({ effect, animationKey }: { effect: PointEffectId | null; animationKey: number }): ReactElement | null {
   if (!effect) return null;
   return <g key={`${effect}-${animationKey}`} className={`player-step-effect is-${effect}`} data-testid="player-step-effect" data-effect={effect}>
-    {effect === "fire" && <><path d="M-11 0 Q-16-12-7-17 Q-9-8 0-14 Q8-9 7-17 Q17-8 10 0Z" fill="#ff8a35"/><path d="M-5 0 Q-8-7-1-12 Q0-5 5-9 Q9-4 4 0Z" fill="#ffe36e"/></>}
+    {effect === "fire" && <g className="step-fire-flames">
+      <path className="step-fire-flame step-fire-flame--left" d="M-16 2v-8h4v-7h4v-7h4v8h4v7h3v7Z" fill="#f4512b" />
+      <path className="step-fire-flame step-fire-flame--right" d="M-3 2v-7h4v-8h4v-8h4v7h4v9h3v7Z" fill="#ff812d" />
+      <path className="step-fire-core" d="M-8 2v-6h3v-7h4v5h4v8Z" fill="#ffd85a" />
+      <path className="step-fire-core-highlight" d="M-2 2v-5h3v-5h3v7h2v3Z" fill="#fff1a0" />
+    </g>}
     {effect === "sparkle" && <><path d="M0-18 3-5 13-2 3 1 0 14-3 1-13-2-3-5Z" fill="#8cf5ef"/><path d="M15-11v8m-4-4h8M-17-4v7m-3-3h7" stroke="#fff3a3" strokeWidth="2"/></>}
     {effect === "smoke" && <><circle cx="-6" cy="-6" r="5" fill="#bdc9d9"/><circle cx="2" cy="-12" r="6" fill="#e0e8f2"/><circle cx="9" cy="-5" r="4" fill="#aab8cb"/></>}
   </g>;
