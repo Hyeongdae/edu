@@ -26,6 +26,7 @@ import type { ClearedStage, GameInput, GameStage } from "./types";
 import { LeaderboardPanel } from "../leaderboard/LeaderboardPanel";
 import { handleDirectionalMenuNavigation } from "./directionalMenuNavigation";
 import { AudioControls } from "../audio/AudioControls";
+import { PointShopDialog } from "../points/PointShopDialog";
 import type { AudioController } from "../audio/audioController";
 import type { AudioPreferences } from "../audio/audioPreferences";
 import { InfiniteModeScreen } from "../infinite/InfiniteModeScreen";
@@ -34,7 +35,7 @@ import "./pixel-theme.css";
 
 const TITLE_SCENE_TRANSITION_MS = 200;
 const STAGE_COUNTDOWN_MS = 3000;
-type ActiveGameDialog = "settings" | "instructions" | "leaderboard" | "pause" | "customization" | null;
+type ActiveGameDialog = "settings" | "instructions" | "leaderboard" | "pause" | "customization" | "shop" | null;
 type OpenGameDialog = Exclude<ActiveGameDialog, null>;
 type StageResumeTarget = "playing" | "start" | "continue" | null;
 
@@ -77,6 +78,7 @@ export function GameScreen({
   };
   const appearance = appearanceBinding.value;
   const customizationTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const shopTriggerRef = useRef<HTMLButtonElement | null>(null);
   const usesCompanyRecords = companyRecords !== undefined;
   const submitCompanyResult = companyRecords?.submitResult;
   const submittedCompanyResults = useRef(new WeakSet<object>());
@@ -107,6 +109,7 @@ export function GameScreen({
   const isInstructionsOpen = activeDialog === "instructions";
   const isLeaderboardOpen = activeDialog === "leaderboard";
   const isCustomizationOpen = activeDialog === "customization";
+  const isShopOpen = activeDialog === "shop";
   const isPauseOpen = activeDialog === "pause";
   const [pauseConfirmation, setPauseConfirmation] = useState<PauseMenuConfirmation>(null);
   const [pausedGameTime, setPausedGameTime] = useState<number | null>(null);
@@ -156,6 +159,7 @@ export function GameScreen({
   const openGameDialog = useCallback((dialog: OpenGameDialog) => {
     if (activeDialogRef.current !== null) return;
     if (dialog === "customization" && (!isTitleScreen || isTitleLeaving || gameState.status !== "ready")) return;
+    if (dialog === "shop" && (!isTitleScreen || isTitleLeaving || gameState.status !== "ready" || !activePointWallet)) return;
     if (dialog === "settings" && (countdownEndsAtRef.current !== null ||
       (gameState.status !== "playing" && gameState.status !== "ready" && gameState.status !== "checkpoint"))) return;
     if (dialog === "instructions" && !isTitleScreen) return;
@@ -174,7 +178,7 @@ export function GameScreen({
 
     activeDialogRef.current = dialog;
     setActiveDialog(dialog);
-  }, [gameState, isTitleScreen, isTitleLeaving]);
+  }, [gameState, isTitleScreen, isTitleLeaving, activePointWallet]);
 
   const closeGameDialog = useCallback((dialog: OpenGameDialog) => {
     if (activeDialogRef.current !== dialog) return;
@@ -657,6 +661,8 @@ export function GameScreen({
       if (!leaderboardDialogRef.current?.contains(document.activeElement)) leaderboardCloseRef.current?.focus();
     } else if (activeDialog === "customization") {
       // CharacterCustomizationDialog owns initial focus.
+    } else if (activeDialog === "shop") {
+      // PointShopDialog owns initial focus.
     } else if (activeDialog === "pause") {
       // PauseMenuDialog owns initial focus.
     } else if (previousDialogRef.current === "settings") {
@@ -668,6 +674,8 @@ export function GameScreen({
       leaderboardReturnFocusRef.current = null;
     } else if (previousDialogRef.current === "customization") {
       customizationTriggerRef.current?.focus();
+    } else if (previousDialogRef.current === "shop") {
+      shopTriggerRef.current?.focus();
     } else if (previousDialogRef.current === "pause") {
       if (isTitleScreen) titleStartButtonRef.current?.focus();
       else pauseTriggerRef.current?.focus();
@@ -726,8 +734,8 @@ export function GameScreen({
               className={`game-title-screen${isTitleLeaving ? " is-leaving" : ""}`}
               data-keyboard-menu
               aria-labelledby="game-title"
-              aria-hidden={isTitleLeaving || isCustomizationOpen || undefined}
-              inert={isTitleLeaving || isCustomizationOpen || undefined}
+              aria-hidden={isTitleLeaving || isCustomizationOpen || isShopOpen || undefined}
+              inert={isTitleLeaving || isCustomizationOpen || isShopOpen || undefined}
             >
               <div className="game-title-copy">
                 <p className="game-title-kicker">STAIRWAY CHALLENGE</p>
@@ -761,6 +769,9 @@ export function GameScreen({
                   onClick={() => openGameDialog("customization")}>
                   캐릭터 꾸미기
                 </button>
+                <button ref={shopTriggerRef} className="game-title-shop" type="button" disabled={!activePointWallet}
+                  aria-haspopup="dialog" aria-expanded={isShopOpen} aria-controls="point-shop-dialog"
+                  onClick={() => openGameDialog("shop")}>포인트 상점</button>
                 <button className="game-title-ranking" type="button" aria-haspopup="dialog" aria-expanded={isLeaderboardOpen}
                   aria-controls="leaderboard-dialog" onClick={(event) => openLeaderboard(event.currentTarget)}>
                   랭킹 보기
@@ -969,6 +980,8 @@ export function GameScreen({
             <CharacterCustomizationDialog binding={appearanceBinding} storageMode={companyRecords?.appearance ? "account" : "session"}
               onClose={() => closeGameDialog("customization")} />
           )}
+          {isShopOpen && activePointWallet && <PointShopDialog wallet={activePointWallet}
+            storageMode={companyRecords ? "account" : "local"} onClose={() => closeGameDialog("shop")} />}
           {isInstructionsOpen && (
             <GameInstructionsDialog
               onClose={closeInstructions}

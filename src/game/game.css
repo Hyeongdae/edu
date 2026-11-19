@@ -127,6 +127,7 @@
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
+.game-title-actions .game-title-shop { border-color: var(--pixel-gold); background: #443b28; color: var(--pixel-gold); }
 
 .instructions-backdrop {
   position: absolute;

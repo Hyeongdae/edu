@@ -265,6 +265,22 @@ describe("title character customization integration", () => {
   });
 });
 
+describe("title point shop entry", () => {
+  afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
+
+  it("opens only from the title, keeps the scene behind it, and restores trigger focus", () => {
+    vi.useFakeTimers(); vi.setSystemTime(0);
+    renderBase(<GameScreen account={account} companyRecords={companyBinding()} />);
+    const trigger = screen.getByRole("button", { name: "포인트 상점" });
+    fireEvent.click(trigger);
+    expect(screen.getByRole("dialog", { name: "포인트 상점" })).toBeVisible();
+    expect(document.querySelector(".game-title-screen")).toHaveAttribute("inert");
+    fireEvent.click(screen.getByRole("button", { name: "닫기" }));
+    expect(document.activeElement).toBe(trigger);
+    expect(screen.queryByRole("dialog", { name: "포인트 상점" })).toBeNull();
+  });
+});
+
 describe("company record persistence", () => {
   beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(0); });
   afterEach(() => { cleanup(); localStorage.clear(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
@@ -406,7 +422,7 @@ describe("title screen entry", () => {
 
     expect(screen.getByRole("heading", { level: 1, name: "덱스 탈출 넘버원" })).toBeVisible();
     expect(screen.getByText("계단을 내려가 1층까지 도착해 퇴근하세요!")).toBeVisible();
-    expect(screen.getAllByRole("button")).toHaveLength(6);
+    expect(screen.getAllByRole("button")).toHaveLength(7);
     expect(screen.getByRole("button", { name: "단계 모드" })).toBeVisible();
     expect(screen.getByRole("button", { name: "무한 모드" })).toBeVisible();
     expect(screen.getByRole("button", { name: "게임 설명" })).toBeVisible();
