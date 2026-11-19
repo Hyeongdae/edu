@@ -273,7 +273,7 @@ describe("title point shop entry", () => {
     renderBase(<GameScreen account={account} companyRecords={companyBinding()} />);
     const trigger = screen.getByRole("button", { name: "포인트 상점" });
     fireEvent.click(trigger);
-    expect(screen.getByRole("dialog", { name: "포인트 상점" })).toBeVisible();
+    expect(screen.getByRole("dialog", { name: "포인트 상점 (무한모드 전용)" })).toBeVisible();
     expect(document.querySelector(".game-title-screen")).toHaveAttribute("inert");
     fireEvent.click(screen.getByRole("button", { name: "닫기" }));
     expect(document.activeElement).toBe(trigger);

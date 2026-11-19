@@ -46,7 +46,7 @@ describe("shared point wallet contract", () => {
       { ...valid, ownedEffects: ["fire", "fire"] }, { ...valid, ownedEffects: ["unknown"] },
       { ...valid, equippedEffect: "smoke" }, { ...valid, extra: true },
     ]) expect(isPointWallet(wallet)).toBe(false);
-    expect(POINT_EFFECT_IDS).toEqual(["fire", "sparkle", "smoke"]);
+    expect(POINT_EFFECT_IDS).toEqual(["sparkle", "smoke", "fire", "heart"]);
   });
 
   it("strictly validates coin, purchase, and equip requests", () => {

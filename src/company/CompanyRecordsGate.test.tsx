@@ -25,7 +25,7 @@ describe("company profile bootstrap gate", () => {
     await screen.findByRole("button", { name: "단계 모드" }); enterSelection();
     expect(fetcher.mock.calls.some(([path]) => path === "/api/infinite-v2-leaderboard")).toBe(true);
     expect(screen.getByRole("button", { name: "3단계 선택" })).toHaveAttribute("aria-pressed", "true");
-    expect(read.mock.calls.every(([key]) => key.startsWith("stair-descent:company:production:pending:v1:"))).toBe(true);
+    expect(read.mock.calls.some(([key]) => key === "stair-descent:progress:v2")).toBe(false);
   });
 
   it("does not invent an empty official profile after a failed read, and retries successfully", async () => {

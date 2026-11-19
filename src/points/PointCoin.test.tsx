@@ -12,12 +12,12 @@ describe("pixel point pickups", () => {
     expect(getByTestId("player-step-effect")).toHaveAttribute("data-effect", effect);
     if (effect === "fire") {
       expect(getByTestId("player-step-effect").querySelector(".step-fire-flames")).not.toBeNull();
-      expect(getByTestId("player-step-effect").querySelector(".step-fire-flames")).toHaveAttribute("transform", "scale(1.9 1.4)");
+      expect(getByTestId("player-step-effect").querySelector(".step-fire-flames")).toHaveAttribute("transform", "scale(1.55 1.18)");
       expect(getByTestId("player-step-effect").querySelector(".step-fire-flame--right")).toHaveClass("step-fire-flame--right");
       expect(getByTestId("player-step-effect")).toHaveStyle({ transformBox: "fill-box", transformOrigin: "center bottom" });
     }
-    if (effect === "sparkle") expect(getByTestId("player-step-effect").querySelector(".step-sparkle")).toHaveAttribute("transform", "scale(1.5)");
-    if (effect === "smoke") expect(getByTestId("player-step-effect").querySelector(".step-smoke")).toHaveAttribute("transform", "scale(1.6)");
+    if (effect === "sparkle") expect(getByTestId("player-step-effect").querySelectorAll(".step-sparkle-particle")).toHaveLength(3);
+    if (effect === "smoke") expect(getByTestId("player-step-effect").querySelectorAll(".step-cloud-particle")).toHaveLength(3);
   });
 });
 afterEach(cleanup);

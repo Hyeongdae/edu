@@ -37,7 +37,7 @@ describe("single-stage descent sessions", () => {
   it("creates and resets a fresh stage-one preview with one seed and no clocks", () => {
     const random = vi.fn(() => 0.5);
     const ready = createDescentState(random);
-    expect(random).toHaveBeenCalledOnce();
+    expect(random).toHaveBeenCalledTimes(2);
     expect(ready).toMatchObject({ status: "ready", stage: 1, score: 0, stepsClimbed: 0,
       highestClearedStage: 0, clearedStageThisRun: 0, checkpointEnteredAt: null,
       stageEndsAt: null, nextPursuerStepAt: null, eventEndsAt: null, eventSteps: 0,

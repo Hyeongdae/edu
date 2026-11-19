@@ -16,7 +16,7 @@ describe("local test point wallet", () => {
     await wallet.purchaseEffect("fire");
     await wallet.equipEffect(null);
     const restored = new LocalPointWalletStore(backing);
-    expect(restored.getSnapshot().wallet).toEqual({ balance: 801, ownedEffects: ["fire"], equippedEffect: null });
+    expect(restored.getSnapshot().wallet).toEqual({ balance: 501, ownedEffects: ["fire"], equippedEffect: null });
     expect(backing.setItem).toHaveBeenCalledWith(LOCAL_POINT_WALLET_KEY, expect.any(String));
   });
 
