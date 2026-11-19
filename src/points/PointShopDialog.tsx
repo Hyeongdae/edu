@@ -65,7 +65,7 @@ export function PointShopDialog({ wallet, storageMode = "local", onClose }: Poin
       <header className="point-shop-header"><div><p className="game-title-kicker">STEP EFFECTS</p><h2 id="point-shop-title">포인트 상점 <span className="point-shop-mode-note">(무한모드 전용)</span></h2></div>
         <button ref={closeRef} type="button" className="point-shop-close" onClick={onClose}>닫기</button></header>
       <div className="point-shop-summary"><strong aria-live="polite">보유 포인트 <span>{wallet.wallet.balance} 포인트</span></strong>
-        <span>{storageMode === "account" ? "회사 계정 저장" : "로컬 테스트 저장"}</span>
+        {storageMode === "local" && <span>로컬 테스트 저장</span>}
         <span>{wallet.wallet.equippedEffect ? `장착 중: ${cardTitle(wallet.wallet.equippedEffect)}` : "장착 중인 효과 없음"}</span></div>
       {(wallet.status === "error" || wallet.status === "auth-required") && <p className="point-shop-error" role="alert">
         {wallet.errorMessage ?? "포인트 정보를 불러오지 못했어요."} <button type="button" onClick={wallet.retry}>다시 시도</button></p>}
