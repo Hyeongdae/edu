@@ -139,22 +139,6 @@ export function GameScreen({
   const previousPlayerCaptureRef = useRef(gameState.captureCount);
   const pursuerTimeoutRef = useRef<number | undefined>(undefined);
   const previousEventActiveRef = useRef(gameState.eventEndsAt !== null);
-  const processedCoinMovesRef = useRef(new WeakSet<object>());
-  const stepEffectKeyRef = useRef(0);
-  const [stepEffectKey, setStepEffectKey] = useState(0);
-
-  useEffect(() => {
-    const move = gameState.lastMove;
-    if (!move || processedCoinMovesRef.current.has(move)) return;
-    processedCoinMovesRef.current.add(move);
-    if (move.collectedCoinIndices.length > 0 && activePointWallet) {
-      for (let count = 0; count < move.collectedCoinIndices.length; count += 1) activePointWallet.collectCoin();
-    }
-    if (move.toIndex === gameState.stepsClimbed && activePointWallet?.wallet.equippedEffect) {
-      stepEffectKeyRef.current += 1;
-      setStepEffectKey(stepEffectKeyRef.current);
-    }
-  }, [activePointWallet, gameState.lastMove, gameState.stepsClimbed]);
 
   const openGameDialog = useCallback((dialog: OpenGameDialog) => {
     if (activeDialogRef.current !== null) return;
@@ -890,9 +874,6 @@ export function GameScreen({
                 pursuerAnimationKey={pursuerAnimationKey}
                 isPursuerMoving={isPursuerMoving}
                 isPursuerCaught={pursuerCatchVisible}
-                coinGainRevision={activePointWallet?.coinGainRevision ?? 0}
-                equippedEffect={activePointWallet?.wallet.equippedEffect ?? null}
-                stepEffectKey={stepEffectKey}
               />
             </div>
           </div>

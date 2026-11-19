@@ -11,8 +11,6 @@ import { PixelOfficeBackdrop } from "./pixel/PixelOfficeBackdrop";
 import { PixelStair } from "./pixel/PixelStair";
 import { PixelIcon } from "./pixel/PixelIcon";
 import { PixelObstacle } from "./pixel/PixelObstacle";
-import { PointCoin, PlayerStepEffect } from "../points/PointCoin";
-import { PointGainFeedback } from "../points/PointGainFeedback";
 import type { PointEffectId } from "../../shared/companyRecords";
 import "./pixel/pixel-scene.css";
 
@@ -27,6 +25,7 @@ interface StairSceneProps {
   coinGainRevision?: number;
   equippedEffect?: PointEffectId | null;
   stepEffectKey?: number;
+  stepEffects?: readonly { key: number; stairIndex: number }[];
 }
 
 function travelStyle(from: ScenePoint, to: ScenePoint, prefix: string, lift: number): CSSProperties {
@@ -39,7 +38,7 @@ function travelStyle(from: ScenePoint, to: ScenePoint, prefix: string, lift: num
 }
 
 export function StairScene({ appearance, state, climbAnimationKey, isClimbing, pursuerAnimationKey, isPursuerMoving, isPursuerCaught,
-  coinGainRevision = 0, equippedEffect = null, stepEffectKey = 0 }: StairSceneProps): ReactElement {
+}: StairSceneProps): ReactElement {
   const sceneId = useId();
   const feetClipId = `${sceneId}-feet`;
   const model = buildDescentSceneModel(state);
@@ -129,7 +128,6 @@ export function StairScene({ appearance, state, climbAnimationKey, isClimbing, p
       </div>
       <div className="pixel-scene-stage">
         <PixelOfficeBackdrop />
-        <PointGainFeedback revision={coinGainRevision} />
         <svg
           className="stair-scene" viewBox="0 0 520 400" preserveAspectRatio="xMidYMid meet" role="img" shapeRendering="crispEdges"
           data-pursuer-index={model.pursuer.index} data-pursuer-visible={model.pursuerVisible}
@@ -145,7 +143,6 @@ export function StairScene({ appearance, state, climbAnimationKey, isClimbing, p
               <g className="stair-top" transform={`translate(${step.x} ${step.y})`}>
                 <PixelStair face="top" direction={step.direction} />
               </g>
-              {step.hasPointCoin && <g transform={`translate(${step.x} ${step.y})`}><PointCoin stairIndex={step.index} /></g>}
               {hasObstacle(state.obstacles, step.index) && (step.index > state.stepsClimbed || step.index === jumpedBoxIndex) && (
                 <g data-testid="stair-obstacle" data-route-index={step.index} transform={`translate(${step.x} ${step.y})`}>
                   <PixelObstacle />
@@ -160,10 +157,6 @@ export function StairScene({ appearance, state, climbAnimationKey, isClimbing, p
             <g className="pursuer-move-overlay">{pursuer}{stairFront(model.pursuer)}</g>
           )}
           {climbing && <g className={jumping ? "jump-overlay" : "step-overlay"}>{runner}{stairFront(model.player)}</g>}
-          {equippedEffect && state.lastMove?.toIndex === model.player.index && !isPursuerCaught &&
-            <g className="player-effect-overlay" data-testid="player-effect-anchor" transform={`translate(${model.player.x} ${model.player.y})`}>
-              <PlayerStepEffect effect={equippedEffect} animationKey={stepEffectKey} />
-            </g>}
           {isPursuerCaught && (
             <g className="catch-overlay">
               {pursuer}

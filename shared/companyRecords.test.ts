@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { STAGE_RULES, getHighestUnlockedStage } from "../src/game/stageRules";
 import type { ClearedStage } from "../src/game/types";
 import {
-  POINT_EFFECT_IDS, POINT_EFFECT_PRICE, createEmptyPointWallet, compareSharedInfiniteScore, compareSharedPerformance,
+  POINT_EFFECT_IDS, getPointEffectPrice, createEmptyPointWallet, compareSharedInfiniteScore, compareSharedPerformance,
   equipPointEffect, getSharedTopInfiniteScores, getSharedTopScores, isCollectPointCoinRequest, isEquipPointEffectRequest,
   isPointWallet, isPurchasePointEffectRequest, isSubmitInfiniteScoreRequest, isSubmitResultRequest,
   mergeSharedInfiniteScore, mergeSharedInfiniteV2Score, mergeSharedResult, purchasePointEffect, validateResultForProfile,
@@ -62,18 +62,21 @@ describe("shared point wallet contract", () => {
     expect(isEquipPointEffectRequest({ effectId: "smoke", accountId: "other" })).toBe(false);
   });
 
-  it("charges exactly 200 once, auto-equips, and preserves wallet immutability", () => {
-    const initial = { balance: POINT_EFFECT_PRICE, ownedEffects: [], equippedEffect: null } as const;
+  it("charges the effect-specific price once, auto-equips, and preserves wallet immutability", () => {
+    const initial = { balance: getPointEffectPrice("fire"), ownedEffects: [], equippedEffect: null } as const;
     expect(purchasePointEffect({ ...initial, ownedEffects: [] }, "fire")).toEqual({ ok: true,
       wallet: { balance: 0, ownedEffects: ["fire"], equippedEffect: "fire" }, changed: true });
-    expect(purchasePointEffect({ balance: 199, ownedEffects: [], equippedEffect: null }, "fire"))
+    expect(purchasePointEffect({ balance: 499, ownedEffects: [], equippedEffect: null }, "fire"))
       .toEqual({ ok: false, code: "insufficient-points" });
-    const owned = { balance: 250, ownedEffects: ["fire"] as (typeof POINT_EFFECT_IDS)[number][], equippedEffect: "fire" as const };
+    expect(purchasePointEffect({ balance: 500, ownedEffects: [], equippedEffect: null }, "sparkle")).toMatchObject({
+      ok: true, wallet: { balance: 0, ownedEffects: ["sparkle"], equippedEffect: "sparkle" },
+    });
+    const owned = { balance: 550, ownedEffects: ["fire"] as (typeof POINT_EFFECT_IDS)[number][], equippedEffect: "fire" as const };
     expect(purchasePointEffect(owned, "fire")).toEqual({ ok: true, wallet: owned, changed: false });
     const purchase = purchasePointEffect(owned, "smoke");
     expect(purchase.ok).toBe(true);
     if (purchase.ok) expect(purchase.wallet).toEqual({ balance: 50, ownedEffects: ["fire", "smoke"], equippedEffect: "smoke" });
-    expect(owned).toEqual({ balance: 250, ownedEffects: ["fire"], equippedEffect: "fire" });
+    expect(owned).toEqual({ balance: 550, ownedEffects: ["fire"], equippedEffect: "fire" });
   });
 
   it("only equips owned effects and supports unequipping", () => {

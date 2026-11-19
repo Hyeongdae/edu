@@ -12,15 +12,15 @@ function wallet(overrides: Partial<PointWalletBinding> = {}): PointWalletBinding
 }
 
 describe("title point shop", () => {
-  it("lists the three priced effects and accessible pixel previews", () => {
+  it("lists the four effects in order with their prices and accessible pixel previews", () => {
     render(<PointShopDialog wallet={wallet()} onClose={vi.fn()} />);
     expect(screen.getByRole("dialog", { name: "포인트 상점" })).toBeVisible();
     expect(screen.getByText("1000 포인트")).toBeVisible();
     expect(screen.getByText("불꽃 발자국")).toBeVisible();
     expect(screen.getByText("반짝 발자국")).toBeVisible();
     expect(screen.getByText("연기 발자국")).toBeVisible();
-    expect(screen.getAllByText("200 포인트")).toHaveLength(3);
-    expect(screen.getAllByTestId("player-step-effect")).toHaveLength(3);
+    expect(screen.getAllByText("500 포인트")).toHaveLength(4);
+    expect(screen.getAllByTestId("player-step-effect")).toHaveLength(4);
   });
 
   it("requires confirmation before buying and only calls the binding once", async () => {
@@ -28,7 +28,7 @@ describe("title point shop", () => {
     render(<PointShopDialog wallet={binding} onClose={vi.fn()} />);
     const fireCard = screen.getByRole("heading", { name: "불꽃 발자국" }).closest("article")!;
     fireEvent.click(within(fireCard).getByRole("button", { name: "구매" }));
-    expect(screen.getByRole("alertdialog", { name: "구매할까요?" })).toHaveTextContent("200 포인트");
+    expect(screen.getByRole("alertdialog", { name: "구매할까요?" })).toHaveTextContent("500 포인트");
     fireEvent.click(screen.getByRole("button", { name: "취소" }));
     expect(binding.purchaseEffect).not.toHaveBeenCalled();
     fireEvent.click(within(fireCard).getByRole("button", { name: "구매" }));

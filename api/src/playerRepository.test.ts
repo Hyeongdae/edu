@@ -419,7 +419,7 @@ describe("account point wallet persistence", () => {
     const appearance = getDefaultCharacterAppearance();
     const initial = stored({ highestClearedStage: 2, bestStage: 2, bestScore: 175, remainingTimeCs: 1200,
       infiniteBestScore: 250, infiniteAchievedAt: NOW, infiniteV2BestScore: 300, infiniteV2AchievedAt: NOW,
-      appearance, pointBalance: 200, ownedPointEffects: [], equippedPointEffect: null });
+      appearance, pointBalance: 500, ownedPointEffects: [], equippedPointEffect: null });
     const documents = createWalletMemoryDocument(initial);
     const repo = repository();
     const bought = await repo.purchasePointEffect(ACTOR, "fire");

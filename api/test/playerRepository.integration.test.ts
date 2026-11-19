@@ -183,7 +183,7 @@ describe("real isolated Cosmos DB repository operations", () => {
     const document: PlayerDocument = { id: getPlayerRowKey(owner.accountId), ...owner, schemaVersion: 1,
       highestClearedStage: 2, bestStage: 2, bestScore: 175, remainingTimeCs: 1200, achievedAt: NOW,
       infiniteBestScore: 50, infiniteAchievedAt: NOW, infiniteV2BestScore: 60, infiniteV2AchievedAt: NOW,
-      appearance, pointBalance: 250, ownedPointEffects: [], equippedPointEffect: null };
+      appearance, pointBalance: 550, ownedPointEffects: [], equippedPointEffect: null };
     await emulator.container.items.create(document);
     const profile = await repository().purchasePointEffect(owner, "sparkle");
     expect(profile).toMatchObject({ highestClearedStage: 2, best: { bestScore: 175 }, infiniteBest: { bestScore: 50 },

@@ -21,7 +21,7 @@ export interface SharedInfiniteBest {
   achievedAt: string;
 }
 
-export const POINT_EFFECT_IDS = ["fire", "sparkle", "smoke"] as const;
+export const POINT_EFFECT_IDS = ["sparkle", "smoke", "fire", "heart"] as const;
 export type PointEffectId = (typeof POINT_EFFECT_IDS)[number];
 
 export interface PointWallet {
@@ -35,8 +35,17 @@ export interface PurchasePointEffectRequest { effectId: PointEffectId }
 export interface EquipPointEffectRequest { effectId: PointEffectId | null }
 export interface PointWalletResponse { profile: SharedProfile }
 
-export const POINT_EFFECT_PRICE = 200;
+export const POINT_EFFECT_PRICES: Readonly<Record<PointEffectId, number>> = {
+  sparkle: 500,
+  smoke: 500,
+  fire: 500,
+  heart: 500,
+};
 export const POINT_COIN_VALUE = 1;
+
+export function getPointEffectPrice(effectId: PointEffectId): number {
+  return POINT_EFFECT_PRICES[effectId];
+}
 
 export function createEmptyPointWallet(): PointWallet {
   return { balance: 0, ownedEffects: [], equippedEffect: null };
@@ -74,8 +83,9 @@ export function purchasePointEffect(previous: PointWallet, effectId: PointEffect
   | { ok: false; code: "insufficient-points" } {
   if (!isPointWallet(previous) || !isPointEffectId(effectId)) throw new RangeError("A valid wallet and effect are required.");
   if (previous.ownedEffects.includes(effectId)) return { ok: true, wallet: previous, changed: false };
-  if (previous.balance < POINT_EFFECT_PRICE) return { ok: false, code: "insufficient-points" };
-  return { ok: true, wallet: { balance: previous.balance - POINT_EFFECT_PRICE,
+  const price = getPointEffectPrice(effectId);
+  if (previous.balance < price) return { ok: false, code: "insufficient-points" };
+  return { ok: true, wallet: { balance: previous.balance - price,
     ownedEffects: [...previous.ownedEffects, effectId], equippedEffect: effectId }, changed: true };
 }
 

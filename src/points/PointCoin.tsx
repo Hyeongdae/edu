@@ -13,13 +13,26 @@ export function PlayerStepEffect({ effect, animationKey }: { effect: PointEffect
   if (!effect) return null;
   return <g key={`${effect}-${animationKey}`} className={`player-step-effect is-${effect}`} data-testid="player-step-effect" data-effect={effect}
     style={{ transformBox: "fill-box", transformOrigin: "center bottom" }}>
-    {effect === "fire" && <g className="step-fire-flames" transform="scale(1.9 1.4)">
-      <path className="step-fire-flame step-fire-flame--left" d="M-16 2v-8h4v-7h4v-7h4v8h4v7h3v7Z" fill="#f4512b" />
-      <path className="step-fire-flame step-fire-flame--right" d="M-3 2v-7h4v-8h4v-8h4v7h4v9h3v7Z" fill="#ff812d" />
-      <path className="step-fire-core" d="M-8 2v-6h3v-7h4v5h4v8Z" fill="#ffd85a" />
-      <path className="step-fire-core-highlight" d="M-2 2v-5h3v-5h3v7h2v3Z" fill="#fff1a0" />
+    {effect === "fire" && <g className="step-fire-flames" transform="scale(1.55 1.18)">
+      <path className="step-fire-flame step-fire-flame--left" d="M-18 2V-4H-14V-10H-11V-19H-8V-13H-5V-7H-2V2Z" fill="#ef4c32" stroke="#8e342d" strokeWidth="1.2" />
+      <path className="step-fire-flame step-fire-flame--right" d="M-3 2V-5H0V-11H3V-20H6V-14H9V-8H13V-4H17V2Z" fill="#ff7135" stroke="#a3422d" strokeWidth="1.2" />
+      <path className="step-fire-core" d="M-9 2V-4H-6V-9H-3V-15H0V-9H3V-5H7V2Z" fill="#ffb347" />
+      <path className="step-fire-core-highlight" d="M-4 2V-3H-1V-8H2V-4H5V2Z" fill="#ffe36e" />
     </g>}
-    {effect === "sparkle" && <g className="step-sparkle" transform="scale(1.5)"><path d="M0-18 3-5 13-2 3 1 0 14-3 1-13-2-3-5Z" fill="#8cf5ef"/><path d="M15-11v8m-4-4h8M-17-4v7m-3-3h7" stroke="#fff3a3" strokeWidth="2"/></g>}
-    {effect === "smoke" && <g className="step-smoke" transform="scale(1.6)"><circle cx="-6" cy="-6" r="5" fill="#bdc9d9"/><circle cx="2" cy="-12" r="6" fill="#e0e8f2"/><circle cx="9" cy="-5" r="4" fill="#aab8cb"/></g>}
+    {effect === "sparkle" && <g className="step-sparkle">
+      <g transform="translate(-13 0) scale(.65)"><path className="step-sparkle-particle step-sparkle-particle--left" d="M0-12 3-3 12 0 3 3 0 12-3 3-12 0-3-3Z" fill="#ffd34f" stroke="#b87520" strokeWidth="2" /></g>
+      <g transform="translate(0 3) scale(.95)"><path className="step-sparkle-particle step-sparkle-particle--center" d="M0-12 3-3 12 0 3 3 0 12-3 3-12 0-3-3Z" fill="#ffe36e" stroke="#c48724" strokeWidth="1.7" /></g>
+      <g transform="translate(13 0) scale(.58)"><path className="step-sparkle-particle step-sparkle-particle--right" d="M0-12 3-3 12 0 3 3 0 12-3 3-12 0-3-3Z" fill="#fff0a0" stroke="#c48724" strokeWidth="2" /></g>
+    </g>}
+    {effect === "smoke" && <g className="step-cloud">
+      <g transform="translate(-12 0) scale(.39)"><path className="step-cloud-particle step-cloud-particle--left" d="M-18 4C-23 4-25 0-23-4C-22-8-18-10-14-8C-14-15-8-19-2-17C2-24 12-22 15-15C22-16 26-10 23-4C27 0 23 5 18 5H-18Z" fill="#9ed5ff" stroke="#4d8fca" strokeWidth="3"/><path d="M-18 1C-21 1-22-1-21-4C-19-6-17-7-14-5C-13-11-9-14-4-13C0-19 8-18 11-12C16-14 20-10 19-6C22-3 20 1 16 1H-18Z" fill="#d8efff"/></g>
+      <g transform="translate(0 4) scale(.5)"><path className="step-cloud-particle step-cloud-particle--center" d="M-18 4C-23 4-25 0-23-4C-22-8-18-10-14-8C-14-15-8-19-2-17C2-24 12-22 15-15C22-16 26-10 23-4C27 0 23 5 18 5H-18Z" fill="#9ed5ff" stroke="#4d8fca" strokeWidth="3"/><path d="M-18 1C-21 1-22-1-21-4C-19-6-17-7-14-5C-13-11-9-14-4-13C0-19 8-18 11-12C16-14 20-10 19-6C22-3 20 1 16 1H-18Z" fill="#d8efff"/></g>
+      <g transform="translate(12 1) scale(.36)"><path className="step-cloud-particle step-cloud-particle--right" d="M-18 4C-23 4-25 0-23-4C-22-8-18-10-14-8C-14-15-8-19-2-17C2-24 12-22 15-15C22-16 26-10 23-4C27 0 23 5 18 5H-18Z" fill="#9ed5ff" stroke="#4d8fca" strokeWidth="3"/><path d="M-18 1C-21 1-22-1-21-4C-19-6-17-7-14-5C-13-11-9-14-4-13C0-19 8-18 11-12C16-14 20-10 19-6C22-3 20 1 16 1H-18Z" fill="#d8efff"/></g>
+    </g>}
+    {effect === "heart" && <g className="step-heart">
+      <g transform="translate(-12 1) scale(.42)"><path className="step-heart-particle step-heart-particle--left" d="M0 12C-3 9-12 3-12-3C-12-10-4-12 0-6C4-12 12-10 12-3C12 3 3 9 0 12Z" fill="#fff0f5" stroke="#e9568b" strokeWidth="2.5" /></g>
+      <g transform="translate(0 3) scale(.57)"><path className="step-heart-particle step-heart-particle--center" d="M0 12C-3 9-12 3-12-3C-12-10-4-12 0-6C4-12 12-10 12-3C12 3 3 9 0 12Z" fill="#fff0f5" stroke="#e9568b" strokeWidth="2.5" /></g>
+      <g transform="translate(12 0) scale(.36)"><path className="step-heart-particle step-heart-particle--right" d="M0 12C-3 9-12 3-12-3C-12-10-4-12 0-6C4-12 12-10 12-3C12 3 3 9 0 12Z" fill="#fff0f5" stroke="#e9568b" strokeWidth="2.5" /></g>
+    </g>}
   </g>;
 }

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactElement } from "react";
-import { POINT_EFFECT_PRICE, type PointEffectId } from "../../shared/companyRecords";
+import { getPointEffectPrice, type PointEffectId } from "../../shared/companyRecords";
 import type { PointWalletBinding } from "../company/types";
 import { PlayerStepEffect } from "./PointCoin";
 import "./point-shop.css";
@@ -7,9 +7,10 @@ import "./point-shop.css";
 export interface PointShopDialogProps { wallet: PointWalletBinding; storageMode?: "account" | "local"; onClose(): void; }
 
 const CATALOG: readonly { id: PointEffectId; name: string; description: string }[] = [
-  { id: "fire", name: "불꽃 발자국", description: "계단을 밟으면 작은 불꽃이 피어납니다." },
   { id: "sparkle", name: "반짝 발자국", description: "발걸음마다 별빛이 반짝입니다." },
-  { id: "smoke", name: "연기 발자국", description: "발밑에 픽셀 연기가 퍼집니다." },
+  { id: "smoke", name: "구름 발자국", description: "발밑에 픽셀 구름이 피어오릅니다." },
+  { id: "fire", name: "불꽃 발자국", description: "계단을 밟으면 작은 불꽃이 피어납니다." },
+  { id: "heart", name: "하트 발자국", description: "발걸음마다 작은 하트가 떠오릅니다." },
 ];
 
 export function PointShopDialog({ wallet, storageMode = "local", onClose }: PointShopDialogProps): ReactElement {
@@ -61,7 +62,7 @@ export function PointShopDialog({ wallet, storageMode = "local", onClose }: Poin
 
   return <div className="point-shop-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget && !busy) onClose(); }}>
     <section id="point-shop-dialog" className="point-shop-dialog" role="dialog" aria-modal="true" aria-labelledby="point-shop-title" data-keyboard-menu onKeyDown={onKeyDown}>
-      <header className="point-shop-header"><div><p className="game-title-kicker">STEP EFFECTS</p><h2 id="point-shop-title">포인트 상점</h2></div>
+      <header className="point-shop-header"><div><p className="game-title-kicker">STEP EFFECTS</p><h2 id="point-shop-title">포인트 상점 <span className="point-shop-mode-note">(무한모드 전용)</span></h2></div>
         <button ref={closeRef} type="button" className="point-shop-close" onClick={onClose}>닫기</button></header>
       <div className="point-shop-summary"><strong aria-live="polite">보유 포인트 <span>{wallet.wallet.balance} 포인트</span></strong>
         <span>{storageMode === "account" ? "회사 계정 저장" : "로컬 테스트 저장"}</span>
@@ -72,17 +73,18 @@ export function PointShopDialog({ wallet, storageMode = "local", onClose }: Poin
         {CATALOG.map((item, index) => {
           const owned = wallet.wallet.ownedEffects.includes(item.id);
           const equipped = wallet.wallet.equippedEffect === item.id;
+          const price = getPointEffectPrice(item.id);
           return <article className="point-shop-card" key={item.id}>
-            <div className={`point-shop-preview is-${item.id}`} aria-hidden="true"><svg viewBox="-48 -96 96 112" shapeRendering="crispEdges">
+            <div className={`point-shop-preview is-${item.id}`} aria-hidden="true"><svg viewBox={item.id === "fire" ? "-42 -58 84 70" : "-48 -96 96 112"} shapeRendering="crispEdges">
               <ellipse cx="0" cy="2" rx="25" ry="4" fill="#030815"/><PlayerStepEffect effect={item.id} animationKey={index}/>
             </svg></div>
             <div className="point-shop-card-copy"><h3>{item.name}</h3><p>{item.description}</p>
-              <strong>{owned ? "보유 중" : `${POINT_EFFECT_PRICE} 포인트`}</strong></div>
+              <strong>{owned ? "보유 중" : `${price} 포인트`}</strong></div>
             <div className="point-shop-card-actions">
               {equipped ? <><span className="point-shop-equipped">장착 중</span><button type="button" disabled={!canMutate} onClick={() => void equip(null)}>해제</button></>
                 : owned ? <button type="button" disabled={!canMutate} onClick={() => void equip(item.id)}>장착</button>
                   : <button ref={(node) => { purchaseRefs.current[item.id] = node; }} type="button"
-                    disabled={!canMutate || wallet.wallet.balance < POINT_EFFECT_PRICE} onClick={() => { setMessage(null); setConfirming(item.id); }}>구매</button>}
+                    disabled={!canMutate || wallet.wallet.balance < price} onClick={() => { setMessage(null); setConfirming(item.id); }}>구매</button>}
             </div>
           </article>;
         })}
@@ -91,9 +93,9 @@ export function PointShopDialog({ wallet, storageMode = "local", onClose }: Poin
         {wallet.status === "saving" && <span>저장 중…</span>}</footer>
       {confirming && <div className="point-shop-confirm-backdrop"><section className="point-shop-confirm" role="alertdialog" aria-modal="true"
         aria-labelledby="point-shop-confirm-title" aria-describedby="point-shop-confirm-description">
-        <h3 id="point-shop-confirm-title">구매할까요?</h3><p id="point-shop-confirm-description">{cardTitle(confirming)} 효과를 {POINT_EFFECT_PRICE} 포인트에 구매할까요? 구매 후 바로 장착됩니다.</p>
+        <h3 id="point-shop-confirm-title">구매할까요?</h3><p id="point-shop-confirm-description">{cardTitle(confirming)} 효과를 {getPointEffectPrice(confirming)} 포인트에 구매할까요? 구매 후 바로 장착됩니다.</p>
         <div><button type="button" disabled={busy} onClick={() => { const id = confirming; setConfirming(null); purchaseRefs.current[id]?.focus(); }}>취소</button>
-          <button ref={confirmationRef} type="button" disabled={!canMutate || wallet.wallet.balance < POINT_EFFECT_PRICE} onClick={() => void confirmPurchase()}>{busy ? "구매 중…" : "구매 확인"}</button></div>
+          <button ref={confirmationRef} type="button" disabled={!canMutate || wallet.wallet.balance < getPointEffectPrice(confirming)} onClick={() => void confirmPurchase()}>{busy ? "구매 중…" : "구매 확인"}</button></div>
       </section></div>}
     </section>
   </div>;

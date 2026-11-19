@@ -127,7 +127,7 @@ describe("account point wallet writes", () => {
     await expect(binding(store).pointWallet.purchaseEffect("fire")).rejects.toMatchObject({ code: "insufficient-points" });
     expect(binding(store).pointWallet.wallet).toEqual({ balance: 500, ownedEffects: [], equippedEffect: null });
     await binding(store).pointWallet.purchaseEffect("fire");
-    expect(binding(store).pointWallet.wallet).toEqual({ balance: 300, ownedEffects: ["fire"], equippedEffect: "fire" });
+    expect(binding(store).pointWallet.wallet).toEqual({ balance: 0, ownedEffects: ["fire"], equippedEffect: "fire" });
   });
 });
 

@@ -5,11 +5,46 @@
 .step-fire-core { animation: step-fire-core 460ms steps(4, end) both; }
 .step-fire-core-highlight { animation: step-fire-core 420ms steps(4, end) both reverse; }
 .step-fire-flame--left, .step-fire-flame--right, .step-fire-core, .step-fire-core-highlight { transform-box: fill-box; }
+.stair-game.pixel-theme .point-shop-preview .player-step-effect.is-fire { animation-name: step-fire-preview-breathe; animation-duration: 850ms; animation-iteration-count: infinite; }
+.stair-game.pixel-theme .point-shop-preview .step-fire-flame--left,.stair-game.pixel-theme .point-shop-preview .step-fire-flame--right { animation-name: step-fire-preview-flicker; animation-duration: 850ms; animation-iteration-count: infinite; }
+.stair-game.pixel-theme .point-shop-preview .step-fire-flame--right { animation-delay: 120ms; }
+.stair-game.pixel-theme .point-shop-preview .step-fire-core,.stair-game.pixel-theme .point-shop-preview .step-fire-core-highlight { animation-name: step-fire-preview-glow; animation-duration: 650ms; animation-iteration-count: infinite; }
+.player-step-effect.is-heart { animation-duration: 740ms; }
+.player-step-effect.is-sparkle { animation-duration: 740ms; }
+.step-sparkle-particle { transform-box: fill-box; transform-origin: center; animation: step-sparkle-float 660ms ease-out both; }
+.step-sparkle-particle--left { animation-name: step-sparkle-float-left; animation-duration: 580ms; }
+.step-sparkle-particle--right { animation-name: step-sparkle-float-right; animation-duration: 700ms; animation-delay: 40ms; }
+.step-cloud-particle { transform-box: fill-box; transform-origin: center; animation: step-cloud-float 620ms ease-out both; }
+.step-cloud-particle--left { animation-name: step-cloud-float-left; animation-duration: 560ms; }
+.step-cloud-particle--right { animation-name: step-cloud-float-right; animation-duration: 660ms; animation-delay: 40ms; }
+.step-heart-particle { transform-box: fill-box; transform-origin: center; animation: step-heart-float 700ms ease-out both; }
+.step-heart-particle--left { animation-name: step-heart-float-left; animation-duration: 650ms; }
+.step-heart-particle--right { animation-name: step-heart-float-right; animation-duration: 720ms; animation-delay: 50ms; }
+.stair-game.pixel-theme .point-shop-preview .player-step-effect.is-heart { animation-duration: 850ms; animation-iteration-count: infinite; }
+.stair-game.pixel-theme .point-shop-preview .player-step-effect.is-sparkle { animation-duration: 850ms; animation-iteration-count: infinite; }
+.stair-game.pixel-theme .point-shop-preview .step-sparkle-particle { animation-name: step-sparkle-preview-float; animation-duration: 1200ms; animation-iteration-count: infinite; }
+.stair-game.pixel-theme .point-shop-preview .step-heart-particle { animation-name: step-heart-preview-float; animation-duration: 1200ms; animation-iteration-count: infinite; }
+.stair-game.pixel-theme .point-shop-preview .step-cloud-particle { animation-name: step-cloud-preview-float; animation-duration: 1200ms; animation-iteration-count: infinite; }
 .point-gain-feedback { position: absolute; z-index: 8; left: 50%; top: 53%; color: #ffe27b; font: 700 18px/1 monospace; text-shadow: 2px 2px #17283f; pointer-events: none; animation: point-gain-float 650ms steps(5, end) both; }
 @keyframes point-coin-bob { to { transform: translateY(-3px); } }
 @keyframes player-step-burst { 0% { opacity: 1; transform: translateY(0); } 65% { opacity: 1; transform: translateY(-1px); } 100% { opacity: 0; transform: translateY(-7px); } }
 @keyframes step-fire-rise-left { 0% { opacity: 1; transform: translateY(0) scaleY(1); } 100% { opacity: .05; transform: translateY(-19px) scaleY(1.1); } }
 @keyframes step-fire-rise-right { 0% { opacity: .95; transform: translateY(0) scaleY(1); } 100% { opacity: 0; transform: translateY(-25px) scaleY(1.1); } }
 @keyframes step-fire-core { 0% { opacity: 1; transform: translateY(0) scaleY(1); } 100% { opacity: .2; transform: translateY(-14px) scaleY(1.1); } }
+@keyframes step-fire-preview-breathe { 0%,100% { opacity: 1; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-2px); } }
+@keyframes step-fire-preview-flicker { 0%,100% { opacity: .9; transform: translateY(0) scaleY(1); } 50% { opacity: 1; transform: translateY(-3px) scaleY(1.08); } }
+@keyframes step-fire-preview-glow { 0%,100% { opacity: .9; transform: scaleY(1); } 50% { opacity: 1; transform: scaleY(1.08); } }
+@keyframes step-sparkle-float { 0% { opacity: 0; transform: translateY(3px) scale(.7) rotate(-10deg); } 18% { opacity: 1; transform: translateY(0) scale(1) rotate(0); } 100% { opacity: 0; transform: translateY(-31px) scale(.82) rotate(12deg); } }
+@keyframes step-sparkle-float-left { 0% { opacity: 0; transform: translate(1px, 2px) scale(.7) rotate(0); } 18% { opacity: 1; } 100% { opacity: 0; transform: translate(-5px, -24px) scale(.82) rotate(18deg); } }
+@keyframes step-sparkle-float-right { 0% { opacity: 0; transform: translate(-1px, 2px) scale(.7) rotate(0); } 18% { opacity: 1; } 100% { opacity: 0; transform: translate(5px, -28px) scale(.8) rotate(-18deg); } }
+@keyframes step-sparkle-preview-float { 0%, 100% { opacity: .9; transform: translateY(0) scale(.9); } 50% { opacity: 1; transform: translateY(-22px) scale(1); } }
+@keyframes step-cloud-float { 0% { opacity: 0; transform: translateY(2px); } 18% { opacity: 1; } 100% { opacity: 0; transform: translateY(-28px); } }
+@keyframes step-cloud-float-left { 0% { opacity: 0; transform: translate(1px, 2px); } 18% { opacity: 1; } 100% { opacity: 0; transform: translate(-5px, -23px); } }
+@keyframes step-cloud-float-right { 0% { opacity: 0; transform: translate(-1px, 2px); } 18% { opacity: 1; } 100% { opacity: 0; transform: translate(5px, -25px); } }
+@keyframes step-cloud-preview-float { 0%, 100% { opacity: .9; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-22px); } }
+@keyframes step-heart-float { 0% { opacity: 0; transform: translateY(2px) scale(.75); } 16% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-34px) scale(.85); } }
+@keyframes step-heart-float-left { 0% { opacity: 0; transform: translate(1px, 2px) scale(.75); } 18% { opacity: 1; } 100% { opacity: 0; transform: translate(-5px, -27px) scale(.85); } }
+@keyframes step-heart-float-right { 0% { opacity: 0; transform: translate(-1px, 2px) scale(.75); } 18% { opacity: 1; } 100% { opacity: 0; transform: translate(5px, -31px) scale(.8); } }
+@keyframes step-heart-preview-float { 0%, 100% { opacity: .9; transform: translateY(0) scale(.9); } 50% { opacity: 1; transform: translateY(-24px) scale(1); } }
 @keyframes point-gain-float { 0% { opacity: 0; transform: translate(-50%, 6px); } 15% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -22px); } }
-@media (prefers-reduced-motion: reduce) { .point-coin, .player-step-effect, .point-gain-feedback, .step-fire-flame--left, .step-fire-flame--right, .step-fire-core, .step-fire-core-highlight { animation-duration: 1ms; animation-iteration-count: 1; } }
+@media (prefers-reduced-motion: reduce) { .point-coin, .player-step-effect, .point-gain-feedback, .step-fire-flame--left, .step-fire-flame--right, .step-fire-core, .step-fire-core-highlight, .step-heart-particle, .step-cloud-particle, .step-sparkle-particle { animation-duration: 1ms; animation-iteration-count: 1; } }
