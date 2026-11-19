@@ -72,6 +72,22 @@ export function InfiniteModeScreen({
   const terminalHandledRef = useRef(false);
   const wasPauseOpenRef = useRef(false);
   const wasLeaderboardOpenRef = useRef(false);
+  const processedCoinMovesRef = useRef(new WeakSet<object>());
+  const [stepEffectKey, setStepEffectKey] = useState(0);
+  const stepEffectKeyRef = useRef(0);
+
+  useEffect(() => {
+    const move = gameState.lastMove;
+    if (!move || processedCoinMovesRef.current.has(move)) return;
+    processedCoinMovesRef.current.add(move);
+    if (move.collectedCoinIndices.length > 0 && activePointWallet) {
+      for (let count = 0; count < move.collectedCoinIndices.length; count += 1) activePointWallet.collectCoin();
+    }
+    if (move.toIndex === gameState.stepsClimbed && activePointWallet?.wallet.equippedEffect) {
+      stepEffectKeyRef.current += 1;
+      setStepEffectKey(stepEffectKeyRef.current);
+    }
+  }, [activePointWallet, gameState.lastMove, gameState.stepsClimbed]);
 
   const startCountdown = useCallback(() => {
     const startAt = Date.now();
@@ -388,7 +404,9 @@ export function InfiniteModeScreen({
           <InfiniteHud state={gameState} nowMs={gameplayNowMs} />
           <div className="game-layout" data-game-status={gameState.status}>
             <InfiniteStairScene appearance={appearance} state={gameState} motionDurationMs={pursuerMotionDurationMs}
-              isMoving={gameState.lastPursuerMove !== null && nowMs < gameState.lastPursuerMove.atMs + pursuerMotionDurationMs} />
+              isMoving={gameState.lastPursuerMove !== null && nowMs < gameState.lastPursuerMove.atMs + pursuerMotionDurationMs}
+              coinGainRevision={activePointWallet?.coinGainRevision ?? 0}
+              equippedEffect={activePointWallet?.wallet.equippedEffect ?? null} stepEffectKey={stepEffectKey} />
           </div>
         </div>
         {gameState.status === "ready" && countdownEndsAt === null && <section className="stage-select-panel infinite-start-panel" aria-labelledby="infinite-start-title" data-keyboard-menu>

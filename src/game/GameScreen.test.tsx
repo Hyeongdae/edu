@@ -1394,12 +1394,12 @@ describe("GameScreen controls", () => {
 
     const randomCallsBeforeRestart = randomSpy.mock.calls.length;
     fireEvent.click(screen.getByRole("button", { name: /다시 시작/ }));
-    expect(randomSpy).toHaveBeenCalledTimes(randomCallsBeforeRestart + 1);
+    expect(randomSpy).toHaveBeenCalledTimes(randomCallsBeforeRestart + 2);
     expect(screen.getByRole("region", { name: "단계 선택" })).toBeVisible();
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "ready");
     expect(audio.startBgm).toHaveBeenCalledTimes(1);
     startSelectedStageImmediately();
-    expect(randomSpy).toHaveBeenCalledTimes(randomCallsBeforeRestart + 1);
+    expect(randomSpy).toHaveBeenCalledTimes(randomCallsBeforeRestart + 2);
     expect(audio.startBgm).toHaveBeenCalledTimes(2);
     expect(document.querySelector(".game-frame")).toHaveAttribute("data-game-status", "playing");
     expect(screen.getByRole("region", { name: "게임 현황" })).toBeVisible();

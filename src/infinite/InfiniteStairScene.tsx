@@ -5,12 +5,18 @@ import { PixelOfficeBackdrop } from "../game/pixel/PixelOfficeBackdrop";
 import { PixelStair } from "../game/pixel/PixelStair";
 import { buildInfiniteSceneModel } from "./infiniteSceneModel";
 import type { InfiniteGameState } from "./types";
+import type { PointEffectId } from "../../shared/companyRecords";
+import { PointCoin, PlayerStepEffect } from "../points/PointCoin";
+import { PointGainFeedback } from "../points/PointGainFeedback";
 
-export function InfiniteStairScene({ appearance, state, isMoving, motionDurationMs }: {
+export function InfiniteStairScene({ appearance, state, isMoving, motionDurationMs, coinGainRevision = 0, equippedEffect = null, stepEffectKey = 0 }: {
   appearance?: CharacterAppearance;
   state: InfiniteGameState;
   isMoving: boolean;
   motionDurationMs: number;
+  coinGainRevision?: number;
+  equippedEffect?: PointEffectId | null;
+  stepEffectKey?: number;
 }): ReactElement {
   const model = buildInfiniteSceneModel(state);
   const nextTurn = state.straightStepsRemaining === 0;
@@ -24,12 +30,16 @@ export function InfiniteStairScene({ appearance, state, isMoving, motionDuration
       </div>
       <div className="pixel-scene-stage">
         <PixelOfficeBackdrop />
+        <PointGainFeedback revision={coinGainRevision} />
         <svg className="stair-scene infinite-stair-scene" viewBox="0 0 520 400" preserveAspectRatio="xMidYMid meet"
           role="img" shapeRendering="crispEdges" data-testid="infinite-stair-scene"
           aria-label={`위로 올라온 계단 ${state.stepsClimbed}칸, 추격자와 ${state.pursuerDistance}칸 거리`}>
           {model.steps.map((step) => (
             <g key={step.index} data-testid="infinite-stair-step" data-route-index={step.index} data-direction={step.direction}>
               <g className="stair-top" transform={`translate(${step.x} ${step.y})`}><PixelStair face="top" direction={step.direction} /></g>
+              {step.hasPointCoin && <g transform={`translate(${step.x} ${step.y})`}><PointCoin stairIndex={step.index} /></g>}
+              {equippedEffect && step.index === model.player.index && state.lastMove?.toIndex === model.player.index &&
+                <g transform={`translate(${step.x} ${step.y})`}><PlayerStepEffect effect={equippedEffect} animationKey={stepEffectKey} /></g>}
               <g className="stair-front" transform={`translate(${step.x} ${step.y})`}><PixelStair face="front" direction={step.direction} /></g>
             </g>
           ))}

@@ -33,7 +33,8 @@ function validateState(state: InfiniteGameState): void {
   if (
     !state || (state.status !== "ready" && state.status !== "playing" && state.status !== "game-over") ||
     !Number.isSafeInteger(state.score) || state.score < 0 ||
-    !Number.isSafeInteger(state.pointCoinSeed) ||
+    !Number.isSafeInteger(state.pointCoinSeed) || !Array.isArray(state.collectedPointCoinIndices) ||
+    state.collectedPointCoinIndices.some((index, position, all) => !Number.isSafeInteger(index) || index < state.route.steps[0].index || index > state.stepsClimbed || (position > 0 && all[position - 1] >= index)) ||
     !Number.isSafeInteger(state.stepsClimbed) || state.stepsClimbed < 0 ||
     (state.direction !== "left" && state.direction !== "right") ||
     !Number.isSafeInteger(state.straightStepsRemaining) || state.straightStepsRemaining < 0 ||
@@ -119,9 +120,11 @@ function retainRoute(state: InfiniteGameState): InfiniteGameState {
   ) {
     return state;
   }
+  const route = advanceStairRoute(state.route, state.stepsClimbed, oldestRequired);
   return {
     ...state,
-    route: advanceStairRoute(state.route, state.stepsClimbed, oldestRequired),
+    route,
+    collectedPointCoinIndices: state.collectedPointCoinIndices.filter((index) => index >= route.steps[0].index),
   };
 }
 
@@ -153,6 +156,7 @@ export function createInfiniteGameState(random: () => number = Math.random): Inf
     endReason: null,
     score: 0,
     pointCoinSeed,
+    collectedPointCoinIndices: [],
     stepsClimbed: 0,
     direction,
     straightStepsRemaining: countStraightSteps(route, 0, direction),
@@ -302,6 +306,8 @@ export function applyInfiniteInput(
   const moved: InfiniteGameState = {
     ...current,
     pointCoinSeed: current.pointCoinSeed,
+    collectedPointCoinIndices: [...current.collectedPointCoinIndices, ...getCollectedPointCoinIndices(current.pointCoinSeed, current.stepsClimbed, nextStepsClimbed)]
+      .filter((index) => index >= oldestRequired),
     score: current.score + scoreGain,
     stepsClimbed: nextStepsClimbed,
     direction: nextStep.direction,

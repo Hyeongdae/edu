@@ -1,8 +1,10 @@
 import { getRouteStep } from "./stairRoute";
 import type { Direction, GameState, StairRouteStep } from "./types";
+import { hasPointCoin } from "../points/coinDrops";
+import { hasObstacle } from "./stairObstacles";
 
 export interface ScenePoint { x: number; y: number; }
-export interface SceneStep extends ScenePoint { index: number; direction: Direction; }
+export interface SceneStep extends ScenePoint { index: number; direction: Direction; hasPointCoin?: boolean; }
 export interface SceneActor extends ScenePoint { index: number; direction: Direction; }
 export interface CatchFrame extends ScenePoint { offset: number; index: number; }
 export interface ScenePursuerMotion { from: ScenePoint; to: ScenePoint; atMs: number; }
@@ -69,13 +71,16 @@ export function buildStairSceneModel(state: GameState): StairSceneModel {
     playerJump = { from: projectRouteStep(from, playerStep), to: projectRouteStep(playerStep, playerStep) };
   }
 
-  const steps = Array.from({ length: 11 }, (_, offset) => actorAt(state.stepsClimbed - 4 + offset));
+  const collected = new Set(state.collectedPointCoinIndices);
+  const withCoin = (index: number): SceneStep => ({ ...actorAt(index), hasPointCoin: index >= 0 &&
+    !collected.has(index) && !hasObstacle(state.obstacles, index) && hasPointCoin(state.pointCoinSeed, index) });
+  const steps = Array.from({ length: 11 }, (_, offset) => withCoin(state.stepsClimbed - 4 + offset));
   const stepIndices = new Set(steps.map((step) => step.index));
   const firstRetainedIndex = state.route.steps[0].index;
   const lastRetainedIndex = state.route.steps.at(-1)!.index;
   const pursuerPreviewSteps = [state.pursuerIndex - 1, state.pursuerIndex, state.pursuerIndex + 1]
     .filter((index) => index >= firstRetainedIndex && index <= lastRetainedIndex && !stepIndices.has(index))
-    .map(actorAt);
+    .map(withCoin).map((step) => ({ ...step, hasPointCoin: false }));
 
   return {
     steps,

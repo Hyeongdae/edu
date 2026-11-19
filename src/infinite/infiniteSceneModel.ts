@@ -4,6 +4,7 @@ import type {
   CatchFrame, SceneActor, ScenePoint, ScenePursuerMotion, SceneStep,
 } from "../game/stairSceneModel";
 import type { InfiniteGameState } from "./types";
+import { hasPointCoin } from "../points/coinDrops";
 
 const VISIBLE_STAIR_COUNT = 11;
 const VISIBLE_BEHIND = 4;
@@ -78,13 +79,16 @@ export function buildInfiniteSceneModel(state: InfiniteGameState): InfiniteScene
     ? VISIBLE_WITH_TRAILING_PURSUER
     : VISIBLE_BEHIND;
   const visibleBehind = Math.min(desiredBehind, state.stepsClimbed - firstRetainedIndex);
+  const collected = new Set(state.collectedPointCoinIndices);
+  const withCoin = (index: number): SceneStep => ({ ...actorAt(index), hasPointCoin: index >= 0 &&
+    !collected.has(index) && hasPointCoin(state.pointCoinSeed, index) });
   const steps = Array.from({ length: VISIBLE_STAIR_COUNT }, (_, offset): SceneStep =>
-    actorAt(state.stepsClimbed - visibleBehind + offset));
+    withCoin(state.stepsClimbed - visibleBehind + offset));
   const visibleIndices = new Set(steps.map((step) => step.index));
   const lastRetainedIndex = state.route.steps.at(-1)!.index;
   const pursuerPreviewSteps = [state.pursuerIndex - 1, state.pursuerIndex, state.pursuerIndex + 1]
     .filter((index) => index >= firstRetainedIndex && index <= lastRetainedIndex && !visibleIndices.has(index))
-    .map(actorAt);
+    .map(withCoin).map((step) => ({ ...step, hasPointCoin: false }));
 
   return {
     steps,

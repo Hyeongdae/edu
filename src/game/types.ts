@@ -83,6 +83,7 @@ export interface GameState {
   endReason: GameEndReason | null;
   score: number;
   pointCoinSeed: number;
+  collectedPointCoinIndices: number[];
   stepsClimbed: number;
   highestClearedStage: ClearedStage;
   clearedStageThisRun: ClearedStage;

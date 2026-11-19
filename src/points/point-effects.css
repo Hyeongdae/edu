@@ -1,0 +1,7 @@
+.point-coin { animation: point-coin-bob 850ms steps(2, end) infinite alternate; }
+.player-step-effect { pointer-events: none; transform-origin: center bottom; animation: player-step-burst 520ms steps(5, end) both; }
+.point-gain-feedback { position: absolute; z-index: 8; left: 50%; top: 53%; color: #ffe27b; font: 700 18px/1 monospace; text-shadow: 2px 2px #17283f; pointer-events: none; animation: point-gain-float 650ms steps(5, end) both; }
+@keyframes point-coin-bob { to { transform: translateY(-3px); } }
+@keyframes player-step-burst { 0% { opacity: 1; transform: scale(.5); } 65% { opacity: 1; transform: scale(1.1); } 100% { opacity: 0; transform: scale(1.3) translateY(-5px); } }
+@keyframes point-gain-float { 0% { opacity: 0; transform: translate(-50%, 6px); } 15% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -22px); } }
+@media (prefers-reduced-motion: reduce) { .point-coin, .player-step-effect, .point-gain-feedback { animation-duration: 1ms; animation-iteration-count: 1; } }

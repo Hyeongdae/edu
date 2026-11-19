@@ -17,6 +17,7 @@ export interface InfiniteGameState {
   endReason: InfiniteEndReason | null;
   score: number;
   pointCoinSeed: number;
+  collectedPointCoinIndices: number[];
   stepsClimbed: number;
   direction: Direction;
   straightStepsRemaining: number;

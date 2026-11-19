@@ -30,7 +30,8 @@ function validatePursuit(state: GameState): void {
     throw new RangeError("Invalid checkpoint session.");
   }
   if (
-    !Number.isSafeInteger(state.pointCoinSeed) ||
+    !Number.isSafeInteger(state.pointCoinSeed) || !Array.isArray(state.collectedPointCoinIndices) ||
+    state.collectedPointCoinIndices.some((index, position, all) => !Number.isSafeInteger(index) || index < state.route.steps[0].index || index > state.stepsClimbed || (position > 0 && all[position - 1] >= index)) ||
     !Number.isSafeInteger(state.stepsClimbed) || state.stepsClimbed < 0 ||
     !Number.isSafeInteger(state.pursuerIndex) || !Number.isSafeInteger(state.pursuerDistance) ||
     state.pursuerDistance < 1 || state.pursuerDistance !== state.stepsClimbed - state.pursuerIndex ||
@@ -63,7 +64,8 @@ function validatePursuit(state: GameState): void {
 function retainPursuitRoute(state: GameState): GameState {
   const oldest = Math.min(state.stepsClimbed - 4, state.pursuerIndex, state.lastPursuerMove?.fromIndex ?? state.pursuerIndex);
   if (state.route.steps[0].index === oldest && state.route.steps.at(-1)!.index >= state.stepsClimbed + 18) return state;
-  return { ...state, route: advanceStairRoute(state.route, state.stepsClimbed, oldest) };
+  const route = advanceStairRoute(state.route, state.stepsClimbed, oldest);
+  return { ...state, route, collectedPointCoinIndices: state.collectedPointCoinIndices.filter((index) => index >= route.steps[0].index) };
 }
 
 function getNextPursuerStepAt(state: GameState, atMs: number): number {
@@ -85,7 +87,7 @@ export function createGameState(random: () => number = Math.random, options: Gam
   const pointCoinSeed = createPointCoinSeed(random);
   return {
     status: "ready", stage, stageEndsAt: null, stageResult: null, endReason: null,
-    score: 0, pointCoinSeed, highestClearedStage: highest, clearedStageThisRun: 0, checkpointEnteredAt: null,
+    score: 0, pointCoinSeed, collectedPointCoinIndices: [], highestClearedStage: highest, clearedStageThisRun: 0, checkpointEnteredAt: null,
     stepsClimbed: 0, direction: "right",
     straightStepsRemaining: countStraightSteps(route, 0, "right"),
     pursuerDistance: INITIAL_PURSUER_DISTANCE, pursuerIndex: -INITIAL_PURSUER_DISTANCE,
@@ -213,6 +215,8 @@ export function applyInput(state: GameState, input: GameInput, nowMs: number): G
   const isPursuerCatchingUp = getPursuerCatchUpState(currentState.isPursuerCatchingUp, pursuerDistance);
   const movedState: GameState = {
     ...currentState, score, stepsClimbed: nextStepsClimbed, direction: landingStep.direction,
+    collectedPointCoinIndices: [...currentState.collectedPointCoinIndices, ...getCollectedPointCoinIndices(currentState.pointCoinSeed, currentState.stepsClimbed,
+      nextStepsClimbed, (index) => hasObstacle(currentState.obstacles, index))].filter((index) => index >= oldest),
     straightStepsRemaining: countStraightSteps(route, nextStepsClimbed, landingStep.direction),
     pursuerDistance, isPursuerCatchingUp,
     nextPursuerStepAt: isPursuerCatchingUp && !currentState.isPursuerCatchingUp
