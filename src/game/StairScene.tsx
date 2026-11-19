@@ -161,7 +161,7 @@ export function StairScene({ appearance, state, climbAnimationKey, isClimbing, p
           )}
           {climbing && <g className={jumping ? "jump-overlay" : "step-overlay"}>{runner}{stairFront(model.player)}</g>}
           {equippedEffect && state.lastMove?.toIndex === model.player.index && !isPursuerCaught &&
-            <g className="player-effect-overlay" transform={`translate(${model.player.x} ${model.player.y + 3})`}>
+            <g className="player-effect-overlay" data-testid="player-effect-anchor" transform={`translate(${model.player.x} ${model.player.y})`}>
               <PlayerStepEffect effect={equippedEffect} animationKey={stepEffectKey} />
             </g>}
           {isPursuerCaught && (

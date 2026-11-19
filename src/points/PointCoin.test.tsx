@@ -13,6 +13,7 @@ describe("pixel point pickups", () => {
     if (effect === "fire") {
       expect(getByTestId("player-step-effect").querySelector(".step-fire-flames")).not.toBeNull();
       expect(getByTestId("player-step-effect").querySelector(".step-fire-flame--right")).toHaveClass("step-fire-flame--right");
+      expect(getByTestId("player-step-effect")).toHaveStyle({ transformBox: "fill-box", transformOrigin: "center bottom" });
     }
   });
 });

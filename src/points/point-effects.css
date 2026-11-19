@@ -4,6 +4,7 @@
 .step-fire-flame--right { animation: step-fire-rise-right 520ms steps(4, end) both; transform-origin: 0 0; }
 .step-fire-core { animation: step-fire-core 460ms steps(4, end) both; }
 .step-fire-core-highlight { animation: step-fire-core 420ms steps(4, end) both reverse; }
+.step-fire-flame--left, .step-fire-flame--right, .step-fire-core, .step-fire-core-highlight { transform-box: fill-box; }
 .point-gain-feedback { position: absolute; z-index: 8; left: 50%; top: 53%; color: #ffe27b; font: 700 18px/1 monospace; text-shadow: 2px 2px #17283f; pointer-events: none; animation: point-gain-float 650ms steps(5, end) both; }
 @keyframes point-coin-bob { to { transform: translateY(-3px); } }
 @keyframes player-step-burst { 0% { opacity: 1; transform: scale(.5); } 65% { opacity: 1; transform: scale(1.1); } 100% { opacity: 0; transform: scale(1.3) translateY(-5px); } }

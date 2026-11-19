@@ -48,7 +48,7 @@ export function InfiniteStairScene({ appearance, state, isMoving, motionDuration
             <PixelOfficer appearance={appearance?.runner} variant="young" direction={model.player.direction} pose={state.status === "game-over" ? "fall" : isMoving ? "climb" : "idle"} />
           </g>
           {equippedEffect && state.lastMove?.toIndex === model.player.index && state.status !== "game-over" &&
-            <g className="player-effect-overlay" transform={`translate(${model.player.x} ${model.player.y + 3})`}>
+            <g className="player-effect-overlay" data-testid="player-effect-anchor" transform={`translate(${model.player.x} ${model.player.y - 12})`}>
               <PlayerStepEffect effect={equippedEffect} animationKey={stepEffectKey} />
             </g>}
           {model.pursuerVisible && (

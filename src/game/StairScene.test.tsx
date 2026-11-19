@@ -212,4 +212,13 @@ describe("main downward staircase scene", () => {
     view.rerender(<StairScene {...props(before)} />);
     expect(screen.getAllByTestId("stair-step").some(step => Number(step.dataset.routeIndex) === moved.lastPursuerMove!.fromIndex)).toBe(true);
   });
+
+  it("anchors the equipped footstep effect to the runner's feet", () => {
+    const before = initial();
+    const next = getRouteStep(before.route, 1);
+    const state = applyInput(before, next.direction === before.direction ? "forward" : "turn", 1);
+    render(<StairScene {...props(state, true)} equippedEffect="fire" stepEffectKey={1} />);
+    expect(screen.getByTestId("player-effect-anchor").getAttribute("transform"))
+      .toBe(screen.getByTestId("runner").getAttribute("transform"));
+  });
 });

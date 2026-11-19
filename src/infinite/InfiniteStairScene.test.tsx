@@ -56,4 +56,11 @@ describe("InfiniteStairScene", () => {
     expect(container.querySelector("[data-testid='stair-obstacle']")).toBeNull();
     expect(container.querySelector("[data-testid='infinite-jump-control']")).toBeNull();
   });
+
+  it("anchors the equipped footstep effect at the player's shoe baseline", () => {
+    const state = applyInfiniteInput(startInfiniteGame(createInfiniteGameState(() => 0), 0), "forward", 1);
+    render(<InfiniteStairScene state={state} isMoving={true} motionDurationMs={100} equippedEffect="fire" stepEffectKey={1} />);
+    expect(screen.getByTestId("player-effect-anchor").getAttribute("transform"))
+      .toBe(screen.getByTestId("infinite-player").getAttribute("transform"));
+  });
 });
