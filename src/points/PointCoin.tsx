@@ -13,7 +13,7 @@ export function PlayerStepEffect({ effect, animationKey }: { effect: PointEffect
   if (!effect) return null;
   return <g key={`${effect}-${animationKey}`} className={`player-step-effect is-${effect}`} data-testid="player-step-effect" data-effect={effect}
     style={{ transformBox: "fill-box", transformOrigin: "center bottom" }}>
-    {effect === "fire" && <g className="step-fire-flames">
+    {effect === "fire" && <g className="step-fire-flames" transform="scale(1.4)">
       <path className="step-fire-flame step-fire-flame--left" d="M-16 2v-8h4v-7h4v-7h4v8h4v7h3v7Z" fill="#f4512b" />
       <path className="step-fire-flame step-fire-flame--right" d="M-3 2v-7h4v-8h4v-8h4v7h4v9h3v7Z" fill="#ff812d" />
       <path className="step-fire-core" d="M-8 2v-6h3v-7h4v5h4v8Z" fill="#ffd85a" />
